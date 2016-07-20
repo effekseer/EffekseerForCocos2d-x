@@ -55,6 +55,7 @@ class CreateCPP:
 rootDir = '../Effekseer/Dev/Cpp/'
 rootEDir = rootDir + 'Effekseer/Effekseer/'
 rootRDir = rootDir + 'EffekseerRendererCommon/'
+rootGDir = rootDir + 'EffekseerRendererGL/EffekseerRenderer/'
 
 effekseerHeader = CreateHeader()
 effekseerHeader.readLines(rootEDir + 'Effekseer.Base.Pre.h')
@@ -97,7 +98,6 @@ effekseerHeader.readLines(rootEDir + 'Effekseer.Thread.h')
 effekseerHeader.output('Players/Cocos2d-x_v3/EffekseerNative.h')
 
 effekseerCPP = CreateCPP()
-effekseerCPP.addLine('#include "EffekseerPrivatePCH.h"  // UE4')
 effekseerCPP.addLine('#define _WINSOCK_DEPRECATED_NO_WARNINGS')
 effekseerCPP.addLine('#define _WINSOCKAPI_')
 effekseerCPP.addLine('#include "EffekseerNative.h"')
@@ -114,9 +114,7 @@ effekseerCPP.addLine('#include <fstream>')
 effekseerCPP.addLine('#include <memory>')
 
 effekseerCPP.addLine('#ifdef _WIN32')
-effekseerCPP.addLine('#include "AllowWindowsPlatformTypes.h"  // UE4')
 effekseerCPP.addLine('#include <winsock2.h>')
-effekseerCPP.addLine('#include "HideWindowsPlatformTypes.h"  // UE4')
 effekseerCPP.addLine('#pragma comment( lib, "ws2_32.lib" )')
 effekseerCPP.addLine('#else')
 effekseerCPP.addLine('#include <sys/types.h>')
@@ -221,13 +219,28 @@ rendererHeader.readLines(rootRDir + 'EffekseerRenderer.StandardRenderer.h')
 rendererHeader.readLines(rootRDir + 'EffekseerRenderer.TrackRendererBase.h')
 rendererHeader.readLines(rootRDir + 'EffekseerRenderer.VertexBufferBase.h')
 rendererHeader.readLines(rootRDir + 'EffekseerRenderer.VertexBufferBase.h')
+
+rendererHeader.readLines(rootGDir+'EffekseerRendererGL.Base.Pre.h')
+
+
 rendererHeader.replace('#include <Effekseer.h>','#include "EffekseerNative.h"')
 
 rendererHeader.output('Players/Cocos2d-x_v3/EffekseerRendererNative.h')
 
+
+
 rendererCPP = CreateCPP()
-rendererCPP.addLine('#include "EffekseerPrivatePCH.h"  // UE4')
 rendererCPP.addLine('#include "EffekseerRendererNative.h"')
+rendererCPP.addLine('#include <memory>')
+rendererCPP.addLine('#include <set>')
+
+rendererCPP.addLine('#ifdef _WIN32')
+rendererCPP.addLine('#include <GL/glu.h>')
+rendererCPP.addLine('#else')
+rendererCPP.addLine('#endif')
+
+
+
 rendererCPP.readLines(rootRDir + 'EffekseerRenderer.IndexBufferBase.cpp')
 rendererCPP.readLines(rootRDir + 'EffekseerRenderer.ModelRendererBase.cpp')
 rendererCPP.readLines(rootRDir + 'EffekseerRenderer.Renderer.cpp')
@@ -237,8 +250,42 @@ rendererCPP.readLines(rootRDir + 'EffekseerRenderer.RingRendererBase.cpp')
 rendererCPP.readLines(rootRDir + 'EffekseerRenderer.SpriteRendererBase.cpp')
 rendererCPP.readLines(rootRDir + 'EffekseerRenderer.TrackRendererBase.cpp')
 rendererCPP.readLines(rootRDir + 'EffekseerRenderer.VertexBufferBase.cpp')
-rendererCPP.output('Players/Cocos2d-x_v3/EffekseerRendererNative.cpp')
 
+rendererCPP.readLines(rootGDir+'EffekseerRendererGL.Base.h')
+rendererCPP.readLines(rootGDir+'EffekseerRendererGL.DeviceObject.h')
+rendererCPP.readLines(rootGDir+'EffekseerRendererGL.GLExtension.h')
+rendererCPP.readLines(rootGDir+'EffekseerRendererGL.IndexBuffer.h')
+rendererCPP.readLines(rootGDir+'EffekseerRendererGL.ModelLoader.h')
+rendererCPP.readLines(rootGDir+'EffekseerRendererGL.ModelRenderer.h')
+rendererCPP.readLines(rootGDir+'EffekseerRendererGL.Renderer.h')
+rendererCPP.readLines(rootGDir+'EffekseerRendererGL.RendererImplemented.h')
+rendererCPP.readLines(rootGDir+'EffekseerRendererGL.RenderState.h')
+rendererCPP.readLines(rootGDir+'EffekseerRendererGL.RibbonRenderer.h')
+rendererCPP.readLines(rootGDir+'EffekseerRendererGL.RingRenderer.h')
+rendererCPP.readLines(rootGDir+'EffekseerRendererGL.Shader.h')
+rendererCPP.readLines(rootGDir+'EffekseerRendererGL.SpriteRenderer.h')
+rendererCPP.readLines(rootGDir+'EffekseerRendererGL.TextureLoader.h')
+rendererCPP.readLines(rootGDir+'EffekseerRendererGL.TrackRenderer.h')
+rendererCPP.readLines(rootGDir+'EffekseerRendererGL.VertexArray.h')
+rendererCPP.readLines(rootGDir+'EffekseerRendererGL.VertexBuffer.h')
+
+rendererCPP.readLines(rootGDir+'EffekseerRendererGL.DeviceObject.cpp')
+rendererCPP.readLines(rootGDir+'EffekseerRendererGL.GLExtension.cpp')
+rendererCPP.readLines(rootGDir+'EffekseerRendererGL.IndexBuffer.cpp')
+rendererCPP.readLines(rootGDir+'EffekseerRendererGL.ModelLoader.cpp')
+rendererCPP.readLines(rootGDir+'EffekseerRendererGL.ModelRenderer.cpp')
+rendererCPP.readLines(rootGDir+'EffekseerRendererGL.Renderer.cpp')
+rendererCPP.readLines(rootGDir+'EffekseerRendererGL.RenderState.cpp')
+rendererCPP.readLines(rootGDir+'EffekseerRendererGL.RibbonRenderer.cpp')
+rendererCPP.readLines(rootGDir+'EffekseerRendererGL.RingRenderer.cpp')
+rendererCPP.readLines(rootGDir+'EffekseerRendererGL.Shader.cpp')
+rendererCPP.readLines(rootGDir+'EffekseerRendererGL.SpriteRenderer.cpp')
+rendererCPP.readLines(rootGDir+'EffekseerRendererGL.TextureLoader.cpp')
+rendererCPP.readLines(rootGDir+'EffekseerRendererGL.TrackRenderer.cpp')
+rendererCPP.readLines(rootGDir+'EffekseerRendererGL.VertexArray.cpp')
+rendererCPP.readLines(rootGDir+'EffekseerRendererGL.VertexBuffer.cpp')
+
+rendererCPP.output('Players/Cocos2d-x_v3/EffekseerRendererNative.cpp')
 
 
 
