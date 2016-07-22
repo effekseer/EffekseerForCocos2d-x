@@ -1,5 +1,3 @@
-// based on https://github.com/effekseer/EffekseerForDXLib/blob/master/Dev/EffekseerForDXLib/EffekseerForDXLib.cpp
-
 #include "HelloWorldScene.h"
 #include "Effekseer/Effekseer.h"
 
@@ -104,6 +102,7 @@ void TextureLoader::Unload(void* data)
 static ::Effekseer::Manager*				g_manager2d = NULL;
 static ::EffekseerRendererGL::Renderer*		g_renderer2d = NULL;
 static cocos2d::CustomCommand				g_customCommand;
+Effekseer::FileInterface*					g_effectFile = nullptr;
 USING_NS_CC;
 
 Scene* HelloWorld::createScene()
@@ -145,13 +144,17 @@ bool HelloWorld::init()
 			::Effekseer::Vector3D(visibleSize.width / 2.0f, visibleSize.height / 2.0f, -200.0f),
 			::Effekseer::Vector3D(0.0f, 1.0f, 0.0f)));
 
+	g_effectFile = new Effekseer::EffekseerFile();
+	g_manager2d->SetEffectLoader(Effekseer::Effect::CreateEffectLoader(g_effectFile));
+
 	g_manager2d->SetSpriteRenderer(g_renderer2d->CreateSpriteRenderer());
 	g_manager2d->SetRibbonRenderer(g_renderer2d->CreateRibbonRenderer());
 	g_manager2d->SetRingRenderer(g_renderer2d->CreateRingRenderer());
 	g_manager2d->SetModelRenderer(g_renderer2d->CreateModelRenderer());
 	g_manager2d->SetTrackRenderer(g_renderer2d->CreateTrackRenderer());
 
-	g_manager2d->SetTextureLoader(new TextureLoader());
+	g_manager2d->SetTextureLoader(new TextureLoader(g_effectFile));
+	g_manager2d->SetModelLoader(g_renderer2d->CreateModelLoader(g_effectFile));
     return true;
 }
 
@@ -179,6 +182,7 @@ HelloWorld::~HelloWorld()
 {
 	g_manager2d->Destroy();
 	g_renderer2d->Destory();
+	ES_SAFE_DELETE(g_effectFile);
 }
 
 void HelloWorld::draw(Renderer *renderer, const Mat4 &transform, uint32_t flags)
