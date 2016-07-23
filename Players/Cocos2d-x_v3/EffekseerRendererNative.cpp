@@ -1142,13 +1142,11 @@ struct RenderStateSet
 */
 class RendererImplemented
 	: public Renderer
+	, public ::Effekseer::ReferenceObject
 {
 friend class DeviceObject;
 
 private:
-	/* 参照カウンタ */
-	int	m_reference;
-
 	VertexBuffer*		m_vertexBuffer;
 	IndexBuffer*		m_indexBuffer;
 	int32_t				m_squareMaxCount;
@@ -1211,18 +1209,6 @@ public:
 		@brief	初期化
 	*/
 	bool Initialize();
-
-	/**
-		@brief	参照カウンタを加算する。
-		@return	実行後の参照カウンタの値
-	*/
-	int AddRef();
-
-	/**
-		@brief	参照カウンタを減算する。
-		@return	実行後の参照カウンタの値
-	*/
-	int Release();
 
 	void Destory();
 
@@ -1380,6 +1366,10 @@ public:
 	void ResetRenderState();
 
 	std::vector<GLuint>& GetCurrentTextures() { return m_currentTextures; }
+
+	virtual int GetRef() { return ::Effekseer::ReferenceObject::GetRef(); }
+	virtual int AddRef() { return ::Effekseer::ReferenceObject::AddRef(); }
+	virtual int Release() { return ::Effekseer::ReferenceObject::Release(); }
 };
 
 //----------------------------------------------------------------------------------
@@ -3948,8 +3938,7 @@ Renderer* Renderer::Create( int32_t squareMaxCount )
 //
 //----------------------------------------------------------------------------------
 RendererImplemented::RendererImplemented( int32_t squareMaxCount )
-	: m_reference	( 1 )
-	, m_vertexBuffer( NULL )
+	: m_vertexBuffer( NULL )
 	, m_indexBuffer	( NULL )
 	, m_squareMaxCount	( squareMaxCount )
 	, m_renderState		( NULL )
@@ -3991,7 +3980,7 @@ RendererImplemented::~RendererImplemented()
 	EffekseerRenderer::PngTextureLoader::Finalize();
 #endif
 
-	assert( m_reference == 0 );
+	assert( GetRef() == 0 );
 
 	ES_SAFE_DELETE(m_distortingCallback);
 
@@ -4014,11 +4003,11 @@ RendererImplemented::~RendererImplemented()
 
 	if (isVaoEnabled)
 	{
-		assert(m_reference == -10);
+		assert(GetRef() == -10);
 	}
 	else
 	{
-		assert(m_reference == -6);
+		assert(GetRef() == -6);
 	}
 }
 
@@ -4270,29 +4259,6 @@ bool RendererImplemented::Initialize()
 	m_standardRenderer = new EffekseerRenderer::StandardRenderer<RendererImplemented, Shader, GLuint, Vertex, VertexDistortion>(this, m_shader, m_shader_no_texture, m_shader_distortion, m_shader_no_texture_distortion);
 
 	return true;
-}
-
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-int RendererImplemented::AddRef()
-{
-	m_reference++;
-	return m_reference;
-}
-
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-int RendererImplemented::Release()
-{
-	m_reference--;
-	int count = m_reference;
-	if ( count == 0 )
-	{
-		delete this;
-	}
-	return count;
 }
 
 //----------------------------------------------------------------------------------

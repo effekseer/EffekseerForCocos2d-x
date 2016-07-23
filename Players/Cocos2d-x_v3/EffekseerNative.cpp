@@ -4872,6 +4872,7 @@ public:
 // Include
 //----------------------------------------------------------------------------------
 
+
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
@@ -5508,7 +5509,8 @@ enum eRenderingOrder
 	@note
 	エフェクトのノードの実体を生成する。
 */
-class EffectNode
+class EffectNodeImplemented
+	: public EffectNode
 {
 	friend class Manager;
 	friend class EffectImplemented;
@@ -5519,16 +5521,16 @@ protected:
 	Effect*	m_effect;
 
 	// 子ノード
-	std::vector<EffectNode*>	m_Nodes;
+	std::vector<EffectNodeImplemented*>	m_Nodes;
 
 	// ユーザーデータ
 	void* m_userData;
 
 	// コンストラクタ
-	EffectNode( Effect* effect, unsigned char*& pos );
+	EffectNodeImplemented(Effect* effect, unsigned char*& pos);
 
 	// デストラクタ
-	virtual ~EffectNode();
+	virtual ~EffectNodeImplemented();
 
 	// 読込
 	void LoadParameter( unsigned char*& pos, EffectNode* parent, Setting* setting );
@@ -5584,20 +5586,15 @@ public:
 	*/
 	void LoadOption( uint8_t*& pos );
 
-	/**
-		@brief	所属しているエフェクトの取得
-	*/
-	Effect* GetEffect() const;
+	Effect* GetEffect() const override;
 
-	/**
-		@brief	子の数取得
-	*/
-	int GetChildrenCount() const;
+	int GetChildrenCount() const override;
 
-	/**
-		@brief	子の取得
-	*/
-	EffectNode* GetChild( int num ) const;
+	EffectNode* GetChild( int index ) const override;
+
+	EffectBasicRenderParameter GetBasicRenderParameter() override;
+
+	void SetBasicRenderParameter(EffectBasicRenderParameter param) override;
 
 	/**
 		@brief	描画部分の読込
@@ -5652,7 +5649,7 @@ public:
 	/**
 		@brief	エフェクトノード生成
 	*/
-	static EffectNode* Create( Effect* effect, EffectNode* parent, unsigned char*& pos );
+	static EffectNodeImplemented* Create(Effect* effect, EffectNode* parent, unsigned char*& pos);
 
 	/**
 		@brief	ノードの種類取得
@@ -5688,7 +5685,7 @@ namespace Effekseer
 //
 //----------------------------------------------------------------------------------
 class EffectNodeModel
-	: public EffectNode
+	: public EffectNodeImplemented
 {
 	friend class Manager;
 	friend class Effect;
@@ -5738,7 +5735,7 @@ public:
 	StandardColorParameter	AllColor;
 
 	EffectNodeModel( Effect* effect, unsigned char*& pos )
-		: EffectNode( effect, pos )
+		: EffectNodeImplemented(effect, pos)
 	{
 	}
 
@@ -5869,7 +5866,7 @@ struct RibbonPositionParameter
 //
 //----------------------------------------------------------------------------------
 class EffectNodeRibbon
-	: public EffectNode
+	: public EffectNodeImplemented
 {
 public:
 
@@ -5926,7 +5923,7 @@ public:
 	int RibbonTexture;
 
 	EffectNodeRibbon( Effect* effect, unsigned char*& pos )
-		: EffectNode( effect, pos )
+		: EffectNodeImplemented(effect, pos)
 	{
 	}
 
@@ -6132,7 +6129,7 @@ struct RingColorValues
 //
 //----------------------------------------------------------------------------------
 class EffectNodeRing
-	: public EffectNode
+	: public EffectNodeImplemented
 {
 	friend class Manager;
 	friend class Effect;
@@ -6172,7 +6169,7 @@ public:
 	int RingTexture;
 
 	EffectNodeRing( Effect* effect, unsigned char*& pos )
-		: EffectNode( effect, pos )
+		: EffectNodeImplemented(effect, pos)
 	{
 	}
 
@@ -6240,7 +6237,7 @@ namespace Effekseer
 //----------------------------------------------------------------------------------
 	
 class EffectNodeRoot
-	: public EffectNode
+	: public EffectNodeImplemented
 {
 	friend class Manager;
 	friend class Effect;
@@ -6252,7 +6249,7 @@ protected:
 
 public:
 	EffectNodeRoot( Effect* effect, unsigned char*& pos )
-		: EffectNode( effect, pos )
+		: EffectNodeImplemented(effect, pos)
 	{
 	}
 
@@ -6343,7 +6340,7 @@ struct SpritePositionParameter
 //
 //----------------------------------------------------------------------------------
 class EffectNodeSprite
-	: public EffectNode
+	: public EffectNodeImplemented
 {
 	friend class Manager;
 	friend class Effect;
@@ -6406,7 +6403,7 @@ public:
 	int SpriteTexture;
 
 	EffectNodeSprite( Effect* effect, unsigned char*& pos )
-		: EffectNode( effect, pos )
+		: EffectNodeImplemented(effect, pos)
 	{
 	}
 
@@ -6471,7 +6468,7 @@ struct TrackSizeParameter
 //
 //----------------------------------------------------------------------------------
 class EffectNodeTrack
-	: public EffectNode
+	: public EffectNodeImplemented
 {
 public:
 
@@ -6569,7 +6566,7 @@ public:
 	int TrackTexture;
 
 	EffectNodeTrack( Effect* effect, unsigned char*& pos )
-		: EffectNode( effect, pos )
+		: EffectNodeImplemented(effect, pos)
 		, TrackTexture	( -1 )
 	{
 	}
@@ -6636,6 +6633,7 @@ namespace Effekseer
 
 class EffectImplemented
 	: public Effect
+	, public ReferenceObject
 {
 	friend class ManagerImplemented;
 private:
@@ -6643,7 +6641,7 @@ private:
 
 	Setting*	m_setting;
 
-	int	m_reference;
+	mutable std::atomic<int32_t> m_reference;
 
 	int	m_version;
 
@@ -6734,16 +6732,6 @@ public:
 	*/
 	void Reset();
 
-	/**
-		@brief	参照カウンタ加算
-	*/
-	int AddRef();
-
-	/**
-		@brief	参照カウンタ減算
-	*/
-	int Release();
-
 private:
 	/**
 		@brief	マネージャー取得
@@ -6825,6 +6813,10 @@ public:
 		@brief	画像等リソースの破棄を行う。
 	*/
 	void UnloadResources();
+
+	virtual int GetRef() { return ReferenceObject::GetRef(); }
+	virtual int AddRef() { return ReferenceObject::AddRef(); }
+	virtual int Release() { return ReferenceObject::Release(); }
 };
 //----------------------------------------------------------------------------------
 //
@@ -6856,6 +6848,7 @@ namespace Effekseer
 */
 class ManagerImplemented
 	: public Manager
+	, public ReferenceObject
 {
 	friend class Effect;
 	friend class EffectNode;
@@ -6948,9 +6941,6 @@ private:
 	} cullingCurrent, cullingNext;
 
 private:
-	/* 参照カウンタ */
-	int	m_reference;
-
 	/* 自動データ入れ替えフラグ */
 	bool m_autoFlip;
 
@@ -6980,7 +6970,7 @@ private:
 	CriticalSection				m_renderingSession;
 
 	/* 設定インスタンス */
-	Setting*						m_setting;
+	Setting*					m_setting;
 
 	int							m_updateTime;
 	int							m_drawTime;
@@ -7059,18 +7049,6 @@ public:
 
 	/* Root以外のインスタンスバッファ取得(Flip,Update,終了時からのみ呼ばれる) */
 	Instance* PopInstance();
-
-	/**
-		@brief	参照カウンタを加算する。
-		@return	実行後の参照カウンタの値
-	*/
-	int AddRef();
-
-	/**
-		@brief	参照カウンタを減算する。
-		@return	実行後の参照カウンタの値
-	*/
-	int Release();
 
 	/**
 		@brief マネージャー破棄
@@ -7429,6 +7407,10 @@ public:
 		@brief	現在存在するエフェクトのハンドルからカリングの空間を配置しなおす。
 	*/
 	void RessignCulling() override;
+
+	virtual int GetRef() { return ReferenceObject::GetRef(); }
+	virtual int AddRef() { return ReferenceObject::AddRef(); }
+	virtual int Release() { return ReferenceObject::Release(); }
 };
 //----------------------------------------------------------------------------------
 //
@@ -7470,7 +7452,7 @@ private:
 	Manager*	m_pManager;
 
 	// パラメーター
-	EffectNode* m_pEffectNode;
+	EffectNodeImplemented* m_pEffectNode;
 
 	// グローバル
 	InstanceGlobal*	m_pGlobal;
@@ -7578,7 +7560,7 @@ public:
 	Manager*	m_pManager;
 
 	// パラメーター
-	EffectNode* m_pEffectNode;
+	EffectNodeImplemented* m_pEffectNode;
 
 	// コンテナ
 	InstanceContainer*	m_pContainer;
@@ -7926,7 +7908,7 @@ friend class InstanceContainer;
 
 private:
 	ManagerImplemented*		m_manager;
-	EffectNode*			m_effectNode;
+	EffectNodeImplemented*	m_effectNode;
 	InstanceContainer*	m_container;
 	InstanceGlobal*		m_global;
 	int32_t				m_time;
@@ -8262,7 +8244,7 @@ namespace Effekseer
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-EffectNode::EffectNode( Effect* effect, unsigned char*& pos )
+EffectNodeImplemented::EffectNodeImplemented(Effect* effect, unsigned char*& pos)
 	: m_effect		( effect )
 	, IsRendered		( true )
 	, SoundType			( ParameterSoundType_None )
@@ -8277,7 +8259,7 @@ EffectNode::EffectNode( Effect* effect, unsigned char*& pos )
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-void EffectNode::LoadParameter(unsigned char*& pos, EffectNode* parent, Setting* setting)
+void EffectNodeImplemented::LoadParameter(unsigned char*& pos, EffectNode* parent, Setting* setting)
 {
 	int size = 0;
 	int node_type = 0;
@@ -8728,14 +8710,14 @@ void EffectNode::LoadParameter(unsigned char*& pos, EffectNode* parent, Setting*
 	m_Nodes.resize( nodeCount );
 	for( size_t i = 0; i < m_Nodes.size(); i++ )
 	{
-		m_Nodes[i] = EffectNode::Create( m_effect, this, pos );
+		m_Nodes[i] = EffectNodeImplemented::Create(m_effect, this, pos);
 	}
 }
 
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-EffectNode::~EffectNode()
+EffectNodeImplemented::~EffectNodeImplemented()
 {
 	for( size_t i = 0; i < m_Nodes.size(); i++ )
 	{
@@ -8750,7 +8732,7 @@ EffectNode::~EffectNode()
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-void EffectNode::LoadOption( uint8_t*& pos )
+void EffectNodeImplemented::LoadOption(uint8_t*& pos)
 {
 	int is_rendered = 0;
 	memcpy( &is_rendered, pos, sizeof(int) );
@@ -8771,7 +8753,7 @@ void EffectNode::LoadOption( uint8_t*& pos )
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-Effect* EffectNode::GetEffect() const
+Effect* EffectNodeImplemented::GetEffect() const
 {
 	return m_effect;
 }
@@ -8779,7 +8761,7 @@ Effect* EffectNode::GetEffect() const
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-int EffectNode::GetChildrenCount() const
+int EffectNodeImplemented::GetChildrenCount() const
 {
 	return (int)m_Nodes.size();
 }
@@ -8787,16 +8769,43 @@ int EffectNode::GetChildrenCount() const
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-EffectNode* EffectNode::GetChild( int num ) const
+EffectNode* EffectNodeImplemented::GetChild(int index) const
 {
-	if( num >= GetChildrenCount() ) return NULL;
-	return m_Nodes[ num ];
+	if (index >= GetChildrenCount()) return NULL;
+	return m_Nodes[index];
+}
+
+
+EffectBasicRenderParameter EffectNodeImplemented::GetBasicRenderParameter()
+{
+	EffectBasicRenderParameter param;
+	param.ColorTextureIndex = Texture.ColorTextureIndex;
+	param.AlphaBlend = Texture.AlphaBlend;
+	param.Distortion = Texture.Distortion;
+	param.DistortionIntensity = Texture.DistortionIntensity;
+	param.FilterType = Texture.FilterType;
+	param.WrapType = Texture.WrapType;
+	param.ZTest = Texture.ZTest;
+	param.ZWrite = Texture.ZWrite;
+	return param;
+}
+
+void EffectNodeImplemented::SetBasicRenderParameter(EffectBasicRenderParameter param)
+{
+	Texture.ColorTextureIndex = param.ColorTextureIndex;
+	Texture.AlphaBlend = param.AlphaBlend;
+	Texture.Distortion = param.Distortion;
+	Texture.DistortionIntensity = param.DistortionIntensity;
+	Texture.FilterType = param.FilterType;
+	Texture.WrapType = param.WrapType;
+	Texture.ZTest = param.ZTest;
+	Texture.ZWrite = param.ZWrite;
 }
 
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-void EffectNode::LoadRendererParameter(unsigned char*& pos, Setting* setting)
+void EffectNodeImplemented::LoadRendererParameter(unsigned char*& pos, Setting* setting)
 {
 	int32_t type = 0;
 	memcpy( &type, pos, sizeof(int) );
@@ -8808,56 +8817,56 @@ void EffectNode::LoadRendererParameter(unsigned char*& pos, Setting* setting)
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-void EffectNode::BeginRendering(int32_t count, Manager* manager)
+void EffectNodeImplemented::BeginRendering(int32_t count, Manager* manager)
 {
 }
 
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-void EffectNode::BeginRenderingGroup(InstanceGroup* group, Manager* manager)
+void EffectNodeImplemented::BeginRenderingGroup(InstanceGroup* group, Manager* manager)
 {
 }
 
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-void EffectNode::Rendering(const Instance& instance, Manager* manager)
+void EffectNodeImplemented::Rendering(const Instance& instance, Manager* manager)
 {
 }
 
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-void EffectNode::EndRendering(Manager* manager)
+void EffectNodeImplemented::EndRendering(Manager* manager)
 {
 }
 
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-void EffectNode::InitializeRenderedInstanceGroup(InstanceGroup& instanceGroup, Manager* manager)
+void EffectNodeImplemented::InitializeRenderedInstanceGroup(InstanceGroup& instanceGroup, Manager* manager)
 {
 }
 
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-void EffectNode::InitializeRenderedInstance(Instance& instance, Manager* manager)
+void EffectNodeImplemented::InitializeRenderedInstance(Instance& instance, Manager* manager)
 {
 }
 
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-void EffectNode::UpdateRenderedInstance(Instance& instance, Manager* manager)
+void EffectNodeImplemented::UpdateRenderedInstance(Instance& instance, Manager* manager)
 {
 }
 
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-float EffectNode::GetFadeAlpha( const Instance& instance )
+float EffectNodeImplemented::GetFadeAlpha(const Instance& instance)
 {
 	float alpha = 1.0f;
 
@@ -8891,7 +8900,7 @@ float EffectNode::GetFadeAlpha( const Instance& instance )
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-void EffectNode::PlaySound_(Instance& instance, SoundTag tag, Manager* manager)
+void EffectNodeImplemented::PlaySound_(Instance& instance, SoundTag tag, Manager* manager)
 {
 	SoundPlayer* player = manager->GetSoundPlayer();
 	if( player == NULL )
@@ -8919,9 +8928,9 @@ void EffectNode::PlaySound_(Instance& instance, SoundTag tag, Manager* manager)
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-EffectNode* EffectNode::Create( Effect* effect, EffectNode* parent, unsigned char*& pos )
+EffectNodeImplemented* EffectNodeImplemented::Create(Effect* effect, EffectNode* parent, unsigned char*& pos)
 {
-	EffectNode* effectnode = NULL;
+	EffectNodeImplemented* effectnode = NULL;
 
 	int node_type = 0;
 	memcpy( &node_type, pos, sizeof(int) );
@@ -8934,7 +8943,7 @@ EffectNode* EffectNode::Create( Effect* effect, EffectNode* parent, unsigned cha
 	else if( node_type == EFFECT_NODE_TYPE_NONE )
 	{
 		EffekseerPrintDebug("* Create : EffectNodeNone\n");
-		effectnode = new EffectNode( effect, pos );
+		effectnode = new EffectNodeImplemented(effect, pos);
 	}
 	else if( node_type == EFFECT_NODE_TYPE_SPRITE )
 	{
@@ -11066,7 +11075,7 @@ void EffectImplemented::Load( void* pData, int size, float mag, const EFK_CHAR* 
 	}
 
 	// ノード
-	m_pRoot = EffectNode::Create( this, NULL, pos );
+	m_pRoot = EffectNodeImplemented::Create( this, NULL, pos );
 
 	// リロード用にmaterialPathを記録しておく
     if (materialPath) m_materialPath = materialPath;
@@ -11138,29 +11147,6 @@ void EffectImplemented::Reset()
 	ES_SAFE_DELETE_ARRAY( m_pModels );
 
 	ES_SAFE_DELETE( m_pRoot );
-}
-
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-int EffectImplemented::AddRef()
-{
-	m_reference++;
-	return m_reference;
-}
-
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-int EffectImplemented::Release()
-{
-	m_reference--;
-	int count = m_reference;
-	if ( count == 0 )
-	{
-		delete this;
-	}
-	return count;
 }
 
 //----------------------------------------------------------------------------------
@@ -11631,7 +11617,8 @@ void ManagerImplemented::GCDrawSet( bool isRemovingManager )
 						int maxcreate_count = 0;
 						for( int i = 0; i < Min(pRootInstance->m_pEffectNode->GetChildrenCount(), Instance::ChildrenMax); i++ )
 						{
-							auto child = pRootInstance->m_pEffectNode->GetChild(i);
+							auto child = (EffectNodeImplemented*) pRootInstance->m_pEffectNode->GetChild(i);
+
 							float last_generation_time = 
 								child->CommonValues.GenerationTime.max *
 								(child->CommonValues.MaxGeneration - 1) +
@@ -11770,8 +11757,7 @@ void ManagerImplemented::ExecuteEvents()
 //
 //----------------------------------------------------------------------------------
 ManagerImplemented::ManagerImplemented( int instance_max, bool autoFlip )
-	: m_reference	( 1 )
-	, m_autoFlip	( autoFlip )
+	: m_autoFlip	( autoFlip )
 	, m_NextHandle	( 0 )
 	, m_instance_max	( instance_max )
 	, m_setting			( NULL )
@@ -11865,29 +11851,6 @@ Instance* ManagerImplemented::PopInstance()
 	Instance* ret = m_reserved_instances.front();
 	m_reserved_instances.pop();
 	return ret;
-}
-
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-int ManagerImplemented::AddRef()
-{
-	m_reference++;
-	return m_reference;
-}
-
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-int ManagerImplemented::Release()
-{
-	m_reference--;
-	int count = m_reference;
-	if ( count == 0 )
-	{
-		delete this;
-	}
-	return count;
 }
 
 //----------------------------------------------------------------------------------
@@ -13083,7 +13046,7 @@ void InstanceContainer::operator delete( void* p, Manager* pManager )
 InstanceContainer::InstanceContainer( Manager* pManager, EffectNode* pEffectNode, InstanceGlobal* pGlobal, int ChildrenCount )
 	: m_pManager		( pManager )
 	, m_pGlobal			( pGlobal )
-	, m_pEffectNode	( pEffectNode )
+	, m_pEffectNode((EffectNodeImplemented*) pEffectNode)
 	, m_Children		( NULL )
 	, m_ChildrenCount	( ChildrenCount )
 	, m_headGroups		( NULL )
@@ -13393,7 +13356,7 @@ namespace Effekseer
 //----------------------------------------------------------------------------------
 Instance::Instance( Manager* pManager, EffectNode* pEffectNode, InstanceContainer* pContainer )
 	: m_pManager			( pManager )
-	, m_pEffectNode		( pEffectNode )
+	, m_pEffectNode((EffectNodeImplemented*) pEffectNode)
 	, m_pContainer			( pContainer )
 	, m_headGroups		( NULL )
 	, m_pParent			( NULL )
@@ -13452,7 +13415,7 @@ const Matrix43& Instance::GetGlobalMatrix43() const
 //----------------------------------------------------------------------------------
 void Instance::Initialize( Instance* parent, int32_t instanceNumber )
 {
-	EffectNode* parameter = m_pEffectNode;
+	auto parameter = (EffectNodeImplemented*) m_pEffectNode;
 
 	// 親の設定
 	m_pParent = parent;
@@ -13460,7 +13423,7 @@ void Instance::Initialize( Instance* parent, int32_t instanceNumber )
 	// 子の初期化
 	for (int32_t i = 0; i < Min(ChildrenMax, parameter->GetChildrenCount()); i++)
 	{
-		EffectNode* pNode = parameter->GetChild(i);
+		auto pNode = (EffectNodeImplemented*) parameter->GetChild(i);
 
 		m_generatedChildrenCount[i] = 0;
 		m_nextGenerationTime[i] = pNode->CommonValues.GenerationTimeOffset.getValue(*m_pManager);
@@ -13838,7 +13801,7 @@ void Instance::Update( float deltaFrame, bool shown )
 		{
 			for (int i = 0; i < Min(ChildrenMax, m_pEffectNode->GetChildrenCount()); i++)
 			{
-				EffectNode* pNode = m_pEffectNode->GetChild(i);
+				auto pNode = (EffectNodeImplemented*) m_pEffectNode->GetChild(i);
 
 				// インスタンス生成
 				if (pNode->CommonValues.MaxGeneration > m_generatedChildrenCount[i] &&
@@ -13882,8 +13845,8 @@ void Instance::Update( float deltaFrame, bool shown )
 
 		for (int i = 0; i < Min(ChildrenMax, m_pEffectNode->GetChildrenCount()); i++, group = group->NextUsedByInstance)
 		{
-			EffectNode* pNode = m_pEffectNode->GetChild( i );
-			InstanceContainer* pContainer = m_pContainer->GetChild( i );
+			auto pNode = (EffectNodeImplemented*) m_pEffectNode->GetChild(i);
+			auto pContainer = m_pContainer->GetChild( i );
 			assert( group != NULL );
 
 			// インスタンス生成
@@ -13945,7 +13908,8 @@ void Instance::Update( float deltaFrame, bool shown )
 
 			for (int i = 0; i < Min(ChildrenMax, m_pEffectNode->GetChildrenCount()); i++, group = group->NextUsedByInstance)
 			{
-				auto child = m_pEffectNode->GetChild(i);
+				auto child = (EffectNodeImplemented*) m_pEffectNode->GetChild(i);
+
 				float last_generation_time = 
 					child->CommonValues.GenerationTime.max *
 					(child->CommonValues.MaxGeneration - 1) +
@@ -14616,7 +14580,7 @@ namespace Effekseer
 //----------------------------------------------------------------------------------
 InstanceGroup::InstanceGroup( Manager* manager, EffectNode* effectNode, InstanceContainer* container, InstanceGlobal* global )
 	: m_manager		( (ManagerImplemented*)manager )
-	, m_effectNode	( effectNode )
+	, m_effectNode((EffectNodeImplemented*) effectNode)
 	, m_container	( container )
 	, m_global		( global )
 	, m_time		( 0 )
@@ -14821,9 +14785,7 @@ namespace Effekseer {
 //
 //----------------------------------------------------------------------------------
 Setting::Setting()
-	: m_ref(1)
-
-	, m_coordinateSystem(CoordinateSystem::RH)
+	: m_coordinateSystem(CoordinateSystem::RH)
 	, m_effectLoader(NULL)
 	, m_textureLoader(NULL)
 	, m_soundLoader(NULL)
@@ -14849,30 +14811,6 @@ Setting::~Setting()
 Setting* Setting::Create()
 {
 	return new Setting();
-}
-
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-int32_t Setting::AddRef()
-{
-	m_ref++;
-	return m_ref;
-}
-
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-int32_t Setting::Release()
-{
-	m_ref--;
-	if(m_ref==0)
-	{
-		delete this;
-		return 0;
-	}
-
-	return m_ref;
 }
 
 //----------------------------------------------------------------------------------
