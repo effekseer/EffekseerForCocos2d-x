@@ -222,6 +222,7 @@ rendererHeader.readLines(rootRDir + 'EffekseerRenderer.VertexBufferBase.h')
 
 rendererHeader.readLines(rootGDir+'EffekseerRendererGL.Base.Pre.h')
 rendererHeader.readLines(rootGDir+'EffekseerRendererGL.Renderer.h')
+rendererHeader.readLines(rootGDir+'EffekseerRendererGL.ModelLoader.h')
 
 rendererHeader.replace('#include <Effekseer.h>','#include "EffekseerNative.h"')
 
@@ -255,7 +256,7 @@ rendererCPP.readLines(rootGDir+'EffekseerRendererGL.Base.h')
 rendererCPP.readLines(rootGDir+'EffekseerRendererGL.DeviceObject.h')
 rendererCPP.readLines(rootGDir+'EffekseerRendererGL.GLExtension.h')
 rendererCPP.readLines(rootGDir+'EffekseerRendererGL.IndexBuffer.h')
-rendererCPP.readLines(rootGDir+'EffekseerRendererGL.ModelLoader.h')
+
 rendererCPP.readLines(rootGDir+'EffekseerRendererGL.ModelRenderer.h')
 rendererCPP.readLines(rootGDir+'EffekseerRendererGL.RendererImplemented.h')
 rendererCPP.readLines(rootGDir+'EffekseerRendererGL.RenderState.h')

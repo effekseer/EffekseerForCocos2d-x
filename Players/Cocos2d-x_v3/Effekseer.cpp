@@ -192,7 +192,7 @@ namespace efk
 			effectFile = new efk::EffekseerFile();
 			SetEffectLoader(Effekseer::Effect::CreateEffectLoader(effectFile));
 			SetTextureLoader(new TextureLoader(effectFile));
-			// TODO model
+			SetModelLoader(new ::EffekseerRendererGL::ModelLoader(effectFile));
 			// TODO sound
 		}
 
