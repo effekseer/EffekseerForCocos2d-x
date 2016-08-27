@@ -329,9 +329,11 @@ namespace efk
 		endCommand.init(globalZOrder);
 		endCommand.func = [this]() -> void
 		{
-			// gl‚Ìƒtƒ‰ƒO‚©‰½‚©‚Å‚¨‚©‚µ‚­‚È‚Á‚Ä‚¢‚é
 			renderer2d->ResetRenderState();
 			renderer2d->EndRendering();
+			
+			// Reset Parameters
+			cocos2d::GL::useProgram(0);
 		};
 
 		renderer->addCommand(&endCommand);
