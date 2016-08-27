@@ -22,7 +22,7 @@ bool HelloWorld::init()
     Vec2 origin = Director::getInstance()->getVisibleOrigin();
 
     auto sprite = Sprite::create("HelloWorld.png");
-   // this->addChild(sprite, 0);
+	this->addChild(sprite, 0);
     
 	// for update
 	this->scheduleUpdate();
@@ -41,9 +41,16 @@ void HelloWorld::update(float delta)
 		auto effect = efk::Effect::create("laser.efk");
 		if (effect != nullptr)
 		{
-			auto handle = manager->Play(effect, 300, 300, 0);
-			manager->SetRotation(handle, 0, 90 / 180.0 * 3.1415, 0);
-			manager->SetScale(handle, 20, 20, 20);
+			auto emitter = efk::EffectEmitter::create();
+			emitter->SetEffect(effect);
+			emitter->setPosition(Vec2(300, 300));
+			emitter->setScale(20);
+			this->addChild(emitter, 0);
+
+			emitter->Play(manager);
+
+			// todo remove emitter
+
 			effect->release();
 		}
 	}

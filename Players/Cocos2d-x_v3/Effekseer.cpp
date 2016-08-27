@@ -253,6 +253,52 @@ namespace efk
 #pragma endregion
 
 #pragma region Effect
+	EffectEmitter* EffectEmitter::create()
+	{
+		return new EffectEmitter();
+	}
+
+	EffectEmitter::EffectEmitter()
+	{
+	
+	}
+
+	EffectEmitter::~EffectEmitter()
+	{
+
+	}
+
+	Effect* EffectEmitter::GetEffect()
+	{
+		return effect;
+	}
+
+	void EffectEmitter::SetEffect(Effect* effect)
+	{
+		if (this->effect != nullptr) effect->release();
+
+		this->effect = effect;
+
+		if (this->effect != nullptr) effect->retain();
+	}
+
+	void EffectEmitter::Play(EffectManager* manager)
+	{
+		if (effect == nullptr) return;
+		if (manager == nullptr) return;
+
+		auto pos = this->getPosition();
+		auto rot = this->getRotation();
+		auto scale = this->getScale();
+
+		handle = manager->Play(effect, pos.x, pos.y, 0);
+		manager->SetRotation(handle, 0, 0, rot);
+		manager->SetScale(handle, scale, scale, scale);
+	}
+
+#pragma endregion
+
+#pragma region Effect
 	bool EffectManager::Initialize(cocos2d::Size visibleSize)
 	{
 		renderer2d = ::EffekseerRendererGL::Renderer::Create(2000);

@@ -8,6 +8,8 @@
 
 namespace efk
 {
+	class EffectManager;
+
 	class EffekseerFile :
 		public Effekseer::FileInterface
 	{
@@ -37,6 +39,25 @@ namespace efk
 		}
 	};
 
+	class EffectEmitter
+		: public cocos2d::Node
+	{
+	private:
+		Effect* effect = nullptr;
+		::Effekseer::Handle handle = 0;
+
+	public:
+		static EffectEmitter* create();
+
+		EffectEmitter();
+		virtual ~EffectEmitter();
+
+		Effect* GetEffect();
+		void SetEffect(Effect* effect);
+
+		void Play(EffectManager* manager);
+	};
+
 	class EffectManager
 		: public cocos2d::Ref
 	{
@@ -64,6 +85,5 @@ namespace efk
 		void SetRotation(::Effekseer::Handle handle, float x, float y, float z);
 
 		void SetScale(::Effekseer::Handle handle, float x, float y, float z);
-
 	};
 }
