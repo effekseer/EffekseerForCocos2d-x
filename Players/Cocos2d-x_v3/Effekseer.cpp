@@ -251,4 +251,113 @@ namespace efk
 	}
 
 #pragma endregion
+
+#pragma region Effect
+	bool EffectManager::Initialize(cocos2d::Size visibleSize)
+	{
+		renderer2d = ::EffekseerRendererGL::Renderer::Create(2000);
+		manager2d = ::Effekseer::Manager::Create(2000);
+
+		renderer2d->SetProjectionMatrix(
+			::Effekseer::Matrix44().OrthographicRH(visibleSize.width, visibleSize.height, 1.0f, 400.0f));
+
+		// カメラ行列を設定
+		renderer2d->SetCameraMatrix(
+			::Effekseer::Matrix44().LookAtRH(
+				::Effekseer::Vector3D(visibleSize.width / 2.0f, visibleSize.height / 2.0f, 200.0f),
+				::Effekseer::Vector3D(visibleSize.width / 2.0f, visibleSize.height / 2.0f, -200.0f),
+				::Effekseer::Vector3D(0.0f, 1.0f, 0.0f)));
+
+		manager2d->SetSpriteRenderer(renderer2d->CreateSpriteRenderer());
+		manager2d->SetRibbonRenderer(renderer2d->CreateRibbonRenderer());
+		manager2d->SetRingRenderer(renderer2d->CreateRingRenderer());
+		manager2d->SetModelRenderer(renderer2d->CreateModelRenderer());
+		manager2d->SetTrackRenderer(renderer2d->CreateTrackRenderer());
+
+		return true;
+	}
+
+	EffectManager* EffectManager::create(cocos2d::Size visibleSize)
+	{
+		auto ret = new EffectManager();
+		if (ret->Initialize(visibleSize))
+		{
+			return ret;
+		}
+
+		ret->release();
+
+		return nullptr;
+	}
+
+	EffectManager::EffectManager()
+	{
+
+	}
+
+	EffectManager::~EffectManager()
+	{
+		if (manager2d != nullptr)
+		{
+			manager2d->Destroy();
+			manager2d = nullptr;
+		}
+	
+		if (renderer2d != nullptr)
+		{
+			renderer2d->Destory();
+			renderer2d = nullptr;
+		}
+	}
+
+	void EffectManager::Begin(cocos2d::Renderer *renderer, float globalZOrder)
+	{
+		beginCommand.init(globalZOrder);
+		beginCommand.func = [this]() -> void
+		{
+			renderer2d->SetRestorationOfStatesFlag(true);
+			renderer2d->BeginRendering();
+			manager2d->Draw();
+
+		};
+		
+		renderer->addCommand(&beginCommand);
+	}
+
+	void EffectManager::End(cocos2d::Renderer *renderer, float globalZOrder)
+	{
+		endCommand.init(globalZOrder);
+		endCommand.func = [this]() -> void
+		{
+			// glのフラグか何かでおかしくなっている
+			renderer2d->ResetRenderState();
+			renderer2d->EndRendering();
+		};
+
+		renderer->addCommand(&endCommand);
+	}
+
+
+	void EffectManager::Update()
+	{
+		manager2d->Update();
+	}
+
+
+	::Effekseer::Handle EffectManager::Play(Effect* effect, float x, float y, float z)
+	{
+		return manager2d->Play(effect->GetInternalPtr(), x, y, z);
+	}
+
+	void EffectManager::SetRotation(::Effekseer::Handle handle, float x, float y, float z)
+	{
+		manager2d->SetRotation(handle, x, y, z);
+	}
+
+	void EffectManager::SetScale(::Effekseer::Handle handle, float x, float y, float z)
+	{
+		manager2d->SetScale(handle, x, y, z);
+	}
+
+#pragma endregion
 }
