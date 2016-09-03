@@ -33,7 +33,7 @@ namespace efk
 
 		virtual ~Effect();
 
-		::Effekseer::Effect* GetInternalPtr()
+		::Effekseer::Effect* getInternalPtr()
 		{
 			return effect;
 		}
@@ -43,19 +43,54 @@ namespace efk
 		: public cocos2d::Node
 	{
 	private:
+		bool playOnEnter = false;
+		bool isLooping = false;
+
+		EffectManager* manager = nullptr;
 		Effect* effect = nullptr;
 		::Effekseer::Handle handle = 0;
 
 	public:
-		static EffectEmitter* create();
+		static EffectEmitter* create(EffectManager* manager);
 
-		EffectEmitter();
+		EffectEmitter(EffectManager* manager);
 		virtual ~EffectEmitter();
 
-		Effect* GetEffect();
-		void SetEffect(Effect* effect);
+		Effect* getEffect();
+		void setEffect(Effect* effect);
 
-		void Play(EffectManager* manager);
+		/**
+			@brief	エフェクトを再生する。
+		*/
+		void play();
+
+		/**
+			@brief	追加時に再生を開始するかどうか、取得する。
+			@return	フラグ
+		*/
+		bool getPlayOnEnter();
+
+		/**
+			@brief	追加時に再生を開始するかどうか、設定する。
+			@return	value	フラグ
+		*/
+		void setPlayOnEnter(bool value);
+
+		/**
+		@brief	ループ再生するかどうか、取得する。
+		@return	フラグ
+		*/
+		bool getIsLooping();
+
+		/**
+		@brief	ループ再生するかどうか、設定する。
+		@return	value	フラグ
+		*/
+		void setIsLooping(bool value);
+
+		void onEnter() override;
+
+		void update(float delta) override;
 	};
 
 	class EffectManager
@@ -74,16 +109,20 @@ namespace efk
 		EffectManager();
 		virtual ~EffectManager();
 
-		void Begin(cocos2d::Renderer *renderer, float globalZOrder);
+		void begin(cocos2d::Renderer *renderer, float globalZOrder);
 
-		void End(cocos2d::Renderer *renderer, float globalZOrder);
+		void end(cocos2d::Renderer *renderer, float globalZOrder);
 
-		void Update();
+		void update();
 
-		::Effekseer::Handle Play(Effect* effect, float x, float y, float z);
+		::Effekseer::Handle play(Effect* effect, float x, float y, float z);
 
-		void SetRotation(::Effekseer::Handle handle, float x, float y, float z);
+		void setPotation(::Effekseer::Handle handle, float x, float y, float z);
 
-		void SetScale(::Effekseer::Handle handle, float x, float y, float z);
+		void setRotation(::Effekseer::Handle handle, float x, float y, float z);
+
+		void setScale(::Effekseer::Handle handle, float x, float y, float z);
+
+		::Effekseer::Manager* getInternalManager() { return manager2d; }
 	};
 }

@@ -41,21 +41,19 @@ void HelloWorld::update(float delta)
 		auto effect = efk::Effect::create("laser.efk");
 		if (effect != nullptr)
 		{
-			auto emitter = efk::EffectEmitter::create();
-			emitter->SetEffect(effect);
+			auto emitter = efk::EffectEmitter::create(manager);
+			emitter->setEffect(effect);
+			emitter->setPlayOnEnter(true);
+
 			emitter->setPosition(Vec2(300, 300));
 			emitter->setScale(20);
 			this->addChild(emitter, 0);
-
-			emitter->Play(manager);
-
-			// todo remove emitter
 
 			effect->release();
 		}
 	}
 
-	manager->Update();
+	manager->update();
 	count++;
 }
 
@@ -66,8 +64,8 @@ HelloWorld::~HelloWorld()
 
 void HelloWorld::visit(cocos2d::Renderer *renderer, const cocos2d::Mat4& parentTransform, uint32_t parentFlags)
 {
-	manager->Begin(renderer, _globalZOrder);
+	manager->begin(renderer, _globalZOrder);
 	cocos2d::Layer::visit(renderer, parentTransform, parentFlags);
-	manager->End(renderer, _globalZOrder);
+	manager->end(renderer, _globalZOrder);
 }
 

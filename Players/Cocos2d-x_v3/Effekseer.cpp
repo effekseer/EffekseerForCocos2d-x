@@ -253,27 +253,40 @@ namespace efk
 #pragma endregion
 
 #pragma region Effect
-	EffectEmitter* EffectEmitter::create()
+	EffectEmitter* EffectEmitter::create(EffectManager* manager)
 	{
-		return new EffectEmitter();
+		return new EffectEmitter(manager);
 	}
 
-	EffectEmitter::EffectEmitter()
+	EffectEmitter::EffectEmitter(EffectManager* manager)
 	{
-	
+		this->manager = manager;
+		
+		if (manager != nullptr)
+		{
+			manager->retain();
+		}
 	}
 
 	EffectEmitter::~EffectEmitter()
 	{
+		if (effect != nullptr)
+		{
+			effect->release();
+		}
 
+		if (manager != nullptr)
+		{
+			manager->release();
+		}
 	}
 
-	Effect* EffectEmitter::GetEffect()
+	Effect* EffectEmitter::getEffect()
 	{
 		return effect;
 	}
 
-	void EffectEmitter::SetEffect(Effect* effect)
+	void EffectEmitter::setEffect(Effect* effect)
 	{
 		if (this->effect != nullptr) effect->release();
 
@@ -282,7 +295,7 @@ namespace efk
 		if (this->effect != nullptr) effect->retain();
 	}
 
-	void EffectEmitter::Play(EffectManager* manager)
+	void EffectEmitter::play()
 	{
 		if (effect == nullptr) return;
 		if (manager == nullptr) return;
@@ -291,9 +304,68 @@ namespace efk
 		auto rot = this->getRotation();
 		auto scale = this->getScale();
 
-		handle = manager->Play(effect, pos.x, pos.y, 0);
-		manager->SetRotation(handle, 0, 0, rot);
-		manager->SetScale(handle, scale, scale, scale);
+		handle = manager->play(effect, pos.x, pos.y, 0);
+		manager->setRotation(handle, 0, 0, rot);
+		manager->setScale(handle, scale, scale, scale);
+	}
+
+	bool EffectEmitter::getPlayOnEnter()
+	{
+		return playOnEnter;
+	}
+
+	void EffectEmitter::setPlayOnEnter(bool value)
+	{
+		playOnEnter = value;
+	}
+
+	bool EffectEmitter::getIsLooping()
+	{
+		return isLooping;
+	}
+
+	void EffectEmitter::setIsLooping(bool value)
+	{
+		isLooping = value;
+	}
+
+
+	void EffectEmitter::onEnter()
+	{
+		cocos2d::Node::onEnter();
+
+		if (playOnEnter)
+		{
+			play();
+		}
+
+		scheduleUpdate();
+	}
+
+	void EffectEmitter::update(float delta)
+	{
+		auto m = manager->getInternalManager();
+		if (!m->Exists(handle))
+		{
+			if (isLooping)
+			{
+				play();
+			}
+			else
+			{
+				this->removeFromParent();
+			}
+		}
+
+		auto pos = this->getPosition();
+		auto rot = this->getRotation();
+		auto scale = this->getScale();
+
+		manager->setPotation(handle, pos.x, pos.y, 0);
+		manager->setRotation(handle, 0, 0, rot);
+		manager->setScale(handle, scale, scale, scale);
+
+		cocos2d::Node::update(delta);
 	}
 
 #pragma endregion
@@ -356,7 +428,7 @@ namespace efk
 		}
 	}
 
-	void EffectManager::Begin(cocos2d::Renderer *renderer, float globalZOrder)
+	void EffectManager::begin(cocos2d::Renderer *renderer, float globalZOrder)
 	{
 		beginCommand.init(globalZOrder);
 		beginCommand.func = [this]() -> void
@@ -370,7 +442,7 @@ namespace efk
 		renderer->addCommand(&beginCommand);
 	}
 
-	void EffectManager::End(cocos2d::Renderer *renderer, float globalZOrder)
+	void EffectManager::end(cocos2d::Renderer *renderer, float globalZOrder)
 	{
 		endCommand.init(globalZOrder);
 		endCommand.func = [this]() -> void
@@ -386,23 +458,28 @@ namespace efk
 	}
 
 
-	void EffectManager::Update()
+	void EffectManager::update()
 	{
 		manager2d->Update();
 	}
 
 
-	::Effekseer::Handle EffectManager::Play(Effect* effect, float x, float y, float z)
+	::Effekseer::Handle EffectManager::play(Effect* effect, float x, float y, float z)
 	{
-		return manager2d->Play(effect->GetInternalPtr(), x, y, z);
+		return manager2d->Play(effect->getInternalPtr(), x, y, z);
 	}
 
-	void EffectManager::SetRotation(::Effekseer::Handle handle, float x, float y, float z)
+	void EffectManager::setPotation(::Effekseer::Handle handle, float x, float y, float z)
+	{
+		manager2d->SetLocation(handle, x, y, z);
+	}
+
+	void EffectManager::setRotation(::Effekseer::Handle handle, float x, float y, float z)
 	{
 		manager2d->SetRotation(handle, x, y, z);
 	}
 
-	void EffectManager::SetScale(::Effekseer::Handle handle, float x, float y, float z)
+	void EffectManager::setScale(::Effekseer::Handle handle, float x, float y, float z)
 	{
 		manager2d->SetScale(handle, x, y, z);
 	}
