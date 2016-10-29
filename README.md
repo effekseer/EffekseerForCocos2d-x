@@ -5,10 +5,15 @@ This is a wrapper for Cocos2d-x.
 
 Cocos2d-x向けEffekseerのラッパーです。
 
-Todo
+How to use
 =========
 
-*Cocos風のラッパーの作成
+Playersディレクトリからソースコードをコピーしてプロジェクトに追加します。
+
+使い方はSamplesディレクトリを参照お願いします。
+
+Todo
+=========
 
 *各環境でのコンパイルと実行の確認
 
