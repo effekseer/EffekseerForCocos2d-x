@@ -50,6 +50,8 @@ namespace efk
 		Effect* effect = nullptr;
 		::Effekseer::Handle handle = 0;
 
+		cocos2d::CustomCommand	renderCommand;
+
 	public:
 		static EffectEmitter* create(EffectManager* manager);
 
@@ -91,6 +93,8 @@ namespace efk
 		void onEnter() override;
 
 		void update(float delta) override;
+
+		void draw(cocos2d::Renderer *renderer, const cocos2d::Mat4& parentTransform, uint32_t parentFlags) override;
 	};
 
 	class EffectManager
@@ -124,5 +128,8 @@ namespace efk
 		void setScale(::Effekseer::Handle handle, float x, float y, float z);
 
 		::Effekseer::Manager* getInternalManager() { return manager2d; }
+
+		::EffekseerRendererGL::Renderer* getInternalRenderer() { return renderer2d; }
+
 	};
 }

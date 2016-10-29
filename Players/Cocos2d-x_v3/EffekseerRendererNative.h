@@ -2621,6 +2621,15 @@ namespace EffekseerRendererGL
 //----------------------------------------------------------------------------------
 class Renderer;
 
+enum class OpenGLDeviceType
+{
+	OpenGL2,
+	OpenGL3,
+	OpenGLES2,
+	OpenGLES3,
+	Emscripten,
+};
+
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
@@ -2662,10 +2671,11 @@ protected:
 public:
 	/**
 		@brief	インスタンスを生成する。
-		@param	squareMaxCount	[in]	最大描画スプライト数
+		@param	squareMaxCount		最大描画スプライト数
+		@param	OpenGLDeviceType	デバイスの種類
 		@return	インスタンス
 	*/
-	static Renderer* Create( int32_t squareMaxCount );
+	static Renderer* Create(int32_t squareMaxCount, OpenGLDeviceType deviceType = OpenGLDeviceType::OpenGL2);
 
 	/**
 		@brief	最大描画スプライト数を取得する。
@@ -2697,6 +2707,7 @@ public:
 	@brief	モデル
 */
 class Model
+	: public Effekseer::Model
 {
 private:
 
@@ -2707,8 +2718,7 @@ public:
 	int32_t		IndexCount;
 	int32_t		ModelCount;
 
-	Model( ::Effekseer::Model::Vertex vertexData[], int32_t vertexCount, 
-		::Effekseer::Model::Face faceData[], int32_t faceCount );
+	Model(void* data, int32_t size);
 	~Model();
 };
 

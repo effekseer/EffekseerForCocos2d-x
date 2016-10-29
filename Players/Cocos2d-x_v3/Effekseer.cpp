@@ -368,12 +368,36 @@ namespace efk
 		cocos2d::Node::update(delta);
 	}
 
+	void EffectEmitter::draw(cocos2d::Renderer *renderer, const cocos2d::Mat4& parentTransform, uint32_t parentFlags)
+	{
+		renderCommand.init(_globalZOrder);
+		renderCommand.func = [this]() -> void
+		{
+			manager->getInternalRenderer()->SetRestorationOfStatesFlag(true);
+			manager->getInternalRenderer()->BeginRendering();
+			manager->getInternalManager()->DrawHandle(handle);
+			manager->getInternalRenderer()->EndRendering();
+
+			// Reset Parameters
+			cocos2d::GL::useProgram(0);
+		};
+
+		renderer->addCommand(&renderCommand);
+
+		cocos2d::Node::draw(renderer, parentTransform, parentFlags);
+	}
+
 #pragma endregion
 
 #pragma region Effect
 	bool EffectManager::Initialize(cocos2d::Size visibleSize)
 	{
-		renderer2d = ::EffekseerRendererGL::Renderer::Create(2000);
+#if (CC_TARGET_PLATFORM == CC_PLATFORM_IOS || CC_TARGET_PLATFORM == CC_PLATFORM_ANDROID)
+		renderer2d = ::EffekseerRendererGL::Renderer::Create(2000, EffekseerRendererGL::OpenGLDeviceType::OpenGLES2);
+#else
+		renderer2d = ::EffekseerRendererGL::Renderer::Create(2000, EffekseerRendererGL::OpenGLDeviceType::OpenGL2);
+#endif
+		
 		manager2d = ::Effekseer::Manager::Create(2000);
 
 		renderer2d->SetProjectionMatrix(
@@ -430,6 +454,8 @@ namespace efk
 
 	void EffectManager::begin(cocos2d::Renderer *renderer, float globalZOrder)
 	{
+		// TODO Batch render
+		/*
 		beginCommand.init(globalZOrder);
 		beginCommand.func = [this]() -> void
 		{
@@ -440,10 +466,13 @@ namespace efk
 		};
 		
 		renderer->addCommand(&beginCommand);
+		*/
 	}
 
 	void EffectManager::end(cocos2d::Renderer *renderer, float globalZOrder)
 	{
+		// TODO Batch render
+		/*
 		endCommand.init(globalZOrder);
 		endCommand.func = [this]() -> void
 		{
@@ -455,6 +484,7 @@ namespace efk
 		};
 
 		renderer->addCommand(&endCommand);
+		*/
 	}
 
 

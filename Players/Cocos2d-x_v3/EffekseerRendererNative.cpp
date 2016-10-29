@@ -634,7 +634,7 @@ typedef ptrdiff_t GLsizeiptr;
 typedef ptrdiff_t GLintptr;
 typedef char GLchar;
 
-bool Initialize();
+bool Initialize(OpenGLDeviceType deviceType);
 bool IsSupportedVertexArray();
 
 void glDeleteBuffers(GLsizei n, const GLuint* buffers);
@@ -768,7 +768,7 @@ public:
 		AttribBinormal,
 		AttribTangent,
 		AttribTexCoord,
-		
+		AttribColor,
 #if defined(MODEL_SOFTWARE_INSTANCING)
 		AttribInstanceID,
 		AttribUVOffset,
@@ -1139,6 +1139,8 @@ private:
 
 	std::set<DeviceObject*>	m_deviceObjects;
 
+	OpenGLDeviceType		m_deviceType;
+
 	// ステート保存用
 	RenderStateSet m_originalState;
 
@@ -1155,7 +1157,7 @@ public:
 	/**
 		@brief	コンストラクタ
 	*/
-	RendererImplemented( int32_t squareMaxCount );
+	RendererImplemented(int32_t squareMaxCount, OpenGLDeviceType deviceType);
 
 	/**
 		@brief	デストラクタ
@@ -1327,6 +1329,8 @@ public:
 
 	std::vector<GLuint>& GetCurrentTextures() { return m_currentTextures; }
 
+	OpenGLDeviceType GetDeviceType() { return m_deviceType; }
+
 	virtual int GetRef() { return ::Effekseer::ReferenceObject::GetRef(); }
 	virtual int AddRef() { return ::Effekseer::ReferenceObject::AddRef(); }
 	virtual int Release() { return ::Effekseer::ReferenceObject::Release(); }
@@ -1361,9 +1365,9 @@ class RenderState
 private:
 	RendererImplemented*	m_renderer;
 
-#if  defined(__EFFEKSEER_RENDERER_GL3__) || defined(__EFFEKSEER_RENDERER_GLES3__)
+
 	GLuint					m_samplers[4];
-#endif
+
 
 public:
 	RenderState( RendererImplemented* renderer );
@@ -1565,6 +1569,7 @@ private:
 	std::string				m_name;
 
 	static bool CompileShader(
+		RendererImplemented* renderer,
 		GLuint& program,
 		const char* vs_src,
 		int32_t vertexShaderSize,
@@ -1636,65 +1641,6 @@ public:
 //
 //----------------------------------------------------------------------------------
 }
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-
-#if  defined(__EFFEKSEER_RENDERER_GL3__) 
-#define EFFEKSEER_VERTEX_SHADER_HEADER \
-"#version 330\n" \
-"#define lowp\n" \
-"#define mediump\n" \
-"#define highp\n" \
-"#define IN in\n" \
-"#define OUT out\n"
-#define EFFEKSEER_FRAGMENT_SHADER_HEADER \
-"#version 330\n" \
-"#define lowp\n" \
-"#define mediump\n" \
-"#define highp\n" \
-"#define IN in\n" \
-"#define TEX2D texture\n" \
-"layout (location = 0) out vec4 FRAGCOLOR;\n"
-#elif defined(__EFFEKSEER_RENDERER_GLES3__)
-#define EFFEKSEER_VERTEX_SHADER_HEADER \
-"#version 300 es\n" \
-"precision mediump float;\n" \
-"#define IN in\n" \
-"#define OUT out\n"
-#define EFFEKSEER_FRAGMENT_SHADER_HEADER \
-"#version 300 es\n" \
-"precision mediump float;\n" \
-"#define IN in\n" \
-"#define TEX2D texture\n" \
-"layout (location = 0) out vec4 FRAGCOLOR;\n"
-#elif defined(__EFFEKSEER_RENDERER_GLES2__) || defined(EMSCRIPTEN)
-#define EFFEKSEER_VERTEX_SHADER_HEADER \
-"precision mediump float;\n" \
-"#define IN attribute\n" \
-"#define OUT varying\n"
-#define EFFEKSEER_FRAGMENT_SHADER_HEADER \
-"precision mediump float;\n" \
-"#define IN varying\n" \
-"#define TEX2D texture2D\n" \
-"#define FRAGCOLOR gl_FragColor\n"
-#else
-#define EFFEKSEER_VERTEX_SHADER_HEADER \
-"#version 110\n" \
-"#define lowp\n" \
-"#define mediump\n" \
-"#define highp\n" \
-"#define IN attribute\n" \
-"#define OUT varying\n"
-#define EFFEKSEER_FRAGMENT_SHADER_HEADER \
-"#version 110\n" \
-"#define lowp\n" \
-"#define mediump\n" \
-"#define highp\n" \
-"#define IN varying\n" \
-"#define TEX2D texture2D\n" \
-"#define FRAGCOLOR gl_FragColor\n"
-#endif
 
 //----------------------------------------------------------------------------------
 //
@@ -2105,17 +2051,17 @@ static FP_glBindSampler g_glBindSampler = nullptr;
 
 #endif
 
-#if defined(__EFFEKSEER_RENDERER_GLES2__)
+//#if defined(__EFFEKSEER_RENDERER_GLES2__)
 
-typedef void (* FP_glGenVertexArraysOES) (GLsizei n, GLuint *arrays);
-typedef void (* FP_glDeleteVertexArraysOES) (GLsizei n, const GLuint *arrays);
-typedef void (* FP_glBindVertexArrayOES) (GLuint array);
+//typedef void (* FP_glGenVertexArraysOES) (GLsizei n, GLuint *arrays);
+//typedef void (* FP_glDeleteVertexArraysOES) (GLsizei n, const GLuint *arrays);
+//typedef void (* FP_glBindVertexArrayOES) (GLuint array);
 
-static FP_glGenVertexArraysOES g_glGenVertexArraysOES = NULL;
-static FP_glDeleteVertexArraysOES g_glDeleteVertexArraysOES = NULL;
-static FP_glBindVertexArrayOES g_glBindVertexArrayOES = NULL;
+//static FP_glGenVertexArraysOES g_glGenVertexArraysOES = NULL;
+//static FP_glDeleteVertexArraysOES g_glDeleteVertexArraysOES = NULL;
+//static FP_glBindVertexArrayOES g_glBindVertexArrayOES = NULL;
 
-#endif
+//#endif
 
 static bool g_isInitialized = false;
 static bool g_isSupportedVertexArray = false;
@@ -2126,7 +2072,7 @@ static bool g_isSupportedVertexArray = false;
 #define GET_PROC(name)	g_##name = (FP_##name)eglGetProcAddress( #name ); if(g_##name==NULL) return false;
 #endif
 
-bool Initialize()
+bool Initialize(OpenGLDeviceType deviceType)
 {
 	if(g_isInitialized) return true;
 
@@ -2182,23 +2128,26 @@ bool Initialize()
 	g_isSupportedVertexArray = (g_glGenVertexArrays && g_glDeleteVertexArrays && g_glBindVertexArray);
 #endif
 
-#if defined(__EFFEKSEER_RENDERER_GLES2__)
+	if (deviceType == OpenGLDeviceType::OpenGLES2)
+	{
 #if defined(__APPLE__)
-	g_isSupportedVertexArray = true;
+		g_isSupportedVertexArray = true;
 #else
-	g_isSupportedVertexArray = strstr((const char*)glGetString(GL_EXTENSIONS), "GL_OES_vertex_array_object") != NULL;
-	if (g_isSupportedVertexArray) {
-		GET_PROC(glGenVertexArraysOES);
-		GET_PROC(glDeleteVertexArraysOES);
-		GET_PROC(glBindVertexArrayOES);
+		g_isSupportedVertexArray = strstr((const char*) glGetString(GL_EXTENSIONS), "GL_OES_vertex_array_object") != NULL;
+		if (g_isSupportedVertexArray)
+		{
+			GET_PROC(glGenVertexArrays);
+			GET_PROC(glDeleteVertexArrays);
+			GET_PROC(glBindVertexArray);
+		}
+#endif
 	}
-#endif
-#endif
 
-#if  defined(__EFFEKSEER_RENDERER_GL3__) || \
-	 defined(__EFFEKSEER_RENDERER_GLES3__)
-	g_isSupportedVertexArray = true;
-#endif
+	if (deviceType == OpenGLDeviceType::OpenGL3 ||
+		deviceType == OpenGLDeviceType::OpenGLES3)
+	{
+		g_isSupportedVertexArray = true;
+	}
 
 	g_isInitialized = true;
 	return true;
@@ -2495,7 +2444,7 @@ void glGenVertexArrays(GLsizei n, GLuint *arrays)
 #elif defined(__EFFEKSEER_RENDERER_GLES2__) && defined(__APPLE__)
 	::glGenVertexArraysOES(n, arrays);
 #elif defined(__EFFEKSEER_RENDERER_GLES2__)
-	g_glGenVertexArraysOES(n, arrays);
+	g_glGenVertexArrays(n, arrays);
 #else
 	::glGenVertexArrays(n, arrays);
 #endif
@@ -2508,7 +2457,7 @@ void glDeleteVertexArrays(GLsizei n, const GLuint *arrays)
 #elif defined(__EFFEKSEER_RENDERER_GLES2__) && defined(__APPLE__)
 	::glDeleteVertexArraysOES(n, arrays);
 #elif defined(__EFFEKSEER_RENDERER_GLES2__)
-	g_glDeleteVertexArraysOES(n, arrays);
+	g_glDeleteVertexArrays(n, arrays);
 #else
 	::glDeleteVertexArrays(n, arrays);
 #endif
@@ -2521,7 +2470,7 @@ void glBindVertexArray(GLuint array)
 #elif defined(__EFFEKSEER_RENDERER_GLES2__) && defined(__APPLE__)
 	::glBindVertexArrayOES(array);
 #elif defined(__EFFEKSEER_RENDERER_GLES2__)
-	g_glBindVertexArrayOES(array);
+	g_glBindVertexArray(array);
 #else
 	::glBindVertexArray(array);
 #endif
@@ -2706,11 +2655,7 @@ void* ModelLoader::Load( const EFK_CHAR* path )
 		char* data_model = new char[size_model];
 		reader->Read( data_model, size_model );
 
-		Effekseer::Model model_main( data_model, size_model );
-		
-		Model* model = new Model( 
-			model_main.GetVertexes(), model_main.GetVertexCount(),
-			model_main.GetFaces(), model_main.GetFaceCount());
+		Model* model = new Model(data_model, size_model);
 
 		delete [] data_model;
 
@@ -2768,12 +2713,12 @@ static std::string Replace( std::string target, std::string from_, std::string t
 }
 
 static const char g_model_vs_src[] = 
-	EFFEKSEER_VERTEX_SHADER_HEADER
 	"IN vec4 a_Position;\n"
 	"IN vec4 a_Normal;\n"
 	"IN vec4 a_Binormal;\n"
 	"IN vec4 a_Tangent;\n"
 	"IN vec4 a_TexCoord;\n"
+	"IN vec4 a_Color;\n"
 #if defined(MODEL_SOFTWARE_INSTANCING)
 	"IN float a_InstanceID;\n"
 	"IN vec4 a_UVOffset;\n"
@@ -2807,7 +2752,7 @@ static const char g_model_vs_src[] =
 #else
 	"	mat4 modelMatrix = ModelMatrix;\n"
 	"	vec4 uvOffset = UVOffset;\n"
-	"	vec4 modelColor = ModelColor;\n"
+	"	vec4 modelColor = ModelColor * a_Color;\n"
 #endif
 	"	vec4 localPosition = modelMatrix * a_Position;\n"
 	"	gl_Position = ProjectionMatrix * localPosition;\n"
@@ -2832,7 +2777,6 @@ static const char g_model_vs_src[] =
 	"}\n";
 
 static const char g_model_fs_src[] = 
-	EFFEKSEER_FRAGMENT_SHADER_HEADER
 	"IN mediump vec4 v_Normal;\n"
 	"IN mediump vec4 v_Binormal;\n"
 	"IN mediump vec4 v_Tangent;\n"
@@ -2869,12 +2813,12 @@ static const char g_model_fs_src[] =
 
 
 static const char g_model_distortion_vs_src [] =
-	EFFEKSEER_VERTEX_SHADER_HEADER
 "IN vec4 a_Position;\n"
 "IN vec4 a_Normal;\n"
 "IN vec4 a_Binormal;\n"
 "IN vec4 a_Tangent;\n"
 "IN vec4 a_TexCoord;\n"
+"IN vec4 a_Color;\n"
 #if defined(MODEL_SOFTWARE_INSTANCING)
 "IN float a_InstanceID;\n"
 "IN vec4 a_UVOffset;\n"
@@ -2938,13 +2882,11 @@ R"(
 	v_Tangent = ProjectionMatrix * localTangent;
 	v_Pos = gl_Position;
 
-	v_Color = modelColor;
+	v_Color = modelColor * a_Color;
 }
 )";
 
 static const char g_model_distortion_fs_src [] =
-	EFFEKSEER_FRAGMENT_SHADER_HEADER
-
 "IN mediump vec4 v_Normal;\n"
 "IN mediump vec4 v_Binormal;\n"
 "IN mediump vec4 v_Tangent;\n"
@@ -2995,6 +2937,7 @@ static ShaderAttribInfo g_model_attribs[ModelRenderer::NumAttribs] = {
 	{"a_Binormal",		GL_FLOAT,			3, 24,	false},
 	{"a_Tangent",		GL_FLOAT,			3, 36,	false},
 	{"a_TexCoord",		GL_FLOAT,			2, 48,	false},
+	{"a_Color", GL_UNSIGNED_BYTE,			4, 56,	true },
 #if defined(MODEL_SOFTWARE_INSTANCING)
 	{"a_InstanceID",	GL_FLOAT,			1,  0,	false},
 	{"a_UVOffset",		GL_FLOAT,			4,	0,	false},
@@ -3684,8 +3627,6 @@ namespace EffekseerRendererGL
 //
 //-----------------------------------------------------------------------------------
 static const char g_sprite_vs_src [] =
-	EFFEKSEER_VERTEX_SHADER_HEADER
-
 R"(
 IN vec4 atPosition;
 IN vec4 atColor;
@@ -3729,7 +3670,6 @@ void main() {
 )";
 
 static const char g_sprite_fs_texture_src[] =
-	EFFEKSEER_FRAGMENT_SHADER_HEADER
 "IN lowp vec4 vaColor;\n"
 "IN mediump vec4 vaTexCoord;\n"
 
@@ -3740,7 +3680,6 @@ static const char g_sprite_fs_texture_src[] =
 "}\n";
 
 static const char g_sprite_fs_no_texture_src[] =
-	EFFEKSEER_FRAGMENT_SHADER_HEADER
 "IN lowp vec4 vaColor;\n"
 "IN mediump vec4 vaTexCoord;\n"
 
@@ -3750,7 +3689,6 @@ static const char g_sprite_fs_no_texture_src[] =
 
 
 static const char g_sprite_distortion_vs_src [] =
-	EFFEKSEER_VERTEX_SHADER_HEADER
 R"(
 IN vec4 atPosition;
 IN vec4 atColor;
@@ -3806,7 +3744,6 @@ void main() {
 )";
 
 static const char g_sprite_fs_texture_distortion_src [] =
-	EFFEKSEER_FRAGMENT_SHADER_HEADER
 R"(
 IN lowp vec4 vaColor;
 IN mediump vec4 vaTexCoord;
@@ -3843,7 +3780,6 @@ void main() {
 )";
 
 static const char g_sprite_fs_no_texture_distortion_src [] =
-	EFFEKSEER_FRAGMENT_SHADER_HEADER
 R"(
 IN lowp vec4 vaColor;
 IN mediump vec4 vaTexCoord;
@@ -3882,11 +3818,11 @@ void main() {
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-Renderer* Renderer::Create( int32_t squareMaxCount )
+Renderer* Renderer::Create(int32_t squareMaxCount, OpenGLDeviceType deviceType)
 {
-	GLExt::Initialize();
+	GLExt::Initialize(deviceType);
 
-	RendererImplemented* renderer = new RendererImplemented( squareMaxCount );
+	RendererImplemented* renderer = new RendererImplemented( squareMaxCount, deviceType );
 	if( renderer->Initialize() )
 	{
 		return renderer;
@@ -3897,7 +3833,7 @@ Renderer* Renderer::Create( int32_t squareMaxCount )
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-RendererImplemented::RendererImplemented( int32_t squareMaxCount )
+RendererImplemented::RendererImplemented(int32_t squareMaxCount, OpenGLDeviceType deviceType)
 	: m_vertexBuffer( NULL )
 	, m_indexBuffer	( NULL )
 	, m_squareMaxCount	( squareMaxCount )
@@ -3918,6 +3854,8 @@ RendererImplemented::RendererImplemented( int32_t squareMaxCount )
 
 	, m_background(0)
 	, m_distortingCallback(nullptr)
+
+	, m_deviceType(deviceType)
 {
 	::Effekseer::Vector3D direction( 1.0f, 1.0f, 1.0f );
 	SetLightDirection( direction );
@@ -4249,12 +4187,12 @@ bool RendererImplemented::BeginRendering()
 		m_originalState.blend = glIsEnabled(GL_BLEND);
 		m_originalState.cullFace = glIsEnabled(GL_CULL_FACE);
 		m_originalState.depthTest = glIsEnabled(GL_DEPTH_TEST);
-#if !defined(__EFFEKSEER_RENDERER_GL3__) && \
-	!defined(__EFFEKSEER_RENDERER_GLES3__) && \
-	!defined(__EFFEKSEER_RENDERER_GLES2__) && \
-	!defined(EMSCRIPTEN)
-		m_originalState.texture = glIsEnabled(GL_TEXTURE_2D);
-#endif
+
+		if (GetDeviceType() == OpenGLDeviceType::OpenGL2)
+		{
+			m_originalState.texture = glIsEnabled(GL_TEXTURE_2D);
+		}
+
 		glGetBooleanv(GL_DEPTH_WRITEMASK, &m_originalState.depthWrite);
 		glGetIntegerv(GL_DEPTH_FUNC, &m_originalState.depthFunc);
 		glGetIntegerv(GL_CULL_FACE_MODE, &m_originalState.cullFaceMode);
@@ -4296,12 +4234,10 @@ bool RendererImplemented::EndRendering()
 		if (m_originalState.cullFace) glEnable(GL_CULL_FACE); else glDisable(GL_CULL_FACE);
 		if (m_originalState.depthTest) glEnable(GL_DEPTH_TEST); else glDisable(GL_DEPTH_TEST);
 		
-#if !defined(__EFFEKSEER_RENDERER_GL3__) && \
-	!defined(__EFFEKSEER_RENDERER_GLES3__) && \
-	!defined(__EFFEKSEER_RENDERER_GLES2__) && \
-	!defined(EMSCRIPTEN)
-		if (m_originalState.texture) glEnable(GL_TEXTURE_2D); else glDisable(GL_TEXTURE_2D);
-#endif
+		if (GetDeviceType() == OpenGLDeviceType::OpenGL2)
+		{
+			if (m_originalState.texture) glEnable(GL_TEXTURE_2D); else glDisable(GL_TEXTURE_2D);
+		}
 		
 		glDepthFunc(m_originalState.depthFunc);
 		glDepthMask(m_originalState.depthWrite);
@@ -4309,12 +4245,13 @@ bool RendererImplemented::EndRendering()
 		glBlendFunc(m_originalState.blendSrc, m_originalState.blendDst);
 		GLExt::glBlendEquation(m_originalState.blendEquation);
 
-#if defined(__EFFEKSEER_RENDERER_GL3__) || defined(__EFFEKSEER_RENDERER_GLES3__)
-		for( int32_t i = 0; i < 4; i++ )
+		if (GetDeviceType() == OpenGLDeviceType::OpenGL3 || GetDeviceType() == OpenGLDeviceType::OpenGLES3)
 		{
-			GLExt::glBindSampler(i, 0);
+			for( int32_t i = 0; i < 4; i++ )
+			{
+				GLExt::glBindSampler(i, 0);
+			}
 		}
-#endif
 	}
 
 	GLCheckError();
@@ -4783,14 +4720,20 @@ void RendererImplemented::ResetRenderState()
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-Model::Model(::Effekseer::Model::Vertex vertexData [], int32_t vertexCount,
-	::Effekseer::Model::Face faceData [], int32_t faceCount)
-	: VertexBuffer(0)
+Model::Model(void* data, int32_t size)
+	: ::Effekseer::Model(data, size)
+	, VertexBuffer(0)
 	, IndexBuffer(0)
-	, VertexCount(vertexCount)
-	, IndexCount(faceCount * 3)
 	, ModelCount(1)
 {
+	auto vertexData = GetVertexes();
+	auto vertexCount = GetVertexCount();
+	auto faceData = GetFaces();
+	auto faceCount = GetFaceCount();
+
+	VertexCount = vertexCount;
+	IndexCount = faceCount * 3;
+
 	GLExt::glGenBuffers(1, &VertexBuffer);
 	GLExt::glBindBuffer(GL_ARRAY_BUFFER, VertexBuffer);
 	size_t vertexSize = vertexCount * sizeof(::Effekseer::Model::Vertex);
@@ -4838,9 +4781,10 @@ namespace EffekseerRendererGL
 RenderState::RenderState( RendererImplemented* renderer )
 	: m_renderer	( renderer )
 {
-#if  defined(__EFFEKSEER_RENDERER_GL3__) || defined(__EFFEKSEER_RENDERER_GLES3__)
-	GLExt::glGenSamplers(4, m_samplers);
-#endif
+	if (m_renderer->GetDeviceType() == OpenGLDeviceType::OpenGL3 || m_renderer->GetDeviceType() == OpenGLDeviceType::OpenGLES3)
+	{
+		GLExt::glGenSamplers(4, m_samplers);
+	}
 }
 
 //-----------------------------------------------------------------------------------
@@ -4848,9 +4792,10 @@ RenderState::RenderState( RendererImplemented* renderer )
 //-----------------------------------------------------------------------------------
 RenderState::~RenderState()
 {
-#if  defined(__EFFEKSEER_RENDERER_GL3__) || defined(__EFFEKSEER_RENDERER_GLES3__)
-	GLExt::glDeleteSamplers(4, m_samplers);
-#endif
+	if (m_renderer->GetDeviceType() == OpenGLDeviceType::OpenGL3 || m_renderer->GetDeviceType() == OpenGLDeviceType::OpenGLES3)
+	{
+		GLExt::glDeleteSamplers(4, m_samplers);
+	}
 }
 
 //-----------------------------------------------------------------------------------
@@ -4942,73 +4887,74 @@ void RenderState::Update( bool forced )
 	static const GLint glfilterMag[] = { GL_NEAREST, GL_LINEAR };
 	static const GLint glwrap[] = { GL_REPEAT, GL_CLAMP_TO_EDGE };
 
-#if  defined(__EFFEKSEER_RENDERER_GL3__) || defined(__EFFEKSEER_RENDERER_GLES3__)
-	for( int32_t i = 0; i < 4; i++ )
+	if (m_renderer->GetDeviceType() == OpenGLDeviceType::OpenGL3 || m_renderer->GetDeviceType() == OpenGLDeviceType::OpenGLES3)
 	{
-		if( m_active.TextureFilterTypes[i] != m_next.TextureFilterTypes[i] || forced )
+		for (int32_t i = 0; i < 4; i++)
 		{
-			GLExt::glActiveTexture(GL_TEXTURE0 + i);
+			if (m_active.TextureFilterTypes[i] != m_next.TextureFilterTypes[i] || forced)
+			{
+				GLExt::glActiveTexture(GL_TEXTURE0 + i);
 
-			int32_t filter_ = (int32_t)m_next.TextureFilterTypes[i];
+				int32_t filter_ = (int32_t) m_next.TextureFilterTypes[i];
 
-			GLExt::glSamplerParameteri(m_samplers[i], GL_TEXTURE_MAG_FILTER, glfilterMag[filter_]);
-			GLExt::glSamplerParameteri(m_samplers[i], GL_TEXTURE_MIN_FILTER, glfilterMin[filter_]);
-			//glSamplerParameteri( m_samplers[i],  GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-			//glSamplerParameteri( m_samplers[i],  GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+				GLExt::glSamplerParameteri(m_samplers[i], GL_TEXTURE_MAG_FILTER, glfilterMag[filter_]);
+				GLExt::glSamplerParameteri(m_samplers[i], GL_TEXTURE_MIN_FILTER, glfilterMin[filter_]);
+				//glSamplerParameteri( m_samplers[i],  GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+				//glSamplerParameteri( m_samplers[i],  GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 
-			GLExt::glBindSampler(i, m_samplers[i]);
-		}
+				GLExt::glBindSampler(i, m_samplers[i]);
+			}
 
-		if( m_active.TextureWrapTypes[i] != m_next.TextureWrapTypes[i] || forced )
-		{
-			GLExt::glActiveTexture(GL_TEXTURE0 + i);
+			if (m_active.TextureWrapTypes[i] != m_next.TextureWrapTypes[i] || forced)
+			{
+				GLExt::glActiveTexture(GL_TEXTURE0 + i);
 
-			int32_t wrap_ = (int32_t)m_next.TextureWrapTypes[i];
-			GLExt::glSamplerParameteri(m_samplers[i], GL_TEXTURE_WRAP_S, glwrap[wrap_]);
-			GLExt::glSamplerParameteri(m_samplers[i], GL_TEXTURE_WRAP_T, glwrap[wrap_]);
+				int32_t wrap_ = (int32_t) m_next.TextureWrapTypes[i];
+				GLExt::glSamplerParameteri(m_samplers[i], GL_TEXTURE_WRAP_S, glwrap[wrap_]);
+				GLExt::glSamplerParameteri(m_samplers[i], GL_TEXTURE_WRAP_T, glwrap[wrap_]);
 
-			GLExt::glBindSampler(i, m_samplers[i]);
+				GLExt::glBindSampler(i, m_samplers[i]);
+			}
 		}
 	}
-#else
-
-	GLCheckError();
-	for (int32_t i = 0; i < m_renderer->GetCurrentTextures().size(); i++)
+	else
 	{
-		/* テクスチャが設定されていない場合はスキップ */
-		if (m_renderer->GetCurrentTextures()[i] == 0) continue;
-
-		if( m_active.TextureFilterTypes[i] != m_next.TextureFilterTypes[i] || forced )
+		GLCheckError();
+		for (int32_t i = 0; i < m_renderer->GetCurrentTextures().size(); i++)
 		{
-			GLExt::glActiveTexture( GL_TEXTURE0 + i );
-			GLCheckError();
+			/* テクスチャが設定されていない場合はスキップ */
+			if (m_renderer->GetCurrentTextures()[i] == 0) continue;
 
-			int32_t filter_ = (int32_t)m_next.TextureFilterTypes[i];
+			if (m_active.TextureFilterTypes[i] != m_next.TextureFilterTypes[i] || forced)
+			{
+				GLExt::glActiveTexture(GL_TEXTURE0 + i);
+				GLCheckError();
 
-			glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, glfilterMag[filter_] );
-			GLCheckError();
+				int32_t filter_ = (int32_t) m_next.TextureFilterTypes[i];
 
-			glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, glfilterMin[filter_] );
-			GLCheckError();
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, glfilterMag[filter_]);
+				GLCheckError();
+
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, glfilterMin[filter_]);
+				GLCheckError();
+			}
+
+			if (m_active.TextureWrapTypes[i] != m_next.TextureWrapTypes[i] || forced)
+			{
+				GLExt::glActiveTexture(GL_TEXTURE0 + i);
+				GLCheckError();
+
+				int32_t wrap_ = (int32_t) m_next.TextureWrapTypes[i];
+
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, glwrap[wrap_]);
+				GLCheckError();
+
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, glwrap[wrap_]);
+				GLCheckError();
+			}
 		}
-
-		if( m_active.TextureWrapTypes[i] != m_next.TextureWrapTypes[i] || forced )
-		{
-			GLExt::glActiveTexture( GL_TEXTURE0 + i );
-			GLCheckError();
-
-			int32_t wrap_ = (int32_t)m_next.TextureWrapTypes[i];
-
-			glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, glwrap[wrap_] );
-			GLCheckError();
-
-			glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, glwrap[wrap_] );
-			GLCheckError();
-		}
+		GLCheckError();
 	}
-	GLCheckError();
-
-#endif
 
 	GLExt::glActiveTexture( GL_TEXTURE0 );
 	
@@ -5182,10 +5128,70 @@ void RingRenderer::EndRendering( const efkRingNodeParam& parameter, void* userDa
 //-----------------------------------------------------------------------------------
 namespace EffekseerRendererGL
 {
+
+static const char g_header_vs_gl3_src [] =
+"#version 330\n" \
+"#define lowp\n" \
+"#define mediump\n" \
+"#define highp\n" \
+"#define IN in\n" \
+"#define OUT out\n";
+
+static const char g_header_fs_gl3_src [] =
+"#version 330\n" \
+"#define lowp\n" \
+"#define mediump\n" \
+"#define highp\n" \
+"#define IN in\n" \
+"#define TEX2D texture\n" \
+"layout (location = 0) out vec4 FRAGCOLOR;\n";
+
+static const char g_header_vs_gles3_src [] =
+"#version 300 es\n" \
+"precision mediump float;\n" \
+"#define IN in\n" \
+"#define OUT out\n";
+
+static const char g_header_fs_gles3_src [] =
+"#version 300 es\n" \
+"precision mediump float;\n" \
+"#define IN in\n" \
+"#define TEX2D texture\n" \
+"layout (location = 0) out vec4 FRAGCOLOR;\n";
+
+static const char g_header_vs_gles2_src [] =
+"precision mediump float;\n" \
+"#define IN attribute\n" \
+"#define OUT varying\n";
+
+static const char g_header_fs_gles2_src [] =
+"precision mediump float;\n" \
+"#define IN varying\n" \
+"#define TEX2D texture2D\n" \
+"#define FRAGCOLOR gl_FragColor\n";
+
+static const char g_header_vs_gl2_src [] =
+"#version 110\n" \
+"#define lowp\n" \
+"#define mediump\n" \
+"#define highp\n" \
+"#define IN attribute\n" \
+"#define OUT varying\n";
+
+static const char g_header_fs_gl2_src [] =
+"#version 110\n" \
+"#define lowp\n" \
+"#define mediump\n" \
+"#define highp\n" \
+"#define IN varying\n" \
+"#define TEX2D texture2D\n" \
+"#define FRAGCOLOR gl_FragColor\n";
+
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
 bool Shader::CompileShader(
+	RendererImplemented* renderer,
 	GLuint& program,
 	const char* vs_src,
 	int32_t vertexShaderSize,
@@ -5193,26 +5199,40 @@ bool Shader::CompileShader(
 	int32_t pixelShaderSize,
 	const char* name)
 {
-	const char* src_data[1];
-	GLint src_size[1];
+	const char* src_data[2];
+	GLint src_size[2];
 
 	GLuint vert_shader, frag_shader;
 	GLint res_vs, res_fs, res_link;
 	
 
 	// バーテックスシェーダをコンパイル
-	src_data[0] = vs_src;
-	src_size[0] = (GLint)strlen(vs_src);
+	if (renderer->GetDeviceType() == OpenGLDeviceType::OpenGL3) src_data[0] = g_header_vs_gl3_src;
+	if (renderer->GetDeviceType() == OpenGLDeviceType::OpenGL2) src_data[0] = g_header_vs_gl2_src;
+	if (renderer->GetDeviceType() == OpenGLDeviceType::OpenGLES3) src_data[0] = g_header_vs_gles3_src;
+	if (renderer->GetDeviceType() == OpenGLDeviceType::OpenGLES2 || renderer->GetDeviceType() == OpenGLDeviceType::Emscripten) src_data[0] = g_header_vs_gles2_src;
+
+	src_size[0] = (GLint) strlen(src_data[0]);
+	src_data[1] = vs_src;
+	src_size[1] = (GLint)strlen(vs_src);
+	
 	vert_shader = GLExt::glCreateShader(GL_VERTEX_SHADER);
-	GLExt::glShaderSource(vert_shader, 1, src_data, src_size);
+	GLExt::glShaderSource(vert_shader, 2, src_data, src_size);
 	GLExt::glCompileShader(vert_shader);
 	GLExt::glGetShaderiv(vert_shader, GL_COMPILE_STATUS, &res_vs);
 
 	// フラグメントシェーダをコンパイル
-	src_data[0] = fs_src;
-	src_size[0] = strlen(fs_src);
+	if (renderer->GetDeviceType() == OpenGLDeviceType::OpenGL3) src_data[0] = g_header_fs_gl3_src;
+	if (renderer->GetDeviceType() == OpenGLDeviceType::OpenGL2) src_data[0] = g_header_fs_gl2_src;
+	if (renderer->GetDeviceType() == OpenGLDeviceType::OpenGLES3) src_data[0] = g_header_fs_gles3_src;
+	if (renderer->GetDeviceType() == OpenGLDeviceType::OpenGLES2 || renderer->GetDeviceType() == OpenGLDeviceType::Emscripten) src_data[0] = g_header_fs_gles2_src;
+
+	src_size[0] = (GLint) strlen(src_data[0]);
+	src_data[1] = fs_src;
+	src_size[1] = strlen(fs_src);
+
 	frag_shader = GLExt::glCreateShader(GL_FRAGMENT_SHADER);
-	GLExt::glShaderSource(frag_shader, 1, src_data, src_size);
+	GLExt::glShaderSource(frag_shader, 2, src_data, src_size);
 	GLExt::glCompileShader(frag_shader);
 	GLExt::glGetShaderiv(frag_shader, GL_COMPILE_STATUS, &res_fs);
 	
@@ -5337,6 +5357,7 @@ Shader* Shader::Create(
 	assert( renderer != NULL );
 
 	if(CompileShader(
+		renderer,
 		program,
 		vs_src,
 		vertexShaderSize,
@@ -5375,6 +5396,7 @@ void Shader::OnResetDevice()
 	GLuint program;
 	
 	if(CompileShader(
+		GetRenderer(),
 		program,
 		(const char*)&(m_vsSrc[0]),
 		m_vsSrc.size(),
@@ -5400,6 +5422,7 @@ void Shader::OnChangeDevice()
 	GLuint program;
 	
 	if(CompileShader(
+		GetRenderer(),
 		program,
 		(const char*)&(m_vsSrc[0]),
 		m_vsSrc.size(),
