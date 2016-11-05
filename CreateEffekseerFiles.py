@@ -1,4 +1,5 @@
 import re
+import codecs
 
 class CreateHeader:
 	def __init__(self):
@@ -15,7 +16,7 @@ class CreateHeader:
 		self.lines.append(line + '\n')
 
 	def readLines(self,path):
-		f = open(path)
+		f = open(path, 'r')
 		line = f.readline()
 		while line:
 			if re.search('include \"', line) == None:
@@ -37,7 +38,7 @@ class CreateCPP:
 		self.lines.append(line + '\n')
 
 	def readLines(self,path):
-		f = open(path)
+		f = open(path, 'r')
 		line = f.readline()
 		while line:
 			if re.search('include \"', line) == None and re.search('include <', line) == None:
@@ -209,15 +210,18 @@ effekseerCPP.output('Players/Cocos2d-x_v3/EffekseerNative.cpp')
 rendererHeader = CreateHeader()
 rendererHeader.readLines(rootRDir + 'EffekseerRenderer.CommonUtils.h')
 rendererHeader.readLines(rootRDir + 'EffekseerRenderer.Renderer.h')
-rendererHeader.readLines(rootRDir + 'EffekseerRenderer.IndexBufferBase.h')
-rendererHeader.readLines(rootRDir + 'EffekseerRenderer.ModelRendererBase.h')
 rendererHeader.readLines(rootRDir + 'EffekseerRenderer.RenderStateBase.h')
+
+rendererHeader.readLines(rootRDir + 'EffekseerRenderer.VertexBufferBase.h')
+rendererHeader.readLines(rootRDir + 'EffekseerRenderer.IndexBufferBase.h')
+
+rendererHeader.readLines(rootRDir + 'EffekseerRenderer.StandardRenderer.h')
+rendererHeader.readLines(rootRDir + 'EffekseerRenderer.ModelRendererBase.h')
+
 rendererHeader.readLines(rootRDir + 'EffekseerRenderer.RibbonRendererBase.h')
 rendererHeader.readLines(rootRDir + 'EffekseerRenderer.RingRendererBase.h')
 rendererHeader.readLines(rootRDir + 'EffekseerRenderer.SpriteRendererBase.h')
-rendererHeader.readLines(rootRDir + 'EffekseerRenderer.StandardRenderer.h')
 rendererHeader.readLines(rootRDir + 'EffekseerRenderer.TrackRendererBase.h')
-rendererHeader.readLines(rootRDir + 'EffekseerRenderer.VertexBufferBase.h')
 rendererHeader.readLines(rootRDir + 'EffekseerRenderer.VertexBufferBase.h')
 
 rendererHeader.readLines(rootGDir+'EffekseerRendererGL.Base.Pre.h')
@@ -225,6 +229,7 @@ rendererHeader.readLines(rootGDir+'EffekseerRendererGL.Renderer.h')
 rendererHeader.readLines(rootGDir+'EffekseerRendererGL.ModelLoader.h')
 
 rendererHeader.replace('#include <Effekseer.h>','#include "EffekseerNative.h"')
+rendererHeader.replace('OpenGL/gl3.h','OpenGL/gl.h')
 
 rendererHeader.output('Players/Cocos2d-x_v3/EffekseerRendererNative.h')
 
