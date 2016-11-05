@@ -5,7 +5,7 @@
 #include <GL/glu.h>
 #else
 #endif
-
+ï»¿
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
@@ -83,7 +83,7 @@ void* IndexBufferBase::GetBufferDirect( int count )
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
-
+ï»¿
 //----------------------------------------------------------------------------------
 // Include
 //----------------------------------------------------------------------------------
@@ -153,8 +153,8 @@ void ModelRendererBase::Rendering( const efkModelNodeParam& parameter, const efk
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-
-
+ï»¿
+ï»¿
 //----------------------------------------------------------------------------------
 // Include
 //----------------------------------------------------------------------------------
@@ -267,7 +267,7 @@ RenderStateBase::State& RenderStateBase::GetActiveState()
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
-
+ï»¿
 //----------------------------------------------------------------------------------
 // Include
 //----------------------------------------------------------------------------------
@@ -300,7 +300,7 @@ RibbonRendererBase::~RibbonRendererBase()
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-
+ï»¿
 //----------------------------------------------------------------------------------
 // Include
 //----------------------------------------------------------------------------------
@@ -335,7 +335,7 @@ RingRendererBase::~RingRendererBase()
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-
+ï»¿
 //----------------------------------------------------------------------------------
 // Include
 //----------------------------------------------------------------------------------
@@ -369,7 +369,7 @@ SpriteRendererBase::~SpriteRendererBase()
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-
+ï»¿
 //----------------------------------------------------------------------------------
 // Include
 //----------------------------------------------------------------------------------
@@ -403,7 +403,7 @@ TrackRendererBase::~TrackRendererBase()
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-
+ï»¿
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
@@ -467,7 +467,7 @@ void* VertexBufferBase::GetBufferDirect( int size )
 
 	void* pBuffer = NULL;
 
-	// ƒoƒbƒtƒ@‚É’Ç‹L
+	// ãƒãƒƒãƒ•ã‚¡ã«è¿½è¨˜
 	pBuffer = m_resource + m_offset;
 	m_offset += size;
 	
@@ -480,7 +480,7 @@ void* VertexBufferBase::GetBufferDirect( int size )
 }
 //-----------------------------------------------------------------------------------
 //
-//-----------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------------ï»¿
 #ifndef	__EFFEKSEERRENDERER_GL_BASE_H__
 #define	__EFFEKSEERRENDERER_GL_BASE_H__
 
@@ -544,7 +544,7 @@ class TextureLoader;
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-#endif	// __EFFEKSEERRENDERER_GL_BASE_H__
+#endif	// __EFFEKSEERRENDERER_GL_BASE_H__ï»¿
 #ifndef	__EFFEKSEERRENDERER_GL_DEVICEOBJECT_H__
 #define	__EFFEKSEERRENDERER_GL_DEVICEOBJECT_H__
 
@@ -561,7 +561,7 @@ namespace EffekseerRendererGL
 //
 //----------------------------------------------------------------------------------
 /**
-	@brief	ƒfƒoƒCƒX‚É‚æ‚Á‚Ä¶¬‚³‚ê‚éƒIƒuƒWƒFƒNƒg
+	@brief	ãƒ‡ãƒã‚¤ã‚¹ã«ã‚ˆã£ã¦ç”Ÿæˆã•ã‚Œã‚‹ã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆ
 */
 class DeviceObject
 {
@@ -586,7 +586,7 @@ public:
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-#endif	// __EFFEKSEERRENDERER_GL_DEVICEOBJECT_H__
+#endif	// __EFFEKSEERRENDERER_GL_DEVICEOBJECT_H__ï»¿
 #ifndef	__EFFEKSEERRENDERER_GL_GLEXTENSION_H__
 #define	__EFFEKSEERRENDERER_GL_GLEXTENSION_H__
 
@@ -686,7 +686,7 @@ void glBindSampler(GLuint unit, GLuint sampler);
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-#endif	// __EFFEKSEERRENDERER_GL_GLEXTENSION_H__
+#endif	// __EFFEKSEERRENDERER_GL_GLEXTENSION_H__ï»¿
 #pragma once
 
 //----------------------------------------------------------------------------------
@@ -717,7 +717,7 @@ public:
 
 	GLuint GetInterface() { return m_buffer; }
 
-public:	// ƒfƒoƒCƒX•œ‹Œ—p
+public:	// ãƒ‡ãƒã‚¤ã‚¹å¾©æ—§ç”¨
 	virtual void OnLostDevice();
 	virtual void OnResetDevice();
 
@@ -732,7 +732,7 @@ public:
 }
 //-----------------------------------------------------------------------------------
 //
-//-----------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------------ï»¿
 #ifndef	__EFFEKSEERRENDERER_GL_MODEL_RENDERER_H__
 #define	__EFFEKSEERRENDERER_GL_MODEL_RENDERER_H__
 
@@ -843,7 +843,7 @@ public:
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-#endif	// __EFFEKSEERRENDERER_GL_MODEL_RENDERER_H__
+#endif	// __EFFEKSEERRENDERER_GL_MODEL_RENDERER_H__ï»¿
 #ifndef	__EFFEKSEERRENDERER_GL_RENDERER_IMPLEMENTED_H__
 #define	__EFFEKSEERRENDERER_GL_RENDERER_IMPLEMENTED_H__
 
@@ -912,7 +912,7 @@ inline void TransformVertexes( Vertex* vertexes, int32_t count, const ::Effeksee
 		float tmp_out[4];
 		::Effekseer::Vector3D* inout_prev;
 
-		// ‚Pƒ‹[ƒv–Ú
+		// ï¼‘ãƒ«ãƒ¼ãƒ—ç›®
 		{
 			::Effekseer::Vector3D* inout_cur = &vertexes[0].Pos;
 			__m128 v = _mm_loadu_ps( (const float*)inout_cur );
@@ -928,7 +928,7 @@ inline void TransformVertexes( Vertex* vertexes, int32_t count, const ::Effeksee
 			__m128 a23 = _mm_add_ps( a2, r3 );
 			__m128 a = _mm_add_ps( a01, a23 );
 
-			// ¡‰ñ‚ÌŒ‹‰Ê‚ğƒXƒgƒA‚µ‚Ä‚¨‚­
+			// ä»Šå›ã®çµæœã‚’ã‚¹ãƒˆã‚¢ã—ã¦ãŠã
 			_mm_storeu_ps( tmp_out, a );
 			inout_prev = inout_cur;
 		}
@@ -949,17 +949,17 @@ inline void TransformVertexes( Vertex* vertexes, int32_t count, const ::Effeksee
 			__m128 a23 = _mm_add_ps( a2, r3 );
 			__m128 a = _mm_add_ps( a01, a23 );
 
-			// ’¼‘O‚Ìƒ‹[ƒv‚ÌŒ‹‰Ê‚ğ‘‚«‚İ‚Ü‚·
+			// ç›´å‰ã®ãƒ«ãƒ¼ãƒ—ã®çµæœã‚’æ›¸ãè¾¼ã¿ã¾ã™
 			inout_prev->X = tmp_out[0];
 			inout_prev->Y = tmp_out[1];
 			inout_prev->Z = tmp_out[2];
 
-			// ¡‰ñ‚ÌŒ‹‰Ê‚ğƒXƒgƒA‚µ‚Ä‚¨‚­
+			// ä»Šå›ã®çµæœã‚’ã‚¹ãƒˆã‚¢ã—ã¦ãŠã
 			_mm_storeu_ps( tmp_out, a );
 			inout_prev = inout_cur;
 		}
 
-		// ÅŒã‚Ìƒ‹[ƒv‚ÌŒ‹‰Ê‚ğ‘‚«‚İ
+		// æœ€å¾Œã®ãƒ«ãƒ¼ãƒ—ã®çµæœã‚’æ›¸ãè¾¼ã¿
 		{
 			inout_prev->X = tmp_out[0];
 			inout_prev->Y = tmp_out[1];
@@ -990,7 +990,7 @@ inline void TransformVertexes(VertexDistortion* vertexes, int32_t count, const :
 	float tmp_out[4];
 	::Effekseer::Vector3D* inout_prev;
 
-	// ‚Pƒ‹[ƒv–Ú
+	// ï¼‘ãƒ«ãƒ¼ãƒ—ç›®
 	{
 		::Effekseer::Vector3D* inout_cur = &vertexes[0].Pos;
 		__m128 v = _mm_loadu_ps((const float*) inout_cur);
@@ -1006,7 +1006,7 @@ inline void TransformVertexes(VertexDistortion* vertexes, int32_t count, const :
 		__m128 a23 = _mm_add_ps(a2, r3);
 		__m128 a = _mm_add_ps(a01, a23);
 
-		// ¡‰ñ‚ÌŒ‹‰Ê‚ğƒXƒgƒA‚µ‚Ä‚¨‚­
+		// ä»Šå›ã®çµæœã‚’ã‚¹ãƒˆã‚¢ã—ã¦ãŠã
 		_mm_storeu_ps(tmp_out, a);
 		inout_prev = inout_cur;
 	}
@@ -1027,17 +1027,17 @@ inline void TransformVertexes(VertexDistortion* vertexes, int32_t count, const :
 		__m128 a23 = _mm_add_ps(a2, r3);
 		__m128 a = _mm_add_ps(a01, a23);
 
-		// ’¼‘O‚Ìƒ‹[ƒv‚ÌŒ‹‰Ê‚ğ‘‚«‚İ‚Ü‚·
+		// ç›´å‰ã®ãƒ«ãƒ¼ãƒ—ã®çµæœã‚’æ›¸ãè¾¼ã¿ã¾ã™
 		inout_prev->X = tmp_out[0];
 		inout_prev->Y = tmp_out[1];
 		inout_prev->Z = tmp_out[2];
 
-		// ¡‰ñ‚ÌŒ‹‰Ê‚ğƒXƒgƒA‚µ‚Ä‚¨‚­
+		// ä»Šå›ã®çµæœã‚’ã‚¹ãƒˆã‚¢ã—ã¦ãŠã
 		_mm_storeu_ps(tmp_out, a);
 		inout_prev = inout_cur;
 	}
 
-	// ÅŒã‚Ìƒ‹[ƒv‚ÌŒ‹‰Ê‚ğ‘‚«‚İ
+	// æœ€å¾Œã®ãƒ«ãƒ¼ãƒ—ã®çµæœã‚’æ›¸ãè¾¼ã¿
 		{
 			inout_prev->X = tmp_out[0];
 			inout_prev->Y = tmp_out[1];
@@ -1096,9 +1096,9 @@ struct RenderStateSet
 };
 
 /**
-	@brief	•`‰æƒNƒ‰ƒX
+	@brief	æç”»ã‚¯ãƒ©ã‚¹
 	@note
-	ƒc[ƒ‹Œü‚¯‚Ì•`‰æ‹@”\B
+	ãƒ„ãƒ¼ãƒ«å‘ã‘ã®æç”»æ©Ÿèƒ½ã€‚
 */
 class RendererImplemented
 	: public Renderer
@@ -1141,26 +1141,26 @@ private:
 
 	OpenGLDeviceType		m_deviceType;
 
-	// ƒXƒe[ƒg•Û‘¶—p
+	// ã‚¹ãƒ†ãƒ¼ãƒˆä¿å­˜ç”¨
 	RenderStateSet m_originalState;
 
 	bool	m_restorationOfStates;
 
 	EffekseerRenderer::DistortingCallback* m_distortingCallback;
 
-	/* Œ»İİ’è‚³‚ê‚Ä‚¢‚éƒeƒNƒXƒ`ƒƒ */
+	/* ç¾åœ¨è¨­å®šã•ã‚Œã¦ã„ã‚‹ãƒ†ã‚¯ã‚¹ãƒãƒ£ */
 	std::vector<GLuint>	m_currentTextures;
 
 	VertexArray*	m_currentVertexArray;
 
 public:
 	/**
-		@brief	ƒRƒ“ƒXƒgƒ‰ƒNƒ^
+		@brief	ã‚³ãƒ³ã‚¹ãƒˆãƒ©ã‚¯ã‚¿
 	*/
 	RendererImplemented(int32_t squareMaxCount, OpenGLDeviceType deviceType);
 
 	/**
-		@brief	ƒfƒXƒgƒ‰ƒNƒ^
+		@brief	ãƒ‡ã‚¹ãƒˆãƒ©ã‚¯ã‚¿
 	*/
 	~RendererImplemented();
 
@@ -1168,7 +1168,7 @@ public:
 	void OnResetDevice();
 
 	/**
-		@brief	‰Šú‰»
+		@brief	åˆæœŸåŒ–
 	*/
 	bool Initialize();
 
@@ -1177,27 +1177,27 @@ public:
 	void SetRestorationOfStatesFlag(bool flag);
 
 	/**
-		@brief	•`‰æŠJn
+		@brief	æç”»é–‹å§‹
 	*/
 	bool BeginRendering();
 
 	/**
-		@brief	•`‰æI—¹
+		@brief	æç”»çµ‚äº†
 	*/
 	bool EndRendering();
 
 	/**
-		@brief	’¸“_ƒoƒbƒtƒ@æ“¾
+		@brief	é ‚ç‚¹ãƒãƒƒãƒ•ã‚¡å–å¾—
 	*/
 	VertexBuffer* GetVertexBuffer();
 
 	/**
-		@brief	ƒCƒ“ƒfƒbƒNƒXƒoƒbƒtƒ@æ“¾
+		@brief	ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹ãƒãƒƒãƒ•ã‚¡å–å¾—
 	*/
 	IndexBuffer* GetIndexBuffer();
 
 	/**
-		@brief	Å‘å•`‰æƒXƒvƒ‰ƒCƒg”
+		@brief	æœ€å¤§æç”»ã‚¹ãƒ—ãƒ©ã‚¤ãƒˆæ•°
 	*/
 	int32_t GetSquareMaxCount() const;
 
@@ -1206,102 +1206,102 @@ public:
 	::EffekseerRenderer::RenderStateBase* GetRenderState();
 	
 	/**
-		@brief	ƒ‰ƒCƒg‚Ì•ûŒü‚ğæ“¾‚·‚éB
+		@brief	ãƒ©ã‚¤ãƒˆã®æ–¹å‘ã‚’å–å¾—ã™ã‚‹ã€‚
 	*/
 	const ::Effekseer::Vector3D& GetLightDirection() const;
 
 	/**
-		@brief	ƒ‰ƒCƒg‚Ì•ûŒü‚ğİ’è‚·‚éB
+		@brief	ãƒ©ã‚¤ãƒˆã®æ–¹å‘ã‚’è¨­å®šã™ã‚‹ã€‚
 	*/
 	void SetLightDirection( ::Effekseer::Vector3D& direction );
 
 	/**
-		@brief	ƒ‰ƒCƒg‚ÌF‚ğæ“¾‚·‚éB
+		@brief	ãƒ©ã‚¤ãƒˆã®è‰²ã‚’å–å¾—ã™ã‚‹ã€‚
 	*/
 	const ::Effekseer::Color& GetLightColor() const;
 
 	/**
-		@brief	ƒ‰ƒCƒg‚ÌF‚ğİ’è‚·‚éB
+		@brief	ãƒ©ã‚¤ãƒˆã®è‰²ã‚’è¨­å®šã™ã‚‹ã€‚
 	*/
 	void SetLightColor( ::Effekseer::Color& color );
 
 	/**
-		@brief	ƒ‰ƒCƒg‚ÌŠÂ‹«Œõ‚ÌF‚ğæ“¾‚·‚éB
+		@brief	ãƒ©ã‚¤ãƒˆã®ç’°å¢ƒå…‰ã®è‰²ã‚’å–å¾—ã™ã‚‹ã€‚
 	*/
 	const ::Effekseer::Color& GetLightAmbientColor() const;
 
 	/**
-		@brief	ƒ‰ƒCƒg‚ÌŠÂ‹«Œõ‚ÌF‚ğİ’è‚·‚éB
+		@brief	ãƒ©ã‚¤ãƒˆã®ç’°å¢ƒå…‰ã®è‰²ã‚’è¨­å®šã™ã‚‹ã€‚
 	*/
 	void SetLightAmbientColor( ::Effekseer::Color& color );
 
 	/**
-		@brief	“Š‰es—ñ‚ğæ“¾‚·‚éB
+		@brief	æŠ•å½±è¡Œåˆ—ã‚’å–å¾—ã™ã‚‹ã€‚
 	*/
 	const ::Effekseer::Matrix44& GetProjectionMatrix() const;
 
 	/**
-		@brief	“Š‰es—ñ‚ğİ’è‚·‚éB
+		@brief	æŠ•å½±è¡Œåˆ—ã‚’è¨­å®šã™ã‚‹ã€‚
 	*/
 	void SetProjectionMatrix( const ::Effekseer::Matrix44& mat );
 
 	/**
-		@brief	ƒJƒƒ‰s—ñ‚ğæ“¾‚·‚éB
+		@brief	ã‚«ãƒ¡ãƒ©è¡Œåˆ—ã‚’å–å¾—ã™ã‚‹ã€‚
 	*/
 	const ::Effekseer::Matrix44& GetCameraMatrix() const;
 
 	/**
-		@brief	ƒJƒƒ‰s—ñ‚ğİ’è‚·‚éB
+		@brief	ã‚«ãƒ¡ãƒ©è¡Œåˆ—ã‚’è¨­å®šã™ã‚‹ã€‚
 	*/
 	void SetCameraMatrix( const ::Effekseer::Matrix44& mat );
 
 	/**
-		@brief	ƒJƒƒ‰ƒvƒƒWƒFƒNƒVƒ‡ƒ“s—ñ‚ğæ“¾‚·‚éB
+		@brief	ã‚«ãƒ¡ãƒ©ãƒ—ãƒ­ã‚¸ã‚§ã‚¯ã‚·ãƒ§ãƒ³è¡Œåˆ—ã‚’å–å¾—ã™ã‚‹ã€‚
 	*/
 	::Effekseer::Matrix44& GetCameraProjectionMatrix();
 
 	/**
-		@brief	ƒXƒvƒ‰ƒCƒgƒŒƒ“ƒ_ƒ‰[‚ğ¶¬‚·‚éB
+		@brief	ã‚¹ãƒ—ãƒ©ã‚¤ãƒˆãƒ¬ãƒ³ãƒ€ãƒ©ãƒ¼ã‚’ç”Ÿæˆã™ã‚‹ã€‚
 	*/
 	::Effekseer::SpriteRenderer* CreateSpriteRenderer();
 
 	/**
-		@brief	ƒŠƒ{ƒ“ƒŒƒ“ƒ_ƒ‰[‚ğ¶¬‚·‚éB
+		@brief	ãƒªãƒœãƒ³ãƒ¬ãƒ³ãƒ€ãƒ©ãƒ¼ã‚’ç”Ÿæˆã™ã‚‹ã€‚
 	*/
 	::Effekseer::RibbonRenderer* CreateRibbonRenderer();
 	
 	/**
-		@brief	ƒŠƒ“ƒOƒŒƒ“ƒ_ƒ‰[‚ğ¶¬‚·‚éB
+		@brief	ãƒªãƒ³ã‚°ãƒ¬ãƒ³ãƒ€ãƒ©ãƒ¼ã‚’ç”Ÿæˆã™ã‚‹ã€‚
 	*/
 	::Effekseer::RingRenderer* CreateRingRenderer();
 	
 	/**
-		@brief	ƒ‚ƒfƒ‹ƒŒƒ“ƒ_ƒ‰[‚ğ¶¬‚·‚éB
+		@brief	ãƒ¢ãƒ‡ãƒ«ãƒ¬ãƒ³ãƒ€ãƒ©ãƒ¼ã‚’ç”Ÿæˆã™ã‚‹ã€‚
 	*/
 	::Effekseer::ModelRenderer* CreateModelRenderer();
 
 	/**
-		@brief	‹OÕƒŒƒ“ƒ_ƒ‰[‚ğ¶¬‚·‚éB
+		@brief	è»Œè·¡ãƒ¬ãƒ³ãƒ€ãƒ©ãƒ¼ã‚’ç”Ÿæˆã™ã‚‹ã€‚
 	*/
 	::Effekseer::TrackRenderer* CreateTrackRenderer();
 
 	/**
-		@brief	ƒeƒNƒXƒ`ƒƒ“ÇƒNƒ‰ƒX‚ğ¶¬‚·‚éB
+		@brief	ãƒ†ã‚¯ã‚¹ãƒãƒ£èª­è¾¼ã‚¯ãƒ©ã‚¹ã‚’ç”Ÿæˆã™ã‚‹ã€‚
 	*/
 	::Effekseer::TextureLoader* CreateTextureLoader( ::Effekseer::FileInterface* fileInterface = NULL );
 	
 	/**
-		@brief	ƒ‚ƒfƒ‹“ÇƒNƒ‰ƒX‚ğ¶¬‚·‚éB
+		@brief	ãƒ¢ãƒ‡ãƒ«èª­è¾¼ã‚¯ãƒ©ã‚¹ã‚’ç”Ÿæˆã™ã‚‹ã€‚
 	*/
 	::Effekseer::ModelLoader* CreateModelLoader( ::Effekseer::FileInterface* fileInterface = NULL );
 
 	/**
-	@brief	”wŒi‚ğæ“¾‚·‚éB
+	@brief	èƒŒæ™¯ã‚’å–å¾—ã™ã‚‹ã€‚
 	*/
 	GLuint GetBackground() override { return m_background; }
 
 	/**
-	@brief	”wŒi‚ğİ’è‚·‚éB
+	@brief	èƒŒæ™¯ã‚’è¨­å®šã™ã‚‹ã€‚
 	*/
 	void SetBackground(GLuint background) override;
 
@@ -1343,7 +1343,7 @@ public:
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-#endif	// __EFFEKSEERRENDERER_GL_RENDERER_IMPLEMENTED_H__
+#endif	// __EFFEKSEERRENDERER_GL_RENDERER_IMPLEMENTED_H__ï»¿
 #ifndef	__EFFEKSEERRENDERER_GL_RENDERSTATE_H__
 #define	__EFFEKSEERRENDERER_GL_RENDERSTATE_H__
 
@@ -1383,7 +1383,7 @@ public:
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
-#endif	// __EFFEKSEERRENDERER_GL_RENDERSTATE_H__
+#endif	// __EFFEKSEERRENDERER_GL_RENDERSTATE_H__ï»¿
 #ifndef	__EFFEKSEERRENDERER_GL_STRIPE_RENDERER_H__
 #define	__EFFEKSEERRENDERER_GL_STRIPE_RENDERER_H__
 
@@ -1431,7 +1431,7 @@ public:
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-#endif	// __EFFEKSEERRENDERER_GL_STRIPE_RENDERER_H__
+#endif	// __EFFEKSEERRENDERER_GL_STRIPE_RENDERER_H__ï»¿
 #ifndef	__EFFEKSEERRENDERER_GL_RING_RENDERER_H__
 #define	__EFFEKSEERRENDERER_GL_RING_RENDERER_H__
 
@@ -1479,7 +1479,7 @@ public:
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-#endif	// __EFFEKSEERRENDERER_GL_RING_RENDERER_H__
+#endif	// __EFFEKSEERRENDERER_GL_RING_RENDERER_H__ï»¿
 #ifndef	__EFFEKSEERRENDERER_GL_SHADER_H__
 #define	__EFFEKSEERRENDERER_GL_SHADER_H__
 
@@ -1602,7 +1602,7 @@ public:
 		int32_t pixelShaderSize,
 		const char* name);
 
-public:	// ƒfƒoƒCƒX•œ‹Œ—p
+public:	// ãƒ‡ãƒã‚¤ã‚¹å¾©æ—§ç”¨
 	virtual void OnLostDevice();
 	virtual void OnResetDevice();
 	virtual void OnChangeDevice();
@@ -1645,7 +1645,7 @@ public:
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-#endif	// __EFFEKSEERRENDERER_GL_SHADER_H__
+#endif	// __EFFEKSEERRENDERER_GL_SHADER_H__ï»¿
 #ifndef	__EFFEKSEERRENDERER_GL_SPRITE_RENDERER_H__
 #define	__EFFEKSEERRENDERER_GL_SPRITE_RENDERER_H__
 
@@ -1693,7 +1693,7 @@ public:
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-#endif	// __EFFEKSEERRENDERER_GL_SPRITE_RENDERER_H__
+#endif	// __EFFEKSEERRENDERER_GL_SPRITE_RENDERER_H__ï»¿
 #ifdef __EFFEKSEER_RENDERER_INTERNAL_LOADER__
 
 #ifndef	__EFFEKSEERRENDERER_GL_TEXTURELOADER_H__
@@ -1736,7 +1736,7 @@ public:
 //----------------------------------------------------------------------------------
 #endif	// __EFFEKSEERRENDERER_GL_TEXTURELOADER_H__
 
-#endif
+#endifï»¿
 #ifndef	__EFFEKSEERRENDERER_GL_TRACK_RENDERER_H__
 #define	__EFFEKSEERRENDERER_GL_TRACK_RENDERER_H__
 
@@ -1784,7 +1784,7 @@ public:
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-#endif	// __EFFEKSEERRENDERER_GL_TRACK_RENDERER_H__
+#endif	// __EFFEKSEERRENDERER_GL_TRACK_RENDERER_H__ï»¿
 #pragma once
 
 //----------------------------------------------------------------------------------
@@ -1822,7 +1822,7 @@ public:
 	VertexBuffer* GetVertexBuffer() { return m_vertexBuffer; }
 	IndexBuffer* GetIndexBuffer() { return m_indexBuffer; }
 
-public:	// ƒfƒoƒCƒX•œ‹Œ—p
+public:	// ãƒ‡ãƒã‚¤ã‚¹å¾©æ—§ç”¨
 	virtual void OnLostDevice();
 	virtual void OnResetDevice();
 
@@ -1837,7 +1837,7 @@ private:
 }
 //-----------------------------------------------------------------------------------
 //
-//-----------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------------ï»¿
 #pragma once
 
 //----------------------------------------------------------------------------------
@@ -1871,7 +1871,7 @@ public:
 
 	GLuint GetInterface() { return m_buffer; }
 
-public:	// ƒfƒoƒCƒX•œ‹Œ—p
+public:	// ãƒ‡ãƒã‚¤ã‚¹å¾©æ—§ç”¨
 	virtual void OnLostDevice();
 	virtual void OnResetDevice();
 
@@ -1889,7 +1889,7 @@ public:
 }
 //-----------------------------------------------------------------------------------
 //
-//-----------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------------ï»¿
 //----------------------------------------------------------------------------------
 // Include
 //----------------------------------------------------------------------------------
@@ -1933,7 +1933,7 @@ RendererImplemented* DeviceObject::GetRenderer() const
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-
+ï»¿
 //----------------------------------------------------------------------------------
 // Include
 //----------------------------------------------------------------------------------
@@ -2521,7 +2521,7 @@ void glBindSampler(GLuint unit, GLuint sampler)
 //----------------------------------------------------------------------------------
 }
 }
-
+ï»¿
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
@@ -2611,7 +2611,7 @@ void IndexBuffer::Unlock()
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
-
+ï»¿
 //----------------------------------------------------------------------------------
 // Include
 //----------------------------------------------------------------------------------
@@ -2684,7 +2684,7 @@ void ModelLoader::Unload( void* data )
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-
+ï»¿
 //----------------------------------------------------------------------------------
 // Include
 //----------------------------------------------------------------------------------
@@ -3501,7 +3501,7 @@ void ModelRenderer::EndRendering( const efkModelNodeParam& parameter, void* user
 
 	if( parameter.ColorTextureIndex >= 0 )
 	{
-		// ƒeƒNƒXƒ`ƒƒ—L‚è
+		// ãƒ†ã‚¯ã‚¹ãƒãƒ£æœ‰ã‚Š
 		textures[0] = (GLuint) parameter.EffectPointer->GetImage(parameter.ColorTextureIndex);
 	}
 	
@@ -3519,7 +3519,7 @@ void ModelRenderer::EndRendering( const efkModelNodeParam& parameter, void* user
 
 	m_renderer->GetRenderState()->Update( false );
 	
-	// ‚±‚±‚©‚ç
+	// ã“ã“ã‹ã‚‰
 	ModelRendererVertexConstantBuffer<1>* vcb = (ModelRendererVertexConstantBuffer<1>*)shader_->GetVertexConstantBuffer();
 	ModelRendererPixelConstantBuffer* pcb = (ModelRendererPixelConstantBuffer*)shader_->GetPixelConstantBuffer();
 	
@@ -3607,7 +3607,7 @@ void ModelRenderer::EndRendering( const efkModelNodeParam& parameter, void* user
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-
+ï»¿
 //----------------------------------------------------------------------------------
 // Include
 //----------------------------------------------------------------------------------
@@ -3933,7 +3933,7 @@ void RendererImplemented::OnResetDevice()
 	{
 		m_indexBuffer->Lock();
 
-		// ( •W€İ’è‚Å@DirectX Œvü‚è‚ª•\, OpenGL‚Í”½Œv‰ñ‚è‚ª•\ )
+		// ( æ¨™æº–è¨­å®šã§ã€€DirectX æ™‚è¨ˆå‘¨ã‚ŠãŒè¡¨, OpenGLã¯åæ™‚è¨ˆå›ã‚ŠãŒè¡¨ )
 		for( int i = 0; i < m_squareMaxCount; i++ )
 		{
 			uint16_t* buf = (uint16_t*)m_indexBuffer->GetBufferDirect( 6 );
@@ -3954,25 +3954,25 @@ void RendererImplemented::OnResetDevice()
 //----------------------------------------------------------------------------------
 bool RendererImplemented::Initialize()
 {
-	// ’¸“_‚Ì¶¬
+	// é ‚ç‚¹ã®ç”Ÿæˆ
 	{
-		// Å‘å‚Åfloat * 10 ‚Æ‰¼’è
+		// æœ€å¤§ã§float * 10 ã¨ä»®å®š
 		m_vertexBuffer = VertexBuffer::Create( this, sizeof(Vertex) * m_squareMaxCount * 4, true );
 		if( m_vertexBuffer == NULL ) return false;
 	}
 
-	// QÆƒJƒEƒ“ƒg‚Ì’²®
+	// å‚ç…§ã‚«ã‚¦ãƒ³ãƒˆã®èª¿æ•´
 	Release();
 
 
-	// ƒCƒ“ƒfƒbƒNƒX‚Ì¶¬
+	// ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹ã®ç”Ÿæˆ
 	{
 		m_indexBuffer = IndexBuffer::Create( this, m_squareMaxCount * 6, false );
 		if( m_indexBuffer == NULL ) return false;
 
 		m_indexBuffer->Lock();
 
-		// ( •W€İ’è‚Å@DirectX Œvü‚è‚ª•\, OpenGL‚Í”½Œv‰ñ‚è‚ª•\ )
+		// ( æ¨™æº–è¨­å®šã§ã€€DirectX æ™‚è¨ˆå‘¨ã‚ŠãŒè¡¨, OpenGLã¯åæ™‚è¨ˆå›ã‚ŠãŒè¡¨ )
 		for( int i = 0; i < m_squareMaxCount; i++ )
 		{
 			uint16_t* buf = (uint16_t*)m_indexBuffer->GetBufferDirect( 6 );
@@ -3987,7 +3987,7 @@ bool RendererImplemented::Initialize()
 		m_indexBuffer->Unlock();
 	}
 
-	// QÆƒJƒEƒ“ƒg‚Ì’²®
+	// å‚ç…§ã‚«ã‚¦ãƒ³ãƒˆã®èª¿æ•´
 	Release();
 
 	m_renderState = new RenderState( this );
@@ -3998,7 +3998,7 @@ bool RendererImplemented::Initialize()
 		"Standard Tex");
 	if (m_shader == nullptr) return false;
 
-	// QÆƒJƒEƒ“ƒg‚Ì’²®
+	// å‚ç…§ã‚«ã‚¦ãƒ³ãƒˆã®èª¿æ•´
 	Release();
 
 	m_shader_no_texture = Shader::Create(this,
@@ -4010,7 +4010,7 @@ bool RendererImplemented::Initialize()
 		return false;
 	}
 
-	// QÆƒJƒEƒ“ƒg‚Ì’²®
+	// å‚ç…§ã‚«ã‚¦ãƒ³ãƒˆã®èª¿æ•´
 	Release();
 
 	m_shader_distortion = Shader::Create(this,
@@ -4019,7 +4019,7 @@ bool RendererImplemented::Initialize()
 		"Standard Distortion Tex");
 	if (m_shader_distortion == nullptr) return false;
 
-	// QÆƒJƒEƒ“ƒg‚Ì’²®
+	// å‚ç…§ã‚«ã‚¦ãƒ³ãƒˆã®èª¿æ•´
 	Release();
 
 	m_shader_no_texture_distortion = Shader::Create(this,
@@ -4031,7 +4031,7 @@ bool RendererImplemented::Initialize()
 		return false;
 	}
 
-	// QÆƒJƒEƒ“ƒg‚Ì’²®
+	// å‚ç…§ã‚«ã‚¦ãƒ³ãƒˆã®èª¿æ•´
 	Release();
 
 	static ShaderAttribInfo sprite_attribs[3] = {
@@ -4048,7 +4048,7 @@ bool RendererImplemented::Initialize()
 		{ "atTangent", GL_FLOAT, 3, 36, false },
 	};
 
-	// ’¸“_‘®«ID‚ğæ“¾
+	// é ‚ç‚¹å±æ€§IDã‚’å–å¾—
 	m_shader->GetAttribIdList(3, sprite_attribs);
 	m_shader->SetVertexSize(sizeof(Vertex));
 	m_shader->SetVertexConstantBufferSize(sizeof(Effekseer::Matrix44) * 2);
@@ -4084,11 +4084,11 @@ bool RendererImplemented::Initialize()
 		);
 
 	m_vao = VertexArray::Create(this, m_shader, GetVertexBuffer(), GetIndexBuffer());
-	// QÆƒJƒEƒ“ƒg‚Ì’²®
+	// å‚ç…§ã‚«ã‚¦ãƒ³ãƒˆã®èª¿æ•´
 	if (m_vao != nullptr) Release();
 
 	m_vao_no_texture = VertexArray::Create(this, m_shader_no_texture, GetVertexBuffer(), GetIndexBuffer());
-	// QÆƒJƒEƒ“ƒg‚Ì’²®
+	// å‚ç…§ã‚«ã‚¦ãƒ³ãƒˆã®èª¿æ•´
 	if (m_vao_no_texture != nullptr) Release();
 
 	// Distortion
@@ -4146,12 +4146,12 @@ bool RendererImplemented::Initialize()
 
 	m_vao_distortion = VertexArray::Create(this, m_shader_distortion, GetVertexBuffer(), GetIndexBuffer());
 	
-	// QÆƒJƒEƒ“ƒg‚Ì’²®
+	// å‚ç…§ã‚«ã‚¦ãƒ³ãƒˆã®èª¿æ•´
 	if (m_vao_distortion != nullptr) Release();
 
 	m_vao_no_texture_distortion = VertexArray::Create(this, m_shader_no_texture_distortion, GetVertexBuffer(), GetIndexBuffer());
 	
-	// QÆƒJƒEƒ“ƒg‚Ì’²®
+	// å‚ç…§ã‚«ã‚¦ãƒ³ãƒˆã®èª¿æ•´
 	if (m_vao_no_texture_distortion != nullptr) Release();
 
 	m_standardRenderer = new EffekseerRenderer::StandardRenderer<RendererImplemented, Shader, GLuint, Vertex, VertexDistortion>(this, m_shader, m_shader_no_texture, m_shader_distortion, m_shader_no_texture_distortion);
@@ -4181,7 +4181,7 @@ bool RendererImplemented::BeginRendering()
 
 	::Effekseer::Matrix44::Mul( m_cameraProj, m_camera, m_proj );
 
-	// ƒXƒe[ƒg‚ğ•Û‘¶‚·‚é
+	// ã‚¹ãƒ†ãƒ¼ãƒˆã‚’ä¿å­˜ã™ã‚‹
 	if(m_restorationOfStates)
 	{
 		m_originalState.blend = glIsEnabled(GL_BLEND);
@@ -4209,7 +4209,7 @@ bool RendererImplemented::BeginRendering()
 	m_renderState->Update( true );
 	m_currentTextures.clear();
 
-	// ƒŒƒ“ƒ_ƒ‰[ƒŠƒZƒbƒg
+	// ãƒ¬ãƒ³ãƒ€ãƒ©ãƒ¼ãƒªã‚»ãƒƒãƒˆ
 	m_standardRenderer->ResetAndRenderingIfRequired();
 
 	GLCheckError();
@@ -4224,10 +4224,10 @@ bool RendererImplemented::EndRendering()
 {
 	GLCheckError();
 
-	// ƒŒƒ“ƒ_ƒ‰[ƒŠƒZƒbƒg
+	// ãƒ¬ãƒ³ãƒ€ãƒ©ãƒ¼ãƒªã‚»ãƒƒãƒˆ
 	m_standardRenderer->ResetAndRenderingIfRequired();
 
-	// ƒXƒe[ƒg‚ğ•œŒ³‚·‚é
+	// ã‚¹ãƒ†ãƒ¼ãƒˆã‚’å¾©å…ƒã™ã‚‹
 	if(m_restorationOfStates)
 	{
 		if (m_originalState.blend) glEnable(GL_BLEND); else glDisable(GL_BLEND);
@@ -4296,25 +4296,25 @@ void RendererImplemented::SetSquareMaxCount(int32_t count)
 	ES_SAFE_DELETE(m_vertexBuffer);
 	ES_SAFE_DELETE(m_indexBuffer);
 
-	// ’¸“_‚Ì¶¬
+	// é ‚ç‚¹ã®ç”Ÿæˆ
 	{
-		// Å‘å‚Åfloat * 10 ‚Æ‰¼’è
+		// æœ€å¤§ã§float * 10 ã¨ä»®å®š
 		m_vertexBuffer = VertexBuffer::Create(this, sizeof(Vertex) * m_squareMaxCount * 4, true);
 		if (m_vertexBuffer == NULL) return;
 	}
 
-	// QÆƒJƒEƒ“ƒg‚Ì’²®
+	// å‚ç…§ã‚«ã‚¦ãƒ³ãƒˆã®èª¿æ•´
 	Release();
 
 
-	// ƒCƒ“ƒfƒbƒNƒX‚Ì¶¬
+	// ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹ã®ç”Ÿæˆ
 	{
 		m_indexBuffer = IndexBuffer::Create(this, m_squareMaxCount * 6, false);
 		if (m_indexBuffer == NULL) return;
 
 		m_indexBuffer->Lock();
 
-		// ( •W€İ’è‚Å@DirectX Œvü‚è‚ª•\, OpenGL‚Í”½Œv‰ñ‚è‚ª•\ )
+		// ( æ¨™æº–è¨­å®šã§ã€€DirectX æ™‚è¨ˆå‘¨ã‚ŠãŒè¡¨, OpenGLã¯åæ™‚è¨ˆå›ã‚ŠãŒè¡¨ )
 		for (int i = 0; i < m_squareMaxCount; i++)
 		{
 			uint16_t* buf = (uint16_t*) m_indexBuffer->GetBufferDirect(6);
@@ -4329,7 +4329,7 @@ void RendererImplemented::SetSquareMaxCount(int32_t count)
 		m_indexBuffer->Unlock();
 	}
 
-	// QÆƒJƒEƒ“ƒg‚Ì’²®
+	// å‚ç…§ã‚«ã‚¦ãƒ³ãƒˆã®èª¿æ•´
 	Release();
 }
 
@@ -4585,7 +4585,7 @@ void RendererImplemented::DrawSprites( int32_t spriteCount, int32_t vertexOffset
 
 	//assert( vertexOffset == 0 );
 
-	// ‘S‚Ä‚ªƒXƒvƒ‰ƒCƒg‚Å‚ ‚é‚±‚Æ‘O’ñ
+	// å…¨ã¦ãŒã‚¹ãƒ—ãƒ©ã‚¤ãƒˆã§ã‚ã‚‹ã“ã¨å‰æ
 	auto triangles = vertexOffset / 4 * 2;
 
 	glDrawElements(GL_TRIANGLES, spriteCount * 6, GL_UNSIGNED_SHORT, (void*) (triangles * 3 * sizeof(GLushort)));
@@ -4612,7 +4612,7 @@ void RendererImplemented::BeginShader(Shader* shader)
 {
 	GLCheckError();
 
-	// VAO‚ÌØ‚è‘Ö‚¦
+	// VAOã®åˆ‡ã‚Šæ›¿ãˆ
 	if (shader == m_shader)
 	{
 		SetVertexArray(m_vao);
@@ -4763,7 +4763,7 @@ Model::~Model()
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-
+ï»¿
 //----------------------------------------------------------------------------------
 // Include
 //----------------------------------------------------------------------------------
@@ -4922,7 +4922,7 @@ void RenderState::Update( bool forced )
 		GLCheckError();
 		for (int32_t i = 0; i < m_renderer->GetCurrentTextures().size(); i++)
 		{
-			/* ƒeƒNƒXƒ`ƒƒ‚ªİ’è‚³‚ê‚Ä‚¢‚È‚¢ê‡‚ÍƒXƒLƒbƒv */
+			/* ãƒ†ã‚¯ã‚¹ãƒãƒ£ãŒè¨­å®šã•ã‚Œã¦ã„ãªã„å ´åˆã¯ã‚¹ã‚­ãƒƒãƒ— */
 			if (m_renderer->GetCurrentTextures()[i] == 0) continue;
 
 			if (m_active.TextureFilterTypes[i] != m_next.TextureFilterTypes[i] || forced)
@@ -4970,7 +4970,7 @@ void RenderState::Update( bool forced )
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
-
+ï»¿
 //----------------------------------------------------------------------------------
 // Include
 //----------------------------------------------------------------------------------
@@ -5041,7 +5041,7 @@ void RibbonRenderer::EndRendering( const efkRibbonNodeParam& parameter, void* us
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-
+ï»¿
 //----------------------------------------------------------------------------------
 // Include
 //----------------------------------------------------------------------------------
@@ -5112,7 +5112,7 @@ void RingRenderer::EndRendering( const efkRingNodeParam& parameter, void* userDa
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-
+ï»¿
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
@@ -5206,7 +5206,7 @@ bool Shader::CompileShader(
 	GLint res_vs, res_fs, res_link;
 	
 
-	// ƒo[ƒeƒbƒNƒXƒVƒF[ƒ_‚ğƒRƒ“ƒpƒCƒ‹
+	// ãƒãƒ¼ãƒ†ãƒƒã‚¯ã‚¹ã‚·ã‚§ãƒ¼ãƒ€ã‚’ã‚³ãƒ³ãƒ‘ã‚¤ãƒ«
 	if (renderer->GetDeviceType() == OpenGLDeviceType::OpenGL3) src_data[0] = g_header_vs_gl3_src;
 	if (renderer->GetDeviceType() == OpenGLDeviceType::OpenGL2) src_data[0] = g_header_vs_gl2_src;
 	if (renderer->GetDeviceType() == OpenGLDeviceType::OpenGLES3) src_data[0] = g_header_vs_gles3_src;
@@ -5221,7 +5221,7 @@ bool Shader::CompileShader(
 	GLExt::glCompileShader(vert_shader);
 	GLExt::glGetShaderiv(vert_shader, GL_COMPILE_STATUS, &res_vs);
 
-	// ƒtƒ‰ƒOƒƒ“ƒgƒVƒF[ƒ_‚ğƒRƒ“ƒpƒCƒ‹
+	// ãƒ•ãƒ©ã‚°ãƒ¡ãƒ³ãƒˆã‚·ã‚§ãƒ¼ãƒ€ã‚’ã‚³ãƒ³ãƒ‘ã‚¤ãƒ«
 	if (renderer->GetDeviceType() == OpenGLDeviceType::OpenGL3) src_data[0] = g_header_fs_gl3_src;
 	if (renderer->GetDeviceType() == OpenGLDeviceType::OpenGL2) src_data[0] = g_header_fs_gl2_src;
 	if (renderer->GetDeviceType() == OpenGLDeviceType::OpenGLES3) src_data[0] = g_header_fs_gles3_src;
@@ -5236,18 +5236,18 @@ bool Shader::CompileShader(
 	GLExt::glCompileShader(frag_shader);
 	GLExt::glGetShaderiv(frag_shader, GL_COMPILE_STATUS, &res_fs);
 	
-	// ƒVƒF[ƒ_ƒvƒƒOƒ‰ƒ€‚Ìì¬
+	// ã‚·ã‚§ãƒ¼ãƒ€ãƒ—ãƒ­ã‚°ãƒ©ãƒ ã®ä½œæˆ
 	program = GLExt::glCreateProgram();
 	GLExt::glAttachShader(program, vert_shader);
 	GLExt::glAttachShader(program, frag_shader);
 	
-	// ƒVƒF[ƒ_ƒvƒƒOƒ‰ƒ€‚ÌƒŠƒ“ƒN
+	// ã‚·ã‚§ãƒ¼ãƒ€ãƒ—ãƒ­ã‚°ãƒ©ãƒ ã®ãƒªãƒ³ã‚¯
 	GLExt::glLinkProgram(program);
 	GLExt::glGetProgramiv(program, GL_LINK_STATUS, &res_link);
 
 #ifndef NDEBUG
 	{
-		// ƒGƒ‰[o—Í
+		// ã‚¨ãƒ©ãƒ¼å‡ºåŠ›
 		char log[512];
 		int32_t log_size;
 		GLExt::glGetShaderInfoLog(vert_shader, sizeof(log), &log_size, log);
@@ -5270,7 +5270,7 @@ bool Shader::CompileShader(
 		}
 	}
 #endif
-	// ƒVƒF[ƒ_ƒIƒuƒWƒFƒNƒg‚Ìíœ
+	// ã‚·ã‚§ãƒ¼ãƒ€ã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆã®å‰Šé™¤
 	GLExt::glDeleteShader(frag_shader);
 	GLExt::glDeleteShader(vert_shader);
 
@@ -5698,7 +5698,7 @@ bool Shader::GetTextureSlotEnable(int32_t index)
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
-}
+}ï»¿
 //----------------------------------------------------------------------------------
 // Include
 //----------------------------------------------------------------------------------
@@ -5770,7 +5770,7 @@ void SpriteRenderer::EndRendering( const efkSpriteNodeParam& parameter, void* us
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-
+ï»¿
 #ifdef __EFFEKSEER_RENDERER_INTERNAL_LOADER__
 
 //----------------------------------------------------------------------------------
@@ -5832,7 +5832,7 @@ void* TextureLoader::Load(const EFK_CHAR* path, ::Effekseer::TextureType texture
 			GL_UNSIGNED_BYTE,
 			EffekseerRenderer::PngTextureLoader::GetData().data());
 		
-		/* ƒ~ƒbƒvƒ}ƒbƒv‚Ì¶¬ */
+		/* ãƒŸãƒƒãƒ—ãƒãƒƒãƒ—ã®ç”Ÿæˆ */
 		GLExt::glGenerateMipmap(GL_TEXTURE_2D);
 
 		glBindTexture(GL_TEXTURE_2D, 0);
@@ -5864,7 +5864,7 @@ void TextureLoader::Unload( void* data )
 //----------------------------------------------------------------------------------
 
 #endif
-
+ï»¿
 //----------------------------------------------------------------------------------
 // Include
 //----------------------------------------------------------------------------------
@@ -5935,7 +5935,7 @@ void TrackRenderer::EndRendering(const efkTrackNodeParam& parameter, void* userD
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-
+ï»¿
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
@@ -6038,7 +6038,7 @@ void VertexArray::Release()
 }
 //-----------------------------------------------------------------------------------
 //
-//-----------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------------ï»¿
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
@@ -6126,7 +6126,7 @@ bool VertexBuffer::RingBufferLock( int32_t size, int32_t& offset, void*& data )
 
 	if( size > m_size ) return false;
 
-	// glDrawElements‚ÅƒIƒtƒZƒbƒg‚ğw’è‚Å‚«‚È‚¢‚½‚ß
+	// glDrawElementsã§ã‚ªãƒ•ã‚»ãƒƒãƒˆã‚’æŒ‡å®šã§ããªã„ãŸã‚
 	if ( m_vertexRingOffset + size > m_size )
 	//if( true )
 	{

@@ -1,4 +1,4 @@
-
+ï»¿
 #ifndef	__EFFEKSEERRENDERER_COMMON_UTILS_H__
 #define	__EFFEKSEERRENDERER_COMMON_UTILS_H__
 
@@ -35,7 +35,7 @@ inline uint32_t TexturePointerToTexture<uint32_t>(void* texture)
 //
 //-----------------------------------------------------------------------------------
 }
-#endif // __EFFEKSEERRENDERER_COMMON_UTILS_H__
+#endif // __EFFEKSEERRENDERER_COMMON_UTILS_H__ï»¿
 #ifndef	__EFFEKSEERRENDERER_RENDERER_H__
 #define	__EFFEKSEERRENDERER_RENDERER_H__
 
@@ -54,7 +54,7 @@ namespace EffekseerRenderer
 //-----------------------------------------------------------------------------------
 
 /**
-	@brief	”wŒi‚ğ˜c‚Ü‚¹‚éƒGƒtƒFƒNƒg‚ğ•`‰æ‚·‚é‘O‚ÉÀs‚³‚ê‚éƒR[ƒ‹ƒoƒbƒN
+	@brief	èƒŒæ™¯ã‚’æ­ªã¾ã›ã‚‹ã‚¨ãƒ•ã‚§ã‚¯ãƒˆã‚’æç”»ã™ã‚‹å‰ã«å®Ÿè¡Œã•ã‚Œã‚‹ã‚³ãƒ¼ãƒ«ãƒãƒƒã‚¯
 */
 class DistortingCallback
 {
@@ -76,142 +76,142 @@ protected:
 
 public:
 	/**
-		@brief	ƒfƒoƒCƒXƒƒXƒg‚ª”­¶‚µ‚½‚ÉÀs‚·‚éB
+		@brief	ãƒ‡ãƒã‚¤ã‚¹ãƒ­ã‚¹ãƒˆãŒç™ºç”Ÿã—ãŸæ™‚ã«å®Ÿè¡Œã™ã‚‹ã€‚
 	*/
 	virtual void OnLostDevice() = 0;
 
 	/**
-		@brief	ƒfƒoƒCƒX‚ªƒŠƒZƒbƒg‚³‚ê‚½‚ÉÀs‚·‚éB
+		@brief	ãƒ‡ãƒã‚¤ã‚¹ãŒãƒªã‚»ãƒƒãƒˆã•ã‚ŒãŸæ™‚ã«å®Ÿè¡Œã™ã‚‹ã€‚
 	*/
 	virtual void OnResetDevice() = 0;
 
 	/**
-		@brief	‚±‚ÌƒCƒ“ƒXƒ^ƒ“ƒX‚ğ”jŠü‚·‚éB
+		@brief	ã“ã®ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹ã‚’ç ´æ£„ã™ã‚‹ã€‚
 	*/
 	virtual void Destory() = 0;
 
 	/**
-		@brief	ƒXƒe[ƒg‚ğ•œ‹A‚·‚é‚©‚Ç‚¤‚©‚Ìƒtƒ‰ƒO‚ğİ’è‚·‚éB
+		@brief	ã‚¹ãƒ†ãƒ¼ãƒˆã‚’å¾©å¸°ã™ã‚‹ã‹ã©ã†ã‹ã®ãƒ•ãƒ©ã‚°ã‚’è¨­å®šã™ã‚‹ã€‚
 	*/
 	virtual void SetRestorationOfStatesFlag(bool flag) = 0;
 
 	/**
-		@brief	•`‰æ‚ğŠJn‚·‚é‚ÉÀs‚·‚éB
+		@brief	æç”»ã‚’é–‹å§‹ã™ã‚‹æ™‚ã«å®Ÿè¡Œã™ã‚‹ã€‚
 	*/
 	virtual bool BeginRendering() = 0;
 
 	/**
-		@brief	•`‰æ‚ğI—¹‚·‚é‚ÉÀs‚·‚éB
+		@brief	æç”»ã‚’çµ‚äº†ã™ã‚‹æ™‚ã«å®Ÿè¡Œã™ã‚‹ã€‚
 	*/
 	virtual bool EndRendering() = 0;
 
 	/**
-		@brief	ƒ‰ƒCƒg‚Ì•ûŒü‚ğæ“¾‚·‚éB
+		@brief	ãƒ©ã‚¤ãƒˆã®æ–¹å‘ã‚’å–å¾—ã™ã‚‹ã€‚
 	*/
 	virtual const ::Effekseer::Vector3D& GetLightDirection() const = 0;
 
 	/**
-		@brief	ƒ‰ƒCƒg‚Ì•ûŒü‚ğİ’è‚·‚éB
+		@brief	ãƒ©ã‚¤ãƒˆã®æ–¹å‘ã‚’è¨­å®šã™ã‚‹ã€‚
 	*/
 	virtual void SetLightDirection( ::Effekseer::Vector3D& direction ) = 0;
 
 	/**
-		@brief	ƒ‰ƒCƒg‚ÌF‚ğæ“¾‚·‚éB
+		@brief	ãƒ©ã‚¤ãƒˆã®è‰²ã‚’å–å¾—ã™ã‚‹ã€‚
 	*/
 	virtual const ::Effekseer::Color& GetLightColor() const = 0;
 
 	/**
-		@brief	ƒ‰ƒCƒg‚ÌF‚ğİ’è‚·‚éB
+		@brief	ãƒ©ã‚¤ãƒˆã®è‰²ã‚’è¨­å®šã™ã‚‹ã€‚
 	*/
 	virtual void SetLightColor( ::Effekseer::Color& color ) = 0;
 
 	/**
-		@brief	ƒ‰ƒCƒg‚ÌŠÂ‹«Œõ‚ÌF‚ğæ“¾‚·‚éB
+		@brief	ãƒ©ã‚¤ãƒˆã®ç’°å¢ƒå…‰ã®è‰²ã‚’å–å¾—ã™ã‚‹ã€‚
 	*/
 	virtual const ::Effekseer::Color& GetLightAmbientColor() const = 0;
 
 	/**
-		@brief	ƒ‰ƒCƒg‚ÌŠÂ‹«Œõ‚ÌF‚ğİ’è‚·‚éB
+		@brief	ãƒ©ã‚¤ãƒˆã®ç’°å¢ƒå…‰ã®è‰²ã‚’è¨­å®šã™ã‚‹ã€‚
 	*/
 	virtual void SetLightAmbientColor( ::Effekseer::Color& color ) = 0;
 
 		/**
-		@brief	Å‘å•`‰æƒXƒvƒ‰ƒCƒg”‚ğæ“¾‚·‚éB
+		@brief	æœ€å¤§æç”»ã‚¹ãƒ—ãƒ©ã‚¤ãƒˆæ•°ã‚’å–å¾—ã™ã‚‹ã€‚
 	*/
 	virtual int32_t GetSquareMaxCount() const = 0;
 
 	/**
-		@brief	“Š‰es—ñ‚ğæ“¾‚·‚éB
+		@brief	æŠ•å½±è¡Œåˆ—ã‚’å–å¾—ã™ã‚‹ã€‚
 	*/
 	virtual const ::Effekseer::Matrix44& GetProjectionMatrix() const = 0;
 
 	/**
-		@brief	“Š‰es—ñ‚ğİ’è‚·‚éB
+		@brief	æŠ•å½±è¡Œåˆ—ã‚’è¨­å®šã™ã‚‹ã€‚
 	*/
 	virtual void SetProjectionMatrix( const ::Effekseer::Matrix44& mat ) = 0;
 
 	/**
-		@brief	ƒJƒƒ‰s—ñ‚ğæ“¾‚·‚éB
+		@brief	ã‚«ãƒ¡ãƒ©è¡Œåˆ—ã‚’å–å¾—ã™ã‚‹ã€‚
 	*/
 	virtual const ::Effekseer::Matrix44& GetCameraMatrix() const = 0;
 
 	/**
-		@brief	ƒJƒƒ‰s—ñ‚ğİ’è‚·‚éB
+		@brief	ã‚«ãƒ¡ãƒ©è¡Œåˆ—ã‚’è¨­å®šã™ã‚‹ã€‚
 	*/
 	virtual void SetCameraMatrix( const ::Effekseer::Matrix44& mat ) = 0;
 
 	/**
-		@brief	ƒJƒƒ‰ƒvƒƒWƒFƒNƒVƒ‡ƒ“s—ñ‚ğæ“¾‚·‚éB
+		@brief	ã‚«ãƒ¡ãƒ©ãƒ—ãƒ­ã‚¸ã‚§ã‚¯ã‚·ãƒ§ãƒ³è¡Œåˆ—ã‚’å–å¾—ã™ã‚‹ã€‚
 	*/
 	virtual ::Effekseer::Matrix44& GetCameraProjectionMatrix() = 0;
 
 	/**
-		@brief	ƒXƒvƒ‰ƒCƒgƒŒƒ“ƒ_ƒ‰[‚ğ¶¬‚·‚éB
+		@brief	ã‚¹ãƒ—ãƒ©ã‚¤ãƒˆãƒ¬ãƒ³ãƒ€ãƒ©ãƒ¼ã‚’ç”Ÿæˆã™ã‚‹ã€‚
 	*/
 	virtual ::Effekseer::SpriteRenderer* CreateSpriteRenderer() = 0;
 
 	/**
-		@brief	ƒŠƒ{ƒ“ƒŒƒ“ƒ_ƒ‰[‚ğ¶¬‚·‚éB
+		@brief	ãƒªãƒœãƒ³ãƒ¬ãƒ³ãƒ€ãƒ©ãƒ¼ã‚’ç”Ÿæˆã™ã‚‹ã€‚
 	*/
 	virtual ::Effekseer::RibbonRenderer* CreateRibbonRenderer() = 0;
 
 	/**
-		@brief	ƒŠƒ“ƒOƒŒƒ“ƒ_ƒ‰[‚ğ¶¬‚·‚éB
+		@brief	ãƒªãƒ³ã‚°ãƒ¬ãƒ³ãƒ€ãƒ©ãƒ¼ã‚’ç”Ÿæˆã™ã‚‹ã€‚
 	*/
 	virtual ::Effekseer::RingRenderer* CreateRingRenderer() = 0;
 
 	/**
-		@brief	ƒ‚ƒfƒ‹ƒŒƒ“ƒ_ƒ‰[‚ğ¶¬‚·‚éB
+		@brief	ãƒ¢ãƒ‡ãƒ«ãƒ¬ãƒ³ãƒ€ãƒ©ãƒ¼ã‚’ç”Ÿæˆã™ã‚‹ã€‚
 	*/
 	virtual ::Effekseer::ModelRenderer* CreateModelRenderer() = 0;
 
 	/**
-		@brief	‹OÕƒŒƒ“ƒ_ƒ‰[‚ğ¶¬‚·‚éB
+		@brief	è»Œè·¡ãƒ¬ãƒ³ãƒ€ãƒ©ãƒ¼ã‚’ç”Ÿæˆã™ã‚‹ã€‚
 	*/
 	virtual ::Effekseer::TrackRenderer* CreateTrackRenderer() = 0;
 
 	/**
-		@brief	•W€‚ÌƒeƒNƒXƒ`ƒƒ“ÇƒNƒ‰ƒX‚ğ¶¬‚·‚éB
+		@brief	æ¨™æº–ã®ãƒ†ã‚¯ã‚¹ãƒãƒ£èª­è¾¼ã‚¯ãƒ©ã‚¹ã‚’ç”Ÿæˆã™ã‚‹ã€‚
 	*/
 	virtual ::Effekseer::TextureLoader* CreateTextureLoader( ::Effekseer::FileInterface* fileInterface = NULL ) = 0;
 
 	/**
-		@brief	•W€‚Ìƒ‚ƒfƒ‹“ÇƒNƒ‰ƒX‚ğ¶¬‚·‚éB
+		@brief	æ¨™æº–ã®ãƒ¢ãƒ‡ãƒ«èª­è¾¼ã‚¯ãƒ©ã‚¹ã‚’ç”Ÿæˆã™ã‚‹ã€‚
 	*/
 	virtual ::Effekseer::ModelLoader* CreateModelLoader( ::Effekseer::FileInterface* fileInterface = NULL ) = 0;
 
 	/**
-		@brief	ƒŒƒ“ƒ_[ƒXƒe[ƒg‚ğ‹­§“I‚ÉƒŠƒZƒbƒg‚·‚éB
+		@brief	ãƒ¬ãƒ³ãƒ€ãƒ¼ã‚¹ãƒ†ãƒ¼ãƒˆã‚’å¼·åˆ¶çš„ã«ãƒªã‚»ãƒƒãƒˆã™ã‚‹ã€‚
 	*/
 	virtual void ResetRenderState() = 0;
 
 	/**
-	@brief	”wŒi‚ğ˜c‚Ü‚¹‚éƒGƒtƒFƒNƒg‚ª•`‰æ‚³‚ê‚é‘O‚ÉŒÄ‚Î‚ê‚éƒR[ƒ‹ƒoƒbƒN‚ğæ“¾‚·‚éB
+	@brief	èƒŒæ™¯ã‚’æ­ªã¾ã›ã‚‹ã‚¨ãƒ•ã‚§ã‚¯ãƒˆãŒæç”»ã•ã‚Œã‚‹å‰ã«å‘¼ã°ã‚Œã‚‹ã‚³ãƒ¼ãƒ«ãƒãƒƒã‚¯ã‚’å–å¾—ã™ã‚‹ã€‚
 	*/
 	virtual DistortingCallback* GetDistortingCallback() = 0;
 
 	/**
-	@brief	”wŒi‚ğ˜c‚Ü‚¹‚éƒGƒtƒFƒNƒg‚ª•`‰æ‚³‚ê‚é‘O‚ÉŒÄ‚Î‚ê‚éƒR[ƒ‹ƒoƒbƒN‚ğİ’è‚·‚éB
+	@brief	èƒŒæ™¯ã‚’æ­ªã¾ã›ã‚‹ã‚¨ãƒ•ã‚§ã‚¯ãƒˆãŒæç”»ã•ã‚Œã‚‹å‰ã«å‘¼ã°ã‚Œã‚‹ã‚³ãƒ¼ãƒ«ãƒãƒƒã‚¯ã‚’è¨­å®šã™ã‚‹ã€‚
 	*/
 	virtual void SetDistortingCallback(DistortingCallback* callback) = 0;
 };
@@ -223,7 +223,123 @@ public:
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-#endif	// __EFFEKSEERRENDERER_RENDERER_H__
+#endif	// __EFFEKSEERRENDERER_RENDERER_H__ï»¿
+#ifndef	__EFFEKSEERRENDERER_RENDERSTATE_BASE_H__
+#define	__EFFEKSEERRENDERER_RENDERSTATE_BASE_H__
+
+//----------------------------------------------------------------------------------
+// Include
+//----------------------------------------------------------------------------------
+#include "EffekseerNative.h"
+#include <assert.h>
+#include <string.h>
+#include <stack>
+
+//-----------------------------------------------------------------------------------
+//
+//-----------------------------------------------------------------------------------
+namespace EffekseerRenderer
+{
+//-----------------------------------------------------------------------------------
+//
+//-----------------------------------------------------------------------------------
+class RenderStateBase
+{
+public:
+	struct State
+	{
+		bool								DepthTest				: 1;
+		bool								DepthWrite				: 1;
+		::Effekseer::AlphaBlendType			AlphaBlend;
+		::Effekseer::CullingType			CullingType;
+		::Effekseer::TextureFilterType		TextureFilterTypes[4];
+		::Effekseer::TextureWrapType		TextureWrapTypes[4];
+
+		State();
+
+		void Reset();
+
+		void CopyTo( State& state );
+	};
+
+protected:
+	std::stack<State>	m_stateStack;
+	State				m_active;
+	State				m_next;
+
+public:
+	RenderStateBase();
+	virtual ~RenderStateBase();
+
+	virtual void Update( bool forced ) = 0;
+
+	State& Push();
+	void Pop();
+	State& GetActiveState();
+};
+
+//-----------------------------------------------------------------------------------
+//
+//-----------------------------------------------------------------------------------
+}
+//-----------------------------------------------------------------------------------
+//
+//-----------------------------------------------------------------------------------
+#endif	// __EFFEKSEERRENDERER_RENDERSTATE_BASE_H__ï»¿
+#ifndef	__EFFEKSEERRENDERER_VERTEXBUFFER_BASE_H__
+#define	__EFFEKSEERRENDERER_VERTEXBUFFER_BASE_H__
+
+//----------------------------------------------------------------------------------
+// Include
+//----------------------------------------------------------------------------------
+#include "EffekseerNative.h"
+#include <assert.h>
+#include <string.h>
+
+//-----------------------------------------------------------------------------------
+//
+//-----------------------------------------------------------------------------------
+namespace EffekseerRenderer
+{
+//-----------------------------------------------------------------------------------
+//
+//-----------------------------------------------------------------------------------
+class VertexBufferBase
+{
+protected:
+	bool					m_isDynamic;
+	int						m_size;
+	int						m_offset;
+	uint8_t*				m_resource;
+	bool					m_isLock;
+
+public:
+	VertexBufferBase( int size, bool isDynamic );
+	virtual ~VertexBufferBase();
+
+	virtual void Lock() = 0;
+	virtual bool RingBufferLock( int32_t size, int32_t& offset, void*& data ) = 0;
+
+	/**
+		@brief	ãƒãƒƒãƒ•ã‚¡å…¨ä½“ã‚’å†ç¢ºä¿ã›ãšã«ã€è©¦ã—ã«ä¸€éƒ¨ã‚’ãƒ­ãƒƒã‚¯ã—ã¦ã¿ã‚‹ã€‚
+	*/
+	virtual bool TryRingBufferLock(int32_t size, int32_t& offset, void*& data) = 0;
+
+	virtual void Unlock() = 0;
+	virtual void Push( const void* buffer, int size );
+	virtual int GetMaxSize() const;
+	virtual int GetSize() const;
+	virtual void* GetBufferDirect( int size );
+};
+
+//-----------------------------------------------------------------------------------
+//
+//-----------------------------------------------------------------------------------
+}
+//-----------------------------------------------------------------------------------
+//
+//-----------------------------------------------------------------------------------
+#endif	// __EFFEKSEERRENDERER_VERTEXBUFFER_BASE_H__ï»¿
 #ifndef	__EFFEKSEERRENDERER_INDEXBUFFER_BASE_H__
 #define	__EFFEKSEERRENDERER_INDEXBUFFER_BASE_H__
 
@@ -270,7 +386,314 @@ public:
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
-#endif	// __EFFEKSEERRENDERER_INDEXBUFFER_BASE_H__
+#endif	// __EFFEKSEERRENDERER_INDEXBUFFER_BASE_H__ï»¿
+#ifndef	__EFFEKSEERRENDERER_STANDARD_RENDERER_BASE_H__
+#define	__EFFEKSEERRENDERER_STANDARD_RENDERER_BASE_H__
+
+//----------------------------------------------------------------------------------
+// Include
+//----------------------------------------------------------------------------------
+#include "EffekseerNative.h"
+#include <vector>
+
+
+//-----------------------------------------------------------------------------------
+//
+//-----------------------------------------------------------------------------------
+namespace EffekseerRenderer
+{
+//----------------------------------------------------------------------------------
+//
+//----------------------------------------------------------------------------------
+
+struct StandardRendererState
+{
+	bool								DepthTest;
+	bool								DepthWrite;
+	bool								Distortion;
+	float								DistortionIntensity;
+
+	::Effekseer::AlphaBlendType			AlphaBlend;
+	::Effekseer::CullingType			CullingType;
+	::Effekseer::TextureFilterType		TextureFilterType;
+	::Effekseer::TextureWrapType		TextureWrapType;
+	void*								TexturePtr;
+
+	StandardRendererState()
+	{
+		DepthTest = false;
+		DepthWrite = false;
+		Distortion = false;
+		DistortionIntensity = 1.0f;
+
+		AlphaBlend = ::Effekseer::AlphaBlendType::Blend;
+		CullingType = ::Effekseer::CullingType::Front;
+		TextureFilterType = ::Effekseer::TextureFilterType::Nearest;
+		TextureWrapType = ::Effekseer::TextureWrapType::Repeat;
+		TexturePtr = NULL;
+	}
+
+	bool operator != (const StandardRendererState state)
+	{
+		if (DepthTest != state.DepthTest) return true;
+		if (DepthWrite != state.DepthWrite) return true;
+		if (Distortion != state.Distortion) return true;
+		if (DistortionIntensity != state.DistortionIntensity) return true;
+		if (AlphaBlend != state.AlphaBlend) return true;
+		if (CullingType != state.CullingType) return true;
+		if (TextureFilterType != state.TextureFilterType) return true;
+		if (TextureWrapType != state.TextureWrapType) return true;
+		if (TexturePtr != state.TexturePtr) return true;
+		return false;
+	}
+};
+
+template<typename RENDERER, typename SHADER, typename TEXTURE, typename VERTEX, typename VERTEX_DISTORTION>
+class StandardRenderer
+{
+
+private:
+	RENDERER*	m_renderer;
+	SHADER*		m_shader;
+	SHADER*		m_shader_no_texture;
+
+	SHADER*		m_shader_distortion;
+	SHADER*		m_shader_no_texture_distortion;
+
+	TEXTURE*	m_texture;
+
+	StandardRendererState		m_state;
+
+	std::vector<uint8_t>		vertexCaches;
+	int32_t						vertexCacheMaxSize;
+
+	bool						m_isDistortionMode;
+public:
+
+	StandardRenderer(RENDERER* renderer, SHADER* shader, SHADER* shader_no_texture, SHADER* shader_distortion, SHADER* shader_no_texture_distortion)
+		: vertexCacheMaxSize(0)
+		, m_isDistortionMode(false)
+	{
+		m_renderer = renderer;
+		m_shader = shader;
+		m_shader_no_texture = shader_no_texture;
+		m_shader_distortion = shader_distortion;
+		m_shader_no_texture_distortion = shader_no_texture_distortion;
+
+		vertexCaches.reserve(m_renderer->GetVertexBuffer()->GetMaxSize());
+		vertexCacheMaxSize = m_renderer->GetVertexBuffer()->GetMaxSize();
+	}
+
+	void UpdateStateAndRenderingIfRequired(StandardRendererState state)
+	{
+		if(m_state != state)
+		{
+			Rendering();
+		}
+
+		m_state = state;
+
+		m_isDistortionMode = m_state.Distortion;
+	}
+
+	void BeginRenderingAndRenderingIfRequired(int32_t count, int32_t& offset, void*& data)
+	{
+		if (m_isDistortionMode)
+		{
+			if (count * sizeof(VERTEX_DISTORTION) + vertexCaches.size() > vertexCacheMaxSize)
+			{
+				Rendering();
+			}
+
+			auto old = vertexCaches.size();
+			vertexCaches.resize(count * sizeof(VERTEX_DISTORTION) + vertexCaches.size());
+			offset = old;
+			data = (vertexCaches.data() + old);
+		}
+		else
+		{
+			if (count * sizeof(VERTEX) + vertexCaches.size() > vertexCacheMaxSize)
+			{
+				Rendering();
+			}
+
+			auto old = vertexCaches.size();
+			vertexCaches.resize(count * sizeof(VERTEX) + vertexCaches.size());
+			offset = old;
+			data = (vertexCaches.data() + old);
+		}
+	}
+
+	void ResetAndRenderingIfRequired()
+	{
+		Rendering();
+
+		// å¿…ãšæ¬¡ã®æç”»ã§åˆæœŸåŒ–ã•ã‚Œã‚‹ã€‚
+		m_state.TexturePtr = (void*)0x1;
+	}
+
+	void Rendering(const Effekseer::Matrix44& mCamera, const Effekseer::Matrix44& mProj)
+	{
+		if (vertexCaches.size() == 0) return;
+
+		if (m_state.Distortion)
+		{
+			auto callback = m_renderer->GetDistortingCallback();
+			if (callback != nullptr)
+			{
+				callback->OnDistorting();
+			}
+		}
+
+		if (m_state.Distortion && m_renderer->GetBackground() == 0)
+		{
+			vertexCaches.clear();
+			return;
+		}
+
+		int32_t vertexSize = vertexCaches.size();
+		int32_t offsetSize = 0;
+		{
+			VertexBufferBase* vb = m_renderer->GetVertexBuffer();
+
+			void* data = nullptr;
+
+			if (m_state.Distortion)
+			{
+				// OpenGL ESå¯¾ç­–(OpenGL ES3.2ä»¥é™ã§ã—ã‹ã€é ‚ç‚¹ãƒ¬ã‚¤ã‚¢ã‚¦ãƒˆå¯å¤‰ã®ãƒªãƒ³ã‚°ãƒãƒƒãƒ•ã‚¡ã‚’å®Ÿç¾ã§ããªã„ãŸã‚)
+				vb->Lock();
+				data = vb->GetBufferDirect(vertexCaches.size());
+				if (data == nullptr)
+				{
+					vertexCaches.clear();
+					return;
+				}
+				memcpy(data, vertexCaches.data(), vertexCaches.size());
+				vb->Unlock();
+			}
+			else if (vb->RingBufferLock(vertexCaches.size(), offsetSize, data))
+			{
+				assert(data != nullptr);
+				memcpy(data, vertexCaches.data(), vertexCaches.size());
+				vb->Unlock();
+			}
+			else
+			{
+				// ç¾çŠ¶ã€æç”»ã™ã‚‹ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹æ•°ãŒå¤šã™ãã‚‹å ´åˆã¯æç”»ã—ãªãã—ã¦ã„ã‚‹
+				vertexCaches.clear();
+				return;
+			}
+
+			vertexCaches.clear();
+
+		}
+
+		RenderStateBase::State& state = m_renderer->GetRenderState()->Push();
+		state.DepthTest = m_state.DepthTest;
+		state.DepthWrite = m_state.DepthWrite;
+		state.CullingType = m_state.CullingType;
+
+		SHADER* shader_ = nullptr;
+
+		bool distortion = m_state.Distortion;
+
+		if (distortion)
+		{
+			if (m_state.TexturePtr != nullptr)
+			{
+				shader_ = m_shader_distortion;
+			}
+			else
+			{
+				shader_ = m_shader_no_texture_distortion;
+			}
+		}
+		else
+		{
+			if (m_state.TexturePtr != nullptr)
+			{
+				shader_ = m_shader;
+			}
+			else
+			{
+				shader_ = m_shader_no_texture;
+			}
+		}
+
+		m_renderer->BeginShader(shader_);
+
+		TEXTURE textures[2];
+
+		if (m_state.TexturePtr != nullptr)
+		{
+			textures[0] = TexturePointerToTexture<TEXTURE>(m_state.TexturePtr);
+		}
+		else
+		{
+			textures[0] = 0;
+		}
+
+		if (distortion)
+		{
+			textures[1] = m_renderer->GetBackground();
+			m_renderer->SetTextures(shader_, textures, 2);
+		}
+		else
+		{
+			m_renderer->SetTextures(shader_, textures, 1);
+		}
+
+		((Effekseer::Matrix44*)(shader_->GetVertexConstantBuffer()))[0] = mCamera;
+		((Effekseer::Matrix44*)(shader_->GetVertexConstantBuffer()))[1] = mProj;
+
+		if (distortion)
+		{
+			((float*) (shader_->GetPixelConstantBuffer()))[0] = m_state.DistortionIntensity;
+		}
+
+		shader_->SetConstantBuffer();
+
+		state.AlphaBlend = m_state.AlphaBlend;
+		state.TextureFilterTypes[0] = m_state.TextureFilterType;
+		state.TextureWrapTypes[0] = m_state.TextureWrapType;
+
+		m_renderer->GetRenderState()->Update(distortion);
+
+		if (distortion)
+		{
+			m_renderer->SetVertexBuffer(m_renderer->GetVertexBuffer(), sizeof(VERTEX_DISTORTION));
+			m_renderer->SetIndexBuffer(m_renderer->GetIndexBuffer());
+			m_renderer->SetLayout(shader_);
+			m_renderer->DrawSprites(vertexSize / sizeof(VERTEX_DISTORTION) / 4, offsetSize / sizeof(VERTEX_DISTORTION));
+		}
+		else
+		{
+			int32_t spriteCount = vertexSize / sizeof(VERTEX) / 4;
+			m_renderer->SetVertexBuffer(m_renderer->GetVertexBuffer(), sizeof(VERTEX));
+			m_renderer->SetIndexBuffer(m_renderer->GetIndexBuffer());
+			m_renderer->SetLayout(shader_);
+			m_renderer->DrawSprites(spriteCount, offsetSize / sizeof(VERTEX));
+		}
+
+		m_renderer->EndShader(shader_);
+
+		m_renderer->GetRenderState()->Pop();
+	}
+
+	void Rendering()
+	{
+		Rendering(m_renderer->GetCameraMatrix(), m_renderer->GetProjectionMatrix());
+	}
+};
+
+//----------------------------------------------------------------------------------
+//
+//----------------------------------------------------------------------------------
+}
+//----------------------------------------------------------------------------------
+//
+//----------------------------------------------------------------------------------
+#endif	// __EFFEKSEERRENDERER_STANDARD_RENDERER_H__ï»¿
 #ifndef	__EFFEKSEERRENDERER_MODEL_RENDERER_BASE_H__
 #define	__EFFEKSEERRENDERER_MODEL_RENDERER_BASE_H__
 
@@ -393,7 +816,7 @@ public:
 		state.AlphaBlend = param.AlphaBlend;
 		state.CullingType = param.Culling;
 
-		/*ƒVƒF[ƒ_[‘I‘ğ*/
+		/*ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼é¸æŠ*/
 		SHADER* shader_ = NULL;
 		if (distortion)
 		{
@@ -445,7 +868,7 @@ public:
 
 		renderer->BeginShader(shader_);
 
-		/*ƒeƒNƒXƒ`ƒƒ‘I‘ğ*/
+		/*ãƒ†ã‚¯ã‚¹ãƒãƒ£é¸æŠ*/
 		TEXTURE textures[2];
 		textures[0] = (TEXTURE)NULL;
 		textures[1] = (TEXTURE)NULL;
@@ -493,7 +916,7 @@ public:
 		{
 			ModelRendererPixelConstantBuffer* pcb = (ModelRendererPixelConstantBuffer*) shader_->GetPixelConstantBuffer();
 
-			// ŒÅ’è’lİ’è
+			// å›ºå®šå€¤è¨­å®š
 			if (param.Lighting)
 			{
 				{
@@ -519,7 +942,7 @@ public:
 
 		if(Instancing)
 		{
-			/* ƒoƒbƒtƒ@‚Ìİ’è‚ÌŒã‚ÉƒŒƒCƒAƒEƒg‚ğİ’è‚µ‚È‚¢‚Æ–³Œø */
+			/* ãƒãƒƒãƒ•ã‚¡ã®è¨­å®šã®å¾Œã«ãƒ¬ã‚¤ã‚¢ã‚¦ãƒˆã‚’è¨­å®šã—ãªã„ã¨ç„¡åŠ¹ */
 			renderer->SetVertexBuffer(model->VertexBuffer, sizeof(Effekseer::Model::VertexWithIndex));
 			renderer->SetIndexBuffer(model->IndexBuffer);
 			renderer->SetLayout(shader_);
@@ -549,7 +972,7 @@ public:
 		}
 		else
 		{
-			/* ƒoƒbƒtƒ@‚Ìİ’è‚ÌŒã‚ÉƒŒƒCƒAƒEƒg‚ğİ’è‚µ‚È‚¢‚Æ–³Œø */
+			/* ãƒãƒƒãƒ•ã‚¡ã®è¨­å®šã®å¾Œã«ãƒ¬ã‚¤ã‚¢ã‚¦ãƒˆã‚’è¨­å®šã—ãªã„ã¨ç„¡åŠ¹ */
 			renderer->SetVertexBuffer(model->VertexBuffer, sizeof(Effekseer::Model::Vertex));
 			renderer->SetIndexBuffer(model->IndexBuffer);
 			renderer->SetLayout(shader_);
@@ -582,69 +1005,7 @@ public:
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-#endif	// __EFFEKSEERRENDERER_MODEL_RENDERER_H__
-#ifndef	__EFFEKSEERRENDERER_RENDERSTATE_BASE_H__
-#define	__EFFEKSEERRENDERER_RENDERSTATE_BASE_H__
-
-//----------------------------------------------------------------------------------
-// Include
-//----------------------------------------------------------------------------------
-#include "EffekseerNative.h"
-#include <assert.h>
-#include <string.h>
-#include <stack>
-
-//-----------------------------------------------------------------------------------
-//
-//-----------------------------------------------------------------------------------
-namespace EffekseerRenderer
-{
-//-----------------------------------------------------------------------------------
-//
-//-----------------------------------------------------------------------------------
-class RenderStateBase
-{
-public:
-	struct State
-	{
-		bool								DepthTest				: 1;
-		bool								DepthWrite				: 1;
-		::Effekseer::AlphaBlendType			AlphaBlend;
-		::Effekseer::CullingType			CullingType;
-		::Effekseer::TextureFilterType		TextureFilterTypes[4];
-		::Effekseer::TextureWrapType		TextureWrapTypes[4];
-
-		State();
-
-		void Reset();
-
-		void CopyTo( State& state );
-	};
-
-protected:
-	std::stack<State>	m_stateStack;
-	State				m_active;
-	State				m_next;
-
-public:
-	RenderStateBase();
-	virtual ~RenderStateBase();
-
-	virtual void Update( bool forced ) = 0;
-
-	State& Push();
-	void Pop();
-	State& GetActiveState();
-};
-
-//-----------------------------------------------------------------------------------
-//
-//-----------------------------------------------------------------------------------
-}
-//-----------------------------------------------------------------------------------
-//
-//-----------------------------------------------------------------------------------
-#endif	// __EFFEKSEERRENDERER_RENDERSTATE_BASE_H__
+#endif	// __EFFEKSEERRENDERER_MODEL_RENDERER_H__ï»¿
 #ifndef	__EFFEKSEERRENDERER_RIBBON_RENDERER_BASE_H__
 #define	__EFFEKSEERRENDERER_RIBBON_RENDERER_BASE_H__
 
@@ -770,7 +1131,7 @@ protected:
 			::Effekseer::Vector3D t;
 			mat.GetSRT( s, r, t );
 	
-			// Šg‘å
+			// æ‹¡å¤§
 			for( int i = 0; i < 2; i++ )
 			{
 				verteies[i].Pos.X = verteies[i].Pos.X * s.X;
@@ -837,7 +1198,7 @@ protected:
 			m_ribbonCount++;
 		}
 
-		/* ˜c‚İ‚ğ“K—p */
+		/* æ­ªã¿ã‚’é©ç”¨ */
 		if (isLast && sizeof(VERTEX) == sizeof(VERTEX_DISTORTION))
 		{
 			VERTEX_DISTORTION* vs_ = (VERTEX_DISTORTION*) (m_ringBufferData - sizeof(VERTEX_DISTORTION) * (instanceParameter.InstanceCount - 1) * 4);
@@ -975,7 +1336,7 @@ protected:
 //
 //----------------------------------------------------------------------------------
 #endif	// __EFFEKSEERRENDERER_RIBBON_RENDERER_H__
-
+ï»¿
 #ifndef	__EFFEKSEERRENDERER_RING_RENDERER_BASE_H__
 #define	__EFFEKSEERRENDERER_RING_RENDERER_BASE_H__
 
@@ -1173,14 +1534,14 @@ protected:
 			v[7].UV[0] = texNext;
 			v[7].UV[1] = v3;
 
-			// ˜c‚İˆ—
+			// æ­ªã¿å‡¦ç†
 			if (sizeof(VERTEX) == sizeof(VERTEX_DISTORTION))
 			{
 				auto vs = (VERTEX_DISTORTION*) &verteies[i];
 				auto binormalCurrent = v[5].Pos - v[0].Pos;
 				auto binormalNext = v[7].Pos - v[2].Pos;
 
-				// –ß‚·
+				// æˆ»ã™
 				float t_b;
 				t_b = old_c * (stepC) - old_s * (-stepS);
 				auto s_b = old_s * (stepC) + old_c * (-stepS);
@@ -1191,7 +1552,7 @@ protected:
 				outerBefore.Y = s_b * outerRadius;
 				outerBefore.Z = outerHeight;
 
-				// Ÿ
+				// æ¬¡
 				auto t_n = c * stepC - s * stepS;
 				auto s_n = s * stepC + c * stepS;
 				auto c_n = t_n;
@@ -1381,7 +1742,7 @@ protected:
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-#endif	// __EFFEKSEERRENDERER_RING_RENDERER_H__
+#endif	// __EFFEKSEERRENDERER_RING_RENDERER_H__ï»¿
 #ifndef	__EFFEKSEERRENDERER_SPRITE_RENDERER_BASE_H__
 #define	__EFFEKSEERRENDERER_SPRITE_RENDERER_BASE_H__
 
@@ -1500,7 +1861,7 @@ protected:
 		verteies[3].UV[0] = instanceParameter.UV.X + instanceParameter.UV.Width;
 		verteies[3].UV[1] = instanceParameter.UV.Y;
 
-		// ˜c‚İˆ—
+		// æ­ªã¿å‡¦ç†
 		if (sizeof(VERTEX) == sizeof(VERTEX_DISTORTION))
 		{
 			auto vs = (VERTEX_DISTORTION*) verteies;
@@ -1525,7 +1886,7 @@ protected:
 			::Effekseer::Vector3D t;
 			mat.GetSRT( s, r, t );
 	
-			// Šg‘å
+			// æ‹¡å¤§
 			for( int i = 0; i < 4; i++ )
 			{
 				verteies[i].Pos.X = verteies[i].Pos.X * s.X;
@@ -1618,7 +1979,7 @@ protected:
 					verteies[i].Pos,
 					instanceParameter.SRTMatrix43 );
 
-				// ˜c‚İˆ—
+				// æ­ªã¿å‡¦ç†
 				if (sizeof(VERTEX) == sizeof(VERTEX_DISTORTION))
 				{
 					auto vs = (VERTEX_DISTORTION*) & verteies[i];
@@ -1707,314 +2068,7 @@ protected:
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-#endif	// __EFFEKSEERRENDERER_SPRITE_RENDERER_H__
-#ifndef	__EFFEKSEERRENDERER_STANDARD_RENDERER_BASE_H__
-#define	__EFFEKSEERRENDERER_STANDARD_RENDERER_BASE_H__
-
-//----------------------------------------------------------------------------------
-// Include
-//----------------------------------------------------------------------------------
-#include "EffekseerNative.h"
-#include <vector>
-
-
-//-----------------------------------------------------------------------------------
-//
-//-----------------------------------------------------------------------------------
-namespace EffekseerRenderer
-{
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-
-struct StandardRendererState
-{
-	bool								DepthTest;
-	bool								DepthWrite;
-	bool								Distortion;
-	float								DistortionIntensity;
-
-	::Effekseer::AlphaBlendType			AlphaBlend;
-	::Effekseer::CullingType			CullingType;
-	::Effekseer::TextureFilterType		TextureFilterType;
-	::Effekseer::TextureWrapType		TextureWrapType;
-	void*								TexturePtr;
-
-	StandardRendererState()
-	{
-		DepthTest = false;
-		DepthWrite = false;
-		Distortion = false;
-		DistortionIntensity = 1.0f;
-
-		AlphaBlend = ::Effekseer::AlphaBlendType::Blend;
-		CullingType = ::Effekseer::CullingType::Front;
-		TextureFilterType = ::Effekseer::TextureFilterType::Nearest;
-		TextureWrapType = ::Effekseer::TextureWrapType::Repeat;
-		TexturePtr = NULL;
-	}
-
-	bool operator != (const StandardRendererState state)
-	{
-		if (DepthTest != state.DepthTest) return true;
-		if (DepthWrite != state.DepthWrite) return true;
-		if (Distortion != state.Distortion) return true;
-		if (DistortionIntensity != state.DistortionIntensity) return true;
-		if (AlphaBlend != state.AlphaBlend) return true;
-		if (CullingType != state.CullingType) return true;
-		if (TextureFilterType != state.TextureFilterType) return true;
-		if (TextureWrapType != state.TextureWrapType) return true;
-		if (TexturePtr != state.TexturePtr) return true;
-		return false;
-	}
-};
-
-template<typename RENDERER, typename SHADER, typename TEXTURE, typename VERTEX, typename VERTEX_DISTORTION>
-class StandardRenderer
-{
-
-private:
-	RENDERER*	m_renderer;
-	SHADER*		m_shader;
-	SHADER*		m_shader_no_texture;
-
-	SHADER*		m_shader_distortion;
-	SHADER*		m_shader_no_texture_distortion;
-
-	TEXTURE*	m_texture;
-
-	StandardRendererState		m_state;
-
-	std::vector<uint8_t>		vertexCaches;
-	int32_t						vertexCacheMaxSize;
-
-	bool						m_isDistortionMode;
-public:
-
-	StandardRenderer(RENDERER* renderer, SHADER* shader, SHADER* shader_no_texture, SHADER* shader_distortion, SHADER* shader_no_texture_distortion)
-		: vertexCacheMaxSize(0)
-		, m_isDistortionMode(false)
-	{
-		m_renderer = renderer;
-		m_shader = shader;
-		m_shader_no_texture = shader_no_texture;
-		m_shader_distortion = shader_distortion;
-		m_shader_no_texture_distortion = shader_no_texture_distortion;
-
-		vertexCaches.reserve(m_renderer->GetVertexBuffer()->GetMaxSize());
-		vertexCacheMaxSize = m_renderer->GetVertexBuffer()->GetMaxSize();
-	}
-
-	void UpdateStateAndRenderingIfRequired(StandardRendererState state)
-	{
-		if(m_state != state)
-		{
-			Rendering();
-		}
-
-		m_state = state;
-
-		m_isDistortionMode = m_state.Distortion;
-	}
-
-	void BeginRenderingAndRenderingIfRequired(int32_t count, int32_t& offset, void*& data)
-	{
-		if (m_isDistortionMode)
-		{
-			if (count * sizeof(VERTEX_DISTORTION) + vertexCaches.size() > vertexCacheMaxSize)
-			{
-				Rendering();
-			}
-
-			auto old = vertexCaches.size();
-			vertexCaches.resize(count * sizeof(VERTEX_DISTORTION) + vertexCaches.size());
-			offset = old;
-			data = (vertexCaches.data() + old);
-		}
-		else
-		{
-			if (count * sizeof(VERTEX) + vertexCaches.size() > vertexCacheMaxSize)
-			{
-				Rendering();
-			}
-
-			auto old = vertexCaches.size();
-			vertexCaches.resize(count * sizeof(VERTEX) + vertexCaches.size());
-			offset = old;
-			data = (vertexCaches.data() + old);
-		}
-	}
-
-	void ResetAndRenderingIfRequired()
-	{
-		Rendering();
-
-		// •K‚¸Ÿ‚Ì•`‰æ‚Å‰Šú‰»‚³‚ê‚éB
-		m_state.TexturePtr = (void*)0x1;
-	}
-
-	void Rendering(const Effekseer::Matrix44& mCamera, const Effekseer::Matrix44& mProj)
-	{
-		if (vertexCaches.size() == 0) return;
-
-		if (m_state.Distortion)
-		{
-			auto callback = m_renderer->GetDistortingCallback();
-			if (callback != nullptr)
-			{
-				callback->OnDistorting();
-			}
-		}
-
-		if (m_state.Distortion && m_renderer->GetBackground() == 0)
-		{
-			vertexCaches.clear();
-			return;
-		}
-
-		int32_t vertexSize = vertexCaches.size();
-		int32_t offsetSize = 0;
-		{
-			VertexBufferBase* vb = m_renderer->GetVertexBuffer();
-
-			void* data = nullptr;
-
-			if (m_state.Distortion)
-			{
-				// OpenGL ES‘Îô(OpenGL ES3.2ˆÈ~‚Å‚µ‚©A’¸“_ƒŒƒCƒAƒEƒg‰Â•Ï‚ÌƒŠƒ“ƒOƒoƒbƒtƒ@‚ğÀŒ»‚Å‚«‚È‚¢‚½‚ß)
-				vb->Lock();
-				data = vb->GetBufferDirect(vertexCaches.size());
-				if (data == nullptr)
-				{
-					vertexCaches.clear();
-					return;
-				}
-				memcpy(data, vertexCaches.data(), vertexCaches.size());
-				vb->Unlock();
-			}
-			else if (vb->RingBufferLock(vertexCaches.size(), offsetSize, data))
-			{
-				assert(data != nullptr);
-				memcpy(data, vertexCaches.data(), vertexCaches.size());
-				vb->Unlock();
-			}
-			else
-			{
-				// Œ»óA•`‰æ‚·‚éƒCƒ“ƒXƒ^ƒ“ƒX”‚ª‘½‚·‚¬‚éê‡‚Í•`‰æ‚µ‚È‚­‚µ‚Ä‚¢‚é
-				vertexCaches.clear();
-				return;
-			}
-
-			vertexCaches.clear();
-
-		}
-
-		RenderStateBase::State& state = m_renderer->GetRenderState()->Push();
-		state.DepthTest = m_state.DepthTest;
-		state.DepthWrite = m_state.DepthWrite;
-		state.CullingType = m_state.CullingType;
-
-		SHADER* shader_ = nullptr;
-
-		bool distortion = m_state.Distortion;
-
-		if (distortion)
-		{
-			if (m_state.TexturePtr != nullptr)
-			{
-				shader_ = m_shader_distortion;
-			}
-			else
-			{
-				shader_ = m_shader_no_texture_distortion;
-			}
-		}
-		else
-		{
-			if (m_state.TexturePtr != nullptr)
-			{
-				shader_ = m_shader;
-			}
-			else
-			{
-				shader_ = m_shader_no_texture;
-			}
-		}
-
-		m_renderer->BeginShader(shader_);
-
-		TEXTURE textures[2];
-
-		if (m_state.TexturePtr != nullptr)
-		{
-			textures[0] = TexturePointerToTexture<TEXTURE>(m_state.TexturePtr);
-		}
-		else
-		{
-			textures[0] = 0;
-		}
-
-		if (distortion)
-		{
-			textures[1] = m_renderer->GetBackground();
-			m_renderer->SetTextures(shader_, textures, 2);
-		}
-		else
-		{
-			m_renderer->SetTextures(shader_, textures, 1);
-		}
-
-		((Effekseer::Matrix44*)(shader_->GetVertexConstantBuffer()))[0] = mCamera;
-		((Effekseer::Matrix44*)(shader_->GetVertexConstantBuffer()))[1] = mProj;
-
-		if (distortion)
-		{
-			((float*) (shader_->GetPixelConstantBuffer()))[0] = m_state.DistortionIntensity;
-		}
-
-		shader_->SetConstantBuffer();
-
-		state.AlphaBlend = m_state.AlphaBlend;
-		state.TextureFilterTypes[0] = m_state.TextureFilterType;
-		state.TextureWrapTypes[0] = m_state.TextureWrapType;
-
-		m_renderer->GetRenderState()->Update(distortion);
-
-		if (distortion)
-		{
-			m_renderer->SetVertexBuffer(m_renderer->GetVertexBuffer(), sizeof(VERTEX_DISTORTION));
-			m_renderer->SetIndexBuffer(m_renderer->GetIndexBuffer());
-			m_renderer->SetLayout(shader_);
-			m_renderer->DrawSprites(vertexSize / sizeof(VERTEX_DISTORTION) / 4, offsetSize / sizeof(VERTEX_DISTORTION));
-		}
-		else
-		{
-			int32_t spriteCount = vertexSize / sizeof(VERTEX) / 4;
-			m_renderer->SetVertexBuffer(m_renderer->GetVertexBuffer(), sizeof(VERTEX));
-			m_renderer->SetIndexBuffer(m_renderer->GetIndexBuffer());
-			m_renderer->SetLayout(shader_);
-			m_renderer->DrawSprites(spriteCount, offsetSize / sizeof(VERTEX));
-		}
-
-		m_renderer->EndShader(shader_);
-
-		m_renderer->GetRenderState()->Pop();
-	}
-
-	void Rendering()
-	{
-		Rendering(m_renderer->GetCameraMatrix(), m_renderer->GetProjectionMatrix());
-	}
-};
-
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-}
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-#endif	// __EFFEKSEERRENDERER_STANDARD_RENDERER_H__
+#endif	// __EFFEKSEERRENDERER_SPRITE_RENDERER_H__ï»¿
 #ifndef	__EFFEKSEERRENDERER_TRACK_RENDERER_BASE_H__
 #define	__EFFEKSEERRENDERER_TRACK_RENDERER_BASE_H__
 
@@ -2243,7 +2297,7 @@ protected:
 			m_ribbonCount += 2;
 		}
 
-		/* ‘S‚Ä‚Ì’¸“_‚ÌÀ•W‚ğ•ÏŠ· */
+		/* å…¨ã¦ã®é ‚ç‚¹ã®åº§æ¨™ã‚’å¤‰æ› */
 		if( isLast )
 		{
 			VERTEX* vs_ = (VERTEX*)(m_ringBufferData - sizeof(VERTEX) * 8 * (param.InstanceCount-1) );
@@ -2442,7 +2496,7 @@ protected:
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-#endif	// __EFFEKSEERRENDERER_RIBBON_RENDERER_H__
+#endif	// __EFFEKSEERRENDERER_RIBBON_RENDERER_H__ï»¿
 #ifndef	__EFFEKSEERRENDERER_VERTEXBUFFER_BASE_H__
 #define	__EFFEKSEERRENDERER_VERTEXBUFFER_BASE_H__
 
@@ -2478,7 +2532,7 @@ public:
 	virtual bool RingBufferLock( int32_t size, int32_t& offset, void*& data ) = 0;
 
 	/**
-		@brief	ƒoƒbƒtƒ@‘S‘Ì‚ğÄŠm•Û‚¹‚¸‚ÉA‚µ‚Éˆê•”‚ğƒƒbƒN‚µ‚Ä‚İ‚éB
+		@brief	ãƒãƒƒãƒ•ã‚¡å…¨ä½“ã‚’å†ç¢ºä¿ã›ãšã«ã€è©¦ã—ã«ä¸€éƒ¨ã‚’ãƒ­ãƒƒã‚¯ã—ã¦ã¿ã‚‹ã€‚
 	*/
 	virtual bool TryRingBufferLock(int32_t size, int32_t& offset, void*& data) = 0;
 
@@ -2496,61 +2550,7 @@ public:
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
-#endif	// __EFFEKSEERRENDERER_VERTEXBUFFER_BASE_H__
-#ifndef	__EFFEKSEERRENDERER_VERTEXBUFFER_BASE_H__
-#define	__EFFEKSEERRENDERER_VERTEXBUFFER_BASE_H__
-
-//----------------------------------------------------------------------------------
-// Include
-//----------------------------------------------------------------------------------
-#include "EffekseerNative.h"
-#include <assert.h>
-#include <string.h>
-
-//-----------------------------------------------------------------------------------
-//
-//-----------------------------------------------------------------------------------
-namespace EffekseerRenderer
-{
-//-----------------------------------------------------------------------------------
-//
-//-----------------------------------------------------------------------------------
-class VertexBufferBase
-{
-protected:
-	bool					m_isDynamic;
-	int						m_size;
-	int						m_offset;
-	uint8_t*				m_resource;
-	bool					m_isLock;
-
-public:
-	VertexBufferBase( int size, bool isDynamic );
-	virtual ~VertexBufferBase();
-
-	virtual void Lock() = 0;
-	virtual bool RingBufferLock( int32_t size, int32_t& offset, void*& data ) = 0;
-
-	/**
-		@brief	ƒoƒbƒtƒ@‘S‘Ì‚ğÄŠm•Û‚¹‚¸‚ÉA‚µ‚Éˆê•”‚ğƒƒbƒN‚µ‚Ä‚İ‚éB
-	*/
-	virtual bool TryRingBufferLock(int32_t size, int32_t& offset, void*& data) = 0;
-
-	virtual void Unlock() = 0;
-	virtual void Push( const void* buffer, int size );
-	virtual int GetMaxSize() const;
-	virtual int GetSize() const;
-	virtual void* GetBufferDirect( int size );
-};
-
-//-----------------------------------------------------------------------------------
-//
-//-----------------------------------------------------------------------------------
-}
-//-----------------------------------------------------------------------------------
-//
-//-----------------------------------------------------------------------------------
-#endif	// __EFFEKSEERRENDERER_VERTEXBUFFER_BASE_H__
+#endif	// __EFFEKSEERRENDERER_VERTEXBUFFER_BASE_H__ï»¿
 #ifndef	__EFFEKSEERRENDERER_GL_BASE_PRE_H__
 #define	__EFFEKSEERRENDERER_GL_BASE_PRE_H__
 
@@ -2599,7 +2599,7 @@ public:
 #else
 
 #if defined(__APPLE__)
-#include <OpenGL/gl3.h>
+#include <OpenGL/gl.h>
 #else
 #include <GL/gl.h>
 #endif
@@ -2638,7 +2638,7 @@ enum class OpenGLDeviceType
 //
 //----------------------------------------------------------------------------------
 #endif	// __EFFEKSEERRENDERER_GL_BASE_PRE_H__
-
+ï»¿
 #ifndef	__EFFEKSEERRENDERER_GL_RENDERER_H__
 #define	__EFFEKSEERRENDERER_GL_RENDERER_H__
 
@@ -2659,7 +2659,7 @@ namespace EffekseerRendererGL
 //
 //----------------------------------------------------------------------------------
 /**
-	@brief	•`‰æƒNƒ‰ƒX
+	@brief	æç”»ã‚¯ãƒ©ã‚¹
 */
 class Renderer
 	: public ::EffekseerRenderer::Renderer
@@ -2670,32 +2670,32 @@ protected:
 
 public:
 	/**
-		@brief	ƒCƒ“ƒXƒ^ƒ“ƒX‚ğ¶¬‚·‚éB
-		@param	squareMaxCount		Å‘å•`‰æƒXƒvƒ‰ƒCƒg”
-		@param	OpenGLDeviceType	ƒfƒoƒCƒX‚Ìí—Ş
-		@return	ƒCƒ“ƒXƒ^ƒ“ƒX
+		@brief	ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹ã‚’ç”Ÿæˆã™ã‚‹ã€‚
+		@param	squareMaxCount		æœ€å¤§æç”»ã‚¹ãƒ—ãƒ©ã‚¤ãƒˆæ•°
+		@param	OpenGLDeviceType	ãƒ‡ãƒã‚¤ã‚¹ã®ç¨®é¡
+		@return	ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹
 	*/
 	static Renderer* Create(int32_t squareMaxCount, OpenGLDeviceType deviceType = OpenGLDeviceType::OpenGL2);
 
 	/**
-		@brief	Å‘å•`‰æƒXƒvƒ‰ƒCƒg”‚ğæ“¾‚·‚éB
+		@brief	æœ€å¤§æç”»ã‚¹ãƒ—ãƒ©ã‚¤ãƒˆæ•°ã‚’å–å¾—ã™ã‚‹ã€‚
 	*/
 	virtual int32_t GetSquareMaxCount() const = 0;
 
 	/**
-		@brief	Å‘å•`‰æƒXƒvƒ‰ƒCƒg”‚ğİ’è‚·‚éB
+		@brief	æœ€å¤§æç”»ã‚¹ãƒ—ãƒ©ã‚¤ãƒˆæ•°ã‚’è¨­å®šã™ã‚‹ã€‚
 		@note
-		•`‰æ‚µ‚Ä‚¢‚é‚Íg—p‚Å‚«‚È‚¢B
+		æç”»ã—ã¦ã„ã‚‹æ™‚ã¯ä½¿ç”¨ã§ããªã„ã€‚
 	*/
 	virtual void SetSquareMaxCount(int32_t count) = 0;
 
 	/**
-	@brief	”wŒi‚ğæ“¾‚·‚éB
+	@brief	èƒŒæ™¯ã‚’å–å¾—ã™ã‚‹ã€‚
 	*/
 	virtual GLuint GetBackground() = 0;
 
 	/**
-	@brief	”wŒi‚ğİ’è‚·‚éB
+	@brief	èƒŒæ™¯ã‚’è¨­å®šã™ã‚‹ã€‚
 	*/
 	virtual void SetBackground(GLuint background) = 0;
 };
@@ -2704,7 +2704,7 @@ public:
 //
 //----------------------------------------------------------------------------------
 /**
-	@brief	ƒ‚ƒfƒ‹
+	@brief	ãƒ¢ãƒ‡ãƒ«
 */
 class Model
 	: public Effekseer::Model
@@ -2729,7 +2729,7 @@ public:
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-#endif	// __EFFEKSEERRENDERER_GL_RENDERER_H__
+#endif	// __EFFEKSEERRENDERER_GL_RENDERER_H__ï»¿
 #ifndef	__EFFEKSEERRENDERER_GL_MODELLOADER_H__
 #define	__EFFEKSEERRENDERER_GL_MODELLOADER_H__
 

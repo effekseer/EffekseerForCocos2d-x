@@ -19,7 +19,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #endif
-
+ï»¿
 #ifndef	__EFFEKSEER_BASE_H__
 #define	__EFFEKSEER_BASE_H__
 
@@ -102,21 +102,21 @@ class Model;
 //
 //----------------------------------------------------------------------------------
 /**
-	@brief	ƒCƒ“ƒXƒ^ƒ“ƒX‚Ìó‘Ô
+	@brief	ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹ã®çŠ¶æ…‹
 */
 enum eInstanceState
 {
 	/**
-		@brief	³í“®ì’†
+		@brief	æ­£å¸¸å‹•ä½œä¸­
 	*/
 	INSTANCE_STATE_ACTIVE,
 
 	/**
-		@brief	íœ’†
+		@brief	å‰Šé™¤ä¸­
 	*/
 	INSTANCE_STATE_REMOVING,
 	/**
-		@brief	íœ
+		@brief	å‰Šé™¤
 	*/
 	INSTANCE_STATE_REMOVED,
 
@@ -127,7 +127,7 @@ enum eInstanceState
 //
 //----------------------------------------------------------------------------------
 /**
-	@brief	ƒGƒtƒFƒNƒg‚ÉŠ‘®‚·‚éƒm[ƒh‚Ìí—Ş
+	@brief	ã‚¨ãƒ•ã‚§ã‚¯ãƒˆã«æ‰€å±ã™ã‚‹ãƒãƒ¼ãƒ‰ã®ç¨®é¡
 */
 enum eEffectNodeType
 {
@@ -149,7 +149,7 @@ enum eEffectNodeType
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-#endif	// __EFFEKSEER_BASE_H__
+#endif	// __EFFEKSEER_BASE_H__ï»¿
 #ifndef	__CULLING3D_CULLING3D_H__
 #define	__CULLING3D_CULLING3D_H__
 
@@ -158,7 +158,7 @@ enum eEffectNodeType
 namespace Culling3D
 {
 	/**
-	@brief	Å‘å’læ“¾
+	@brief	æœ€å¤§å€¤å–å¾—
 	*/
 	template <typename T, typename U>
 	T Max(T t, U u)
@@ -171,7 +171,7 @@ namespace Culling3D
 	}
 
 	/**
-	@brief	Å¬’læ“¾
+	@brief	æœ€å°å€¤å–å¾—
 	*/
 	template <typename T, typename U>
 	T Min(T t, U u)
@@ -184,7 +184,7 @@ namespace Culling3D
 	}
 
 	/**
-	@brief	”ÍˆÍ“à’læ“¾
+	@brief	ç¯„å›²å†…å€¤å–å¾—
 	*/
 	template <typename T, typename U, typename V>
 	T Clamp(T t, U max_, V min_)
@@ -291,7 +291,7 @@ namespace Culling3D
 		Vector3DF& operator /= (const float& o);
 
 		/**
-		@brief	‚±‚ÌƒxƒNƒgƒ‹‚Ì’·‚³‚ğæ“¾‚·‚éB
+		@brief	ã“ã®ãƒ™ã‚¯ãƒˆãƒ«ã®é•·ã•ã‚’å–å¾—ã™ã‚‹ã€‚
 		*/
 		float GetLength() const
 		{
@@ -299,7 +299,7 @@ namespace Culling3D
 		}
 
 		/**
-		@brief	‚±‚ÌƒxƒNƒgƒ‹‚Ì’·‚³‚Ì“ñæ‚ğæ“¾‚·‚éB
+		@brief	ã“ã®ãƒ™ã‚¯ãƒˆãƒ«ã®é•·ã•ã®äºŒä¹—ã‚’å–å¾—ã™ã‚‹ã€‚
 		*/
 		float GetSquaredLength() const
 		{
@@ -307,7 +307,7 @@ namespace Culling3D
 		}
 
 		/**
-		@brief	‚±‚ÌƒxƒNƒgƒ‹‚Ì’·‚³‚ğİ’è‚·‚éB
+		@brief	ã“ã®ãƒ™ã‚¯ãƒˆãƒ«ã®é•·ã•ã‚’è¨­å®šã™ã‚‹ã€‚
 		*/
 		void SetLength(float value)
 		{
@@ -316,7 +316,7 @@ namespace Culling3D
 		}
 
 		/**
-		@brief	‚±‚ÌƒxƒNƒgƒ‹‚Ì’PˆÊƒxƒNƒgƒ‹‚ğæ“¾‚·‚éB
+		@brief	ã“ã®ãƒ™ã‚¯ãƒˆãƒ«ã®å˜ä½ãƒ™ã‚¯ãƒˆãƒ«ã‚’å–å¾—ã™ã‚‹ã€‚
 		*/
 		Vector3DF GetNormal()
 		{
@@ -325,7 +325,7 @@ namespace Culling3D
 		}
 
 		/**
-		@brief	‚±‚ÌƒxƒNƒgƒ‹‚Ì’PˆÊƒxƒNƒgƒ‹‰»‚·‚éB
+		@brief	ã“ã®ãƒ™ã‚¯ãƒˆãƒ«ã®å˜ä½ãƒ™ã‚¯ãƒˆãƒ«åŒ–ã™ã‚‹ã€‚
 		*/
 		void Normalize()
 		{
@@ -334,20 +334,20 @@ namespace Culling3D
 		}
 
 		/**
-		@brief	“àÏ‚ğæ“¾‚·‚éB
+		@brief	å†…ç©ã‚’å–å¾—ã™ã‚‹ã€‚
 		*/
 		static float Dot(const Vector3DF& v1, const Vector3DF& v2);
 
 		/**
-		@brief	ŠOÏ‚ğæ“¾‚·‚éB
+		@brief	å¤–ç©ã‚’å–å¾—ã™ã‚‹ã€‚
 		@note
-		‰EèŒn‚Ìê‡A‰Eè‚Ìew‚ªv1Al·‚µw‚ªv2‚Æ‚µ‚½‚Æ‚«A’†w‚Ì•ûŒü‚ğ•Ô‚·B<BR>
-		¶èŒn‚Ìê‡A¶è‚Ìew‚ªv1Al·‚µw‚ªv2‚Æ‚µ‚½‚Æ‚«A’†w‚Ì•ûŒü‚ğ•Ô‚·B<BR>
+		å³æ‰‹ç³»ã®å ´åˆã€å³æ‰‹ã®è¦ªæŒ‡ãŒv1ã€äººå·®ã—æŒ‡ãŒv2ã¨ã—ãŸã¨ãã€ä¸­æŒ‡ã®æ–¹å‘ã‚’è¿”ã™ã€‚<BR>
+		å·¦æ‰‹ç³»ã®å ´åˆã€å·¦æ‰‹ã®è¦ªæŒ‡ãŒv1ã€äººå·®ã—æŒ‡ãŒv2ã¨ã—ãŸã¨ãã€ä¸­æŒ‡ã®æ–¹å‘ã‚’è¿”ã™ã€‚<BR>
 		*/
 		static Vector3DF Cross(const Vector3DF& v1, const Vector3DF& v2);
 
 		/**
-		@brief	2“_ŠÔ‚Ì‹——£‚ğæ“¾‚·‚éB
+		@brief	2ç‚¹é–“ã®è·é›¢ã‚’å–å¾—ã™ã‚‹ã€‚
 		*/
 		static float Distance(const Vector3DF& v1, const Vector3DF& v2);
 	};
@@ -361,70 +361,70 @@ namespace Culling3D
 		Vector3DF Transform3D(const Vector3DF& in) const;
 
 		/**
-		@brief	ƒJƒƒ‰s—ñ(‰EèŒn)‚ğİ’è‚·‚éB
-		@param	eye	ƒJƒƒ‰‚ÌˆÊ’u
-		@param	at	ƒJƒƒ‰‚Ì’‹“_
-		@param	up	ƒJƒƒ‰‚Ìã•ûŒü
-		@return	‚±‚ÌƒCƒ“ƒXƒ^ƒ“ƒX‚Ö‚ÌQÆ
+		@brief	ã‚«ãƒ¡ãƒ©è¡Œåˆ—(å³æ‰‹ç³»)ã‚’è¨­å®šã™ã‚‹ã€‚
+		@param	eye	ã‚«ãƒ¡ãƒ©ã®ä½ç½®
+		@param	at	ã‚«ãƒ¡ãƒ©ã®æ³¨è¦–ç‚¹
+		@param	up	ã‚«ãƒ¡ãƒ©ã®ä¸Šæ–¹å‘
+		@return	ã“ã®ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹ã¸ã®å‚ç…§
 		*/
 		Matrix44& SetLookAtRH(const Vector3DF& eye, const Vector3DF& at, const Vector3DF& up);
 
 		/**
-		@brief	ƒJƒƒ‰s—ñ(¶èŒn)‚ğİ’è‚·‚éB
-		@param	eye	ƒJƒƒ‰‚ÌˆÊ’u
-		@param	at	ƒJƒƒ‰‚Ì’‹“_
-		@param	up	ƒJƒƒ‰‚Ìã•ûŒü
-		@return	‚±‚ÌƒCƒ“ƒXƒ^ƒ“ƒX‚Ö‚ÌQÆ
+		@brief	ã‚«ãƒ¡ãƒ©è¡Œåˆ—(å·¦æ‰‹ç³»)ã‚’è¨­å®šã™ã‚‹ã€‚
+		@param	eye	ã‚«ãƒ¡ãƒ©ã®ä½ç½®
+		@param	at	ã‚«ãƒ¡ãƒ©ã®æ³¨è¦–ç‚¹
+		@param	up	ã‚«ãƒ¡ãƒ©ã®ä¸Šæ–¹å‘
+		@return	ã“ã®ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹ã¸ã®å‚ç…§
 		*/
 		Matrix44& SetLookAtLH(const Vector3DF& eye, const Vector3DF& at, const Vector3DF& up);
 
 		/**
-		@brief	Ë‰es—ñ(‰EèŒn)‚ğİ’è‚·‚éB
-		@param	ovY	Y•ûŒü‚Ö‚Ì‹–ìŠp(ƒ‰ƒWƒAƒ“)
-		@param	aspect	‰æ–Ê‚ÌƒAƒXƒyƒNƒg”ä
-		@param	zn	Å‹ß‹——£
-		@param	zf	Å‰“‹——£
-		@return	‚±‚ÌƒCƒ“ƒXƒ^ƒ“ƒX‚Ö‚ÌQÆ
+		@brief	å°„å½±è¡Œåˆ—(å³æ‰‹ç³»)ã‚’è¨­å®šã™ã‚‹ã€‚
+		@param	ovY	Yæ–¹å‘ã¸ã®è¦–é‡è§’(ãƒ©ã‚¸ã‚¢ãƒ³)
+		@param	aspect	ç”»é¢ã®ã‚¢ã‚¹ãƒšã‚¯ãƒˆæ¯”
+		@param	zn	æœ€è¿‘è·é›¢
+		@param	zf	æœ€é è·é›¢
+		@return	ã“ã®ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹ã¸ã®å‚ç…§
 		*/
 		Matrix44& SetPerspectiveFovRH(float ovY, float aspect, float zn, float zf);
 
 		/**
-		@brief	OpenGL—pË‰es—ñ(‰EèŒn)‚ğİ’è‚·‚éB
-		@param	ovY	Y•ûŒü‚Ö‚Ì‹–ìŠp(ƒ‰ƒWƒAƒ“)
-		@param	aspect	‰æ–Ê‚ÌƒAƒXƒyƒNƒg”ä
-		@param	zn	Å‹ß‹——£
-		@param	zf	Å‰“‹——£
-		@return	‚±‚ÌƒCƒ“ƒXƒ^ƒ“ƒX‚Ö‚ÌQÆ
+		@brief	OpenGLç”¨å°„å½±è¡Œåˆ—(å³æ‰‹ç³»)ã‚’è¨­å®šã™ã‚‹ã€‚
+		@param	ovY	Yæ–¹å‘ã¸ã®è¦–é‡è§’(ãƒ©ã‚¸ã‚¢ãƒ³)
+		@param	aspect	ç”»é¢ã®ã‚¢ã‚¹ãƒšã‚¯ãƒˆæ¯”
+		@param	zn	æœ€è¿‘è·é›¢
+		@param	zf	æœ€é è·é›¢
+		@return	ã“ã®ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹ã¸ã®å‚ç…§
 		*/
 		Matrix44& SetPerspectiveFovRH_OpenGL(float ovY, float aspect, float zn, float zf);
 
 		/**
-		@brief	Ë‰es—ñ(¶èŒn)‚ğİ’è‚·‚éB
-		@param	ovY	Y•ûŒü‚Ö‚Ì‹–ìŠp(ƒ‰ƒWƒAƒ“)
-		@param	aspect	‰æ–Ê‚ÌƒAƒXƒyƒNƒg”ä
-		@param	zn	Å‹ß‹——£
-		@param	zf	Å‰“‹——£
-		@return	‚±‚ÌƒCƒ“ƒXƒ^ƒ“ƒX‚Ö‚ÌQÆ
+		@brief	å°„å½±è¡Œåˆ—(å·¦æ‰‹ç³»)ã‚’è¨­å®šã™ã‚‹ã€‚
+		@param	ovY	Yæ–¹å‘ã¸ã®è¦–é‡è§’(ãƒ©ã‚¸ã‚¢ãƒ³)
+		@param	aspect	ç”»é¢ã®ã‚¢ã‚¹ãƒšã‚¯ãƒˆæ¯”
+		@param	zn	æœ€è¿‘è·é›¢
+		@param	zf	æœ€é è·é›¢
+		@return	ã“ã®ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹ã¸ã®å‚ç…§
 		*/
 		Matrix44& SetPerspectiveFovLH(float ovY, float aspect, float zn, float zf);
 
 		/**
-		@brief	³Ë‰es—ñ(‰EèŒn)‚ğİ’è‚·‚éB
-		@param	width	‰¡•
-		@param	height	c•
-		@param	zn	Å‹ß‹——£
-		@param	zf	Å‰“‹——£
-		@return	‚±‚ÌƒCƒ“ƒXƒ^ƒ“ƒX‚Ö‚ÌQÆ
+		@brief	æ­£å°„å½±è¡Œåˆ—(å³æ‰‹ç³»)ã‚’è¨­å®šã™ã‚‹ã€‚
+		@param	width	æ¨ªå¹…
+		@param	height	ç¸¦å¹…
+		@param	zn	æœ€è¿‘è·é›¢
+		@param	zf	æœ€é è·é›¢
+		@return	ã“ã®ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹ã¸ã®å‚ç…§
 		*/
 		Matrix44& SetOrthographicRH(float width, float height, float zn, float zf);
 
 		/**
-		@brief	³Ë‰es—ñ(¶èŒn)‚ğİ’è‚·‚éB
-		@param	width	‰¡•
-		@param	height	c•
-		@param	zn	Å‹ß‹——£
-		@param	zf	Å‰“‹——£
-		@return	‚±‚ÌƒCƒ“ƒXƒ^ƒ“ƒX‚Ö‚ÌQÆ
+		@brief	æ­£å°„å½±è¡Œåˆ—(å·¦æ‰‹ç³»)ã‚’è¨­å®šã™ã‚‹ã€‚
+		@param	width	æ¨ªå¹…
+		@param	height	ç¸¦å¹…
+		@param	zn	æœ€è¿‘è·é›¢
+		@param	zf	æœ€é è·é›¢
+		@return	ã“ã®ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹ã¸ã®å‚ç…§
 		*/
 		Matrix44& SetOrthographicLH(float width, float height, float zn, float zf);
 
@@ -433,11 +433,11 @@ namespace Culling3D
 		Vector3DF operator*(const Vector3DF& right) const;
 
 		/**
-		@brief	æZ‚ğs‚¤B
-		@param	o	o—Íæ
-		@param	in1	s—ñ1
-		@param	in2	s—ñ2
-		@return	o—Íæ‚ÌQÆ
+		@brief	ä¹—ç®—ã‚’è¡Œã†ã€‚
+		@param	o	å‡ºåŠ›å…ˆ
+		@param	in1	è¡Œåˆ—1
+		@param	in2	è¡Œåˆ—2
+		@return	å‡ºåŠ›å…ˆã®å‚ç…§
 		*/
 		static Matrix44& Mul(Matrix44& o, const Matrix44& in1, const Matrix44& in2);
 	};
@@ -455,20 +455,20 @@ namespace Culling3D
 	{
 	public:
 		/**
-		@brief	QÆƒJƒEƒ“ƒ^‚ğ‰ÁZ‚·‚éB
-		@return	‰ÁZŒã‚ÌQÆƒJƒEƒ“ƒ^
+		@brief	å‚ç…§ã‚«ã‚¦ãƒ³ã‚¿ã‚’åŠ ç®—ã™ã‚‹ã€‚
+		@return	åŠ ç®—å¾Œã®å‚ç…§ã‚«ã‚¦ãƒ³ã‚¿
 		*/
 		virtual int AddRef() = 0;
 
 		/**
-		@brief	QÆƒJƒEƒ“ƒ^‚ğæ“¾‚·‚éB
-		@return	QÆƒJƒEƒ“ƒ^
+		@brief	å‚ç…§ã‚«ã‚¦ãƒ³ã‚¿ã‚’å–å¾—ã™ã‚‹ã€‚
+		@return	å‚ç…§ã‚«ã‚¦ãƒ³ã‚¿
 		*/
 		virtual int GetRef() = 0;
 
 		/**
-		@brief	QÆƒJƒEƒ“ƒ^‚ğŒ¸Z‚·‚éB0‚É‚È‚Á‚½AƒCƒ“ƒXƒ^ƒ“ƒX‚ğíœ‚·‚éB
-		@return	Œ¸ZŒã‚ÌQÆƒJƒEƒ“ƒ^
+		@brief	å‚ç…§ã‚«ã‚¦ãƒ³ã‚¿ã‚’æ¸›ç®—ã™ã‚‹ã€‚0ã«ãªã£ãŸæ™‚ã€ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹ã‚’å‰Šé™¤ã™ã‚‹ã€‚
+		@return	æ¸›ç®—å¾Œã®å‚ç…§ã‚«ã‚¦ãƒ³ã‚¿
 		*/
 		virtual int Release() = 0;
 	};
@@ -510,7 +510,7 @@ namespace Culling3D
 	};
 }
 
-#endif
+#endifï»¿
 #pragma once
 
 
@@ -536,7 +536,7 @@ namespace Culling3D
 	};
 }
 
-
+ï»¿
 #pragma once
 
 
@@ -559,7 +559,7 @@ namespace Culling3D
 
 		bool IsScanned;
 	};
-}
+}ï»¿
 #pragma once
 
 
@@ -602,7 +602,7 @@ namespace Culling3D
 		float GetGridSize() { return gridSize; }
 		std::vector<Grid>& GetGrids() { return grids; }
 	};
-}
+}ï»¿
 #pragma once
 
 
@@ -683,7 +683,7 @@ namespace Culling3D
 		virtual int32_t AddRef() { return ReferenceObject::AddRef(); }
 		virtual int32_t Release() { return ReferenceObject::Release(); }
 	};
-}
+}ï»¿
 #pragma once
 
 
@@ -740,7 +740,7 @@ namespace Culling3D
 		virtual int32_t AddRef() { return ReferenceObject::AddRef(); }
 		virtual int32_t Release() { return ReferenceObject::Release(); }
 	};
-}
+}ï»¿
 
 namespace Culling3D
 {
@@ -785,7 +785,7 @@ namespace Culling3D
 
 		o_->ObjectIndex = -1;
 	}
-}
+}ï»¿
 
 namespace Culling3D
 {
@@ -902,7 +902,7 @@ namespace Culling3D
 			}
 		}
 	}
-}
+}ï»¿
 
 namespace Culling3D
 {
@@ -941,7 +941,7 @@ namespace Culling3D
 		float a43 = this->Values[3][2];
 		float a44 = this->Values[3][3];
 
-		/* s—ñ®‚ÌŒvZ */
+		/* è¡Œåˆ—å¼ã®è¨ˆç®— */
 		float b11 = +a22 * (a33 * a44 - a43 * a34) - a23 * (a32 * a44 - a42 * a34) + a24 * (a32 * a43 - a42 * a33);
 		float b12 = -a12 * (a33 * a44 - a43 * a34) + a13 * (a32 * a44 - a42 * a34) - a14 * (a32 * a43 - a42 * a33);
 		float b13 = +a12 * (a23 * a44 - a43 * a24) - a13 * (a22 * a44 - a42 * a24) + a14 * (a22 * a43 - a42 * a23);
@@ -962,7 +962,7 @@ namespace Culling3D
 		float b43 = -a11 * (a22 * a43 - a42 * a23) + a12 * (a21 * a43 - a41 * a23) - a13 * (a21 * a42 - a41 * a22);
 		float b44 = +a11 * (a22 * a33 - a32 * a23) - a12 * (a21 * a33 - a31 * a23) + a13 * (a21 * a32 - a31 * a22);
 
-		// s—ñ®‚Ì‹t”‚ğ‚©‚¯‚é
+		// è¡Œåˆ—å¼ã®é€†æ•°ã‚’ã‹ã‘ã‚‹
 		float Det = (a11 * b11) + (a12 * b21) + (a13 * b31) + (a14 * b41);
 		if ((-FLT_MIN <= Det) && (Det <= +FLT_MIN))
 		{
@@ -993,7 +993,7 @@ namespace Culling3D
 
 	Matrix44& Matrix44::SetLookAtRH(const Vector3DF& eye, const Vector3DF& at, const Vector3DF& up)
 	{
-		// F=³–ÊAR=‰E•ûŒüAU=ã•ûŒü
+		// F=æ­£é¢ã€R=å³æ–¹å‘ã€U=ä¸Šæ–¹å‘
 		Vector3DF F = (eye - at).GetNormal();
 		Vector3DF R = Vector3DF::Cross(up, F).GetNormal();
 		Vector3DF U = Vector3DF::Cross(F, R).GetNormal();
@@ -1022,7 +1022,7 @@ namespace Culling3D
 
 	Matrix44& Matrix44::SetLookAtLH(const Vector3DF& eye, const Vector3DF& at, const Vector3DF& up)
 	{
-		// F=³–ÊAR=‰E•ûŒüAU=ã•ûŒü
+		// F=æ­£é¢ã€R=å³æ–¹å‘ã€U=ä¸Šæ–¹å‘
 		Vector3DF F = (at - eye).GetNormal();
 		Vector3DF R = Vector3DF::Cross(up, F).GetNormal();
 		Vector3DF U = Vector3DF::Cross(F, R).GetNormal();
@@ -1231,7 +1231,7 @@ namespace Culling3D
 		}
 		return o;
 	}
-}
+}ï»¿
 
 namespace Culling3D
 {
@@ -1341,7 +1341,7 @@ namespace Culling3D
 	{
 		this->world = world;
 	}
-}
+}ï»¿
 
 namespace Culling3D
 {
@@ -1379,7 +1379,7 @@ namespace Culling3D
 
 		return m_reference;
 	}
-}
+}ï»¿
 
 namespace Culling3D
 {
@@ -1499,7 +1499,7 @@ namespace Culling3D
 		float dz = v1.Z - v2.Z;
 		return sqrt(dx * dx + dy * dy + dz * dz);
 	}
-}
+}ï»¿
 
 
 namespace Culling3D
@@ -1716,19 +1716,19 @@ namespace Culling3D
 		aabb_min.Y = Min(from.Y, to.Y);
 		aabb_min.Z = Min(from.Z, to.Z);
 
-		/* ”ÍˆÍ“à‚ÉŠÜ‚Ü‚ê‚éƒOƒŠƒbƒh‚ğæ“¾ */
+		/* ç¯„å›²å†…ã«å«ã¾ã‚Œã‚‹ã‚°ãƒªãƒƒãƒ‰ã‚’å–å¾— */
 		for (size_t i = 0; i < layers.size(); i++)
 		{
 			layers[i]->AddGrids(aabb_max, aabb_min, grids);
 		}
 
-		/* ŠO—Ìˆæ’Ç‰Á */
+		/* å¤–é ˜åŸŸè¿½åŠ  */
 		grids.push_back(&outofLayers);
 		grids.push_back(&allLayers);
 
-		/* ƒOƒŠƒbƒh‚©‚çƒIƒuƒWƒFƒNƒgæ“¾ */
+		/* ã‚°ãƒªãƒƒãƒ‰ã‹ã‚‰ã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆå–å¾— */
 		
-		/* ‰ŠúŒvZ */
+		/* åˆæœŸè¨ˆç®— */
 		auto ray_dir = (to - from);
 		auto ray_len = ray_dir.GetLength();
 		ray_dir.Normalize();
@@ -1746,7 +1746,7 @@ namespace Culling3D
 					continue;
 				}
 
-				// ‹…ü•ª”»’è
+				// çƒç·šåˆ†åˆ¤å®š
 				{
 					auto radius = o_->GetNextStatus().GetRadius();
 					auto pos = o_->GetNextStatus().Position;
@@ -1765,12 +1765,12 @@ namespace Culling3D
 					continue;
 				}
 
-				// AABB”»’è
-				// QlFhttp://marupeke296.com/COL_3D_No18_LineAndAABB.html
+				// AABBåˆ¤å®š
+				// å‚è€ƒï¼šhttp://marupeke296.com/COL_3D_No18_LineAndAABB.html
 
 				if (o_->GetNextStatus().Type == OBJECT_SHAPE_TYPE_CUBOID)
 				{
-					// Œğ·”»’è
+					// äº¤å·®åˆ¤å®š
 					float p[3], d[3], min[3], max[3];
 					auto pos = o_->GetCurrentStatus().Position;
 					memcpy(p, &from, sizeof(Vector3DF));
@@ -1795,14 +1795,14 @@ namespace Culling3D
 						{
 							if (p[i] < min[i] || p[i] > max[i])
 							{
-								// Œğ·‚µ‚Ä‚¢‚È‚¢
+								// äº¤å·®ã—ã¦ã„ãªã„
 								continue;
 							}
 						}
 						else
 						{
-							// ƒXƒ‰ƒu‚Æ‚Ì‹——£‚ğZo
-							// t1‚ª‹ßƒXƒ‰ƒuAt2‚ª‰“ƒXƒ‰ƒu‚Æ‚Ì‹——£
+							// ã‚¹ãƒ©ãƒ–ã¨ã®è·é›¢ã‚’ç®—å‡º
+							// t1ãŒè¿‘ã‚¹ãƒ©ãƒ–ã€t2ãŒé ã‚¹ãƒ©ãƒ–ã¨ã®è·é›¢
 							float odd = 1.0f / d[i];
 							float t1 = (min[i] - p[i]) * odd;
 							float t2 = (max[i] - p[i]) * odd;
@@ -1814,16 +1814,16 @@ namespace Culling3D
 							if (t1 > t) t = t1;
 							if (t2 < t_max) t_max = t2;
 
-							// ƒXƒ‰ƒuŒğ·ƒ`ƒFƒbƒN
+							// ã‚¹ãƒ©ãƒ–äº¤å·®ãƒã‚§ãƒƒã‚¯
 							if (t >= t_max)
 							{
-								// Œğ·‚µ‚Ä‚¢‚È‚¢
+								// äº¤å·®ã—ã¦ã„ãªã„
 								continue;
 							}
 						}
 					}
 
-					// Œğ·‚µ‚Ä‚¢‚é
+					// äº¤å·®ã—ã¦ã„ã‚‹
 					if (0 <= t  && t <= ray_len)
 					{
 						objs.push_back(o);
@@ -1833,7 +1833,7 @@ namespace Culling3D
 			}
 		}
 
-		/* æ“¾‚µ‚½ƒOƒŠƒbƒh‚ğ”jŠü */
+		/* å–å¾—ã—ãŸã‚°ãƒªãƒƒãƒ‰ã‚’ç ´æ£„ */
 		for (size_t i = 0; i < grids.size(); i++)
 		{
 			grids[i]->IsScanned = false;
@@ -1965,7 +1965,7 @@ namespace Culling3D
 							if (eyebox_[i].Z < min_.Z) min_.Z = eyebox_[i].Z;
 						}
 
-						/* ”ÍˆÍ“à‚ÉŠÜ‚Ü‚ê‚éƒOƒŠƒbƒh‚ğæ“¾ */
+						/* ç¯„å›²å†…ã«å«ã¾ã‚Œã‚‹ã‚°ãƒªãƒƒãƒ‰ã‚’å–å¾— */
 						for (size_t i = 0; i < layers.size(); i++)
 						{
 							layers[i]->AddGrids(max_, min_, grids);
@@ -1974,11 +1974,11 @@ namespace Culling3D
 				}
 			}
 
-			/* ŠO—Ìˆæ’Ç‰Á */
+			/* å¤–é ˜åŸŸè¿½åŠ  */
 			grids.push_back(&outofLayers);
 			grids.push_back(&allLayers);
 
-			/* ƒOƒŠƒbƒh‚©‚çƒIƒuƒWƒFƒNƒgæ“¾ */
+			/* ã‚°ãƒªãƒƒãƒ‰ã‹ã‚‰ã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆå–å¾— */
 			for (size_t i = 0; i < grids.size(); i++)
 			{
 				for (size_t j = 0; j < grids[i]->GetObjects().size(); j++)
@@ -1995,7 +1995,7 @@ namespace Culling3D
 				}
 			}
 
-			/* æ“¾‚µ‚½ƒOƒŠƒbƒh‚ğ”jŠü */
+			/* å–å¾—ã—ãŸã‚°ãƒªãƒƒãƒ‰ã‚’ç ´æ£„ */
 			for (size_t i = 0; i < grids.size(); i++)
 			{
 				grids[i]->IsScanned = false;
@@ -2007,7 +2007,7 @@ namespace Culling3D
 		{
 			grids.push_back(&allLayers);
 
-			/* ƒOƒŠƒbƒh‚©‚çƒIƒuƒWƒFƒNƒgæ“¾ */
+			/* ã‚°ãƒªãƒƒãƒ‰ã‹ã‚‰ã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆå–å¾— */
 			for (size_t i = 0; i < grids.size(); i++)
 			{
 				for (size_t j = 0; j < grids[i]->GetObjects().size(); j++)
@@ -2022,7 +2022,7 @@ namespace Culling3D
 				}
 			}
 
-			/* æ“¾‚µ‚½ƒOƒŠƒbƒh‚ğ”jŠü */
+			/* å–å¾—ã—ãŸã‚°ãƒªãƒƒãƒ‰ã‚’ç ´æ£„ */
 			for (size_t i = 0; i < grids.size(); i++)
 			{
 				grids[i]->IsScanned = false;
@@ -2035,7 +2035,7 @@ namespace Culling3D
 
 	bool WorldInternal::Reassign()
 	{
-		/* ”‚ª­‚È‚¢ */
+		/* æ•°ãŒå°‘ãªã„ */
 		if (outofLayers.GetObjects().size() < 10) return false;
 
 		objs.clear();
@@ -2097,7 +2097,7 @@ namespace Culling3D
 	{
 		std::ofstream ofs(path);
 
-		/* ƒJƒƒ‰î•ño—Í */
+		/* ã‚«ãƒ¡ãƒ©æƒ…å ±å‡ºåŠ› */
 		Matrix44 cameraProjMatInv = cameraProjMat;
 		cameraProjMatInv.SetInverted();
 
@@ -2200,7 +2200,7 @@ namespace Culling3D
 
 		ofs << std::endl;
 	
-		/* ƒŒƒCƒ„[î•ñ */
+		/* ãƒ¬ã‚¤ãƒ¤ãƒ¼æƒ…å ± */
 		ofs << layers.size() << std::endl;
 
 		for (size_t i = 0; i < layers.size(); i++)
@@ -2224,7 +2224,7 @@ namespace Culling3D
 
 
 	}
-}
+}ï»¿
 
 //----------------------------------------------------------------------------------
 //
@@ -2270,7 +2270,7 @@ Vector2D& Vector2D::operator+=( const Vector2D& value )
  } 
 //----------------------------------------------------------------------------------
 //
-//----------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------ï»¿
 
 //----------------------------------------------------------------------------------
 //
@@ -2518,7 +2518,7 @@ Vector3D& Vector3D::Transform( Vector3D& o, const Vector3D& in, const Matrix44& 
  } 
 //----------------------------------------------------------------------------------
 //
-//----------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------ï»¿
 
 //----------------------------------------------------------------------------------
 //
@@ -2571,7 +2571,7 @@ void Color::Mul( Color& o, const Color& in1, const Color& in2 )
 
 //----------------------------------------------------------------------------------
 //
-//----------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------ï»¿
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
@@ -2624,7 +2624,7 @@ Vector2D RectF::Size() const
  } 
 //----------------------------------------------------------------------------------
 //
-//----------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------ï»¿
 
 //----------------------------------------------------------------------------------
 //
@@ -2958,7 +2958,7 @@ void Matrix43::Multiple( Matrix43& out, const Matrix43& in1, const Matrix43& in2
 {
 #if 1
 	Matrix43 temp1, temp2;
-	// ‹¤’Ê‚Ìê‡‚Íˆê•Ï”‚ÉƒRƒs[
+	// å…±é€šã®å ´åˆã¯ä¸€æ™‚å¤‰æ•°ã«ã‚³ãƒ”ãƒ¼
 	const Matrix43& s1 = (&out == &in1) ? (temp1 = in1) : in1;
 	const Matrix43& s2 = (&out == &in2) ? (temp2 = in2) : in2;
 	
@@ -3008,7 +3008,7 @@ void Matrix43::Multiple( Matrix43& out, const Matrix43& in1, const Matrix43& in2
  } 
 //----------------------------------------------------------------------------------
 //
-//----------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------ï»¿
 
 //----------------------------------------------------------------------------------
 //
@@ -3062,7 +3062,7 @@ Matrix44& Matrix44::Transpose()
 //----------------------------------------------------------------------------------
 Matrix44& Matrix44::LookAtRH( const Vector3D& eye, const Vector3D& at, const Vector3D& up )
 {
-	// F=³–ÊAR=‰E•ûŒüAU=ã•ûŒü
+	// F=æ­£é¢ã€R=å³æ–¹å‘ã€U=ä¸Šæ–¹å‘
 	Vector3D F; 
 	Vector3D R;
 	Vector3D U;
@@ -3097,7 +3097,7 @@ Matrix44& Matrix44::LookAtRH( const Vector3D& eye, const Vector3D& at, const Vec
 //----------------------------------------------------------------------------------
 Matrix44& Matrix44::LookAtLH( const Vector3D& eye, const Vector3D& at, const Vector3D& up )
 {
-	// F=³–ÊAR=‰E•ûŒüAU=ã•ûŒü
+	// F=æ­£é¢ã€R=å³æ–¹å‘ã€U=ä¸Šæ–¹å‘
 	Vector3D F; 
 	Vector3D R;
 	Vector3D U;
@@ -3520,7 +3520,7 @@ Matrix44& Matrix44::Inverse(  Matrix44& o, const Matrix44& in )
 	float a43 = in.Values[3][2];
 	float a44 = in.Values[3][3];
 
-	/* s—ñ®‚ÌŒvZ */
+	/* è¡Œåˆ—å¼ã®è¨ˆç®— */
 	float b11 = + a22 * (a33 * a44 - a43 * a34) - a23 * (a32 * a44 - a42 * a34) + a24 * (a32 * a43 - a42 * a33);
 	float b12 = - a12 * (a33 * a44 - a43 * a34) + a13 * (a32 * a44 - a42 * a34) - a14 * (a32 * a43 - a42 * a33);
 	float b13 = + a12 * (a23 * a44 - a43 * a24) - a13 * (a22 * a44 - a42 * a24) + a14 * (a22 * a43 - a42 * a23);
@@ -3541,7 +3541,7 @@ Matrix44& Matrix44::Inverse(  Matrix44& o, const Matrix44& in )
 	float b43 = - a11 * (a22 * a43 - a42 * a23) + a12 * (a21 * a43 - a41 * a23) - a13 * (a21 * a42 - a41 * a22);
 	float b44 = + a11 * (a22 * a33 - a32 * a23) - a12 * (a21 * a33 - a31 * a23) + a13 * (a21 * a32 - a31 * a22);
 
-	// s—ñ®‚Ì‹t”‚ğ‚©‚¯‚é
+	// è¡Œåˆ—å¼ã®é€†æ•°ã‚’ã‹ã‘ã‚‹
 	float Det = (a11 * b11) + (a12 * b21) + (a13 * b31) + (a14 * b41);
 	if ( (-FLT_MIN <= Det) && (Det <= +FLT_MIN) )
 	{
@@ -3577,15 +3577,15 @@ Matrix44& Matrix44::Inverse(  Matrix44& o, const Matrix44& in )
  } 
 //----------------------------------------------------------------------------------
 //
-//----------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------ï»¿
 #ifndef	__EFFEKSEER_INTERNAL_STRUCT_H__
 #define	__EFFEKSEER_INTERNAL_STRUCT_H__
 
 /**
 	@file
-	@brief	“à•”ŒvZ—p\‘¢‘Ì
+	@brief	å†…éƒ¨è¨ˆç®—ç”¨æ§‹é€ ä½“
 	@note
-	union“™‚Ég—p‚·‚é‚½‚ß‚Ì\‘¢‘ÌB<BR>
+	unionç­‰ã«ä½¿ç”¨ã™ã‚‹ãŸã‚ã®æ§‹é€ ä½“ã€‚<BR>
 
 */
 
@@ -4130,7 +4130,7 @@ struct easing_color
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-#endif	// __EFFEKSEER_INTERNAL_STRUCT_H__
+#endif	// __EFFEKSEER_INTERNAL_STRUCT_H__ï»¿
 //----------------------------------------------------------------------------------
 // Include
 //----------------------------------------------------------------------------------
@@ -4220,7 +4220,7 @@ void CriticalSection::Leave() const
 //
 //----------------------------------------------------------------------------------
 
-
+ï»¿
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
@@ -4235,7 +4235,7 @@ namespace Effekseer {
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
-/* DWORD‚ğ’u‚«‚©‚¦ */
+/* DWORDã‚’ç½®ãã‹ãˆ */
 unsigned long EFK_STDCALL Thread::ThreadProc(void* arguments)
 {
 	Thread* thread = (Thread*)(arguments);
@@ -4285,7 +4285,7 @@ bool Thread::Create( void (*threadFunc)( void* ), void* data )
 		m_mainProc	= threadFunc;
 		m_thread	= ::CreateThread( NULL, 0, ThreadProc, this, CREATE_SUSPENDED, NULL );
 
-		// ƒXƒŒƒbƒhŠJn
+		// ã‚¹ãƒ¬ãƒƒãƒ‰é–‹å§‹
 		::SetThreadPriority( m_thread, THREAD_PRIORITY_NORMAL );
 		::ResumeThread( m_thread );
 
@@ -4376,7 +4376,7 @@ bool Thread::Create( void (*threadFunc)( void* ), void* data )
 		pthread_attr_t attr;
 		pthread_attr_init( &attr );
 
-		// ƒXƒŒƒbƒhŠJn
+		// ã‚¹ãƒ¬ãƒƒãƒ‰é–‹å§‹
 		m_running = true;
 		pthread_create( &m_thread, &attr, ThreadProc, this );
 		
@@ -4414,7 +4414,7 @@ bool Thread::Wait() const
 //
 //-----------------------------------------------------------------------------------
 }
-
+ï»¿
 #ifndef	__EFFEKSEER_DEFAULTEFFECTLOADER_H__
 #define	__EFFEKSEER_DEFAULTEFFECTLOADER_H__
 
@@ -4430,7 +4430,7 @@ namespace Effekseer {
 //
 //----------------------------------------------------------------------------------
 /**
-	@brief	•W€‚ÌƒGƒtƒFƒNƒgƒtƒ@ƒCƒ‹“Ç‚İ‚İ”jŠüŠÖ”w’èƒNƒ‰ƒX
+	@brief	æ¨™æº–ã®ã‚¨ãƒ•ã‚§ã‚¯ãƒˆãƒ•ã‚¡ã‚¤ãƒ«èª­ã¿è¾¼ã¿ç ´æ£„é–¢æ•°æŒ‡å®šã‚¯ãƒ©ã‚¹
 */
 class DefaultEffectLoader
 	: public EffectLoader
@@ -4456,7 +4456,7 @@ public:
 //
 //----------------------------------------------------------------------------------
 #endif	// __EFFEKSEER_DEFAULTEFFECTLOADER_H__
-
+ï»¿
 //----------------------------------------------------------------------------------
 // Include
 //----------------------------------------------------------------------------------
@@ -4522,7 +4522,7 @@ void DefaultEffectLoader::Unload( void* data, int32_t size )
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-
+ï»¿
 #ifndef	__EFFEKSEER_DEFAULT_FILE_H__
 #define	__EFFEKSEER_DEFAULT_FILE_H__
 
@@ -4538,7 +4538,7 @@ namespace Effekseer {
 //
 //----------------------------------------------------------------------------------
 /**
-	@brief	•W€‚Ìƒtƒ@ƒCƒ‹“Ç‚İ‚İƒNƒ‰ƒX
+	@brief	æ¨™æº–ã®ãƒ•ã‚¡ã‚¤ãƒ«èª­ã¿è¾¼ã¿ã‚¯ãƒ©ã‚¹
 */
 
 class DefaultFileReader : public FileReader
@@ -4600,7 +4600,7 @@ public:
 //
 //----------------------------------------------------------------------------------
 #endif	// __EFFEKSEER_DEFAULT_FILE_H__
-
+ï»¿
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
@@ -4773,7 +4773,7 @@ FileWriter* DefaultFileInterface::OpenWrite( const EFK_CHAR* path )
  } 
 //----------------------------------------------------------------------------------
 //
-//----------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------ï»¿
 #ifndef	__EFFEKSEER_FCURVES_H__
 #define	__EFFEKSEER_FCURVES_H__
 
@@ -4864,7 +4864,7 @@ public:
 //
 //----------------------------------------------------------------------------------
 #endif	// __EFFEKSEER_FCURVES_H__
-
+ï»¿
 #ifndef	__EFFEKSEER_EFFECTNODE_H__
 #define	__EFFEKSEER_EFFECTNODE_H__
 
@@ -5505,9 +5505,9 @@ enum eRenderingOrder
 //----------------------------------------------------------------------------------
 
 /**
-	@brief	ƒm[ƒhƒCƒ“ƒXƒ^ƒ“ƒX¶¬ƒNƒ‰ƒX
+	@brief	ãƒãƒ¼ãƒ‰ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹ç”Ÿæˆã‚¯ãƒ©ã‚¹
 	@note
-	ƒGƒtƒFƒNƒg‚Ìƒm[ƒh‚ÌÀ‘Ì‚ğ¶¬‚·‚éB
+	ã‚¨ãƒ•ã‚§ã‚¯ãƒˆã®ãƒãƒ¼ãƒ‰ã®å®Ÿä½“ã‚’ç”Ÿæˆã™ã‚‹ã€‚
 */
 class EffectNodeImplemented
 	: public EffectNode
@@ -5517,31 +5517,31 @@ class EffectNodeImplemented
 	friend class Instance;
 
 protected:
-	// Š‘®‚µ‚Ä‚¢‚éƒpƒ‰ƒ[ƒ^[
+	// æ‰€å±ã—ã¦ã„ã‚‹ãƒ‘ãƒ©ãƒ¡ãƒ¼ã‚¿ãƒ¼
 	Effect*	m_effect;
 
-	// qƒm[ƒh
+	// å­ãƒãƒ¼ãƒ‰
 	std::vector<EffectNodeImplemented*>	m_Nodes;
 
-	// ƒ†[ƒU[ƒf[ƒ^
+	// ãƒ¦ãƒ¼ã‚¶ãƒ¼ãƒ‡ãƒ¼ã‚¿
 	void* m_userData;
 
-	// ƒRƒ“ƒXƒgƒ‰ƒNƒ^
+	// ã‚³ãƒ³ã‚¹ãƒˆãƒ©ã‚¯ã‚¿
 	EffectNodeImplemented(Effect* effect, unsigned char*& pos);
 
-	// ƒfƒXƒgƒ‰ƒNƒ^
+	// ãƒ‡ã‚¹ãƒˆãƒ©ã‚¯ã‚¿
 	virtual ~EffectNodeImplemented();
 
-	// “Ç
+	// èª­è¾¼
 	void LoadParameter( unsigned char*& pos, EffectNode* parent, Setting* setting );
 
-	// ‰Šú‰»
+	// åˆæœŸåŒ–
 	void Initialize();
 
 public:
 
 	/**
-		@brief	•`‰æ‚·‚é‚©?
+		@brief	æç”»ã™ã‚‹ã‹?
 	*/
 	bool IsRendered;
 
@@ -5582,7 +5582,7 @@ public:
 	eRenderingOrder				RenderingOrder;
 
 	/**
-		@biref	ƒIƒvƒVƒ‡ƒ““Ç‚İ‚İ
+		@biref	ã‚ªãƒ—ã‚·ãƒ§ãƒ³èª­ã¿è¾¼ã¿
 	*/
 	void LoadOption( uint8_t*& pos );
 
@@ -5597,62 +5597,62 @@ public:
 	void SetBasicRenderParameter(EffectBasicRenderParameter param) override;
 
 	/**
-		@brief	•`‰æ•”•ª‚Ì“Ç
+		@brief	æç”»éƒ¨åˆ†ã®èª­è¾¼
 	*/
 	virtual void LoadRendererParameter(unsigned char*& pos, Setting* setting);
 
 	/**
-		@brief	•`‰æŠJn
+		@brief	æç”»é–‹å§‹
 	*/
 	virtual void BeginRendering(int32_t count, Manager* manager);
 
 	/**
-		@brief	ƒOƒ‹[ƒv•`‰æŠJn
+		@brief	ã‚°ãƒ«ãƒ¼ãƒ—æç”»é–‹å§‹
 	*/
 	virtual void BeginRenderingGroup(InstanceGroup* group, Manager* manager);
 
 	/**
-		@brief	•`‰æ
+		@brief	æç”»
 	*/
 	virtual void Rendering(const Instance& instance, Manager* manager);
 
 	/**
-		@brief	•`‰æI—¹
+		@brief	æç”»çµ‚äº†
 	*/
 	virtual void EndRendering(Manager* manager);
 
 	/**
-		@brief	ƒCƒ“ƒXƒ^ƒ“ƒXƒOƒ‹[ƒv•`‰æ‰Šú‰»
+		@brief	ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹ã‚°ãƒ«ãƒ¼ãƒ—æç”»æ™‚åˆæœŸåŒ–
 	*/
 	virtual void InitializeRenderedInstanceGroup(InstanceGroup& instanceGroup, Manager* manager);
 
 	/**
-		@brief	•`‰æ•”•ª‰Šú‰»
+		@brief	æç”»éƒ¨åˆ†åˆæœŸåŒ–
 	*/
 	virtual void InitializeRenderedInstance( Instance& instance, Manager* manager );
 
 	/**
-		@brief	•`‰æ•”•ªXV
+		@brief	æç”»éƒ¨åˆ†æ›´æ–°
 	*/
 	virtual void UpdateRenderedInstance(Instance& instance, Manager* manager);
 
 	/**
-		@brief	•`‰æ•”•ªXV
+		@brief	æç”»éƒ¨åˆ†æ›´æ–°
 	*/
 	virtual float GetFadeAlpha( const Instance& instance );
 
 	/**
-		@brief	ƒTƒEƒ“ƒhÄ¶
+		@brief	ã‚µã‚¦ãƒ³ãƒ‰å†ç”Ÿ
 	*/
 	virtual void PlaySound_(Instance& instance, SoundTag tag, Manager* manager);
 
 	/**
-		@brief	ƒGƒtƒFƒNƒgƒm[ƒh¶¬
+		@brief	ã‚¨ãƒ•ã‚§ã‚¯ãƒˆãƒãƒ¼ãƒ‰ç”Ÿæˆ
 	*/
 	static EffectNodeImplemented* Create(Effect* effect, EffectNode* parent, unsigned char*& pos);
 
 	/**
-		@brief	ƒm[ƒh‚Ìí—Şæ“¾
+		@brief	ãƒãƒ¼ãƒ‰ã®ç¨®é¡å–å¾—
 	*/
 	virtual eEffectNodeType GetType() const { return EFFECT_NODE_TYPE_NONE; }
 };
@@ -5664,7 +5664,7 @@ public:
 //
 //----------------------------------------------------------------------------------
 #endif	// __EFFEKSEER_EFFECTNODE_H__
-
+ï»¿
 #ifndef	__EFFEKSEER_ParameterNODE_MODEL_H__
 #define	__EFFEKSEER_ParameterNODE_MODEL_H__
 
@@ -5695,7 +5695,7 @@ public:
 
 	struct InstanceValues
 	{
-		// F
+		// è‰²
 		color _color;
 
 		union 
@@ -5766,7 +5766,7 @@ public:
 //
 //----------------------------------------------------------------------------------
 #endif	// __EFFEKSEER_ParameterNODE_MODEL_H__
-
+ï»¿
 #ifndef	__EFFEKSEER_ParameterNODE_RIBBON_H__
 #define	__EFFEKSEER_ParameterNODE_RIBBON_H__
 
@@ -5872,7 +5872,7 @@ public:
 
 	struct InstanceValues
 	{
-		// F
+		// è‰²
 		color _color;
 
 		union 
@@ -5956,7 +5956,7 @@ public:
 //
 //----------------------------------------------------------------------------------
 #endif	// __EFFEKSEER_ParameterNODE_RIBBON_H__
-
+ï»¿
 #ifndef	__EFFEKSEER_ParameterNODE_RING_H__
 #define	__EFFEKSEER_ParameterNODE_RING_H__
 
@@ -6219,7 +6219,7 @@ private:
 //
 //----------------------------------------------------------------------------------
 #endif	// __EFFEKSEER_ParameterNODE_RING_H__
-
+ï»¿
 #ifndef	__EFFEKSEER_ParameterNODE_ROOT_H__
 #define	__EFFEKSEER_ParameterNODE_ROOT_H__
 
@@ -6269,7 +6269,7 @@ public:
 //
 //----------------------------------------------------------------------------------
 #endif	// __EFFEKSEER_ParameterNODE_ROOT_H__
-
+ï»¿
 #ifndef	__EFFEKSEER_ParameterNODE_SPRITE_H__
 #define	__EFFEKSEER_ParameterNODE_SPRITE_H__
 
@@ -6350,7 +6350,7 @@ public:
 
 	struct InstanceValues
 	{
-		// F
+		// è‰²
 		color _color;
 
 		union 
@@ -6430,7 +6430,7 @@ public:
 //
 //----------------------------------------------------------------------------------
 #endif	// __EFFEKSEER_ParameterNODE_SPRITE_H__
-
+ï»¿
 #ifndef	__EFFEKSEER_ParameterNODE_TRACK_H__
 #define	__EFFEKSEER_ParameterNODE_TRACK_H__
 
@@ -6608,7 +6608,7 @@ public:
 //
 //----------------------------------------------------------------------------------
 #endif	// __EFFEKSEER_ParameterNODE_TRACK_H__
-
+ï»¿
 #ifndef	__EFFEKSEER_EFFECT_IMPLEMENTED_H__
 #define	__EFFEKSEER_EFFECT_IMPLEMENTED_H__
 
@@ -6626,9 +6626,9 @@ namespace Effekseer
 //----------------------------------------------------------------------------------
 
 /**
-	@brief	ƒGƒtƒFƒNƒgƒpƒ‰ƒ[ƒ^[
+	@brief	ã‚¨ãƒ•ã‚§ã‚¯ãƒˆãƒ‘ãƒ©ãƒ¡ãƒ¼ã‚¿ãƒ¼
 	@note
-	ƒGƒtƒFƒNƒg‚Éİ’è‚³‚ê‚½ƒpƒ‰ƒ[ƒ^[B
+	ã‚¨ãƒ•ã‚§ã‚¯ãƒˆã«è¨­å®šã•ã‚ŒãŸãƒ‘ãƒ©ãƒ¡ãƒ¼ã‚¿ãƒ¼ã€‚
 */
 
 class EffectImplemented
@@ -6667,15 +6667,15 @@ private:
 
 	std::basic_string<EFK_CHAR>		m_materialPath;
 
-	/* Šg‘å—¦ */
+	/* æ‹¡å¤§ç‡ */
 	float	m_maginification;
 
 	float	m_maginificationExternal;
 
-	// qƒm[ƒh
+	// å­ãƒãƒ¼ãƒ‰
 	EffectNode* m_pRoot;
 
-	/* ƒJƒŠƒ“ƒO */
+	/* ã‚«ãƒªãƒ³ã‚° */
 	struct
 	{
 		CullingShape	Shape;
@@ -6698,69 +6698,69 @@ private:
 
 public:
 	/**
-		@brief	¶¬
+		@brief	ç”Ÿæˆ
 	*/
 	static Effect* Create( Manager* pManager, void* pData, int size, float magnification, const EFK_CHAR* materialPath = NULL );
 
 	/**
-		@brief	¶¬
+		@brief	ç”Ÿæˆ
 	*/
 	static Effect* Create( Setting* setting, void* pData, int size, float magnification, const EFK_CHAR* materialPath = NULL );
 
-	// ƒRƒ“ƒXƒgƒ‰ƒNƒ^
+	// ã‚³ãƒ³ã‚¹ãƒˆãƒ©ã‚¯ã‚¿
 	EffectImplemented( Manager* pManager, void* pData, int size );
 
-	// ƒRƒ“ƒXƒgƒ‰ƒNƒ^
+	// ã‚³ãƒ³ã‚¹ãƒˆãƒ©ã‚¯ã‚¿
 	EffectImplemented( Setting* setting, void* pData, int size );
 
-	// ƒfƒXƒgƒ‰ƒNƒ^
+	// ãƒ‡ã‚¹ãƒˆãƒ©ã‚¯ã‚¿
 	virtual ~EffectImplemented();
 
-	// Root‚Ìæ“¾
+	// Rootã®å–å¾—
 	EffectNode* GetRoot() const;
 
-	/* Šg‘å—¦‚Ìæ“¾ */
+	/* æ‹¡å¤§ç‡ã®å–å¾— */
 	float GetMaginification() const;
 
 	/**
-		@brief	“Ç‚İ‚ŞB
+		@brief	èª­ã¿è¾¼ã‚€ã€‚
 	*/
 	bool Load( void* pData, int size, float mag, const EFK_CHAR* materialPath );
 
 	/**
-		@breif	‰½‚à“Ç‚İ‚Ü‚ê‚Ä‚¢‚È‚¢ó‘Ô‚É–ß‚·
+		@breif	ä½•ã‚‚èª­ã¿è¾¼ã¾ã‚Œã¦ã„ãªã„çŠ¶æ…‹ã«æˆ»ã™
 	*/
 	void Reset();
 
 private:
 	/**
-		@brief	ƒ}ƒl[ƒWƒƒ[æ“¾
+		@brief	ãƒãƒãƒ¼ã‚¸ãƒ£ãƒ¼å–å¾—
 	*/
 	Manager* GetManager() const;
 
 public:
 	/**
-	@brief	İ’èæ“¾
+	@brief	è¨­å®šå–å¾—
 	*/
 	Setting* GetSetting() const;
 	
 	/**
-		@brief	ƒGƒtƒFƒNƒgƒf[ƒ^‚Ìƒo[ƒWƒ‡ƒ“æ“¾
+		@brief	ã‚¨ãƒ•ã‚§ã‚¯ãƒˆãƒ‡ãƒ¼ã‚¿ã®ãƒãƒ¼ã‚¸ãƒ§ãƒ³å–å¾—
 	*/
 	int GetVersion() const;
 
 	/**
-		@brief	Ši”[‚³‚ê‚Ä‚¢‚é‰æ‘œ‚Ìƒ|ƒCƒ“ƒ^‚ğæ“¾‚·‚éB
+		@brief	æ ¼ç´ã•ã‚Œã¦ã„ã‚‹ç”»åƒã®ãƒã‚¤ãƒ³ã‚¿ã‚’å–å¾—ã™ã‚‹ã€‚
 	*/
 	void* GetColorImage(int n) const;
 
 	/**
-		@brief	Ši”[‚³‚ê‚Ä‚¢‚é‰æ‘œ‚Ìƒ|ƒCƒ“ƒ^‚ÌŒÂ”‚ğæ“¾‚·‚éB
+		@brief	æ ¼ç´ã•ã‚Œã¦ã„ã‚‹ç”»åƒã®ãƒã‚¤ãƒ³ã‚¿ã®å€‹æ•°ã‚’å–å¾—ã™ã‚‹ã€‚
 	*/
 	int32_t GetColorImageCount() const;
 
 	/**
-	@brief	Ši”[‚³‚ê‚Ä‚¢‚é‰æ‘œ‚Ìƒ|ƒCƒ“ƒ^‚ğæ“¾‚·‚éB
+	@brief	æ ¼ç´ã•ã‚Œã¦ã„ã‚‹ç”»åƒã®ãƒã‚¤ãƒ³ã‚¿ã‚’å–å¾—ã™ã‚‹ã€‚
 	*/
 	void* GetNormalImage(int n) const;
 
@@ -6771,46 +6771,46 @@ public:
 	int32_t GetDistortionImageCount() const;
 
 	/**
-		@brief	Ši”[‚³‚ê‚Ä‚¢‚é‰¹”gŒ`‚Ìƒ|ƒCƒ“ƒ^‚ğæ“¾‚·‚éB
+		@brief	æ ¼ç´ã•ã‚Œã¦ã„ã‚‹éŸ³æ³¢å½¢ã®ãƒã‚¤ãƒ³ã‚¿ã‚’å–å¾—ã™ã‚‹ã€‚
 	*/
 	void* GetWave( int n ) const;
 
 	int32_t GetWaveCount() const;
 
 	/**
-		@brief	Ši”[‚³‚ê‚Ä‚¢‚éƒ‚ƒfƒ‹‚Ìƒ|ƒCƒ“ƒ^‚ğæ“¾‚·‚éB
+		@brief	æ ¼ç´ã•ã‚Œã¦ã„ã‚‹ãƒ¢ãƒ‡ãƒ«ã®ãƒã‚¤ãƒ³ã‚¿ã‚’å–å¾—ã™ã‚‹ã€‚
 	*/
 	void* GetModel( int n ) const;
 
 	int32_t GetModelCount() const;
 
 	/**
-		@brief	ƒGƒtƒFƒNƒg‚ÌƒŠƒ[ƒh‚ğs‚¤B
+		@brief	ã‚¨ãƒ•ã‚§ã‚¯ãƒˆã®ãƒªãƒ­ãƒ¼ãƒ‰ã‚’è¡Œã†ã€‚
 	*/
 	bool Reload( void* data, int32_t size, const EFK_CHAR* materialPath = NULL );
 
 	/**
-		@brief	ƒGƒtƒFƒNƒg‚ÌƒŠƒ[ƒh‚ğs‚¤B
+		@brief	ã‚¨ãƒ•ã‚§ã‚¯ãƒˆã®ãƒªãƒ­ãƒ¼ãƒ‰ã‚’è¡Œã†ã€‚
 	*/
 	bool Reload( const EFK_CHAR* path, const EFK_CHAR* materialPath = NULL );
 
 	/**
-		@brief	ƒGƒtƒFƒNƒg‚ÌƒŠƒ[ƒh‚ğs‚¤B
+		@brief	ã‚¨ãƒ•ã‚§ã‚¯ãƒˆã®ãƒªãƒ­ãƒ¼ãƒ‰ã‚’è¡Œã†ã€‚
 	*/
 	bool Reload( Manager* managers, int32_t managersCount, void* data, int32_t size, const EFK_CHAR* materialPath = NULL );
 
 	/**
-		@brief	ƒGƒtƒFƒNƒg‚ÌƒŠƒ[ƒh‚ğs‚¤B
+		@brief	ã‚¨ãƒ•ã‚§ã‚¯ãƒˆã®ãƒªãƒ­ãƒ¼ãƒ‰ã‚’è¡Œã†ã€‚
 	*/
 	bool Reload( Manager* managers, int32_t managersCount, const EFK_CHAR* path, const EFK_CHAR* materialPath = NULL );
 
 	/**
-		@brief	‰æ‘œ“™ƒŠƒ\[ƒX‚ÌÄ“Ç‚İ‚İ‚ğs‚¤B
+		@brief	ç”»åƒç­‰ãƒªã‚½ãƒ¼ã‚¹ã®å†èª­ã¿è¾¼ã¿ã‚’è¡Œã†ã€‚
 	*/
 	void ReloadResources( const EFK_CHAR* materialPath );
 
 	/**
-		@brief	‰æ‘œ“™ƒŠƒ\[ƒX‚Ì”jŠü‚ğs‚¤B
+		@brief	ç”»åƒç­‰ãƒªã‚½ãƒ¼ã‚¹ã®ç ´æ£„ã‚’è¡Œã†ã€‚
 	*/
 	void UnloadResources();
 
@@ -6826,7 +6826,7 @@ public:
 //
 //----------------------------------------------------------------------------------
 #endif	// __EFFEKSEER_EFFECT_IMPLEMENTED_H__
-
+ï»¿
 #ifndef	__EFFEKSEER_MANAGER_IMPLEMENTED_H__
 #define	__EFFEKSEER_MANAGER_IMPLEMENTED_H__
 
@@ -6844,7 +6844,7 @@ namespace Effekseer
 //----------------------------------------------------------------------------------
 
 /**
-	@brief ƒGƒtƒFƒNƒgŠÇ—ƒNƒ‰ƒX(À‘•)
+	@brief ã‚¨ãƒ•ã‚§ã‚¯ãƒˆç®¡ç†ã‚¯ãƒ©ã‚¹(å®Ÿè£…)
 */
 class ManagerImplemented
 	: public Manager
@@ -6858,7 +6858,7 @@ class ManagerImplemented
 private:
 
 	/**
-		@brief	Ä¶ƒIƒuƒWƒFƒNƒg‚Ì‘g‚İ‡‚í‚¹
+		@brief	å†ç”Ÿã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆã®çµ„ã¿åˆã‚ã›
 	*/
 	class DrawSet
 	{
@@ -6941,328 +6941,328 @@ private:
 	} cullingCurrent, cullingNext;
 
 private:
-	/* ©“®ƒf[ƒ^“ü‚ê‘Ö‚¦ƒtƒ‰ƒO */
+	/* è‡ªå‹•ãƒ‡ãƒ¼ã‚¿å…¥ã‚Œæ›¿ãˆãƒ•ãƒ©ã‚° */
 	bool m_autoFlip;
 
-	// Ÿ‚ÌHandle
+	// æ¬¡ã®Handle
 	Handle		m_NextHandle;
 
-	// Šm•ÛÏ‚İƒCƒ“ƒXƒ^ƒ“ƒX”
+	// ç¢ºä¿æ¸ˆã¿ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹æ•°
 	int m_instance_max;
 
-	// Šm•ÛÏ‚İƒCƒ“ƒXƒ^ƒ“ƒX
+	// ç¢ºä¿æ¸ˆã¿ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹
 	std::queue<Instance*>	m_reserved_instances;
 
-	// Šm•ÛÏ‚İƒCƒ“ƒXƒ^ƒ“ƒXƒoƒbƒtƒ@
+	// ç¢ºä¿æ¸ˆã¿ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹ãƒãƒƒãƒ•ã‚¡
 	uint8_t*				m_reserved_instances_buffer;
 
-	// Ä¶’†ƒIƒuƒWƒFƒNƒg‚Ì‘g‚İ‡‚í‚¹W‡‘Ì
+	// å†ç”Ÿä¸­ã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆã®çµ„ã¿åˆã‚ã›é›†åˆä½“
 	std::map<Handle,DrawSet>	m_DrawSets;
 
-	// ”jŠü‘Ò‚¿ƒIƒuƒWƒFƒNƒg
+	// ç ´æ£„å¾…ã¡ã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆ
 	std::map<Handle,DrawSet>	m_RemovingDrawSets[2];
 
-	/* •`‰æ’†ƒIƒuƒWƒFƒNƒg */
+	/* æç”»ä¸­ã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆ */
 	std::vector<DrawSet>		m_renderingDrawSets;
 	std::map<Handle,DrawSet>	m_renderingDrawSetMaps;
 
-	/* •`‰æƒZƒbƒVƒ‡ƒ“ */
+	/* æç”»ã‚»ãƒƒã‚·ãƒ§ãƒ³ */
 	CriticalSection				m_renderingSession;
 
-	/* İ’èƒCƒ“ƒXƒ^ƒ“ƒX */
+	/* è¨­å®šã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹ */
 	Setting*					m_setting;
 
 	int							m_updateTime;
 	int							m_drawTime;
 
-	/* XV‰ñ”ƒJƒEƒ“ƒg */
+	/* æ›´æ–°å›æ•°ã‚«ã‚¦ãƒ³ãƒˆ */
 	uint32_t					m_sequenceNumber;
 	
-	/* ƒJƒŠƒ“ƒO */
+	/* ã‚«ãƒªãƒ³ã‚° */
 	Culling3D::World*			m_cullingWorld;
 
-	/* ƒJƒŠƒ“ƒO */
+	/* ã‚«ãƒªãƒ³ã‚° */
 	std::vector<DrawSet*>	m_culledObjects;
 	std::set<Handle>		m_culledObjectSets;
 	bool					m_culled;
 
-	/* ƒXƒvƒ‰ƒCƒg•`‰æ‹@”\—pƒCƒ“ƒXƒ^ƒ“ƒX */
+	/* ã‚¹ãƒ—ãƒ©ã‚¤ãƒˆæç”»æ©Ÿèƒ½ç”¨ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹ */
 	SpriteRenderer*				m_spriteRenderer;
 
-	/* ƒŠƒ{ƒ“•`‰æ‹@”\—pƒCƒ“ƒXƒ^ƒ“ƒX */
+	/* ãƒªãƒœãƒ³æç”»æ©Ÿèƒ½ç”¨ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹ */
 	RibbonRenderer*				m_ribbonRenderer;
 
-	/* ƒŠƒ“ƒO•`‰æ‹@”\—pƒCƒ“ƒXƒ^ƒ“ƒX */
+	/* ãƒªãƒ³ã‚°æç”»æ©Ÿèƒ½ç”¨ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹ */
 	RingRenderer*				m_ringRenderer;
 
-	/* ƒ‚ƒfƒ‹•`‰æ‹@”\—pƒCƒ“ƒXƒ^ƒ“ƒX */
+	/* ãƒ¢ãƒ‡ãƒ«æç”»æ©Ÿèƒ½ç”¨ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹ */
 	ModelRenderer*				m_modelRenderer;
 
-	/* ƒgƒ‰ƒbƒN•`‰æ‹@”\—pƒCƒ“ƒXƒ^ƒ“ƒX */
+	/* ãƒˆãƒ©ãƒƒã‚¯æç”»æ©Ÿèƒ½ç”¨ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹ */
 	TrackRenderer*				m_trackRenderer;
 
-	/* ƒTƒEƒ“ƒhÄ¶—pƒCƒ“ƒXƒ^ƒ“ƒX */
+	/* ã‚µã‚¦ãƒ³ãƒ‰å†ç”Ÿç”¨ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹ */
 	SoundPlayer*				m_soundPlayer;
 
-	// ƒƒ‚ƒŠŠm•ÛŠÖ”
+	// ãƒ¡ãƒ¢ãƒªç¢ºä¿é–¢æ•°
 	MallocFunc	m_MallocFunc;
 
-	// ƒƒ‚ƒŠ”jŠüŠÖ”
+	// ãƒ¡ãƒ¢ãƒªç ´æ£„é–¢æ•°
 	FreeFunc	m_FreeFunc;
 
-	// ƒ‰ƒ“ƒ_ƒ€ŠÖ”
+	// ãƒ©ãƒ³ãƒ€ãƒ é–¢æ•°
 	RandFunc	m_randFunc;
 
-	// ƒ‰ƒ“ƒ_ƒ€ŠÖ”Å‘å’l
+	// ãƒ©ãƒ³ãƒ€ãƒ é–¢æ•°æœ€å¤§å€¤
 	int			m_randMax;
 
-	// •`‰æƒIƒuƒWƒFƒNƒg’Ç‰Á
+	// æç”»ã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆè¿½åŠ 
 	Handle AddDrawSet( Effect* effect, InstanceContainer* pInstanceContainer, InstanceGlobal* pGlobalPointer );
 
-	// •`‰æƒIƒuƒWƒFƒNƒg”jŠüˆ—
+	// æç”»ã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆç ´æ£„å‡¦ç†
 	void GCDrawSet( bool isRemovingManager );
 
-	// ƒCƒ“ƒXƒ^ƒ“ƒXƒRƒ“ƒeƒi¶¬
+	// ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹ã‚³ãƒ³ãƒ†ãƒŠç”Ÿæˆ
 	InstanceContainer* CreateInstanceContainer( EffectNode* pEffectNode, InstanceGlobal* pGlobal, bool isRoot = false, Instance* pParent = NULL );
 
-	// ƒƒ‚ƒŠŠm•ÛŠÖ”
+	// ãƒ¡ãƒ¢ãƒªç¢ºä¿é–¢æ•°
 	static void* EFK_STDCALL Malloc( unsigned int size );
 
-	// ƒƒ‚ƒŠ”jŠüŠÖ”
+	// ãƒ¡ãƒ¢ãƒªç ´æ£„é–¢æ•°
 	static void EFK_STDCALL Free( void* p, unsigned int size );
 
-	// ƒ‰ƒ“ƒ_ƒ€ŠÖ”
+	// ãƒ©ãƒ³ãƒ€ãƒ é–¢æ•°
 	static int EFK_STDCALL Rand();
 
-	// ”jŠü“™‚ÌƒCƒxƒ“ƒg‚ğÀÛ‚ÉÀs
+	// ç ´æ£„ç­‰ã®ã‚¤ãƒ™ãƒ³ãƒˆã‚’å®Ÿéš›ã«å®Ÿè¡Œ
 	void ExecuteEvents();
 public:
 
-	// ƒRƒ“ƒXƒgƒ‰ƒNƒ^
+	// ã‚³ãƒ³ã‚¹ãƒˆãƒ©ã‚¯ã‚¿
 	ManagerImplemented( int instance_max, bool autoFlip );
 
-	// ƒfƒXƒgƒ‰ƒNƒ^
+	// ãƒ‡ã‚¹ãƒˆãƒ©ã‚¯ã‚¿
 	virtual ~ManagerImplemented();
 
-	/* RootˆÈŠO‚Ì”jŠüÏ‚İƒCƒ“ƒXƒ^ƒ“ƒXƒoƒbƒtƒ@‰ñû(Flip,Update,I—¹‚©‚ç‚Ì‚İŒÄ‚Î‚ê‚é) */
+	/* Rootä»¥å¤–ã®ç ´æ£„æ¸ˆã¿ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹ãƒãƒƒãƒ•ã‚¡å›å(Flip,Update,çµ‚äº†æ™‚ã‹ã‚‰ã®ã¿å‘¼ã°ã‚Œã‚‹) */
 	void PushInstance( Instance* instance );
 
-	/* RootˆÈŠO‚ÌƒCƒ“ƒXƒ^ƒ“ƒXƒoƒbƒtƒ@æ“¾(Flip,Update,I—¹‚©‚ç‚Ì‚İŒÄ‚Î‚ê‚é) */
+	/* Rootä»¥å¤–ã®ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹ãƒãƒƒãƒ•ã‚¡å–å¾—(Flip,Update,çµ‚äº†æ™‚ã‹ã‚‰ã®ã¿å‘¼ã°ã‚Œã‚‹) */
 	Instance* PopInstance();
 
 	/**
-		@brief ƒ}ƒl[ƒWƒƒ[”jŠü
+		@brief ãƒãƒãƒ¼ã‚¸ãƒ£ãƒ¼ç ´æ£„
 		@note
-		‚±‚Ìƒ}ƒl[ƒWƒƒ[‚©‚ç¶¬‚³‚ê‚½ƒGƒtƒFƒNƒg‚Í‘S‚Ä‹­§“I‚É”jŠü‚³‚ê‚Ü‚·B
+		ã“ã®ãƒãƒãƒ¼ã‚¸ãƒ£ãƒ¼ã‹ã‚‰ç”Ÿæˆã•ã‚ŒãŸã‚¨ãƒ•ã‚§ã‚¯ãƒˆã¯å…¨ã¦å¼·åˆ¶çš„ã«ç ´æ£„ã•ã‚Œã¾ã™ã€‚
 	*/
 	void Destroy();
 
 	/**
-		@brief	XV”Ô†‚ğæ“¾‚·‚éB
+		@brief	æ›´æ–°ç•ªå·ã‚’å–å¾—ã™ã‚‹ã€‚
 	*/
 	uint32_t GetSequenceNumber() const;
 
 	/**
-		@brief	ƒƒ‚ƒŠŠm•ÛŠÖ”æ“¾
+		@brief	ãƒ¡ãƒ¢ãƒªç¢ºä¿é–¢æ•°å–å¾—
 	*/
 	MallocFunc GetMallocFunc() const;
 
 	/**
-		@brief	ƒƒ‚ƒŠŠm•ÛŠÖ”İ’è
+		@brief	ãƒ¡ãƒ¢ãƒªç¢ºä¿é–¢æ•°è¨­å®š
 	*/
 	void SetMallocFunc( MallocFunc func );
 
 	/**
-		@brief	ƒƒ‚ƒŠ”jŠüŠÖ”æ“¾
+		@brief	ãƒ¡ãƒ¢ãƒªç ´æ£„é–¢æ•°å–å¾—
 	*/
 	FreeFunc GetFreeFunc() const;
 
 	/**
-		@brief	ƒƒ‚ƒŠ”jŠüŠÖ”İ’è
+		@brief	ãƒ¡ãƒ¢ãƒªç ´æ£„é–¢æ•°è¨­å®š
 	*/
 	void SetFreeFunc( FreeFunc func );
 
 	/**
-		@brief	ƒ‰ƒ“ƒ_ƒ€ŠÖ”æ“¾
+		@brief	ãƒ©ãƒ³ãƒ€ãƒ é–¢æ•°å–å¾—
 	*/
 	RandFunc GetRandFunc() const;
 
 	/**
-		@brief	ƒ‰ƒ“ƒ_ƒ€ŠÖ”İ’è
+		@brief	ãƒ©ãƒ³ãƒ€ãƒ é–¢æ•°è¨­å®š
 	*/
 	void SetRandFunc( RandFunc func );
 
 	/**
-		@brief	ƒ‰ƒ“ƒ_ƒ€Å‘å’læ“¾
+		@brief	ãƒ©ãƒ³ãƒ€ãƒ æœ€å¤§å€¤å–å¾—
 	*/
 	int GetRandMax() const;
 
 	/**
-		@brief	ƒ‰ƒ“ƒ_ƒ€ŠÖ”İ’è
+		@brief	ãƒ©ãƒ³ãƒ€ãƒ é–¢æ•°è¨­å®š
 	*/
 	void SetRandMax( int max_ );
 
 	/**
-		@brief	À•WŒn‚ğæ“¾‚·‚éB
+		@brief	åº§æ¨™ç³»ã‚’å–å¾—ã™ã‚‹ã€‚
 	*/
 	CoordinateSystem GetCoordinateSystem() const;
 
 	/**
-		@brief	À•WŒn‚ğİ’è‚·‚éB
+		@brief	åº§æ¨™ç³»ã‚’è¨­å®šã™ã‚‹ã€‚
 	*/
 	void SetCoordinateSystem( CoordinateSystem coordinateSystem );
 
 	/**
-		@brief	ƒXƒvƒ‰ƒCƒg•`‰æ‹@”\æ“¾
+		@brief	ã‚¹ãƒ—ãƒ©ã‚¤ãƒˆæç”»æ©Ÿèƒ½å–å¾—
 	*/
 	SpriteRenderer* GetSpriteRenderer();
 
 	/**
-		@brief	ƒXƒvƒ‰ƒCƒg•`‰æ‹@”\İ’è
+		@brief	ã‚¹ãƒ—ãƒ©ã‚¤ãƒˆæç”»æ©Ÿèƒ½è¨­å®š
 	*/
 	void SetSpriteRenderer( SpriteRenderer* renderer );
 
 	/**
-		@brief	ƒŠƒ{ƒ“•`‰æ‹@”\æ“¾
+		@brief	ãƒªãƒœãƒ³æç”»æ©Ÿèƒ½å–å¾—
 	*/
 	RibbonRenderer* GetRibbonRenderer();
 
 	/**
-		@brief	ƒŠƒ{ƒ“•`‰æ‹@”\İ’è
+		@brief	ãƒªãƒœãƒ³æç”»æ©Ÿèƒ½è¨­å®š
 	*/
 	void SetRibbonRenderer( RibbonRenderer* renderer );
 
 	/**
-		@brief	ƒŠƒ“ƒO•`‰æ‹@”\æ“¾
+		@brief	ãƒªãƒ³ã‚°æç”»æ©Ÿèƒ½å–å¾—
 	*/
 	RingRenderer* GetRingRenderer();
 
 	/**
-		@brief	ƒŠƒ“ƒO•`‰æ‹@”\İ’è
+		@brief	ãƒªãƒ³ã‚°æç”»æ©Ÿèƒ½è¨­å®š
 	*/
 	void SetRingRenderer( RingRenderer* renderer );
 
 	/**
-		@brief	ƒ‚ƒfƒ‹•`‰æ‹@”\æ“¾
+		@brief	ãƒ¢ãƒ‡ãƒ«æç”»æ©Ÿèƒ½å–å¾—
 	*/
 	ModelRenderer* GetModelRenderer();
 
 	/**
-		@brief	ƒ‚ƒfƒ‹•`‰æ‹@”\İ’è
+		@brief	ãƒ¢ãƒ‡ãƒ«æç”»æ©Ÿèƒ½è¨­å®š
 	*/
 	void SetModelRenderer( ModelRenderer* renderer );
 
 	/**
-		@brief	‹OÕ•`‰æ‹@”\æ“¾
+		@brief	è»Œè·¡æç”»æ©Ÿèƒ½å–å¾—
 	*/
 	TrackRenderer* GetTrackRenderer();
 
 	/**
-		@brief	‹OÕ•`‰æ‹@”\İ’è
+		@brief	è»Œè·¡æç”»æ©Ÿèƒ½è¨­å®š
 	*/
 	void SetTrackRenderer( TrackRenderer* renderer );
 
 	/**
-		@brief	İ’èƒNƒ‰ƒX‚ğæ“¾‚·‚éB
+		@brief	è¨­å®šã‚¯ãƒ©ã‚¹ã‚’å–å¾—ã™ã‚‹ã€‚
 	*/
 	Setting* GetSetting();
 
 	/**
-		@brief	İ’èƒNƒ‰ƒX‚ğİ’è‚·‚éB
-		@param	setting	[in]	İ’è
+		@brief	è¨­å®šã‚¯ãƒ©ã‚¹ã‚’è¨­å®šã™ã‚‹ã€‚
+		@param	setting	[in]	è¨­å®š
 	*/
 	void SetSetting(Setting* setting);
 
 	/**
-		@brief	ƒGƒtƒFƒNƒg“ÇƒNƒ‰ƒX‚ğæ“¾‚·‚éB
+		@brief	ã‚¨ãƒ•ã‚§ã‚¯ãƒˆèª­è¾¼ã‚¯ãƒ©ã‚¹ã‚’å–å¾—ã™ã‚‹ã€‚
 	*/
 	EffectLoader* GetEffectLoader();
 
 	/**
-		@brief	ƒGƒtƒFƒNƒg“ÇƒNƒ‰ƒX‚ğİ’è‚·‚éB
+		@brief	ã‚¨ãƒ•ã‚§ã‚¯ãƒˆèª­è¾¼ã‚¯ãƒ©ã‚¹ã‚’è¨­å®šã™ã‚‹ã€‚
 	*/
 	void SetEffectLoader( EffectLoader* effectLoader );
 
 	/**
-		@brief	ƒeƒNƒXƒ`ƒƒ“ÇƒNƒ‰ƒX‚ğæ“¾‚·‚éB
+		@brief	ãƒ†ã‚¯ã‚¹ãƒãƒ£èª­è¾¼ã‚¯ãƒ©ã‚¹ã‚’å–å¾—ã™ã‚‹ã€‚
 	*/
 	TextureLoader* GetTextureLoader();
 
 	/**
-		@brief	ƒeƒNƒXƒ`ƒƒ“ÇƒNƒ‰ƒX‚ğİ’è‚·‚éB
+		@brief	ãƒ†ã‚¯ã‚¹ãƒãƒ£èª­è¾¼ã‚¯ãƒ©ã‚¹ã‚’è¨­å®šã™ã‚‹ã€‚
 	*/
 	void SetTextureLoader( TextureLoader* textureLoader );
 	
 	/**
-		@brief	ƒTƒEƒ“ƒhÄ¶æ“¾
+		@brief	ã‚µã‚¦ãƒ³ãƒ‰å†ç”Ÿå–å¾—
 	*/
 	SoundPlayer* GetSoundPlayer();
 
 	/**
-		@brief	ƒTƒEƒ“ƒhÄ¶‹@”\İ’è
+		@brief	ã‚µã‚¦ãƒ³ãƒ‰å†ç”Ÿæ©Ÿèƒ½è¨­å®š
 	*/
 	void SetSoundPlayer( SoundPlayer* soundPlayer );
 	
 	/**
-		@brief	ƒTƒEƒ“ƒhÄ¶æ“¾
+		@brief	ã‚µã‚¦ãƒ³ãƒ‰å†ç”Ÿå–å¾—
 	*/
 	SoundLoader* GetSoundLoader();
 
 	/**
-		@brief	ƒTƒEƒ“ƒhÄ¶‹@”\İ’è
+		@brief	ã‚µã‚¦ãƒ³ãƒ‰å†ç”Ÿæ©Ÿèƒ½è¨­å®š
 	*/
 	void SetSoundLoader( SoundLoader* soundLoader );
 
 	/**
-		@brief	ƒ‚ƒfƒ‹“ÇƒNƒ‰ƒX‚ğæ“¾‚·‚éB
+		@brief	ãƒ¢ãƒ‡ãƒ«èª­è¾¼ã‚¯ãƒ©ã‚¹ã‚’å–å¾—ã™ã‚‹ã€‚
 	*/
 	ModelLoader* GetModelLoader();
 
 	/**
-		@brief	ƒ‚ƒfƒ‹“ÇƒNƒ‰ƒX‚ğİ’è‚·‚éB
+		@brief	ãƒ¢ãƒ‡ãƒ«èª­è¾¼ã‚¯ãƒ©ã‚¹ã‚’è¨­å®šã™ã‚‹ã€‚
 	*/
 	void SetModelLoader( ModelLoader* modelLoader );
 	
 	/**
-		@brief	ƒGƒtƒFƒNƒg’â~
+		@brief	ã‚¨ãƒ•ã‚§ã‚¯ãƒˆåœæ­¢
 	*/
 	void StopEffect( Handle handle );
 
 	/**
-		@brief	‘S‚Ä‚ÌƒGƒtƒFƒNƒg’â~
+		@brief	å…¨ã¦ã®ã‚¨ãƒ•ã‚§ã‚¯ãƒˆåœæ­¢
 	*/
 	void StopAllEffects();
 
 	/**
-		@brief	ƒGƒtƒFƒNƒg’â~
+		@brief	ã‚¨ãƒ•ã‚§ã‚¯ãƒˆåœæ­¢
 	*/
 	void StopRoot( Handle handle );
 
 	/**
-		@brief	ƒGƒtƒFƒNƒg’â~
+		@brief	ã‚¨ãƒ•ã‚§ã‚¯ãƒˆåœæ­¢
 	*/
 	void StopRoot( Effect* effect );
 
 	/**
-		@brief	ƒGƒtƒFƒNƒg‚ÌƒCƒ“ƒXƒ^ƒ“ƒX‚ª‘¶İ‚µ‚Ä‚¢‚é‚©æ“¾‚·‚éB
-		@param	handle	[in]	ƒCƒ“ƒXƒ^ƒ“ƒX‚Ìƒnƒ“ƒhƒ‹
-		@return	‘¶İ‚µ‚Ä‚é‚©?
+		@brief	ã‚¨ãƒ•ã‚§ã‚¯ãƒˆã®ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹ãŒå­˜åœ¨ã—ã¦ã„ã‚‹ã‹å–å¾—ã™ã‚‹ã€‚
+		@param	handle	[in]	ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹ã®ãƒãƒ³ãƒ‰ãƒ«
+		@return	å­˜åœ¨ã—ã¦ã‚‹ã‹?
 	*/
 	bool Exists( Handle handle );
 
 	int32_t GetInstanceCount( Handle handle );
 
 	/**
-		@brief	ƒGƒtƒFƒNƒg‚ÌƒCƒ“ƒXƒ^ƒ“ƒX‚Éİ’è‚³‚ê‚Ä‚¢‚és—ñ‚ğæ“¾‚·‚éB
-		@param	handle	[in]	ƒCƒ“ƒXƒ^ƒ“ƒX‚Ìƒnƒ“ƒhƒ‹
-		@return	s—ñ
+		@brief	ã‚¨ãƒ•ã‚§ã‚¯ãƒˆã®ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹ã«è¨­å®šã•ã‚Œã¦ã„ã‚‹è¡Œåˆ—ã‚’å–å¾—ã™ã‚‹ã€‚
+		@param	handle	[in]	ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹ã®ãƒãƒ³ãƒ‰ãƒ«
+		@return	è¡Œåˆ—
 	*/
 	Matrix43 GetMatrix( Handle handle );
 
 	/**
-		@brief	ƒGƒtƒFƒNƒg‚ÌƒCƒ“ƒXƒ^ƒ“ƒX‚É•ÏŠ·s—ñ‚ğİ’è‚·‚éB
-		@param	handle	[in]	ƒCƒ“ƒXƒ^ƒ“ƒX‚Ìƒnƒ“ƒhƒ‹
-		@param	mat		[in]	•ÏŠ·s—ñ
+		@brief	ã‚¨ãƒ•ã‚§ã‚¯ãƒˆã®ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹ã«å¤‰æ›è¡Œåˆ—ã‚’è¨­å®šã™ã‚‹ã€‚
+		@param	handle	[in]	ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹ã®ãƒãƒ³ãƒ‰ãƒ«
+		@param	mat		[in]	å¤‰æ›è¡Œåˆ—
 	*/
 	void SetMatrix( Handle handle, const Matrix43& mat );
 
@@ -7272,28 +7272,28 @@ public:
 	void AddLocation( Handle handle, const Vector3D& location );
 
 	/**
-		@brief	ƒGƒtƒFƒNƒg‚ÌƒCƒ“ƒXƒ^ƒ“ƒX‚Ì‰ñ“]Šp“x‚ğw’è‚·‚éB(ƒ‰ƒWƒAƒ“)
+		@brief	ã‚¨ãƒ•ã‚§ã‚¯ãƒˆã®ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹ã®å›è»¢è§’åº¦ã‚’æŒ‡å®šã™ã‚‹ã€‚(ãƒ©ã‚¸ã‚¢ãƒ³)
 	*/
 	void SetRotation( Handle handle, float x, float y, float z );
 
 	/**
-		@brief	ƒGƒtƒFƒNƒg‚ÌƒCƒ“ƒXƒ^ƒ“ƒX‚Ì”CˆÓ²ü‚è‚Ì”½Œvü‚è‚Ì‰ñ“]Šp“x‚ğw’è‚·‚éB
-		@param	handle	[in]	ƒCƒ“ƒXƒ^ƒ“ƒX‚Ìƒnƒ“ƒhƒ‹
-		@param	axis	[in]	²
-		@param	angle	[in]	Šp“x(ƒ‰ƒWƒAƒ“)
+		@brief	ã‚¨ãƒ•ã‚§ã‚¯ãƒˆã®ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹ã®ä»»æ„è»¸å‘¨ã‚Šã®åæ™‚è¨ˆå‘¨ã‚Šã®å›è»¢è§’åº¦ã‚’æŒ‡å®šã™ã‚‹ã€‚
+		@param	handle	[in]	ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹ã®ãƒãƒ³ãƒ‰ãƒ«
+		@param	axis	[in]	è»¸
+		@param	angle	[in]	è§’åº¦(ãƒ©ã‚¸ã‚¢ãƒ³)
 	*/
 	void SetRotation( Handle handle, const Vector3D& axis, float angle );
 
 	/**
-		@brief	ƒGƒtƒFƒNƒg‚ÌƒCƒ“ƒXƒ^ƒ“ƒX‚ÌŠg‘å—¦‚ğw’è‚·‚éB
-		@param	handle	[in]	ƒCƒ“ƒXƒ^ƒ“ƒX‚Ìƒnƒ“ƒhƒ‹
-		@param	x		[in]	X•ûŒüŠg‘å—¦
-		@param	y		[in]	Y•ûŒüŠg‘å—¦
-		@param	z		[in]	Z•ûŒüŠg‘å—¦
+		@brief	ã‚¨ãƒ•ã‚§ã‚¯ãƒˆã®ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹ã®æ‹¡å¤§ç‡ã‚’æŒ‡å®šã™ã‚‹ã€‚
+		@param	handle	[in]	ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹ã®ãƒãƒ³ãƒ‰ãƒ«
+		@param	x		[in]	Xæ–¹å‘æ‹¡å¤§ç‡
+		@param	y		[in]	Yæ–¹å‘æ‹¡å¤§ç‡
+		@param	z		[in]	Zæ–¹å‘æ‹¡å¤§ç‡
 	*/
 	void SetScale( Handle handle, float x, float y, float z );
 
-	// ƒGƒtƒFƒNƒg‚Ìƒ^[ƒQƒbƒgˆÊ’u‚ğw’è‚·‚éB
+	// ã‚¨ãƒ•ã‚§ã‚¯ãƒˆã®ã‚¿ãƒ¼ã‚²ãƒƒãƒˆä½ç½®ã‚’æŒ‡å®šã™ã‚‹ã€‚
 	void SetTargetLocation( Handle handle, float x, float y, float z );
 	void SetTargetLocation( Handle handle, const Vector3D& location );
 
@@ -7302,9 +7302,9 @@ public:
 	void SetBaseMatrix( Handle handle, const Matrix43& mat );
 
 	/**
-		@brief	ƒGƒtƒFƒNƒg‚ÌƒCƒ“ƒXƒ^ƒ“ƒX‚É”pŠü‚ÌƒR[ƒ‹ƒoƒbƒN‚ğİ’è‚·‚éB
-		@param	handle	[in]	ƒCƒ“ƒXƒ^ƒ“ƒX‚Ìƒnƒ“ƒhƒ‹
-		@param	callback	[in]	ƒR[ƒ‹ƒoƒbƒN
+		@brief	ã‚¨ãƒ•ã‚§ã‚¯ãƒˆã®ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹ã«å»ƒæ£„æ™‚ã®ã‚³ãƒ¼ãƒ«ãƒãƒƒã‚¯ã‚’è¨­å®šã™ã‚‹ã€‚
+		@param	handle	[in]	ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹ã®ãƒãƒ³ãƒ‰ãƒ«
+		@param	callback	[in]	ã‚³ãƒ¼ãƒ«ãƒãƒƒã‚¯
 	*/
 	void SetRemovingCallback( Handle handle, EffectInstanceRemovingCallback callback );
 
@@ -7315,30 +7315,30 @@ public:
 	void Flip();
 
 	/**
-		@brief	XVˆ—
+		@brief	æ›´æ–°å‡¦ç†
 	*/
 	void Update( float deltaFrame );
 
 	/**
-		@brief	XVˆ—‚ğŠJn‚·‚éB
+		@brief	æ›´æ–°å‡¦ç†ã‚’é–‹å§‹ã™ã‚‹ã€‚
 		@note
-		Update‚ğÀs‚·‚éÛ‚ÍAÀs‚·‚é•K—v‚Í‚È‚¢B
+		Updateã‚’å®Ÿè¡Œã™ã‚‹éš›ã¯ã€å®Ÿè¡Œã™ã‚‹å¿…è¦ã¯ãªã„ã€‚
 	*/
 	void BeginUpdate();
 
 	/**
-		@brief	XVˆ—‚ğI—¹‚·‚éB
+		@brief	æ›´æ–°å‡¦ç†ã‚’çµ‚äº†ã™ã‚‹ã€‚
 		@note
-		Update‚ğÀs‚·‚éÛ‚ÍAÀs‚·‚é•K—v‚Í‚È‚¢B
+		Updateã‚’å®Ÿè¡Œã™ã‚‹éš›ã¯ã€å®Ÿè¡Œã™ã‚‹å¿…è¦ã¯ãªã„ã€‚
 	*/
 	void EndUpdate();
 
 	/**
-		@brief	ƒnƒ“ƒhƒ‹’PˆÊ‚ÌXV‚ğs‚¤B
-		@param	handle		[in]	ƒnƒ“ƒhƒ‹
-		@param	deltaFrame	[in]	XV‚·‚éƒtƒŒ[ƒ€”(60fpsŠî€)
+		@brief	ãƒãƒ³ãƒ‰ãƒ«å˜ä½ã®æ›´æ–°ã‚’è¡Œã†ã€‚
+		@param	handle		[in]	ãƒãƒ³ãƒ‰ãƒ«
+		@param	deltaFrame	[in]	æ›´æ–°ã™ã‚‹ãƒ•ãƒ¬ãƒ¼ãƒ æ•°(60fpsåŸºæº–)
 		@note
-		XV‚·‚é‘O‚ÉBeginUpdateAXV‚µI‚í‚Á‚½Œã‚ÉEndUpdate‚ğÀs‚·‚é•K—v‚ª‚ ‚éB
+		æ›´æ–°ã™ã‚‹å‰ã«BeginUpdateã€æ›´æ–°ã—çµ‚ã‚ã£ãŸå¾Œã«EndUpdateã‚’å®Ÿè¡Œã™ã‚‹å¿…è¦ãŒã‚ã‚‹ã€‚
 	*/
 	void UpdateHandle( Handle handle, float deltaFrame = 1.0f );
 
@@ -7348,63 +7348,63 @@ private:
 public:
 
 	/**
-		@brief	•`‰æˆ—
+		@brief	æç”»å‡¦ç†
 	*/
 	void Draw();
 	
 	/**
-		@brief	ƒnƒ“ƒhƒ‹’PˆÊ‚Ì•`‰æˆ—
+		@brief	ãƒãƒ³ãƒ‰ãƒ«å˜ä½ã®æç”»å‡¦ç†
 	*/
 	void DrawHandle( Handle handle );
 
 	/**
-		@brief	Ä¶
+		@brief	å†ç”Ÿ
 	*/
 	Handle Play( Effect* effect, float x, float y, float z );
 	
 	/**
-		@brief	Updateˆ—ŠÔ‚ğæ“¾B
+		@brief	Updateå‡¦ç†æ™‚é–“ã‚’å–å¾—ã€‚
 	*/
 	int GetUpdateTime() const {return m_updateTime;};
 	
 	/**
-		@brief	Drawˆ—ŠÔ‚ğæ“¾B
+		@brief	Drawå‡¦ç†æ™‚é–“ã‚’å–å¾—ã€‚
 	*/
 	int GetDrawTime() const {return m_drawTime;};
 
 	/**
-		@brief	c‚è‚ÌŠm•Û‚µ‚½ƒCƒ“ƒXƒ^ƒ“ƒX”‚ğæ“¾‚·‚éB
+		@brief	æ®‹ã‚Šã®ç¢ºä¿ã—ãŸã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹æ•°ã‚’å–å¾—ã™ã‚‹ã€‚
 	*/
 	virtual int32_t GetRestInstancesCount() const { return m_reserved_instances.size(); }
 
 	/**
-		@brief	ƒŠƒ[ƒh‚ğŠJn‚·‚éB
+		@brief	ãƒªãƒ­ãƒ¼ãƒ‰ã‚’é–‹å§‹ã™ã‚‹ã€‚
 	*/
 	void BeginReloadEffect( Effect* effect );
 
 	/**
-		@brief	ƒŠƒ[ƒh‚ğ’â~‚·‚éB
+		@brief	ãƒªãƒ­ãƒ¼ãƒ‰ã‚’åœæ­¢ã™ã‚‹ã€‚
 	*/
 	void EndReloadEffect( Effect* effect );
 
 	/**
-		@brief	ƒGƒtƒFƒNƒg‚ğƒJƒŠƒ“ƒO‚µ•`‰æ•‰‰×‚ğŒ¸‚ç‚·‚½‚ß‚Ì‹óŠÔ‚ğ¶¬‚·‚éB
-		@param	xsize	X•ûŒü•
-		@param	ysize	Y•ûŒü•
-		@param	zsize	Z•ûŒü•
-		@param	layerCount	‘w”(‘å‚«‚¢‚Ù‚ÇƒJƒŠƒ“ƒO‚ÌŒø—¦‚Íã‚ª‚é‚ªƒƒ‚ƒŠ‚à‘å—Ê‚Ég—p‚·‚é)
+		@brief	ã‚¨ãƒ•ã‚§ã‚¯ãƒˆã‚’ã‚«ãƒªãƒ³ã‚°ã—æç”»è² è·ã‚’æ¸›ã‚‰ã™ãŸã‚ã®ç©ºé–“ã‚’ç”Ÿæˆã™ã‚‹ã€‚
+		@param	xsize	Xæ–¹å‘å¹…
+		@param	ysize	Yæ–¹å‘å¹…
+		@param	zsize	Zæ–¹å‘å¹…
+		@param	layerCount	å±¤æ•°(å¤§ãã„ã»ã©ã‚«ãƒªãƒ³ã‚°ã®åŠ¹ç‡ã¯ä¸ŠãŒã‚‹ãŒãƒ¡ãƒ¢ãƒªã‚‚å¤§é‡ã«ä½¿ç”¨ã™ã‚‹)
 	*/
 	void CreateCullingWorld( float xsize, float ysize, float zsize, int32_t layerCount);
 
 	/**
-		@brief	ƒJƒŠƒ“ƒO‚ğs‚¢AƒJƒŠƒ“ƒO‚³‚ê‚½ƒIƒuƒWƒFƒNƒg‚Ì‚İ‚ğ•`‰æ‚·‚é‚æ‚¤‚É‚·‚éB
-		@param	cameraProjMat	ƒJƒƒ‰ƒvƒƒWƒFƒNƒVƒ‡ƒ“s—ñ
-		@param	isOpenGL		OpenGL‚É‚æ‚é•`‰æ‚©?
+		@brief	ã‚«ãƒªãƒ³ã‚°ã‚’è¡Œã„ã€ã‚«ãƒªãƒ³ã‚°ã•ã‚ŒãŸã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆã®ã¿ã‚’æç”»ã™ã‚‹ã‚ˆã†ã«ã™ã‚‹ã€‚
+		@param	cameraProjMat	ã‚«ãƒ¡ãƒ©ãƒ—ãƒ­ã‚¸ã‚§ã‚¯ã‚·ãƒ§ãƒ³è¡Œåˆ—
+		@param	isOpenGL		OpenGLã«ã‚ˆã‚‹æç”»ã‹?
 	*/
 	void CalcCulling(const Matrix44& cameraProjMat, bool isOpenGL);
 
 	/**
-		@brief	Œ»İ‘¶İ‚·‚éƒGƒtƒFƒNƒg‚Ìƒnƒ“ƒhƒ‹‚©‚çƒJƒŠƒ“ƒO‚Ì‹óŠÔ‚ğ”z’u‚µ‚È‚¨‚·B
+		@brief	ç¾åœ¨å­˜åœ¨ã™ã‚‹ã‚¨ãƒ•ã‚§ã‚¯ãƒˆã®ãƒãƒ³ãƒ‰ãƒ«ã‹ã‚‰ã‚«ãƒªãƒ³ã‚°ã®ç©ºé–“ã‚’é…ç½®ã—ãªãŠã™ã€‚
 	*/
 	void RessignCulling() override;
 
@@ -7420,7 +7420,7 @@ public:
 //
 //----------------------------------------------------------------------------------
 #endif	// __EFFEKSEER_MANAGER_IMPLEMENTED_H__
-
+ï»¿
 #ifndef	__EFFEKSEER_INSTANCECONTAINER_H__
 #define	__EFFEKSEER_INSTANCECONTAINER_H__
 
@@ -7448,25 +7448,25 @@ class InstanceContainer
 
 private:
 
-	// ƒ}ƒl[ƒWƒƒ
+	// ãƒãƒãƒ¼ã‚¸ãƒ£
 	Manager*	m_pManager;
 
-	// ƒpƒ‰ƒ[ƒ^[
+	// ãƒ‘ãƒ©ãƒ¡ãƒ¼ã‚¿ãƒ¼
 	EffectNodeImplemented* m_pEffectNode;
 
-	// ƒOƒ[ƒoƒ‹
+	// ã‚°ãƒ­ãƒ¼ãƒãƒ«
 	InstanceGlobal*	m_pGlobal;
 
-	// q‚ÌƒRƒ“ƒeƒi
+	// å­ã®ã‚³ãƒ³ãƒ†ãƒŠ
 	InstanceContainer**	m_Children;
 
-	// ƒCƒ“ƒXƒ^ƒ“ƒX‚Ìq‚Ì”
+	// ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹ã®å­ã®æ•°
 	int	m_ChildrenCount;
 
-	// ƒOƒ‹[ƒv‚Ì˜AŒ‹ƒŠƒXƒg‚Ìæ“ª
+	// ã‚°ãƒ«ãƒ¼ãƒ—ã®é€£çµãƒªã‚¹ãƒˆã®å…ˆé ­
 	InstanceGroup*	m_headGroups;
 
-	// ƒOƒ‹[ƒv‚Ì˜AŒ‹ƒŠƒXƒg‚ÌÅŒã
+	// ã‚°ãƒ«ãƒ¼ãƒ—ã®é€£çµãƒªã‚¹ãƒˆã®æœ€å¾Œ
 	InstanceGroup*	m_tailGroups;
 
 	// placement new
@@ -7478,29 +7478,29 @@ private:
 	// default delete
 	static void operator delete( void* p ){}
 
-	// ƒRƒ“ƒXƒgƒ‰ƒNƒ^
+	// ã‚³ãƒ³ã‚¹ãƒˆãƒ©ã‚¯ã‚¿
 	InstanceContainer( Manager* pManager, EffectNode* pEffectNode, InstanceGlobal* pGlobal, int ChildrenCount );
 
-	// ƒfƒXƒgƒ‰ƒNƒ^
+	// ãƒ‡ã‚¹ãƒˆãƒ©ã‚¯ã‚¿
 	virtual ~InstanceContainer();
 
-	// w’è‚µ‚½”Ô†‚ÉƒRƒ“ƒeƒi‚ğİ’è
+	// æŒ‡å®šã—ãŸç•ªå·ã«ã‚³ãƒ³ãƒ†ãƒŠã‚’è¨­å®š
 	void SetChild( int num, InstanceContainer* pContainter );
 
-	// –³Œø‚ÈƒOƒ‹[ƒv‚Ì”jŠü
+	// ç„¡åŠ¹ãªã‚°ãƒ«ãƒ¼ãƒ—ã®ç ´æ£„
 	void RemoveInvalidGroups();
 
 public:
-	// w’è‚µ‚½”Ô†‚ÌƒRƒ“ƒeƒi‚ğæ“¾
+	// æŒ‡å®šã—ãŸç•ªå·ã®ã‚³ãƒ³ãƒ†ãƒŠã‚’å–å¾—
 	InstanceContainer* GetChild( int num );
 
 	/**
-		@brief	ƒOƒ‹[ƒv‚Ìì¬
+		@brief	ã‚°ãƒ«ãƒ¼ãƒ—ã®ä½œæˆ
 	*/
 	InstanceGroup* CreateGroup();
 
 	/**
-		@brief	ƒOƒ‹[ƒv‚Ìæ“ªæ“¾
+		@brief	ã‚°ãƒ«ãƒ¼ãƒ—ã®å…ˆé ­å–å¾—
 	*/
 	InstanceGroup* GetFirstGroup() const;
 
@@ -7525,7 +7525,7 @@ public:
 //
 //----------------------------------------------------------------------------------
 #endif	// __EFFEKSEER_INSTANCECONTAINER_H__
-
+ï»¿
 #ifndef	__EFFEKSEER_INSTANCE_H__
 #define	__EFFEKSEER_INSTANCE_H__
 
@@ -7545,7 +7545,7 @@ namespace Effekseer
 //----------------------------------------------------------------------------------
 
 /**
-	@brief	ƒGƒtƒFƒNƒg‚ÌÀ‘Ì
+	@brief	ã‚¨ãƒ•ã‚§ã‚¯ãƒˆã®å®Ÿä½“
 */
 class Instance
 {
@@ -7556,26 +7556,26 @@ class Instance
 public:
 	static const int32_t ChildrenMax = 16;
 
-	// ƒ}ƒl[ƒWƒƒ
+	// ãƒãƒãƒ¼ã‚¸ãƒ£
 	Manager*	m_pManager;
 
-	// ƒpƒ‰ƒ[ƒ^[
+	// ãƒ‘ãƒ©ãƒ¡ãƒ¼ã‚¿ãƒ¼
 	EffectNodeImplemented* m_pEffectNode;
 
-	// ƒRƒ“ƒeƒi
+	// ã‚³ãƒ³ãƒ†ãƒŠ
 	InstanceContainer*	m_pContainer;
 
-	// ƒOƒ‹[ƒv‚Ì˜AŒ‹ƒŠƒXƒg‚Ìæ“ª
+	// ã‚°ãƒ«ãƒ¼ãƒ—ã®é€£çµãƒªã‚¹ãƒˆã®å…ˆé ­
 	InstanceGroup*	m_headGroups;
 
-	// e
+	// è¦ª
 	Instance*	m_pParent;
 	
-	// ƒOƒ[ƒoƒ‹ˆÊ’u
+	// ã‚°ãƒ­ãƒ¼ãƒãƒ«ä½ç½®
 	Vector3D	m_GlobalPosition;
 	Vector3D	m_GlobalVelocity;
 	
-	// ƒOƒ[ƒoƒ‹ˆÊ’u•â³
+	// ã‚°ãƒ­ãƒ¼ãƒãƒ«ä½ç½®è£œæ­£
 	Vector3D	m_GlobalRevisionLocation;
 	Vector3D	m_GlobalRevisionVelocity;
 	
@@ -7695,7 +7695,7 @@ public:
 
 	} scaling_values;
 
-	// •`‰æ
+	// æç”»
 	union
 	{
 		EffectNodeSprite::InstanceValues	sprite;
@@ -7705,97 +7705,97 @@ public:
 		EffectNodeTrack::InstanceValues		track;
 	} rendererValues;
 	
-	// ‰¹
+	// éŸ³
 	union
 	{
 		int		delay;
 	} soundValues;
 
-	// ó‘Ô
+	// çŠ¶æ…‹
 	eInstanceState	m_State;
 
-	// ¶‘¶ŠÔ
+	// ç”Ÿå­˜æ™‚é–“
 	float		m_LivedTime;
 
-	// ¶¬‚³‚ê‚Ä‚©‚ç‚ÌŠÔ
+	// ç”Ÿæˆã•ã‚Œã¦ã‹ã‚‰ã®æ™‚é–“
 	float		m_LivingTime;
 
-	/* ¶¬‚³‚ê‚½q‚ÌŒÂ” */
+	/* ç”Ÿæˆã•ã‚ŒãŸå­ã®å€‹æ•° */
 	int32_t		m_generatedChildrenCount[ChildrenMax];
 
-	/* Ÿ‚Éq‚ğ¶¬‚·‚éŠÔ */
+	/* æ¬¡ã«å­ã‚’ç”Ÿæˆã™ã‚‹æ™‚é–“ */
 	float		m_nextGenerationTime[ChildrenMax];
 
-	// ¶¬ˆÊ’u
+	// ç”Ÿæˆä½ç½®
 	Matrix43		m_GenerationLocation;
 
-	// •ÏŠ·—ps—ñ
+	// å¤‰æ›ç”¨è¡Œåˆ—
 	Matrix43		m_GlobalMatrix43;
 
-	// e‚Ì•ÏŠ·—ps—ñ
+	// è¦ªã®å¤‰æ›ç”¨è¡Œåˆ—
 	Matrix43		m_ParentMatrix43;
 
-	/* ŠÔ‚ği‚ß‚é‚©‚Ç‚¤‚©? */
+	/* æ™‚é–“ã‚’é€²ã‚ã‚‹ã‹ã©ã†ã‹? */
 	bool			m_stepTime;
 
-	/* XV”Ô† */
+	/* æ›´æ–°ç•ªå· */
 	uint32_t		m_sequenceNumber;
 
-	// ƒRƒ“ƒXƒgƒ‰ƒNƒ^
+	// ã‚³ãƒ³ã‚¹ãƒˆãƒ©ã‚¯ã‚¿
 	Instance( Manager* pManager, EffectNode* pEffectNode, InstanceContainer* pContainer );
 
-	// ƒfƒXƒgƒ‰ƒNƒ^
+	// ãƒ‡ã‚¹ãƒˆãƒ©ã‚¯ã‚¿
 	virtual ~Instance();
 
 public:
 	/**
-		@brief	ó‘Ô‚Ìæ“¾
+		@brief	çŠ¶æ…‹ã®å–å¾—
 	*/
 	eInstanceState GetState() const;
 
 	/**
-		@brief	s—ñ‚Ìæ“¾
+		@brief	è¡Œåˆ—ã®å–å¾—
 	*/
 	const Matrix43& GetGlobalMatrix43() const;
 
 	/**
-		@brief	‰Šú‰»
+		@brief	åˆæœŸåŒ–
 	*/
 	void Initialize( Instance* parent, int32_t instanceNumber );
 
 	/**
-		@brief	XV
+		@brief	æ›´æ–°
 	*/
 	void Update( float deltaFrame, bool shown );
 
 	/**
-		@brief	•`‰æ
+		@brief	æç”»
 	*/
 	void Draw();
 
 	/**
-		@brief	”jŠü
+		@brief	ç ´æ£„
 	*/
 	void Kill();
 
 	/**
-		@brief	UV‚ÌˆÊ’uæ“¾
+		@brief	UVã®ä½ç½®å–å¾—
 	*/
 	RectF GetUV() const;
 
 private:
 	/**
-		@brief	s—ñ‚ÌXV
+		@brief	è¡Œåˆ—ã®æ›´æ–°
 	*/
 	void CalculateMatrix( float deltaFrame );
 	
 	/**
-		@brief	s—ñ‚ÌXV
+		@brief	è¡Œåˆ—ã®æ›´æ–°
 	*/
 	void CalculateParentMatrix();
 	
 	/**
-		@brief	â‘Îƒpƒ‰ƒ[ƒ^‚Ì”½‰f
+		@brief	çµ¶å¯¾ãƒ‘ãƒ©ãƒ¡ãƒ¼ã‚¿ã®åæ˜ 
 	*/
 	void ModifyMatrixFromLocationAbs( float deltaFrame );
 	
@@ -7809,7 +7809,7 @@ private:
 //
 //----------------------------------------------------------------------------------
 #endif	// __EFFEKSEER_INSTANCE_H__
-
+ï»¿
 #ifndef	__EFFEKSEER_INSTANCEGLOBAL_H__
 #define	__EFFEKSEER_INSTANCEGLOBAL_H__
 
@@ -7827,19 +7827,19 @@ namespace Effekseer
 //----------------------------------------------------------------------------------
 
 /**
-	@brief	ƒCƒ“ƒXƒ^ƒ“ƒX‹¤’Ê•”•ª
+	@brief	ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹å…±é€šéƒ¨åˆ†
 	@note
-	¶¬‚³‚ê‚½ƒCƒ“ƒXƒ^ƒ“ƒX‚Ì‘S‚Ä‚©‚çQÆ‚Å‚«‚é•”•ª
+	ç”Ÿæˆã•ã‚ŒãŸã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹ã®å…¨ã¦ã‹ã‚‰å‚ç…§ã§ãã‚‹éƒ¨åˆ†
 */
 class InstanceGlobal
 {
 	friend class ManagerImplemented;
 
 private:
-	/* ‚±‚ÌƒGƒtƒFƒNƒg‚Åg—p‚µ‚Ä‚¢‚éƒCƒ“ƒXƒ^ƒ“ƒX” */
+	/* ã“ã®ã‚¨ãƒ•ã‚§ã‚¯ãƒˆã§ä½¿ç”¨ã—ã¦ã„ã‚‹ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹æ•° */
 	int			m_instanceCount;
 	
-	/* XV‚³‚ê‚½ƒtƒŒ[ƒ€” */
+	/* æ›´æ–°ã•ã‚ŒãŸãƒ•ãƒ¬ãƒ¼ãƒ æ•° */
 	float		m_updatedFrame;
 
 	InstanceContainer*	m_rootContainer;
@@ -7857,12 +7857,12 @@ public:
 	void AddUpdatedFrame( float frame );
 
 	/**
-		@brief	‘S‚Ä‚ÌƒCƒ“ƒXƒ^ƒ“ƒX”‚ğæ“¾
+		@brief	å…¨ã¦ã®ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹æ•°ã‚’å–å¾—
 	*/
 	int GetInstanceCount();
 
 	/**
-		@brief	XV‚³‚ê‚½ƒtƒŒ[ƒ€”‚ğæ“¾‚·‚éB
+		@brief	æ›´æ–°ã•ã‚ŒãŸãƒ•ãƒ¬ãƒ¼ãƒ æ•°ã‚’å–å¾—ã™ã‚‹ã€‚
 	*/
 	float GetUpdatedFrame();
 
@@ -7880,7 +7880,7 @@ public:
 //
 //----------------------------------------------------------------------------------
 #endif	// __EFFEKSEER_INSTANCEGLOBAL_H__
-
+ï»¿
 #ifndef	__EFFEKSEER_INSTANCEGROUP_H__
 #define	__EFFEKSEER_INSTANCEGROUP_H__
 
@@ -7898,9 +7898,9 @@ namespace Effekseer
 //----------------------------------------------------------------------------------
 
 /**
-	@brief	ƒCƒ“ƒXƒ^ƒ“ƒXƒOƒ‹[ƒv
+	@brief	ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹ã‚°ãƒ«ãƒ¼ãƒ—
 	@note
-	ƒCƒ“ƒXƒ^ƒ“ƒXƒRƒ“ƒeƒi“à‚Å‚³‚ç‚ÉƒCƒ“ƒXƒ^ƒ“ƒX‚ğƒOƒ‹[ƒv‰»‚·‚éƒNƒ‰ƒX
+	ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹ã‚³ãƒ³ãƒ†ãƒŠå†…ã§ã•ã‚‰ã«ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹ã‚’ã‚°ãƒ«ãƒ¼ãƒ—åŒ–ã™ã‚‹ã‚¯ãƒ©ã‚¹
 */
 class InstanceGroup
 {
@@ -7913,7 +7913,7 @@ private:
 	InstanceGlobal*		m_global;
 	int32_t				m_time;
 
-	// ƒCƒ“ƒXƒ^ƒ“ƒX‚ÌÀ‘Ì
+	// ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹ã®å®Ÿä½“
 	std::list<Instance*> m_instances;
 	std::list<Instance*> m_removingInstances;
 
@@ -7926,7 +7926,7 @@ private:
 public:
 
 	/** 
-		@brief	•`‰æ‚É•K—v‚Èƒpƒ‰ƒ[ƒ^
+		@brief	æç”»ã«å¿…è¦ãªãƒ‘ãƒ©ãƒ¡ãƒ¼ã‚¿
 	*/
 	union
 	{
@@ -7934,7 +7934,7 @@ public:
 	} rendererValues;
 
 	/**
-		@brief	ƒCƒ“ƒXƒ^ƒ“ƒX‚Ì¶¬
+		@brief	ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹ã®ç”Ÿæˆ
 	*/
 	Instance* CreateInstance();
 
@@ -7955,17 +7955,17 @@ public:
 	int32_t GetTime() const { return m_time; }
 
 	/**
-		@brief	ƒOƒ‹[ƒv‚ğ¶¬‚µ‚½ƒCƒ“ƒXƒ^ƒ“ƒX‚©‚ç‚ÌQÆ‚ªc‚Á‚Ä‚¢‚é‚©?
+		@brief	ã‚°ãƒ«ãƒ¼ãƒ—ã‚’ç”Ÿæˆã—ãŸã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹ã‹ã‚‰ã®å‚ç…§ãŒæ®‹ã£ã¦ã„ã‚‹ã‹?
 	*/
 	bool IsReferencedFromInstance;
 
 	/**
-		@brief	ƒCƒ“ƒXƒ^ƒ“ƒX‚©‚ç—˜—p‚·‚é˜AŒ‹ƒŠƒXƒg‚ÌŸ‚ÌƒIƒuƒWƒFƒNƒg‚Ö‚Ìƒ|ƒCƒ“ƒ^
+		@brief	ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹ã‹ã‚‰åˆ©ç”¨ã™ã‚‹é€£çµãƒªã‚¹ãƒˆã®æ¬¡ã®ã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆã¸ã®ãƒã‚¤ãƒ³ã‚¿
 	*/
 	InstanceGroup*	NextUsedByInstance;
 
 	/**
-		@brief	ƒRƒ“ƒeƒi‚©‚ç—˜—p‚·‚é˜AŒ‹ƒŠƒXƒg‚ÌŸ‚ÌƒIƒuƒWƒFƒNƒg‚Ö‚Ìƒ|ƒCƒ“ƒ^
+		@brief	ã‚³ãƒ³ãƒ†ãƒŠã‹ã‚‰åˆ©ç”¨ã™ã‚‹é€£çµãƒªã‚¹ãƒˆã®æ¬¡ã®ã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆã¸ã®ãƒã‚¤ãƒ³ã‚¿
 	*/
 	InstanceGroup*	NextUsedByContainer;
 
@@ -7978,7 +7978,7 @@ public:
 //
 //----------------------------------------------------------------------------------
 #endif	// __EFFEKSEER_INSTANCEGROUP_H__
-
+ï»¿
 //----------------------------------------------------------------------------------
 // Include
 //----------------------------------------------------------------------------------
@@ -8227,7 +8227,7 @@ int32_t FCurveVectorColor::Load( void* data, int32_t version )
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-
+ï»¿
 
 //----------------------------------------------------------------------------------
 //
@@ -8321,7 +8321,7 @@ void EffectNodeImplemented::LoadParameter(unsigned char*& pos, EffectNode* paren
 			memcpy( &TranslationFixed, pos, size );
 			pos += size;
 
-			// –³Œø‰»
+			// ç„¡åŠ¹åŒ–
 			if( TranslationFixed.Position.X == 0.0f &&
 				TranslationFixed.Position.Y == 0.0f &&
 				TranslationFixed.Position.Z == 0.0f )
@@ -8355,7 +8355,7 @@ void EffectNodeImplemented::LoadParameter(unsigned char*& pos, EffectNode* paren
 			pos += TranslationFCurve->Load( pos, m_effect->GetVersion() );
 		}
 
-		/* ˆÊ’uŠg‘åˆ— */
+		/* ä½ç½®æ‹¡å¤§å‡¦ç† */
 		if( m_effect->GetVersion() >= 8 )
 		{
 			if( TranslationType == ParameterTranslationType_Fixed )
@@ -8389,7 +8389,7 @@ void EffectNodeImplemented::LoadParameter(unsigned char*& pos, EffectNode* paren
 		memcpy( &LocationAbs.type, pos, sizeof(int) );
 		pos += sizeof(int);
 
-		/* â‘ÎˆÊ’u */
+		/* çµ¶å¯¾ä½ç½® */
 		if( LocationAbs.type == LocationAbsParameter::None )
 		{
 			memcpy( &size, pos, sizeof(int) );
@@ -8415,7 +8415,7 @@ void EffectNodeImplemented::LoadParameter(unsigned char*& pos, EffectNode* paren
 			pos += size;
 		}
 
-		/* â‘ÎˆÊ’uŠg‘åˆ— */
+		/* çµ¶å¯¾ä½ç½®æ‹¡å¤§å‡¦ç† */
 		if( m_effect->GetVersion() >= 8 )
 		{
 			if( LocationAbs.type == LocationAbsParameter::None )
@@ -8438,7 +8438,7 @@ void EffectNodeImplemented::LoadParameter(unsigned char*& pos, EffectNode* paren
 			memcpy( &RotationFixed, pos, size );
 			pos += size;
 
-			// –³Œø‰»
+			// ç„¡åŠ¹åŒ–
 			if( RotationFixed.Position.X == 0.0f &&
 				RotationFixed.Position.Y == 0.0f &&
 				RotationFixed.Position.Z == 0.0f )
@@ -8499,7 +8499,7 @@ void EffectNodeImplemented::LoadParameter(unsigned char*& pos, EffectNode* paren
 			memcpy( &ScalingFixed, pos, size );
 			pos += size;
 
-			// –³Œø‰»
+			// ç„¡åŠ¹åŒ–
 			if( ScalingFixed.Position.X == 1.0f &&
 				ScalingFixed.Position.Y == 1.0f &&
 				ScalingFixed.Position.Z == 1.0f)
@@ -8552,10 +8552,10 @@ void EffectNodeImplemented::LoadParameter(unsigned char*& pos, EffectNode* paren
 			ScalingFCurve->Z.SetDefaultValue( 1.0f );
 		}
 
-		/* ¶¬ˆÊ’u */
+		/* ç”Ÿæˆä½ç½® */
 		GenerationLocation.load( pos );
 
-		/* ¶¬ˆÊ’uŠg‘åˆ—*/
+		/* ç”Ÿæˆä½ç½®æ‹¡å¤§å‡¦ç†*/
 		if( m_effect->GetVersion() >= 8  
 			/* && (this->CommonValues.ScalingBindType == BindType_NotBind || parent->GetType() == EFFECT_NODE_TYPE_ROOT)*/ )
 		{
@@ -8576,7 +8576,7 @@ void EffectNodeImplemented::LoadParameter(unsigned char*& pos, EffectNode* paren
 			}		
 		}
 
-		// ‰EèŒn¶èŒn•ÏŠ·
+		// å³æ‰‹ç³»å·¦æ‰‹ç³»å¤‰æ›
 		if( setting->GetCoordinateSystem() == CoordinateSystem::LH )
 		{
 			// Translation
@@ -8667,7 +8667,7 @@ void EffectNodeImplemented::LoadParameter(unsigned char*& pos, EffectNode* paren
 		{
 			Texture.load( pos, m_effect->GetVersion() );
 
-			// Šg‘åˆ—
+			// æ‹¡å¤§å‡¦ç†
 			Texture.DistortionIntensity *= m_effect->GetMaginification();
 		}
 		else
@@ -8679,7 +8679,7 @@ void EffectNodeImplemented::LoadParameter(unsigned char*& pos, EffectNode* paren
 		
 		if( m_effect->GetVersion() >= 1)
 		{
-			// ƒTƒEƒ“ƒh
+			// ã‚µã‚¦ãƒ³ãƒ‰
 			memcpy( &SoundType, pos, sizeof(int) );
 			pos += sizeof(int);
 			if( SoundType == ParameterSoundType_Use )
@@ -8702,7 +8702,7 @@ void EffectNodeImplemented::LoadParameter(unsigned char*& pos, EffectNode* paren
 		}
 	}
 
-	// ƒm[ƒh
+	// ãƒãƒ¼ãƒ‰
 	int nodeCount = 0;
 	memcpy( &nodeCount, pos, sizeof(int) );
 	pos += sizeof( int );
@@ -8988,7 +8988,7 @@ EffectNodeImplemented* EffectNodeImplemented::Create(Effect* effect, EffectNode*
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-
+ï»¿
 
 //----------------------------------------------------------------------------------
 //
@@ -9224,7 +9224,7 @@ void EffectNodeModel::UpdateRenderedInstance(Instance& instance, Manager* manage
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-
+ï»¿
 
 //----------------------------------------------------------------------------------
 //
@@ -9322,12 +9322,12 @@ void EffectNodeRibbon::LoadRendererParameter(unsigned char*& pos, Setting* setti
 		pos += sizeof(int);
 	}
 
-	// ‰EèŒn¶èŒn•ÏŠ·
+	// å³æ‰‹ç³»å·¦æ‰‹ç³»å¤‰æ›
 	if( setting->GetCoordinateSystem() == CoordinateSystem::LH )
 	{
 	}
 
-	/* ˆÊ’uŠg‘åˆ— */
+	/* ä½ç½®æ‹¡å¤§å‡¦ç† */
 	if( m_effect->GetVersion() >= 8 )
 	{
 		if( RibbonPosition.type == RibbonPosition.Default )
@@ -9499,7 +9499,7 @@ void EffectNodeRibbon::UpdateRenderedInstance(Instance& instance, Manager* manag
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-
+ï»¿
 
 //----------------------------------------------------------------------------------
 //
@@ -9569,7 +9569,7 @@ void EffectNodeRing::LoadRendererParameter(unsigned char*& pos, Setting* setting
 		pos += sizeof(int);
 	}
 	
-	// ‰EèŒn¶èŒn•ÏŠ·
+	// å³æ‰‹ç³»å·¦æ‰‹ç³»å¤‰æ›
 	if (setting->GetCoordinateSystem() == CoordinateSystem::LH)
 	{
 		if( OuterLocation.type == RingLocationParameter::Fixed )
@@ -9615,7 +9615,7 @@ void EffectNodeRing::LoadRendererParameter(unsigned char*& pos, Setting* setting
 		}
 	}
 
-	/* ˆÊ’uŠg‘åˆ— */
+	/* ä½ç½®æ‹¡å¤§å‡¦ç† */
 	if( m_effect->GetVersion() >= 8 )
 	{
 		if( OuterLocation.type == RingLocationParameter::Fixed )
@@ -10005,7 +10005,7 @@ void EffectNodeRing::UpdateColorValues( Instance& instance, const RingColorParam
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-
+ï»¿
 
 //----------------------------------------------------------------------------------
 //
@@ -10029,7 +10029,7 @@ namespace Effekseer
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-
+ï»¿
 
 //----------------------------------------------------------------------------------
 //
@@ -10116,12 +10116,12 @@ namespace Effekseer
 		pos += sizeof(int);
 	}
 
-	// ‰EèŒn¶èŒn•ÏŠ·
+	// å³æ‰‹ç³»å·¦æ‰‹ç³»å¤‰æ›
 	if (setting->GetCoordinateSystem() == CoordinateSystem::LH)
 	{
 	}
 
-	/* ˆÊ’uŠg‘åˆ— */
+	/* ä½ç½®æ‹¡å¤§å‡¦ç† */
 	if (m_effect->GetVersion() >= 8)
 	{
 		if (SpritePosition.type == SpritePosition.Default)
@@ -10344,7 +10344,7 @@ void EffectNodeSprite::UpdateRenderedInstance(Instance& instance, Manager* manag
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-
+ï»¿
 
 //----------------------------------------------------------------------------------
 //
@@ -10393,12 +10393,12 @@ void EffectNodeTrack::LoadRendererParameter(unsigned char*& pos, Setting* settin
 	EffekseerPrintDebug("TrackColorRight : %d\n", TrackColorRight.type );
 	EffekseerPrintDebug("TrackColorRightMiddle : %d\n", TrackColorRightMiddle.type );
 
-	// ‰EèŒn¶èŒn•ÏŠ·
+	// å³æ‰‹ç³»å·¦æ‰‹ç³»å¤‰æ›
 	if (setting->GetCoordinateSystem() == CoordinateSystem::LH)
 	{
 	}
 
-	/* ˆÊ’uŠg‘åˆ— */
+	/* ä½ç½®æ‹¡å¤§å‡¦ç† */
 	if( m_effect->GetVersion() >= 8 )
 	{
 		TrackSizeFor.fixed.size *= m_effect->GetMaginification();
@@ -10649,7 +10649,7 @@ void EffectNodeTrack::LoadValues( TrackSizeParameter& param, unsigned char*& pos
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-
+ï»¿
 
 //----------------------------------------------------------------------------------
 //
@@ -10930,7 +10930,7 @@ bool EffectImplemented::Load( void* pData, int size, float mag, const EFK_CHAR* 
 	memcpy( &m_version, pos, sizeof(int) );
 	pos += sizeof(int);
 
-	// ‰æ‘œ
+	// ç”»åƒ
 	memcpy( &m_ImageCount, pos, sizeof(int) );
 	pos += sizeof(int);
 
@@ -10955,7 +10955,7 @@ bool EffectImplemented::Load( void* pData, int size, float mag, const EFK_CHAR* 
 
 	if (m_version >= 9)
 	{
-		// ‰æ‘œ
+		// ç”»åƒ
 		memcpy(&m_normalImageCount, pos, sizeof(int));
 		pos += sizeof(int);
 
@@ -10978,7 +10978,7 @@ bool EffectImplemented::Load( void* pData, int size, float mag, const EFK_CHAR* 
 			}
 		}
 
-		// ‰æ‘œ
+		// ç”»åƒ
 		memcpy(&m_distortionImageCount, pos, sizeof(int));
 		pos += sizeof(int);
 
@@ -11004,7 +11004,7 @@ bool EffectImplemented::Load( void* pData, int size, float mag, const EFK_CHAR* 
 
 	if( m_version >= 1 )
 	{
-		// ƒEƒF[ƒu
+		// ã‚¦ã‚§ãƒ¼ãƒ–
 		memcpy( &m_WaveCount, pos, sizeof(int) );
 		pos += sizeof(int);
 
@@ -11030,7 +11030,7 @@ bool EffectImplemented::Load( void* pData, int size, float mag, const EFK_CHAR* 
 
 	if( m_version >= 6 )
 	{
-		/* ƒ‚ƒfƒ‹ */
+		/* ãƒ¢ãƒ‡ãƒ« */
 		memcpy( &m_modelCount, pos, sizeof(int) );
 		pos += sizeof(int);
 
@@ -11054,7 +11054,7 @@ bool EffectImplemented::Load( void* pData, int size, float mag, const EFK_CHAR* 
 		}
 	}
 
-	// Šg‘å—¦
+	// æ‹¡å¤§ç‡
 	if( m_version >= 2 )
 	{
 		memcpy( &m_maginification, pos, sizeof(float) );
@@ -11063,7 +11063,7 @@ bool EffectImplemented::Load( void* pData, int size, float mag, const EFK_CHAR* 
 		m_maginificationExternal = mag;
 	}
 
-	// ƒJƒŠƒ“ƒO
+	// ã‚«ãƒªãƒ³ã‚°
 	if( m_version >= 9 )
 	{
 		memcpy( &(Culling.Shape), pos, sizeof(int32_t) );
@@ -11082,10 +11082,10 @@ bool EffectImplemented::Load( void* pData, int size, float mag, const EFK_CHAR* 
 		}
 	}
 
-	// ƒm[ƒh
+	// ãƒãƒ¼ãƒ‰
 	m_pRoot = EffectNodeImplemented::Create( this, NULL, pos );
 
-	// ƒŠƒ[ƒh—p‚ÉmaterialPath‚ğ‹L˜^‚µ‚Ä‚¨‚­
+	// ãƒªãƒ­ãƒ¼ãƒ‰ç”¨ã«materialPathã‚’è¨˜éŒ²ã—ã¦ãŠã
     if (materialPath) m_materialPath = materialPath;
 
 	ReloadResources( materialPath );
@@ -11198,7 +11198,7 @@ int32_t EffectImplemented::GetColorImageCount() const
 
 void* EffectImplemented::GetNormalImage(int n) const
 {
-	/* ‹­§“I‚ÉŒİŠ·‚ğ‚Æ‚é */
+	/* å¼·åˆ¶çš„ã«äº’æ›ã‚’ã¨ã‚‹ */
 	if (this->m_version <= 8)
 	{
 		return m_pImages[n];
@@ -11214,7 +11214,7 @@ int32_t EffectImplemented::GetNormalImageCount() const
 
 void* EffectImplemented::GetDistortionImage(int n) const
 {
-	/* ‹­§“I‚ÉŒİŠ·‚ğ‚Æ‚é */
+	/* å¼·åˆ¶çš„ã«äº’æ›ã‚’ã¨ã‚‹ */
 	if (this->m_version <= 8)
 	{
 		return m_pImages[n];
@@ -11480,7 +11480,7 @@ void EffectImplemented::UnloadResources()
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-
+ï»¿
 
 //----------------------------------------------------------------------------------
 //
@@ -11541,7 +11541,7 @@ Handle ManagerImplemented::AddDrawSet( Effect* effect, InstanceContainer* pInsta
 
 	if( ++m_NextHandle < 0 )
 	{
-		// ƒI[ƒo[ƒtƒ[‚µ‚½‚çƒŠƒZƒbƒg‚·‚é
+		// ã‚ªãƒ¼ãƒãƒ¼ãƒ•ãƒ­ãƒ¼ã—ãŸã‚‰ãƒªã‚»ãƒƒãƒˆã™ã‚‹
 		m_NextHandle = 0;
 	}
 
@@ -11560,14 +11560,14 @@ Handle ManagerImplemented::AddDrawSet( Effect* effect, InstanceContainer* pInsta
 //----------------------------------------------------------------------------------
 void ManagerImplemented::GCDrawSet( bool isRemovingManager )
 {
-	// ƒCƒ“ƒXƒ^ƒ“ƒXƒOƒ‹[ƒv©‘Ì‚Ìíœˆ—
+	// ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹ã‚°ãƒ«ãƒ¼ãƒ—è‡ªä½“ã®å‰Šé™¤å‡¦ç†
 	{
 		std::map<Handle,DrawSet>::iterator it = m_RemovingDrawSets[1].begin();
 		while( it != m_RemovingDrawSets[1].end() )
 		{
 			DrawSet& drawset = (*it).second;
 
-			// ‘S”jŠüˆ—
+			// å…¨ç ´æ£„å‡¦ç†
 			drawset.InstanceContainerPointer->RemoveForcibly( true );
 			drawset.InstanceContainerPointer->~InstanceContainer();
 			InstanceContainer::operator delete( drawset.InstanceContainerPointer, this );
@@ -11602,16 +11602,16 @@ void ManagerImplemented::GCDrawSet( bool isRemovingManager )
 		{
 			DrawSet& draw_set = (*it).second;
 
-			// íœƒtƒ‰ƒO‚ª—§‚Á‚Ä‚¢‚é
+			// å‰Šé™¤ãƒ•ãƒ©ã‚°ãŒç«‹ã£ã¦ã„ã‚‹æ™‚
 			bool isRemoving = draw_set.IsRemoving;
 
-			// ‰½‚à‘¶İ‚µ‚È‚¢
+			// ä½•ã‚‚å­˜åœ¨ã—ãªã„æ™‚
 			if( !isRemoving && draw_set.GlobalPointer->GetInstanceCount() == 0 )
 			{
 				isRemoving = true;
 			}
 
-			// ƒ‹[ƒg‚Ì‚İ‘¶İ‚µAŠù‚ÉV‚µ‚­¶¬‚·‚éŒ©‚İ‚ª‚È‚¢‚Æ‚«
+			// ãƒ«ãƒ¼ãƒˆã®ã¿å­˜åœ¨ã—ã€æ—¢ã«æ–°ã—ãç”Ÿæˆã™ã‚‹è¦‹è¾¼ã¿ãŒãªã„ã¨ã
 			if( !isRemoving && draw_set.GlobalPointer->GetInstanceCount() == 1 )
 			{
 				InstanceContainer* pRootContainer = draw_set.InstanceContainerPointer;
@@ -11646,7 +11646,7 @@ void ManagerImplemented::GCDrawSet( bool isRemovingManager )
 					
 						if( maxcreate_count == pRootInstance->m_pEffectNode->GetChildrenCount() )
 						{
-							// ‰¹‚ªÄ¶’†‚Å‚È‚¢‚Æ‚«
+							// éŸ³ãŒå†ç”Ÿä¸­ã§ãªã„ã¨ã
 							if (!GetSoundPlayer() || !GetSoundPlayer()->CheckPlayingTag(draw_set.GlobalPointer))
 							{
 								isRemoving = true;
@@ -11658,7 +11658,7 @@ void ManagerImplemented::GCDrawSet( bool isRemovingManager )
 
 			if( isRemoving )
 			{
-				// Á‹ˆ—
+				// æ¶ˆå»å‡¦ç†
 				StopEffect( (*it).first );
 
 				if( (*it).second.RemovingCallback != NULL )
@@ -11699,7 +11699,7 @@ InstanceContainer* ManagerImplemented::CreateInstanceContainer( EffectNode* pEff
 		Instance* instance = group->CreateInstance();
 		instance->Initialize( NULL, 0 );
 
-		/* ƒCƒ“ƒXƒ^ƒ“ƒX‚ª¶¬‚µ‚½‚í‚¯‚Å‚Í‚È‚¢‚½‚ßfalse‚É•ÏX */
+		/* ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹ãŒç”Ÿæˆã—ãŸã‚ã‘ã§ã¯ãªã„ãŸã‚falseã«å¤‰æ›´ */
 		group->IsReferencedFromInstance = false;
 	}
 
@@ -12589,13 +12589,13 @@ void ManagerImplemented::Flip()
 
 	ExecuteEvents();
 
-	// DrawSetíœˆ—
+	// DrawSetå‰Šé™¤å‡¦ç†
 	GCDrawSet( false );
 
 	m_renderingDrawSets.clear();
 	m_renderingDrawSetMaps.clear();
 
-	/* ƒJƒŠƒ“ƒO¶¬ */
+	/* ã‚«ãƒªãƒ³ã‚°ç”Ÿæˆ */
 	if( cullingNext.SizeX != cullingCurrent.SizeX ||
 		cullingNext.SizeY != cullingCurrent.SizeY ||
 		cullingNext.SizeZ != cullingCurrent.SizeZ ||
@@ -12730,7 +12730,7 @@ void ManagerImplemented::Update( float deltaFrame )
 {
 	BeginUpdate();
 
-	// ŠJnŠÔ‚ğ‹L˜^
+	// é–‹å§‹æ™‚é–“ã‚’è¨˜éŒ²
 	int64_t beginTime = ::Effekseer::GetTime();
 
 	for( size_t i = 0; i < m_renderingDrawSets.size(); i++ )
@@ -12740,7 +12740,7 @@ void ManagerImplemented::Update( float deltaFrame )
 		UpdateHandle( drawSet, deltaFrame );
 	}
 
-	// Œo‰ßŠÔ‚ğŒvZ
+	// çµŒéæ™‚é–“ã‚’è¨ˆç®—
 	m_updateTime = (int)(Effekseer::GetTime() - beginTime);
 
 	EndUpdate();
@@ -12810,7 +12810,7 @@ void ManagerImplemented::Draw()
 {
 	m_renderingSession.Enter();
 
-	// ŠJnŠÔ‚ğ‹L˜^
+	// é–‹å§‹æ™‚é–“ã‚’è¨˜éŒ²
 	int64_t beginTime = ::Effekseer::GetTime();
 
 	if(m_culled)
@@ -12838,7 +12838,7 @@ void ManagerImplemented::Draw()
 		}
 	}
 
-	// Œo‰ßŠÔ‚ğŒvZ
+	// çµŒéæ™‚é–“ã‚’è¨ˆç®—
 	m_drawTime = (int)(Effekseer::GetTime() - beginTime);
 
 	m_renderingSession.Leave();
@@ -12851,7 +12851,7 @@ Handle ManagerImplemented::Play( Effect* effect, float x, float y, float z )
 {
 	if( effect == NULL ) return -1;
 	
-	// ƒ‹[ƒg¶¬
+	// ãƒ«ãƒ¼ãƒˆç”Ÿæˆ
 	InstanceGlobal* pGlobal = new InstanceGlobal();
 	InstanceContainer* pContainer = CreateInstanceContainer( ((EffectImplemented*)effect)->GetRoot(), pGlobal, true, NULL );
 	
@@ -12919,7 +12919,7 @@ void ManagerImplemented::BeginReloadEffect( Effect* effect )
 	{
 		if( (*it).second.ParameterPointer != effect ) continue;
 	
-		/* ƒCƒ“ƒXƒ^ƒ“ƒXíœ */
+		/* ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹å‰Šé™¤ */
 		(*it).second.InstanceContainerPointer->RemoveForcibly( true );
 		(*it).second.InstanceContainerPointer->~InstanceContainer();
 		InstanceContainer::operator delete( (*it).second.InstanceContainerPointer, this );
@@ -12939,15 +12939,15 @@ void ManagerImplemented::EndReloadEffect( Effect* effect )
 	{
 		if( (*it).second.ParameterPointer != effect ) continue;
 
-		/* ƒCƒ“ƒXƒ^ƒ“ƒX¶¬ */
+		/* ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹ç”Ÿæˆ */
 		(*it).second.InstanceContainerPointer = CreateInstanceContainer( ((EffectImplemented*)effect)->GetRoot(), (*it).second.GlobalPointer, true, NULL );
 		(*it).second.GlobalPointer->SetRootContainer(  (*it).second.InstanceContainerPointer );
 
-		/* s—ñİ’è */
+		/* è¡Œåˆ—è¨­å®š */
 		(*it).second.InstanceContainerPointer->GetFirstGroup()->GetFirst()->m_GlobalMatrix43 = 
 			(*it).second.GlobalMatrix;
 		
-		/* ƒXƒLƒbƒv */
+		/* ã‚¹ã‚­ãƒƒãƒ— */
 		for( float f = 0; f < (*it).second.GlobalPointer->GetUpdatedFrame() - 1; f+= 1.0f )
 		{
 			(*it).second.InstanceContainerPointer->Update( true, 1.0f, false );
@@ -13020,7 +13020,7 @@ void ManagerImplemented::RessignCulling()
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-
+ï»¿
 
 //----------------------------------------------------------------------------------
 //
@@ -13112,7 +13112,7 @@ void InstanceContainer::SetChild( int num, InstanceContainer* pContainter )
 //----------------------------------------------------------------------------------
 void InstanceContainer::RemoveInvalidGroups()
 {
-	/* ÅŒã‚É‘¶İ‚·‚é—LŒø‚ÈƒOƒ‹[ƒv */
+	/* æœ€å¾Œã«å­˜åœ¨ã™ã‚‹æœ‰åŠ¹ãªã‚°ãƒ«ãƒ¼ãƒ— */
 	InstanceGroup* tailGroup = NULL;
 
 	for( InstanceGroup* group = m_headGroups; group != NULL; )
@@ -13184,13 +13184,13 @@ InstanceGroup* InstanceContainer::GetFirstGroup() const
 //----------------------------------------------------------------------------------
 void InstanceContainer::Update( bool recursive, float deltaFrame, bool shown )
 {
-	// XV
+	// æ›´æ–°
 	for( InstanceGroup* group = m_headGroups; group != NULL; group = group->NextUsedByContainer )
 	{
 		group->Update( deltaFrame, shown );
 	}
 	
-	// ”jŠü
+	// ç ´æ£„
 	RemoveInvalidGroups();
 
 	if( recursive )
@@ -13254,7 +13254,7 @@ void InstanceContainer::Draw( bool recursive )
 {
 	if( m_pEffectNode->GetType() != EFFECT_NODE_TYPE_ROOT && m_pEffectNode->GetType() != EFFECT_NODE_TYPE_NONE )
 	{
-		/* ŒÂ”Œv‘ª */
+		/* å€‹æ•°è¨ˆæ¸¬ */
 		int32_t count = 0;
 		{
 			for( InstanceGroup* group = m_headGroups; group != NULL; group = group->NextUsedByContainer )
@@ -13271,7 +13271,7 @@ void InstanceContainer::Draw( bool recursive )
 
 		if( count > 0 )
 		{
-			/* •`‰æ */
+			/* æç”» */
 			m_pEffectNode->BeginRendering(count, m_pManager);
 
 			for( InstanceGroup* group = m_headGroups; group != NULL; group = group->NextUsedByContainer )
@@ -13350,7 +13350,7 @@ InstanceGlobal* InstanceContainer::GetRootInstance()
 
 //----------------------------------------------------------------------------------
 //
-//----------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------ï»¿
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
@@ -13426,10 +13426,10 @@ void Instance::Initialize( Instance* parent, int32_t instanceNumber )
 {
 	auto parameter = (EffectNodeImplemented*) m_pEffectNode;
 
-	// e‚Ìİ’è
+	// è¦ªã®è¨­å®š
 	m_pParent = parent;
 
-	// q‚Ì‰Šú‰»
+	// å­ã®åˆæœŸåŒ–
 	for (int32_t i = 0; i < Min(ChildrenMax, parameter->GetChildrenCount()); i++)
 	{
 		auto pNode = (EffectNodeImplemented*) parameter->GetChild(i);
@@ -13440,35 +13440,35 @@ void Instance::Initialize( Instance* parent, int32_t instanceNumber )
 
 	if( m_pParent == NULL )
 	{
-		// ROOT‚Ìê‡
+		// ROOTã®å ´åˆ
 
-		// ó‘Ô‚Ì‰Šú‰»
+		// çŠ¶æ…‹ã®åˆæœŸåŒ–
 		m_State = INSTANCE_STATE_ACTIVE;
 
-		// ŠÔü‚è‚Ì‰Šú‰»
+		// æ™‚é–“å‘¨ã‚Šã®åˆæœŸåŒ–
 		m_LivingTime = 0.0f;
 		m_LivedTime = FLT_MAX;
 
-		// SRT‚Ì‰Šú‰»
+		// SRTã®åˆæœŸåŒ–
 		m_GenerationLocation.Indentity();
 		m_GlobalMatrix43.Indentity();
 		m_ParentMatrix43.Indentity();
 
-		// e‚Ì‰Šú‰»
+		// è¦ªã®åˆæœŸåŒ–
 		m_ParentMatrix43 = GetGlobalMatrix43();
 
 		return;
 	}
 
-	// ó‘Ô‚Ì‰Šú‰»
+	// çŠ¶æ…‹ã®åˆæœŸåŒ–
 	m_State = INSTANCE_STATE_ACTIVE;
 
-	// ŠÔü‚è‚Ì‰Šú‰»
+	// æ™‚é–“å‘¨ã‚Šã®åˆæœŸåŒ–
 	m_LivingTime = 0.0f;
 	m_LivedTime = (float)parameter->CommonValues.life.getValue( *m_pManager );
 
 
-	// SRT‚Ì‰Šú‰»
+	// SRTã®åˆæœŸåŒ–
 	m_pParent->GetGlobalMatrix43().GetTranslation( m_GlobalPosition );
 	m_GlobalRevisionLocation = Vector3D(0.0f, 0.0f, 0.0f);
 	m_GlobalRevisionVelocity = Vector3D(0.0f, 0.0f, 0.0f);
@@ -13476,7 +13476,7 @@ void Instance::Initialize( Instance* parent, int32_t instanceNumber )
 	m_GlobalMatrix43.Indentity();
 	m_ParentMatrix43.Indentity();
 
-	// e‚Ì‰Šú‰»
+	// è¦ªã®åˆæœŸåŒ–
 	if( parameter->CommonValues.TranslationBindType == BindType_WhenCreating )
 	{
 		m_ParentMatrix43.Value[3][0] = m_pParent->m_GlobalMatrix43.Value[3][0];
@@ -13541,7 +13541,7 @@ void Instance::Initialize( Instance* parent, int32_t instanceNumber )
 		m_ParentMatrix43.Value[2][2] = s[2];
 	}
 	
-	/* ˆÊ’u */
+	/* ä½ç½® */
 	if( m_pEffectNode->TranslationType == ParameterTranslationType_Fixed )
 	{
 	}
@@ -13565,7 +13565,7 @@ void Instance::Initialize( Instance* parent, int32_t instanceNumber )
 		translation_values.fcruve.offset.z = m_pEffectNode->TranslationFCurve->Z.GetOffset( *m_pManager );
 	}
 	
-	/* ‰ñ“] */
+	/* å›è»¢ */
 	if( m_pEffectNode->RotationType == ParameterRotationType_Fixed )
 	{
 	}
@@ -13604,7 +13604,7 @@ void Instance::Initialize( Instance* parent, int32_t instanceNumber )
 		rotation_values.fcruve.offset.z = m_pEffectNode->RotationFCurve->Z.GetOffset( *m_pManager );
 	}
 
-	/* Šg‘åk¬ */
+	/* æ‹¡å¤§ç¸®å° */
 	if( m_pEffectNode->ScalingType == ParameterScalingType_Fixed )
 	{
 	}
@@ -13639,7 +13639,7 @@ void Instance::Initialize( Instance* parent, int32_t instanceNumber )
 		scaling_values.fcruve.offset.z = m_pEffectNode->ScalingFCurve->Z.GetOffset( *m_pManager );
 	}
 
-	/* ¶¬ˆÊ’u */
+	/* ç”Ÿæˆä½ç½® */
 	if( m_pEffectNode->GenerationLocation.type == ParameterGenerationLocation::TYPE_POINT )
 	{
 		vector3d p = m_pEffectNode->GenerationLocation.point.location.getValue( *m_pManager );
@@ -13774,7 +13774,7 @@ void Instance::Update( float deltaFrame, bool shown )
 {
 	if (m_stepTime && m_pEffectNode->GetType() != EFFECT_NODE_TYPE_ROOT)
 	{
-		/* ‰¹‚ÌXV(Œ»ó•ú’u) */
+		/* éŸ³ã®æ›´æ–°(ç¾çŠ¶æ”¾ç½®) */
 		if (m_pEffectNode->SoundType == ParameterSoundType_Use)
 		{
 			float living_time = m_LivingTime;
@@ -13796,15 +13796,15 @@ void Instance::Update( float deltaFrame, bool shown )
 	}
 	else if( m_pEffectNode->LocationAbs.type != LocationAbsParameter::None )
 	{
-		// â‘ÎˆÊ’u‚ªİ’è‚³‚ê‚Ä‚¢‚éê‡‚Í–ˆ‰ñŒvZ‚ª•K—v
+		// çµ¶å¯¾ä½ç½®ãŒè¨­å®šã•ã‚Œã¦ã„ã‚‹å ´åˆã¯æ¯å›è¨ˆç®—ãŒå¿…è¦
 		calculateMatrix = true;
 	}
 	else
 	{
 		/**
-			Œ©‚¦‚È‚¢ƒP[ƒX‚Ås—ñŒvZ‚ª•K—v‚ÈƒP[ƒX
-			-q‚ª¶¬‚³‚ê‚éB
-			-q‚Ìq‚ª¶¬‚³‚ê‚éB
+			è¦‹ãˆãªã„ã‚±ãƒ¼ã‚¹ã§è¡Œåˆ—è¨ˆç®—ãŒå¿…è¦ãªã‚±ãƒ¼ã‚¹
+			-å­ãŒç”Ÿæˆã•ã‚Œã‚‹ã€‚
+			-å­ã®å­ãŒç”Ÿæˆã•ã‚Œã‚‹ã€‚
 			*/
 		if (m_stepTime && (originalTime <= m_LivedTime || !m_pEffectNode->CommonValues.RemoveWhenLifeIsExtinct))
 		{
@@ -13812,7 +13812,7 @@ void Instance::Update( float deltaFrame, bool shown )
 			{
 				auto pNode = (EffectNodeImplemented*) m_pEffectNode->GetChild(i);
 
-				// ƒCƒ“ƒXƒ^ƒ“ƒX¶¬
+				// ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹ç”Ÿæˆ
 				if (pNode->CommonValues.MaxGeneration > m_generatedChildrenCount[i] &&
 					originalTime + deltaFrame > m_nextGenerationTime[i])
 				{
@@ -13823,7 +13823,7 @@ void Instance::Update( float deltaFrame, bool shown )
 		}
 	}
 
-	/* e‚ª”jŠü‚³‚ê‚éuŠÔ‚És—ñŒvZ(ğŒ‚ği‚ê‚ÎX‚ÉÅ“K‰»‰Â”\) */
+	/* è¦ªãŒç ´æ£„ã•ã‚Œã‚‹ç¬é–“ã«è¡Œåˆ—è¨ˆç®—(æ¡ä»¶ã‚’çµã‚Œã°æ›´ã«æœ€é©åŒ–å¯èƒ½) */
 	if( !calculateMatrix && m_pParent != NULL && m_pParent->GetState() != INSTANCE_STATE_ACTIVE &&
 		!(m_pEffectNode->CommonValues.RemoveWhenParentIsRemoved && m_pEffectNode->GetChildrenCount() == 0))
 	{
@@ -13835,19 +13835,19 @@ void Instance::Update( float deltaFrame, bool shown )
 		CalculateMatrix( deltaFrame );
 	}
 
-	/* e‚Ìíœˆ— */
+	/* è¦ªã®å‰Šé™¤å‡¦ç† */
 	if (m_pParent != NULL && m_pParent->GetState() != INSTANCE_STATE_ACTIVE)
 	{
 		m_pParent = nullptr;
 	}
 
-	/* ŠÔ‚Ìis */
+	/* æ™‚é–“ã®é€²è¡Œ */
 	if(  m_stepTime )
 	{
 		m_LivingTime += deltaFrame;
 	}
 
-	// q‚Ìˆ—
+	// å­ã®å‡¦ç†
 	if( m_stepTime && (originalTime <= m_LivedTime || !m_pEffectNode->CommonValues.RemoveWhenLifeIsExtinct) )
 	{
 		InstanceGroup* group = m_headGroups;
@@ -13858,13 +13858,13 @@ void Instance::Update( float deltaFrame, bool shown )
 			auto pContainer = m_pContainer->GetChild( i );
 			assert( group != NULL );
 
-			// ƒCƒ“ƒXƒ^ƒ“ƒX¶¬
+			// ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹ç”Ÿæˆ
 			while (true)
 			{
 				if (pNode->CommonValues.MaxGeneration > m_generatedChildrenCount[i] &&
 					originalTime + deltaFrame > m_nextGenerationTime[i])
 				{
-					// ¶¬ˆ—
+					// ç”Ÿæˆå‡¦ç†
 					Instance* pNewInstance = group->CreateInstance();
 					if (pNewInstance != NULL)
 					{
@@ -13886,11 +13886,11 @@ void Instance::Update( float deltaFrame, bool shown )
 		}
 	}
 	
-	// €–S”»’è
+	// æ­»äº¡åˆ¤å®š
 	bool killed = false;
 	if( m_pEffectNode->GetType() != EFFECT_NODE_TYPE_ROOT )
 	{
-		// ŠÔŒo‰ß
+		// æ™‚é–“çµŒé
 		if( m_pEffectNode->CommonValues.RemoveWhenLifeIsExtinct )
 		{
 			if( m_LivingTime > m_LivedTime )
@@ -13899,7 +13899,7 @@ void Instance::Update( float deltaFrame, bool shown )
 			}
 		}
 
-		// e‚ªÁ‚¦‚½ê‡
+		// è¦ªãŒæ¶ˆãˆãŸå ´åˆ
 		if( m_pEffectNode->CommonValues.RemoveWhenParentIsRemoved )
 		{
 			if( m_pParent == nullptr || m_pParent->GetState() != INSTANCE_STATE_ACTIVE )
@@ -13909,7 +13909,7 @@ void Instance::Update( float deltaFrame, bool shown )
 			}
 		}
 
-		// q‚ª‘S‚ÄÁ‚¦‚½ê‡
+		// å­ãŒå…¨ã¦æ¶ˆãˆãŸå ´åˆ
 		if( !killed && m_pEffectNode->CommonValues.RemoveWhenChildrenIsExtinct )
 		{
 			int maxcreate_count = 0;
@@ -13944,7 +13944,7 @@ void Instance::Update( float deltaFrame, bool shown )
 
 	if(killed)
 	{
-		/* €–SŠm’èAŒvZ‚ª•K—v‚Èê‡‚ÍŒvZ‚ğ‚·‚éB*/
+		/* æ­»äº¡ç¢ºå®šæ™‚ã€è¨ˆç®—ãŒå¿…è¦ãªå ´åˆã¯è¨ˆç®—ã‚’ã™ã‚‹ã€‚*/
 		if( !calculateMatrix &&
 			m_pEffectNode->GetChildrenCount() > 0)
 		{
@@ -13952,12 +13952,12 @@ void Instance::Update( float deltaFrame, bool shown )
 			CalculateMatrix( deltaFrame );
 		}
 
-		/* ”jŠü */
+		/* ç ´æ£„ */
 		Kill();
 		return;
 	}
 
-	// ŠÔ‚Ìis‹–‰Â
+	// æ™‚é–“ã®é€²è¡Œè¨±å¯
 	m_stepTime = true;
 }
 
@@ -13972,7 +13972,7 @@ void Instance::CalculateMatrix( float deltaFrame )
 	assert( m_pEffectNode != NULL );
 	assert( m_pContainer != NULL );
 
-	// e‚Ìˆ—
+	// è¦ªã®å‡¦ç†
 	if( m_pParent != NULL )
 	{
 		CalculateParentMatrix();
@@ -13982,10 +13982,10 @@ void Instance::CalculateMatrix( float deltaFrame )
 	Vector3D localAngle;
 	Vector3D localScaling;
 
-	/* XVˆ— */
+	/* æ›´æ–°å‡¦ç† */
 	if( m_pEffectNode->GetType() != EFFECT_NODE_TYPE_ROOT )
 	{
-		/* ˆÊ’u‚ÌXV(ŠÔ‚©‚ç’¼Ú‹‚ß‚ê‚é‚æ‚¤‘Î‰Ï‚İ) */
+		/* ä½ç½®ã®æ›´æ–°(æ™‚é–“ã‹ã‚‰ç›´æ¥æ±‚ã‚ã‚Œã‚‹ã‚ˆã†å¯¾å¿œæ¸ˆã¿) */
 		if( m_pEffectNode->TranslationType == ParameterTranslationType_None )
 		{
 			localPosition.X = 0;
@@ -14000,7 +14000,7 @@ void Instance::CalculateMatrix( float deltaFrame )
 		}
 		else if( m_pEffectNode->TranslationType == ParameterTranslationType_PVA )
 		{
-			/* Œ»İˆÊ’u = ‰ŠúÀ•W + (‰Šú‘¬“x * t) + (‰Šú‰Á‘¬“x * t * t * 0.5)*/
+			/* ç¾åœ¨ä½ç½® = åˆæœŸåº§æ¨™ + (åˆæœŸé€Ÿåº¦ * t) + (åˆæœŸåŠ é€Ÿåº¦ * t * t * 0.5)*/
 			localPosition.X = translation_values.random.location.x +
 				(translation_values.random.velocity.x * m_LivingTime) +
 				(translation_values.random.acceleration.x * m_LivingTime * m_LivingTime * 0.5f);
@@ -14037,7 +14037,7 @@ void Instance::CalculateMatrix( float deltaFrame )
 			localPosition.Z += m_GenerationLocation.Value[3][2];
 		}
 
-		/* ‰ñ“]‚ÌXV(ŠÔ‚©‚ç’¼Ú‹‚ß‚ê‚é‚æ‚¤‘Î‰Ï‚İ) */
+		/* å›è»¢ã®æ›´æ–°(æ™‚é–“ã‹ã‚‰ç›´æ¥æ±‚ã‚ã‚Œã‚‹ã‚ˆã†å¯¾å¿œæ¸ˆã¿) */
 		if( m_pEffectNode->RotationType == ParameterRotationType_None )
 		{
 			localAngle.X = 0;
@@ -14052,7 +14052,7 @@ void Instance::CalculateMatrix( float deltaFrame )
 		}
 		else if( m_pEffectNode->RotationType == ParameterRotationType_PVA )
 		{
-			/* Œ»İˆÊ’u = ‰ŠúÀ•W + (‰Šú‘¬“x * t) + (‰Šú‰Á‘¬“x * t * t * 0.5)*/
+			/* ç¾åœ¨ä½ç½® = åˆæœŸåº§æ¨™ + (åˆæœŸé€Ÿåº¦ * t) + (åˆæœŸåŠ é€Ÿåº¦ * t * t * 0.5)*/
 			localAngle.X = rotation_values.random.rotation.x +
 				(rotation_values.random.velocity.x * m_LivingTime) +
 				(rotation_values.random.acceleration.x * m_LivingTime * m_LivingTime * 0.5f);
@@ -14097,7 +14097,7 @@ void Instance::CalculateMatrix( float deltaFrame )
 			localAngle.Z = m_pEffectNode->RotationFCurve->Z.GetValue( (int)m_LivingTime ) + rotation_values.fcruve.offset.z;
 		}
 
-		/* Šg‘å‚ÌXV(ŠÔ‚©‚ç’¼Ú‹‚ß‚ê‚é‚æ‚¤‘Î‰Ï‚İ) */
+		/* æ‹¡å¤§ã®æ›´æ–°(æ™‚é–“ã‹ã‚‰ç›´æ¥æ±‚ã‚ã‚Œã‚‹ã‚ˆã†å¯¾å¿œæ¸ˆã¿) */
 		if( m_pEffectNode->ScalingType == ParameterScalingType_None )
 		{
 			localScaling.X = 1.0f;
@@ -14112,7 +14112,7 @@ void Instance::CalculateMatrix( float deltaFrame )
 		}
 		else if( m_pEffectNode->ScalingType == ParameterScalingType_PVA )
 		{
-			/* Œ»İˆÊ’u = ‰ŠúÀ•W + (‰Šú‘¬“x * t) + (‰Šú‰Á‘¬“x * t * t * 0.5)*/
+			/* ç¾åœ¨ä½ç½® = åˆæœŸåº§æ¨™ + (åˆæœŸé€Ÿåº¦ * t) + (åˆæœŸåŠ é€Ÿåº¦ * t * t * 0.5)*/
 			localScaling.X = scaling_values.random.scale.x +
 				(scaling_values.random.velocity.x * m_LivingTime) +
 				(scaling_values.random.acceleration.x * m_LivingTime * m_LivingTime * 0.5f);
@@ -14163,11 +14163,11 @@ void Instance::CalculateMatrix( float deltaFrame )
 			localScaling.Z = m_pEffectNode->ScalingFCurve->Z.GetValue( (int32_t)m_LivingTime ) + scaling_values.fcruve.offset.z;
 		}
 
-		/* •`‰æ•”•ª‚ÌXV */
+		/* æç”»éƒ¨åˆ†ã®æ›´æ–° */
 		m_pEffectNode->UpdateRenderedInstance( *this, m_pManager );
 	}
 	
-	// s—ñ‚ÌXV
+	// è¡Œåˆ—ã®æ›´æ–°
 	if( m_pEffectNode->GetType() != EFFECT_NODE_TYPE_ROOT )
 	{
 		m_GlobalMatrix43.Scaling( localScaling.X, localScaling.Y,  localScaling.Z );
@@ -14224,7 +14224,7 @@ void Instance::CalculateMatrix( float deltaFrame )
 
 void Instance::CalculateParentMatrix()
 {
-	/* e‚Ìs—ñ‚ğXV(Œ»İ‚Í•K—v•s•K—vŠÖ‚í‚ç‚¸s‚È‚Á‚Ä‚¢‚é) */
+	/* è¦ªã®è¡Œåˆ—ã‚’æ›´æ–°(ç¾åœ¨ã¯å¿…è¦ä¸å¿…è¦é–¢ã‚ã‚‰ãšè¡Œãªã£ã¦ã„ã‚‹) */
 	//m_pParent->CalculateMatrix( deltaFrame );
 
 	if( m_pEffectNode->GetType() != EFFECT_NODE_TYPE_ROOT )
@@ -14294,7 +14294,7 @@ void Instance::CalculateParentMatrix()
 	}
 	else
 	{
-		// Root‚Ìê‡
+		// Rootã®å ´åˆ
 		m_ParentMatrix43 = m_pParent->GetGlobalMatrix43();
 	}
 }
@@ -14306,7 +14306,7 @@ void Instance::ModifyMatrixFromLocationAbs( float deltaFrame )
 {
 	InstanceGlobal* instanceGlobal = m_pContainer->GetRootInstance();
 
-	/* â‘ÎˆÊ’u‚ÌXV(ŠÔ‚©‚ç’¼Ú‹‚ß‚ê‚é‚æ‚¤‘Î‰Ï‚İ) */
+	/* çµ¶å¯¾ä½ç½®ã®æ›´æ–°(æ™‚é–“ã‹ã‚‰ç›´æ¥æ±‚ã‚ã‚Œã‚‹ã‚ˆã†å¯¾å¿œæ¸ˆã¿) */
 	if( m_pEffectNode->LocationAbs.type == LocationAbsParameter::None )
 	{	
 	}
@@ -14466,7 +14466,7 @@ RectF Instance::GetUV() const
 
 //----------------------------------------------------------------------------------
 //
-//----------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------ï»¿
 
 //----------------------------------------------------------------------------------
 //
@@ -14572,7 +14572,7 @@ void InstanceGlobal::SetTargetLocation( const Vector3D& location )
 
 //----------------------------------------------------------------------------------
 //
-//----------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------ï»¿
 
 //----------------------------------------------------------------------------------
 //
@@ -14623,13 +14623,13 @@ void InstanceGroup::RemoveInvalidInstances()
 		}
 		else if( (*it)->m_State == INSTANCE_STATE_REMOVING )
 		{
-			// íœ’†ˆ—
+			// å‰Šé™¤ä¸­å‡¦ç†
 			(*it)->m_State = INSTANCE_STATE_REMOVED;
 			it++;
 		}
 		else if( (*it)->m_State == INSTANCE_STATE_REMOVED )
 		{
-			// íœˆ—
+			// å‰Šé™¤å‡¦ç†
 			if( (*it)->m_pEffectNode->GetType() == EFFECT_NODE_TYPE_ROOT )
 			{
 				delete (*it);
@@ -14709,10 +14709,10 @@ void InstanceGroup::Update( float deltaFrame, bool shown )
 	{
 		if( (*it)->m_State == INSTANCE_STATE_ACTIVE )
 		{
-			// XVˆ—
+			// æ›´æ–°å‡¦ç†
 			(*it)->Update( deltaFrame, shown );
 
-			// ”jŠüƒ`ƒFƒbƒN
+			// ç ´æ£„ãƒã‚§ãƒƒã‚¯
 			if( (*it)->m_State != INSTANCE_STATE_ACTIVE )
 			{
 				m_removingInstances.push_back( (*it) );
@@ -14777,7 +14777,7 @@ void InstanceGroup::KillAllInstances()
 
 //----------------------------------------------------------------------------------
 //
-//----------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------ï»¿
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
@@ -14915,7 +14915,7 @@ void Setting::SetSoundLoader(SoundLoader* loader)
 }
 //----------------------------------------------------------------------------------
 //
-//----------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------ï»¿
 #ifndef	__EFFEKSEER_SOCKET_H__
 #define	__EFFEKSEER_SOCKET_H__
 
@@ -15009,7 +15009,7 @@ public:
 //
 //----------------------------------------------------------------------------------
 #endif	// __EFFEKSEER_SOCKET_H__
-
+ï»¿
 //----------------------------------------------------------------------------------
 // Include
 //----------------------------------------------------------------------------------
@@ -15029,7 +15029,7 @@ namespace Effekseer {
 void Socket::Initialize()
 {
 #ifdef _WIN32
-	/* Winsock‰Šú‰» */
+	/* WinsockåˆæœŸåŒ– */
 	WSADATA m_WsaData;
 	::WSAStartup( MAKEWORD(2,0), &m_WsaData );
 #endif
@@ -15041,7 +15041,7 @@ void Socket::Initialize()
 void Socket::Finalize()
 {
 #ifdef _WIN32
-	/* WinsockQÆƒJƒEƒ“ƒ^Œ¸­+”jŠü */
+	/* Winsockå‚ç…§ã‚«ã‚¦ãƒ³ã‚¿æ¸›å°‘+ç ´æ£„ */
 	WSACleanup();
 #endif
 }
@@ -15098,7 +15098,7 @@ bool Socket::Listen( EfkSocket s, int32_t backlog )
 //
 //----------------------------------------------------------------------------------
 
-
+ï»¿
 #ifndef	__EFFEKSEER_SERVER_IMPLEMENTED_H__
 #define	__EFFEKSEER_SERVER_IMPLEMENTED_H__
 
@@ -15168,7 +15168,7 @@ public:
 	virtual ~ServerImplemented();
 
 	/**
-		@brief	ƒT[ƒo[‚ğŠJn‚·‚éB
+		@brief	ã‚µãƒ¼ãƒãƒ¼ã‚’é–‹å§‹ã™ã‚‹ã€‚
 	*/
 	bool Start( uint16_t port );
 
@@ -15191,7 +15191,7 @@ public:
 //
 //----------------------------------------------------------------------------------
 #endif	// __EFFEKSEER_SERVER_IMPLEMENTED_H__
-
+ï»¿
 //----------------------------------------------------------------------------------
 // Include
 //----------------------------------------------------------------------------------
@@ -15227,7 +15227,7 @@ void ServerImplemented::InternalClient::RecvAsync( void* data )
 
 			if( recvSize == 0 || recvSize == -1 )
 			{
-				/* ¸”s */
+				/* å¤±æ•— */
 				client->m_server->RemoveClient( client );
 				client->ShutDown();
 				return;
@@ -15244,7 +15244,7 @@ void ServerImplemented::InternalClient::RecvAsync( void* data )
 
 			if( recvSize == 0 || recvSize == -1 )
 			{
-				/* ¸”s */
+				/* å¤±æ•— */
 				client->m_server->RemoveClient( client );
 				client->ShutDown();
 				return;
@@ -15256,7 +15256,7 @@ void ServerImplemented::InternalClient::RecvAsync( void* data )
 			}
 		}
 
-		/* óMˆ— */
+		/* å—ä¿¡å‡¦ç† */
 		client->m_ctrlRecvBuffers.Enter();
 		client->m_recvBuffers.push_back(client->m_recvBuffer);
 		client->m_ctrlRecvBuffers.Leave();
@@ -15369,7 +15369,7 @@ void ServerImplemented::AcceptAsync( void* data )
 			break;
 		}
 
-		/* Ú‘±’Ç‰Á */
+		/* æ¥ç¶šè¿½åŠ  */
 		server->AddClient( new InternalClient( socket_, server ) );
 
 		EffekseerPrintDebug("Server : AcceptClient\n");
@@ -15390,19 +15390,19 @@ bool ServerImplemented::Start( uint16_t port )
 	int32_t returnCode;
 	sockaddr_in sockAddr = { AF_INET };
 
-	/* ƒ\ƒPƒbƒg¶¬ */
+	/* ã‚½ã‚±ãƒƒãƒˆç”Ÿæˆ */
 	EfkSocket socket_ = Socket::GenSocket();
 	if ( socket_ == InvalidSocket )
 	{
 		return false;
 	}
 
-	/* Ú‘±—pƒf[ƒ^¶¬ */
+	/* æ¥ç¶šç”¨ãƒ‡ãƒ¼ã‚¿ç”Ÿæˆ */
 	memset( &sockAddr, 0, sizeof(SOCKADDR_IN));
 	sockAddr.sin_family	= AF_INET;
 	sockAddr.sin_port	= htons( port );
 
-	/* ŠÖ˜A•t‚¯ */
+	/* é–¢é€£ä»˜ã‘ */
 	returnCode = ::bind( socket_, (sockaddr*)&sockAddr, sizeof(sockaddr_in) );
 	if ( returnCode == SocketError )
 	{
@@ -15413,7 +15413,7 @@ bool ServerImplemented::Start( uint16_t port )
 		return false;
 	}
 
-	/* Ú‘± */
+	/* æ¥ç¶š */
 	if ( !Socket::Listen( socket_, 30 ) )
 	{
 		if ( socket_ != InvalidSocket )
@@ -15448,7 +15448,7 @@ void ServerImplemented::Stop()
 
 	m_thread.Wait();
 
-	/* ƒNƒ‰ƒCƒAƒ“ƒg’â~ */
+	/* ã‚¯ãƒ©ã‚¤ã‚¢ãƒ³ãƒˆåœæ­¢ */
 	m_ctrlClients.Enter();
 	for( std::set<InternalClient*>::iterator it = m_clients.begin(); it != m_clients.end(); ++it )
 	{
@@ -15457,7 +15457,7 @@ void ServerImplemented::Stop()
 	m_ctrlClients.Leave();
 	
 
-	/* ƒNƒ‰ƒCƒAƒ“ƒg‚ÌÁ–Å‘Ò‚¿ */
+	/* ã‚¯ãƒ©ã‚¤ã‚¢ãƒ³ãƒˆã®æ¶ˆæ»…å¾…ã¡ */
 	while(true)
 	{
 		m_ctrlClients.Enter();
@@ -15469,7 +15469,7 @@ void ServerImplemented::Stop()
 		Sleep_(1);
 	}
 
-	/* ”jŠü */
+	/* ç ´æ£„ */
 	for( std::set<InternalClient*>::iterator it = m_removedClients.begin(); it != m_removedClients.end(); ++it )
 	{
 		while( (*it)->m_active )
@@ -15628,7 +15628,7 @@ void ServerImplemented::SetMaterialPath( const EFK_CHAR* materialPath )
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-
+ï»¿
 #ifndef	__EFFEKSEER_CLIENT_IMPLEMENTED_H__
 #define	__EFFEKSEER_CLIENT_IMPLEMENTED_H__
 
@@ -15682,7 +15682,7 @@ public:
 //
 //----------------------------------------------------------------------------------
 #endif	// __EFFEKSEER_CLIENT_IMPLEMENTED_H__
-
+ï»¿
 //----------------------------------------------------------------------------------
 // Include
 //----------------------------------------------------------------------------------
@@ -15712,7 +15712,7 @@ void ClientImplemented::RecvAsync( void* data )
 
 			if( recvSize == 0 || recvSize == -1 )
 			{
-				/* ¸”s */
+				/* å¤±æ•— */
 				client->Stop();
 				return;
 			}
@@ -15754,7 +15754,7 @@ HOSTENT* ClientImplemented::GetHostEntry( const char* host )
 	HOSTENT* hostEntry = NULL;
 	IN_ADDR InAddrHost;
 
-	/* IPƒAƒhƒŒƒX‚©DNS‚©’²‚×‚é */
+	/* IPã‚¢ãƒ‰ãƒ¬ã‚¹ã‹DNSã‹èª¿ã¹ã‚‹ */
 	InAddrHost.s_addr = ::inet_addr( host );
 	if ( InAddrHost.s_addr == InaddrNone )
 	{
@@ -15767,7 +15767,7 @@ HOSTENT* ClientImplemented::GetHostEntry( const char* host )
 	}
 	else
 	{
-		/* IPƒAƒhƒŒƒX */
+		/* IPã‚¢ãƒ‰ãƒ¬ã‚¹ */
 		hostEntry = ::gethostbyaddr( (const char*)(&InAddrHost), sizeof(IN_ADDR), AF_INET );
 		if ( hostEntry == NULL )
 		{
@@ -15788,7 +15788,7 @@ bool ClientImplemented::Start( char* host, uint16_t port )
 	SOCKADDR_IN sockAddr;
 	HOSTENT* hostEntry= NULL;
 	
-	/* ƒ\ƒPƒbƒg¶¬ */
+	/* ã‚½ã‚±ãƒƒãƒˆç”Ÿæˆ */
 	EfkSocket socket_ = Socket::GenSocket();
 	if ( socket_ == InvalidSocket )
 	{
@@ -15796,7 +15796,7 @@ bool ClientImplemented::Start( char* host, uint16_t port )
 		return false;
 	}
 
-	/* ƒzƒXƒgî•ñæ“¾ */
+	/* ãƒ›ã‚¹ãƒˆæƒ…å ±å–å¾— */
 	hostEntry = GetHostEntry( host );
 	if ( hostEntry == NULL )
 	{
@@ -15804,13 +15804,13 @@ bool ClientImplemented::Start( char* host, uint16_t port )
 		return false;
 	}
 
-	/* Ú‘±—pƒf[ƒ^¶¬ */
+	/* æ¥ç¶šç”¨ãƒ‡ãƒ¼ã‚¿ç”Ÿæˆ */
 	memset( &sockAddr, 0, sizeof(SOCKADDR_IN) );
 	sockAddr.sin_family	= AF_INET;
 	sockAddr.sin_port	= htons( port );
 	sockAddr.sin_addr	= *(IN_ADDR*)(hostEntry->h_addr_list[0]);
 
-	/* Ú‘± */
+	/* æ¥ç¶š */
 	int32_t ret = ::connect( socket_, (SOCKADDR*)(&sockAddr), sizeof(SOCKADDR_IN) );
 	if ( ret == SocketError )
 	{
