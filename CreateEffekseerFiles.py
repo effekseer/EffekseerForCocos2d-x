@@ -245,7 +245,16 @@ rendererCPP.addLine('#include <GL/glu.h>')
 rendererCPP.addLine('#else')
 rendererCPP.addLine('#endif')
 
-
+rendererCPP.addLine('#ifdef _WIN32')
+rendererCPP.addLine('#include <windows.h>')
+rendererCPP.addLine('#else')
+rendererCPP.addLine('#include <sys/types.h>')
+rendererCPP.addLine('#include <sys/socket.h>')
+rendererCPP.addLine('#include <netinet/in.h>')
+rendererCPP.addLine('#include <arpa/inet.h>')
+rendererCPP.addLine('#include <netdb.h>')
+rendererCPP.addLine('#include <unistd.h>')
+rendererCPP.addLine('#endif')
 
 rendererCPP.readLines(rootRDir + 'EffekseerRenderer.IndexBufferBase.cpp')
 rendererCPP.readLines(rootRDir + 'EffekseerRenderer.ModelRendererBase.cpp')
