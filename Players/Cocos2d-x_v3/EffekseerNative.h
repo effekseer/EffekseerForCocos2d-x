@@ -437,7 +437,7 @@ public:
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-#endif	// __EFFEKSEER_BASE_PRE_H__﻿
+#endif	// __EFFEKSEER_BASE_PRE_H__
 #ifndef	__EFFEKSEER_VECTOR2D_H__
 #define	__EFFEKSEER_VECTOR2D_H__
 
@@ -489,7 +489,7 @@ public:
 //
 //----------------------------------------------------------------------------------
 #endif	// __EFFEKSEER_VECTOR3D_H__
-﻿
+
 #ifndef	__EFFEKSEER_VECTOR3D_H__
 #define	__EFFEKSEER_VECTOR3D_H__
 
@@ -602,7 +602,7 @@ public:
 //
 //----------------------------------------------------------------------------------
 #endif	// __EFFEKSEER_VECTOR3D_H__
-﻿
+
 #ifndef	__EFFEKSEER_COLOR_H__
 #define	__EFFEKSEER_COLOR_H__
 
@@ -675,7 +675,7 @@ struct Color
 //
 //----------------------------------------------------------------------------------
 #endif	// __EFFEKSEER_COLOR_H__
-﻿
+
 #ifndef	__EFFEKSEER_RECTF_H__
 #define	__EFFEKSEER_RECTF_H__
 
@@ -723,7 +723,7 @@ public:
 //
 //----------------------------------------------------------------------------------
 #endif	// __EFFEKSEER_RECTF_H__
-﻿
+
 #ifndef	__EFFEKSEER_MATRIX43_H__
 #define	__EFFEKSEER_MATRIX43_H__
 
@@ -882,7 +882,7 @@ public:
 //
 //----------------------------------------------------------------------------------
 #endif	// __EFFEKSEER_MATRIX43_H__
-﻿
+
 #ifndef	__EFFEKSEER_MATRIX44_H__
 #define	__EFFEKSEER_MATRIX44_H__
 
@@ -1031,7 +1031,7 @@ public:
 //
 //----------------------------------------------------------------------------------
 #endif	// __EFFEKSEER_MATRIX44_H__
-﻿
+
 #ifndef	__EFFEKSEER_FILE_H__
 #define	__EFFEKSEER_FILE_H__
 
@@ -1111,7 +1111,7 @@ public:
 //
 //----------------------------------------------------------------------------------
 #endif	// __EFFEKSEER_FILE_H__
-﻿
+
 #ifndef	__EFFEKSEER_DEFAULT_FILE_H__
 #define	__EFFEKSEER_DEFAULT_FILE_H__
 
@@ -1189,7 +1189,7 @@ public:
 //
 //----------------------------------------------------------------------------------
 #endif	// __EFFEKSEER_DEFAULT_FILE_H__
-﻿
+
 #ifndef	__EFFEKSEER_EFFECT_H__
 #define	__EFFEKSEER_EFFECT_H__
 
@@ -1451,7 +1451,7 @@ public:
 //
 //----------------------------------------------------------------------------------
 #endif	// __EFFEKSEER_EFFECT_H__
-﻿
+
 #ifndef	__EFFEKSEER_MANAGER_H__
 #define	__EFFEKSEER_MANAGER_H__
 
@@ -1927,7 +1927,7 @@ public:
 //
 //----------------------------------------------------------------------------------
 #endif	// __EFFEKSEER_MANAGER_H__
-﻿
+
 #ifndef	__EFFEKSEER_SPRITE_RENDERER_H__
 #define	__EFFEKSEER_SPRITE_RENDERER_H__
 
@@ -1996,7 +1996,7 @@ public:
 //
 //----------------------------------------------------------------------------------
 #endif	// __EFFEKSEER_SPRITE_RENDERER_H__
-﻿
+
 #ifndef	__EFFEKSEER_RIBBON_RENDERER_H__
 #define	__EFFEKSEER_RIBBON_RENDERER_H__
 
@@ -2067,7 +2067,7 @@ public:
 //
 //----------------------------------------------------------------------------------
 #endif	// __EFFEKSEER_RIBBON_RENDERER_H__
-﻿
+
 #ifndef	__EFFEKSEER_RING_RENDERER_H__
 #define	__EFFEKSEER_RING_RENDERER_H__
 
@@ -2138,7 +2138,7 @@ public:
 //
 //----------------------------------------------------------------------------------
 #endif	// __EFFEKSEER_RING_RENDERER_H__
-﻿
+
 #ifndef	__EFFEKSEER_MODEL_RENDERER_H__
 #define	__EFFEKSEER_MODEL_RENDERER_H__
 
@@ -2206,7 +2206,7 @@ public:
 //
 //----------------------------------------------------------------------------------
 #endif	// __EFFEKSEER_MODEL_RENDERER_H__
-﻿
+
 #ifndef	__EFFEKSEER_TRACK_RENDERER_H__
 #define	__EFFEKSEER_TRACK_RENDERER_H__
 
@@ -2287,7 +2287,7 @@ public:
 //
 //----------------------------------------------------------------------------------
 #endif	// __EFFEKSEER_TRACK_RENDERER_H__
-﻿
+
 #ifndef	__EFFEKSEER_EFFECTLOADER_H__
 #define	__EFFEKSEER_EFFECTLOADER_H__
 
@@ -2349,7 +2349,7 @@ public:
 //
 //----------------------------------------------------------------------------------
 #endif	// __EFFEKSEER_EFFECTLOADER_H__
-﻿
+
 #ifndef	__EFFEKSEER_TEXTURELOADER_H__
 #define	__EFFEKSEER_TEXTURELOADER_H__
 
@@ -2409,7 +2409,7 @@ public:
 //
 //----------------------------------------------------------------------------------
 #endif	// __EFFEKSEER_TEXTURELOADER_H__
-﻿
+
 #ifndef	__EFFEKSEER_MODELLOADER_H__
 #define	__EFFEKSEER_MODELLOADER_H__
 
@@ -2468,7 +2468,7 @@ public:
 //
 //----------------------------------------------------------------------------------
 #endif	// __EFFEKSEER_MODELLOADER_H__
-﻿
+
 #ifndef	__EFFEKSEER_MODEL_H__
 #define	__EFFEKSEER_MODEL_H__
 
@@ -2773,7 +2773,7 @@ public:
 //
 //----------------------------------------------------------------------------------
 #endif	// __EFFEKSEER_MODEL_H__
-﻿
+
 #ifndef	__EFFEKSEER_SOUND_PLAYER_H__
 #define	__EFFEKSEER_SOUND_PLAYER_H__
 
@@ -2837,7 +2837,7 @@ public:
 //
 //----------------------------------------------------------------------------------
 #endif	// __EFFEKSEER_SOUND_PLAYER_H__
-﻿
+
 #ifndef	__EFFEKSEER_SOUNDLOADER_H__
 #define	__EFFEKSEER_SOUNDLOADER_H__
 
@@ -2896,7 +2896,7 @@ public:
 //
 //----------------------------------------------------------------------------------
 #endif	// __EFFEKSEER_SOUNDLOADER_H__
-﻿
+
 #ifndef	__EFFEKSEER_LOADER_H__
 #define	__EFFEKSEER_LOADER_H__
 
@@ -3018,7 +3018,7 @@ namespace Effekseer {
 //
 //----------------------------------------------------------------------------------
 #endif	// __EFFEKSEER_LOADER_H__
-﻿
+
 #ifndef	__EFFEKSEER_SERVER_H__
 #define	__EFFEKSEER_SERVER_H__
 
@@ -3081,7 +3081,7 @@ public:
 //
 //----------------------------------------------------------------------------------
 #endif	// __EFFEKSEER_SERVER_H__
-﻿
+
 #ifndef	__EFFEKSEER_CLIENT_H__
 #define	__EFFEKSEER_CLIENT_H__
 
@@ -3120,7 +3120,7 @@ public:
 //
 //----------------------------------------------------------------------------------
 #endif	// __EFFEKSEER_CLIENT_H__
-﻿
+
 #ifndef	__EFFEKSEER_CRITICALSESSION_H__
 #define	__EFFEKSEER_CRITICALSESSION_H__
 
@@ -3175,7 +3175,7 @@ public:
 //
 //----------------------------------------------------------------------------------
 #endif	//	__EFFEKSEER_CRITICALSESSION_H__
-﻿
+
 #ifndef	__EFFEKSEER_THREAD_H__
 #define	__EFFEKSEER_THREAD_H__
 

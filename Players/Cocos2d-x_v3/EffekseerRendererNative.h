@@ -35,7 +35,7 @@ inline uint32_t TexturePointerToTexture<uint32_t>(void* texture)
 //
 //-----------------------------------------------------------------------------------
 }
-#endif // __EFFEKSEERRENDERER_COMMON_UTILS_H__﻿
+#endif // __EFFEKSEERRENDERER_COMMON_UTILS_H__
 #ifndef	__EFFEKSEERRENDERER_RENDERER_H__
 #define	__EFFEKSEERRENDERER_RENDERER_H__
 
@@ -223,7 +223,7 @@ public:
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-#endif	// __EFFEKSEERRENDERER_RENDERER_H__﻿
+#endif	// __EFFEKSEERRENDERER_RENDERER_H__
 #ifndef	__EFFEKSEERRENDERER_RENDERSTATE_BASE_H__
 #define	__EFFEKSEERRENDERER_RENDERSTATE_BASE_H__
 
@@ -285,7 +285,7 @@ public:
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
-#endif	// __EFFEKSEERRENDERER_RENDERSTATE_BASE_H__﻿
+#endif	// __EFFEKSEERRENDERER_RENDERSTATE_BASE_H__
 #ifndef	__EFFEKSEERRENDERER_VERTEXBUFFER_BASE_H__
 #define	__EFFEKSEERRENDERER_VERTEXBUFFER_BASE_H__
 
@@ -339,7 +339,7 @@ public:
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
-#endif	// __EFFEKSEERRENDERER_VERTEXBUFFER_BASE_H__﻿
+#endif	// __EFFEKSEERRENDERER_VERTEXBUFFER_BASE_H__
 #ifndef	__EFFEKSEERRENDERER_INDEXBUFFER_BASE_H__
 #define	__EFFEKSEERRENDERER_INDEXBUFFER_BASE_H__
 
@@ -386,7 +386,7 @@ public:
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
-#endif	// __EFFEKSEERRENDERER_INDEXBUFFER_BASE_H__﻿
+#endif	// __EFFEKSEERRENDERER_INDEXBUFFER_BASE_H__
 #ifndef	__EFFEKSEERRENDERER_STANDARD_RENDERER_BASE_H__
 #define	__EFFEKSEERRENDERER_STANDARD_RENDERER_BASE_H__
 
@@ -693,7 +693,7 @@ public:
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-#endif	// __EFFEKSEERRENDERER_STANDARD_RENDERER_H__﻿
+#endif	// __EFFEKSEERRENDERER_STANDARD_RENDERER_H__
 #ifndef	__EFFEKSEERRENDERER_MODEL_RENDERER_BASE_H__
 #define	__EFFEKSEERRENDERER_MODEL_RENDERER_BASE_H__
 
@@ -1005,7 +1005,7 @@ public:
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-#endif	// __EFFEKSEERRENDERER_MODEL_RENDERER_H__﻿
+#endif	// __EFFEKSEERRENDERER_MODEL_RENDERER_H__
 #ifndef	__EFFEKSEERRENDERER_RIBBON_RENDERER_BASE_H__
 #define	__EFFEKSEERRENDERER_RIBBON_RENDERER_BASE_H__
 
@@ -1336,7 +1336,7 @@ protected:
 //
 //----------------------------------------------------------------------------------
 #endif	// __EFFEKSEERRENDERER_RIBBON_RENDERER_H__
-﻿
+
 #ifndef	__EFFEKSEERRENDERER_RING_RENDERER_BASE_H__
 #define	__EFFEKSEERRENDERER_RING_RENDERER_BASE_H__
 
@@ -1742,7 +1742,7 @@ protected:
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-#endif	// __EFFEKSEERRENDERER_RING_RENDERER_H__﻿
+#endif	// __EFFEKSEERRENDERER_RING_RENDERER_H__
 #ifndef	__EFFEKSEERRENDERER_SPRITE_RENDERER_BASE_H__
 #define	__EFFEKSEERRENDERER_SPRITE_RENDERER_BASE_H__
 
@@ -2068,7 +2068,7 @@ protected:
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-#endif	// __EFFEKSEERRENDERER_SPRITE_RENDERER_H__﻿
+#endif	// __EFFEKSEERRENDERER_SPRITE_RENDERER_H__
 #ifndef	__EFFEKSEERRENDERER_TRACK_RENDERER_BASE_H__
 #define	__EFFEKSEERRENDERER_TRACK_RENDERER_BASE_H__
 
@@ -2496,7 +2496,7 @@ protected:
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-#endif	// __EFFEKSEERRENDERER_RIBBON_RENDERER_H__﻿
+#endif	// __EFFEKSEERRENDERER_RIBBON_RENDERER_H__
 #ifndef	__EFFEKSEERRENDERER_VERTEXBUFFER_BASE_H__
 #define	__EFFEKSEERRENDERER_VERTEXBUFFER_BASE_H__
 
@@ -2550,7 +2550,7 @@ public:
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
-#endif	// __EFFEKSEERRENDERER_VERTEXBUFFER_BASE_H__﻿
+#endif	// __EFFEKSEERRENDERER_VERTEXBUFFER_BASE_H__
 #ifndef	__EFFEKSEERRENDERER_GL_BASE_PRE_H__
 #define	__EFFEKSEERRENDERER_GL_BASE_PRE_H__
 
@@ -2638,7 +2638,7 @@ enum class OpenGLDeviceType
 //
 //----------------------------------------------------------------------------------
 #endif	// __EFFEKSEERRENDERER_GL_BASE_PRE_H__
-﻿
+
 #ifndef	__EFFEKSEERRENDERER_GL_RENDERER_H__
 #define	__EFFEKSEERRENDERER_GL_RENDERER_H__
 
@@ -2729,7 +2729,7 @@ public:
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-#endif	// __EFFEKSEERRENDERER_GL_RENDERER_H__﻿
+#endif	// __EFFEKSEERRENDERER_GL_RENDERER_H__
 #ifndef	__EFFEKSEERRENDERER_GL_MODELLOADER_H__
 #define	__EFFEKSEERRENDERER_GL_MODELLOADER_H__
 
