@@ -5,16 +5,6 @@
 #include <GL/glu.h>
 #else
 #endif
-#ifdef _WIN32
-#include <windows.h>
-#else
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <unistd.h>
-#endif
 
 //-----------------------------------------------------------------------------------
 //

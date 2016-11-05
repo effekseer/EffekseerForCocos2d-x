@@ -18,6 +18,10 @@
 #else
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <unistd.h>
 #endif
 
 #ifndef	__EFFEKSEER_BASE_H__
