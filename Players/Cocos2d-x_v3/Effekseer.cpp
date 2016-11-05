@@ -1,4 +1,4 @@
-
+ï»¿
 #include "Effekseer.h"
 
 namespace efk
@@ -234,8 +234,8 @@ namespace efk
 		}
 
 		// TODO
-		// ƒLƒƒƒbƒVƒ…
-		// autorelease‚ð‚Ç‚¤‚·‚é‚©
+		// ã‚­ãƒ£ãƒƒã‚·ãƒ¥
+		// autoreleaseã‚’ã©ã†ã™ã‚‹ã‹
 
 		return nullptr;
 	}
@@ -403,7 +403,7 @@ namespace efk
 		renderer2d->SetProjectionMatrix(
 			::Effekseer::Matrix44().OrthographicRH(visibleSize.width, visibleSize.height, 1.0f, 400.0f));
 
-		// ƒJƒƒ‰s—ñ‚ðÝ’è
+		// ã‚«ãƒ¡ãƒ©è¡Œåˆ—ã‚’è¨­å®š
 		renderer2d->SetCameraMatrix(
 			::Effekseer::Matrix44().LookAtRH(
 				::Effekseer::Vector3D(visibleSize.width / 2.0f, visibleSize.height / 2.0f, 200.0f),

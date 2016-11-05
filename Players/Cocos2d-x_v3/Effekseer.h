@@ -1,4 +1,4 @@
-
+ï»¿
 #pragma once
 
 
@@ -62,31 +62,31 @@ namespace efk
 		void setEffect(Effect* effect);
 
 		/**
-			@brief	ƒGƒtƒFƒNƒg‚ğÄ¶‚·‚éB
+			@brief	ã‚¨ãƒ•ã‚§ã‚¯ãƒˆã‚’å†ç”Ÿã™ã‚‹ã€‚
 		*/
 		void play();
 
 		/**
-			@brief	’Ç‰Á‚ÉÄ¶‚ğŠJn‚·‚é‚©‚Ç‚¤‚©Aæ“¾‚·‚éB
-			@return	ƒtƒ‰ƒO
+			@brief	è¿½åŠ æ™‚ã«å†ç”Ÿã‚’é–‹å§‹ã™ã‚‹ã‹ã©ã†ã‹ã€å–å¾—ã™ã‚‹ã€‚
+			@return	ãƒ•ãƒ©ã‚°
 		*/
 		bool getPlayOnEnter();
 
 		/**
-			@brief	’Ç‰Á‚ÉÄ¶‚ğŠJn‚·‚é‚©‚Ç‚¤‚©Aİ’è‚·‚éB
-			@return	value	ƒtƒ‰ƒO
+			@brief	è¿½åŠ æ™‚ã«å†ç”Ÿã‚’é–‹å§‹ã™ã‚‹ã‹ã©ã†ã‹ã€è¨­å®šã™ã‚‹ã€‚
+			@return	value	ãƒ•ãƒ©ã‚°
 		*/
 		void setPlayOnEnter(bool value);
 
 		/**
-		@brief	ƒ‹[ƒvÄ¶‚·‚é‚©‚Ç‚¤‚©Aæ“¾‚·‚éB
-		@return	ƒtƒ‰ƒO
+		@brief	ãƒ«ãƒ¼ãƒ—å†ç”Ÿã™ã‚‹ã‹ã©ã†ã‹ã€å–å¾—ã™ã‚‹ã€‚
+		@return	ãƒ•ãƒ©ã‚°
 		*/
 		bool getIsLooping();
 
 		/**
-		@brief	ƒ‹[ƒvÄ¶‚·‚é‚©‚Ç‚¤‚©Aİ’è‚·‚éB
-		@return	value	ƒtƒ‰ƒO
+		@brief	ãƒ«ãƒ¼ãƒ—å†ç”Ÿã™ã‚‹ã‹ã©ã†ã‹ã€è¨­å®šã™ã‚‹ã€‚
+		@return	value	ãƒ•ãƒ©ã‚°
 		*/
 		void setIsLooping(bool value);
 
