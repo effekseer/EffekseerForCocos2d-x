@@ -39,7 +39,7 @@ void HelloWorld::update(float delta)
 	if (count % 60 == 0)
 	{
 		// read an effect file.
-		auto effect = efk::Effect::create("laser.efk");
+		auto effect = efk::Effect::create("Laser01.efk");
 		if (effect != nullptr)
 		{
 			// create a particle emitter.
