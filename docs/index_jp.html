@@ -1,0 +1,145 @@
+﻿<!DOCTYPE html>
+<html>
+
+<head>
+	<meta charset=utf-8>
+	<title>Effekseer For Cocos2d-x</title>
+	<link href="base.css" rel="stylesheet" type="text/css" />
+</head>
+
+<body>
+	<div class="main">
+		<h1>Effekseer For Cocos2d-x</h1>
+		
+		<h2>概要</h2>
+		<p>
+		DXライブラリとの連携について説明します。<br>
+		DXライブラリにEffekseerのラッパーのlibを追加することで、お手軽にEffekseerをDXライブラリで使用できるようにしています。<br>
+		現在、VS2012,2013,2015専用です。また、現在x64、DirectX11対応はしておりません。<br>
+		Ver3.14d以降のバージョンで動作確認はしていますが、他のバージョンで動作するかは確認しておりません。
+		</p>
+		<br>
+		<p>
+		サンプルに関しては、Sampleディレクトリを確認お願いします。
+		</p>
+
+		<h2>更新履歴</h2>
+<p>1.10b(16/06/24) Effekseerを1.20に更新、DXライブラリを3.16dに更新</p>
+<p>1.10b(16/05/23) DXライブラリを3.16bに更新、リソースファイルが深度に対応していなかった不具合を修正</p>
+<p>1.10(16/02/28) Effekseerを1.10に更新、DXライブラリを3.16に更新、歪とネットワークに対応</p>
+<p>1.01(15/08/26) Effekseerを1.01に更新、DXライブラリを3.15aに更新</p>
+<p>1.00b(15/07/19) 文字コードの変更(CP932,Unicode)に対応</p>
+<p>1.00 (15/07/15) 公開</p>
+
+		<h2>インストール方法</h2>
+		<p>
+「プロジェクトに追加すべきファイル_VC用/」 にEffekseerが追加されたDXライブラリが保存されています。
+DXライブラリと同じように「プロジェクトに追加すべきファイル_VC用/」にあるファイルをプロジェクトに追加してください。
+		</p>
+
+<p>
+既にDXライブラリを使用している場合、
+</p>
+<ul>
+<li>「Effekseer_vs2012_x86.lib」</li>
+<li>「Effekseer_vs2012_x86_d.lib」</li>
+<li>「EffekseerRendererDX9_vs2012_x86_d.lib」</li>
+<li>「EffekseerRendererDX9_vs2012_x86.lib」</li>
+<li>「EffekseerForDXLib_vs2012_x86_d.lib」</li>
+<li>「EffekseerForDXLib_vs2012_x86.lib」</li>
+</ul>
+
+<ul>
+<li>「Effekseer_vs2013_x86.lib」</li>
+<li>「Effekseer_vs2013_x86_d.lib」</li>
+<li>「EffekseerRendererDX9_vs2013_x86_d.lib」</li>
+<li>「EffekseerRendererDX9_vs2013_x86.lib」</li>
+<li>「EffekseerForDXLib_vs2013_x86_d.lib」</li>
+<li>「EffekseerForDXLib_vs2013_x86.lib」</li>
+</ul>
+
+<ul>
+<li>「Effekseer_vs2015_x86.lib」</li>
+<li>「Effekseer_vs2015_x86_d.lib」</li>
+<li>「EffekseerRendererDX9_vs2015_x86_d.lib」</li>
+<li>「EffekseerRendererDX9_vs2015_x86.lib」</li>
+<li>「EffekseerForDXLib_vs2015_x86_d.lib」</li>
+<li>「EffekseerForDXLib_vs2015_x86.lib」</li>
+</ul>
+
+<ul>
+<li>「Effekseer.h」</li>
+<li>「EffekseerRendererDX9.h」</li>
+<li>「EffekseerForDXLib.h」</li>
+</ul>
+<p>
+のみをコピーしてください。
+</p>
+
+<p>
+ただし、「Ver3.14d」以外のバージョンを使用している場合、
+上記のlibファイルのコピーでは動作しないかもしれません。
+その場合は、バージョンを一致させるか、「プロジェクトに追加すべきファイル_VC用/」にあるファイルを全てコピーしてください。
+</p>
+
+		<h2>使い方</h2>
+<p>
+基本的にはサンプルと、EffekseerForDXLib.hを確認お願いします。
+</p>
+<p>
+サンプルには2Dと3Dで、エフェクトを1つ再生して表示する最短のソースコードが記述されています。
+</p>
+
+<img src="img/ss.jpg"/>
+
+
+		<h2>Todo</h2>
+<ul>
+<li>DirectX11対応</li>
+<li>x64対応</li>
+</ul>
+
+		<h2>ライセンス</h2>
+
+<p>
+Effekseerを追加したDXライブラリを使用する場合は、ヘルプ等に以下の文面を加える必要があります。
+</p>
+
+<pre>
+・DXライブラリ
+DX Library Copyright (C) 2001-2015 Takumi Yamada.
+
+・Effekseer
+
+The MIT License (MIT)
+
+Copyright (c) 2011 Effekseer Project
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated documentation files (the "Software"), to deal in
+the Software without restriction, including without limitation the rights to
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+the Software, and to permit persons to whom the Software is furnished to do so,
+subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+
+DirectX Tool Kit
+https://directxtk.codeplex.com/
+Microsoft Public License (Ms-PL)
+
+</pre>
+
+	</div>
+</body>
+
+</html>
