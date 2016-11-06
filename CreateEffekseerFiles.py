@@ -214,7 +214,7 @@ rendererHeader = CreateHeader()
 
 
 rendererHeader.addLine('#if (CC_TARGET_PLATFORM == CC_PLATFORM_IOS || CC_TARGET_PLATFORM == CC_PLATFORM_ANDROID)')
-rendererHeader.addLine('#define __EFFEKSEER_RENDERER_ESGL2__')
+rendererHeader.addLine('#define __EFFEKSEER_RENDERER_GLES2__')
 rendererHeader.addLine('#else')
 rendererHeader.addLine('#define __EFFEKSEER_RENDERER_GL2__')
 rendererHeader.addLine('#endif')
