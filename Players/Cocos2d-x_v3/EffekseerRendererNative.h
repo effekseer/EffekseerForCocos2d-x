@@ -1,4 +1,9 @@
-﻿
+﻿#if (CC_TARGET_PLATFORM == CC_PLATFORM_IOS || CC_TARGET_PLATFORM == CC_PLATFORM_ANDROID)
+#define __EFFEKSEER_RENDERER_ESGL2__
+#else
+#define __EFFEKSEER_RENDERER_GL2__
+#endif
+
 #ifndef	__EFFEKSEERRENDERER_COMMON_UTILS_H__
 #define	__EFFEKSEERRENDERER_COMMON_UTILS_H__
 
@@ -2596,10 +2601,18 @@ public:
 #include <GLES3/gl3.h>
 #endif
 
-#else
+#elif defined(__EFFEKSEER_RENDERER_GL2__)
 
 #if defined(__APPLE__)
 #include <OpenGL/gl.h>
+#else
+#include <GL/gl.h>
+#endif
+
+#else
+
+#if defined(__APPLE__)
+#include <OpenGL/gl3.h>
 #else
 #include <GL/gl.h>
 #endif

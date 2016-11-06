@@ -2480,7 +2480,7 @@ void glGenSamplers(GLsizei n, GLuint *samplers)
 {
 #if _WIN32
 	g_glGenSamplers(n, samplers);
-#elif defined(__EFFEKSEER_RENDERER_GLES2__)
+#elif defined(__EFFEKSEER_RENDERER_GLES2__) || defined(__EFFEKSEER_RENDERER_GL2__)
 #else
 	::glGenSamplers(n, samplers);
 #endif
@@ -2490,7 +2490,7 @@ void glDeleteSamplers(GLsizei n, const GLuint * samplers)
 {
 #if _WIN32
 	g_glDeleteSamplers(n, samplers);
-#elif defined(__EFFEKSEER_RENDERER_GLES2__)
+#elif defined(__EFFEKSEER_RENDERER_GLES2__) || defined(__EFFEKSEER_RENDERER_GL2__)
 #else
 	::glDeleteSamplers(n, samplers);
 #endif
@@ -2500,7 +2500,7 @@ void glSamplerParameteri(GLuint sampler, GLenum pname, GLint param)
 {
 #if _WIN32
 	g_glSamplerParameteri(sampler, pname, param);
-#elif defined(__EFFEKSEER_RENDERER_GLES2__)
+#elif defined(__EFFEKSEER_RENDERER_GLES2__) || defined(__EFFEKSEER_RENDERER_GL2__)
 #else
 	::glSamplerParameteri(sampler, pname, param);
 #endif
@@ -2510,7 +2510,7 @@ void glBindSampler(GLuint unit, GLuint sampler)
 {
 #if _WIN32
 	g_glBindSampler(unit, sampler);
-#elif defined(__EFFEKSEER_RENDERER_GLES2__)
+#elif defined(__EFFEKSEER_RENDERER_GLES2__) || defined(__EFFEKSEER_RENDERER_GL2__)
 #else
 	::glBindSampler(unit, sampler);
 #endif

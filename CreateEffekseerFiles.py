@@ -211,6 +211,14 @@ effekseerCPP.readLines(rootEDir + 'Effekseer.Client.cpp')
 effekseerCPP.output('Players/Cocos2d-x_v3/EffekseerNative.cpp')
 
 rendererHeader = CreateHeader()
+
+
+rendererHeader.addLine('#if (CC_TARGET_PLATFORM == CC_PLATFORM_IOS || CC_TARGET_PLATFORM == CC_PLATFORM_ANDROID)')
+rendererHeader.addLine('#define __EFFEKSEER_RENDERER_ESGL2__')
+rendererHeader.addLine('#else')
+rendererHeader.addLine('#define __EFFEKSEER_RENDERER_GL2__')
+rendererHeader.addLine('#endif')
+
 rendererHeader.readLines(rootRDir + 'EffekseerRenderer.CommonUtils.h')
 rendererHeader.readLines(rootRDir + 'EffekseerRenderer.Renderer.h')
 rendererHeader.readLines(rootRDir + 'EffekseerRenderer.RenderStateBase.h')
@@ -232,7 +240,6 @@ rendererHeader.readLines(rootGDir+'EffekseerRendererGL.Renderer.h')
 rendererHeader.readLines(rootGDir+'EffekseerRendererGL.ModelLoader.h')
 
 rendererHeader.replace('#include <Effekseer.h>','#include "EffekseerNative.h"')
-rendererHeader.replace('OpenGL/gl3.h','OpenGL/gl.h')
 
 rendererHeader.output('Players/Cocos2d-x_v3/EffekseerRendererNative.h')
 
