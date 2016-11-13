@@ -41,8 +41,6 @@ bool HelloWorld::init()
     return true;
 }
 
-static int count = 0;
-
 void HelloWorld::update(float delta)
 {
 	if (count % 60 == 0)

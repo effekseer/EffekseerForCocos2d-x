@@ -28,6 +28,7 @@ private:
 	*/
 	efk::EffectManager*		manager = nullptr;
 
+	int count = 0;
 public:
     static cocos2d::Scene* createScene();
 
