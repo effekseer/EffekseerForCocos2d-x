@@ -1,4 +1,4 @@
-#ifndef  _APP_DELEGATE_H_
+﻿#ifndef  _APP_DELEGATE_H_
 #define  _APP_DELEGATE_H_
 
 #include "cocos2d.h"
@@ -37,4 +37,5 @@ public:
 };
 
 #endif // _APP_DELEGATE_H_
+
 

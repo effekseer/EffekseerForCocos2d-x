@@ -1,12 +1,31 @@
-#ifndef __HELLOWORLD_SCENE_H__
+﻿#ifndef __HELLOWORLD_SCENE_H__
 #define __HELLOWORLD_SCENE_H__
 
 #include "cocos2d.h"
+
+/**
+	必ずEffekseer.hをインクルードする必要があります
+
+	You must include Effekseer.h
+
+	你必須包括Effekseer.h
+
+	你必须包括Effekseer.h
+*/
 #include "Effekseer/Effekseer.h"
 
 class HelloWorld : public cocos2d::Layer
 {
 private:
+	/**
+		efk::EffectManager*をレイヤーのメンバ変数に追加します。このクラスはエフェクトを管理します。
+
+		You add efk :: EffectManager * to the layer member variable. This class manages effects.
+
+		您將efk :: EffectManager *添加到圖層成員變量。 這個類管理效果。
+
+		您将efk :: EffectManager *添加到图层成员变量。 这个类管理效果。
+	*/
 	efk::EffectManager*		manager = nullptr;
 
 public:
@@ -22,3 +41,4 @@ public:
 };
 
 #endif // __HELLOWORLD_SCENE_H__
+

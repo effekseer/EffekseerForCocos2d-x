@@ -1,4 +1,4 @@
-#include "HelloWorldScene.h"
+﻿#include "HelloWorldScene.h"
 #include "Effekseer/Effekseer.h"
 
 USING_NS_CC;
@@ -27,6 +27,15 @@ bool HelloWorld::init()
 	// for update
 	this->scheduleUpdate();
 
+	/**
+		efk::EffectManagerのインスタンスを生成します。
+
+		You create an instance of efk::EffectManager.
+
+		您創建一個efk::EffectManager的實例。
+
+		您创建一个efk::EffectManager的实例。
+	*/
 	manager = efk::EffectManager::create(visibleSize);
 
     return true;
@@ -38,7 +47,15 @@ void HelloWorld::update(float delta)
 {
 	if (count % 60 == 0)
 	{
-		// read an effect file.
+		/**
+			エフェクトファイルを読み込みます。
+
+			You read an effect file.
+
+			您讀取效果文件。
+
+			您读取效果文件。
+		*/
 		auto effect = efk::Effect::create("Laser01.efk");
 		if (effect != nullptr)
 		{
