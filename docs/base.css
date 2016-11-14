@@ -102,3 +102,19 @@ ul {
 ul li {
 	padding-top: 4px;
 }
+
+p
+{
+	margin-bottom: 0.9em;
+}
+
+pre
+{
+	margin-top: 0.1em;
+	margin-left: 1em;
+	border: 1px solid #ccc;
+	background-color: #f9f9f9;
+	padding: 3px 5px;
+	display: block;
+	font: 1em "Consolas";
+}

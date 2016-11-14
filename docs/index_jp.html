@@ -19,8 +19,6 @@
 		ライブラリは複数のソースコードのファイルで構成されており、そのソースコードのファイルをCocos2d-xのプロジェクトに追加することでインストールできます。
 		</p>
 
-		<br>
-
 		<p>
 		現在はWindows、MacOSX、iOSのエミュレーターで使用できるようにしています。おそらく、他の環境でも使用できますが確認はしていません。
 		Cocos2d-xでは3.10以降のみ動作確認を行っています。
@@ -51,8 +49,6 @@
 <b>Samples/</b>ディレクトリにCocos2d-xでEffekseerのパーティクルエフェクトを再生するサンプルがあります。このドキュメントでは基本的な使い方しか説明しないので詳しい使い方はサンプルを見てください。
 </p>
 
-<br>
-
 <p>
 これらのサンプルには、このライブラリは含まれていないため、
 それぞれのサンプルの<b>Classes/Effekseer</b>ディレクトリにライブラリのファイルをコピーしてください。
@@ -78,57 +74,43 @@ Effekseerの標準出力で保存したエフェクトファイルをcocos2d-x�
 Effekseer.hをインクルードします。
 </p>
 
-<br>
-
 <pre>
 #include "Effekseer/Effekseer.h"
 </pre>
-
 <br>
 
 <p>
 cocos2d::Layerを継承したクラスのメンバ変数にefk::EffectManager*を加えます。
 </p>
 
-<br>
-
 <pre>
 class HelloWorld : public cocos2d::Layer {
 efk::EffectManager* manager = nullptr;
 ...
 </pre>
-
 <br>
 
 <p>
 efk::EffectManager*のインスタンスを生成します。
 </p>
 
-<br>
-
 <pre>
 manager = efk::EffectManager::create(Director::getInstance()->getVisibleSize());
 </pre>
-
 <br>
 
 <p>
 エフェクトファイルを読み込みます。
 </p>
 
-<br>
-
 <pre>
 auto effect = efk::Effect::create("Laser01.efk");
 </pre>
-
 <br>
 
 <p>
 エミッターを生成し、パラメーターを設定してレイヤーに追加します。
 </p>
-
-<br>
 
 <pre>
 auto emitter = efk::EffectEmitter::create(manager);
@@ -142,42 +124,35 @@ this->addChild(emitter, 0);
 effect->release();
 </pre>
 
-<br>
-
 <p>
 毎フレーム、マネージャーを更新します。
 </p>
 
-<br>
-
 <pre>
 manager->update();
 </pre>
-
 <br>
 
 <p>
 visitを継承して、エフェクトを実際に描画する処理を追加します。
 </p>
 
-<br>
-
 <pre>
-void HelloWorld::visit(cocos2d::Renderer *renderer, const cocos2d::Mat4& parentTransform, uint32_t parentFlags)
+void HelloWorld::visit(
+	cocos2d::Renderer *renderer, 
+	const cocos2d::Mat4& parentTransform, 
+	uint32_t parentFlags)
 {
 	manager->begin(renderer, _globalZOrder);
 	cocos2d::Layer::visit(renderer, parentTransform, parentFlags);
 	manager->end(renderer, _globalZOrder);
 }
 </pre>
-
 <br>
 
 <p>
 終了時にマネージャーを破棄しましょう。
 </p>
-
-<br>
 
 <pre>
 HelloWorld::~HelloWorld()
@@ -185,8 +160,6 @@ HelloWorld::~HelloWorld()
 	manager->release();
 }
 </pre>
-
-<br>
 
 		<h2>ライセンス</h2>
 
