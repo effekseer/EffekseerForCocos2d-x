@@ -5,6 +5,9 @@
 #include <GL/glu.h>
 #else
 #endif
+#if defined(__ANDROID__) || defined(__EMSCRIPTEN__)
+#include <EGL/egl.h>
+#endif
 
 //-----------------------------------------------------------------------------------
 //

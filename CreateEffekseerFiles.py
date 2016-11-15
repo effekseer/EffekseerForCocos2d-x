@@ -121,6 +121,8 @@ effekseerCPP.addLine('#include <queue>')
 effekseerCPP.addLine('#include <fstream>')
 effekseerCPP.addLine('#include <memory>')
 effekseerCPP.addLine('#include <limits>')
+effekseerCPP.addLine('#include <complex>')
+effekseerCPP.addLine('#include <stdlib.h>')
 
 effekseerCPP.addLine('#ifdef _WIN32')
 effekseerCPP.addLine('#include <winsock2.h>')
