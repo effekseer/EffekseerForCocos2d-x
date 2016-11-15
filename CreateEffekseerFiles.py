@@ -120,6 +120,7 @@ effekseerCPP.addLine('#include <set>')
 effekseerCPP.addLine('#include <queue>')
 effekseerCPP.addLine('#include <fstream>')
 effekseerCPP.addLine('#include <memory>')
+effekseerCPP.addLine('#include <limits>')
 
 effekseerCPP.addLine('#ifdef _WIN32')
 effekseerCPP.addLine('#include <winsock2.h>')
@@ -214,6 +215,7 @@ effekseerCPP.readLines(rootEDir + 'Effekseer.Server.cpp')
 effekseerCPP.readLines(rootEDir + 'Effekseer.ClientImplemented.h')
 effekseerCPP.readLines(rootEDir + 'Effekseer.Client.cpp')
 
+effekseerCPP.replace('#pragma once','')
 
 effekseerCPP.output('Players/Cocos2d-x_v3/EffekseerNative.cpp')
 
@@ -262,6 +264,12 @@ rendererCPP.addLine('#include <GL/glu.h>')
 rendererCPP.addLine('#else')
 rendererCPP.addLine('#endif')
 
+rendererCPP.addLine('#if defined(__ANDROID__) || defined(__EMSCRIPTEN__)')
+
+rendererCPP.addLine('#include <EGL/egl.h>')
+
+rendererCPP.addLine('#endif')
+
 rendererCPP.readLines(rootRDir + 'EffekseerRenderer.IndexBufferBase.cpp')
 rendererCPP.readLines(rootRDir + 'EffekseerRenderer.ModelRendererBase.cpp')
 rendererCPP.readLines(rootRDir + 'EffekseerRenderer.Renderer.cpp')
@@ -306,7 +314,6 @@ rendererCPP.readLines(rootGDir+'EffekseerRendererGL.VertexArray.cpp')
 rendererCPP.readLines(rootGDir+'EffekseerRendererGL.VertexBuffer.cpp')
 
 rendererCPP.replace('#pragma once','')
-
 
 rendererCPP.output('Players/Cocos2d-x_v3/EffekseerRendererNative.cpp')
 
