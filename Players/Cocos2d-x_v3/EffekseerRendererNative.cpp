@@ -687,7 +687,7 @@ void glBindSampler(GLuint unit, GLuint sampler);
 //
 //----------------------------------------------------------------------------------
 #endif	// __EFFEKSEERRENDERER_GL_GLEXTENSION_H__
-#pragma once
+
 
 //----------------------------------------------------------------------------------
 // Include
@@ -1785,7 +1785,7 @@ public:
 //
 //----------------------------------------------------------------------------------
 #endif	// __EFFEKSEERRENDERER_GL_TRACK_RENDERER_H__
-#pragma once
+
 
 //----------------------------------------------------------------------------------
 // Include
@@ -1838,7 +1838,7 @@ private:
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
-#pragma once
+
 
 //----------------------------------------------------------------------------------
 // Include
@@ -2049,19 +2049,17 @@ static FP_glDeleteSamplers g_glDeleteSamplers = nullptr;
 static FP_glSamplerParameteri g_glSamplerParameteri = nullptr;
 static FP_glBindSampler g_glBindSampler = nullptr;
 
+#elif defined(__EFFEKSEER_RENDERER_GLES2__)
+
+typedef void (EFK_STDCALL * FP_glGenVertexArrays) (GLsizei n, GLuint *arrays);
+typedef void (EFK_STDCALL * FP_glDeleteVertexArrays) (GLsizei n, const GLuint *arrays);
+typedef void (EFK_STDCALL * FP_glBindVertexArray) (GLuint array);
+
+static FP_glGenVertexArrays g_glGenVertexArrays = NULL;
+static FP_glDeleteVertexArrays g_glDeleteVertexArrays = NULL;
+static FP_glBindVertexArray g_glBindVertexArray = NULL;
+
 #endif
-
-//#if defined(__EFFEKSEER_RENDERER_GLES2__)
-
-//typedef void (* FP_glGenVertexArraysOES) (GLsizei n, GLuint *arrays);
-//typedef void (* FP_glDeleteVertexArraysOES) (GLsizei n, const GLuint *arrays);
-//typedef void (* FP_glBindVertexArrayOES) (GLuint array);
-
-//static FP_glGenVertexArraysOES g_glGenVertexArraysOES = NULL;
-//static FP_glDeleteVertexArraysOES g_glDeleteVertexArraysOES = NULL;
-//static FP_glBindVertexArrayOES g_glBindVertexArrayOES = NULL;
-
-//#endif
 
 static bool g_isInitialized = false;
 static bool g_isSupportedVertexArray = false;

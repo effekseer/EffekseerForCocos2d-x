@@ -34,6 +34,13 @@ class CreateCPP:
 	def __init__(self):
 		self.lines = []
 
+	def replace(self, s, d):
+		temp = []
+		for line in self.lines:
+			l = line.replace(s,d)
+			temp.append(l)
+		self.lines = temp
+
 	def addLine(self,line):
 		self.lines.append(line + '\n')
 
@@ -297,6 +304,9 @@ rendererCPP.readLines(rootGDir+'EffekseerRendererGL.TextureLoader.cpp')
 rendererCPP.readLines(rootGDir+'EffekseerRendererGL.TrackRenderer.cpp')
 rendererCPP.readLines(rootGDir+'EffekseerRendererGL.VertexArray.cpp')
 rendererCPP.readLines(rootGDir+'EffekseerRendererGL.VertexBuffer.cpp')
+
+rendererCPP.replace('#pragma once','')
+
 
 rendererCPP.output('Players/Cocos2d-x_v3/EffekseerRendererNative.cpp')
 
