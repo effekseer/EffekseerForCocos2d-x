@@ -11503,6 +11503,12 @@ void EffectImplemented::UnloadResources()
 #else
 #endif
 
+#ifdef __ANDROID__
+static long x_=1;
+void srand_(long s) { x_=s; }
+long rand_() { x_=x_*1103515245+12345; return x_&2147483647; }
+#endif
+
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
@@ -11735,7 +11741,11 @@ void EFK_STDCALL ManagerImplemented::Free( void* p, unsigned int size )
 //----------------------------------------------------------------------------------
 int EFK_STDCALL ManagerImplemented::Rand()
 {
+#ifdef __ANDROID__
+	return rand_();
+#else
 	return rand();
+#endif
 }
 
 //----------------------------------------------------------------------------------
@@ -11800,7 +11810,13 @@ ManagerImplemented::ManagerImplemented( int instance_max, bool autoFlip )
 	SetMallocFunc( Malloc );
 	SetFreeFunc( Free );
 	SetRandFunc( Rand );
-	SetRandMax( RAND_MAX );
+
+#ifdef __ANDROID__
+	SetRandMax(0x7fff);
+#else
+	SetRandMax(RAND_MAX);
+#endif
+
 
 	m_renderingDrawSets.reserve( 64 );
 
