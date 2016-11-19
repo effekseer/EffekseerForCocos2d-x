@@ -22,8 +22,8 @@ Todo
 | Windows | OK |
 | OSX | OK |
 | Linux | Unknown |
-| Android | Unknown |
-| iOS |  |
+| Android | OK |
+| iOS | OK |
 
 ### ˜c‚Ý‹@”\‚Ö‚Ì‘Î‰ž
 

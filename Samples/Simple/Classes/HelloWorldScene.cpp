@@ -18,8 +18,7 @@ bool HelloWorld::init()
         return false;
     }
     
-    Size visibleSize = Director::getInstance()->getVisibleSize();
-    Vec2 origin = Director::getInstance()->getVisibleOrigin();
+	auto rsize = Director::getInstance()->getOpenGLView()->getDesignResolutionSize();
 
     auto sprite = Sprite::create("HelloWorld.png");
 	this->addChild(sprite, 0);
@@ -36,7 +35,7 @@ bool HelloWorld::init()
 
 		您创建一个efk::EffectManager的实例。
 	*/
-	manager = efk::EffectManager::create(visibleSize);
+	manager = efk::EffectManager::create(rsize);
 
     return true;
 }
