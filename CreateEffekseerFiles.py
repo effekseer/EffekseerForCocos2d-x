@@ -13,7 +13,7 @@ class CreateHeader:
 		self.lines = temp
 
 	def addLine(self,line):
-		self.lines.append(line + '\n')
+		self.lines.append(line + '\r\n')
 
 	def readLines(self,path):
 		f = codecs.open(path, 'r','utf-8_sig')
@@ -42,7 +42,7 @@ class CreateCPP:
 		self.lines = temp
 
 	def addLine(self,line):
-		self.lines.append(line + '\n')
+		self.lines.append(line + '\r\n')
 
 	def readLines(self,path):
 		f = codecs.open(path, 'r','utf-8_sig')
@@ -223,8 +223,11 @@ effekseerCPP.output('Players/Cocos2d-x_v3/EffekseerNative.cpp')
 
 rendererHeader = CreateHeader()
 
-
-rendererHeader.addLine('#if (CC_TARGET_PLATFORM == CC_PLATFORM_IOS || CC_TARGET_PLATFORM == CC_PLATFORM_ANDROID)')
+rendererHeader.addLine('#pragma once')
+rendererHeader.addLine('#include "cocos2d.h"')
+rendererHeader.addLine('#if (CC_TARGET_PLATFORM == CC_PLATFORM_IOS)')
+rendererHeader.addLine('#define __EFFEKSEER_RENDERER_GLES2__')
+rendererHeader.addLine('#elif (CC_TARGET_PLATFORM == CC_PLATFORM_ANDROID)')
 rendererHeader.addLine('#define __EFFEKSEER_RENDERER_GLES2__')
 rendererHeader.addLine('#else')
 rendererHeader.addLine('#define __EFFEKSEER_RENDERER_GL2__')
