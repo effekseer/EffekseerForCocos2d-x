@@ -1,32 +1,22 @@
-EffekseerForCocos2d-x
+ï»¿EffekseerForCocos2d-x
 =========
 
 This is a wrapper for Cocos2d-x.
 
-Cocos2d-xŒü‚¯Effekseer‚Ìƒ‰ƒbƒp[‚Å‚·B
+Cocos2d-xå‘ã‘Effekseerã®ãƒ©ãƒƒãƒ‘ãƒ¼ã§ã™ã€‚
 
 How to use
 =========
 
-PlayersƒfƒBƒŒƒNƒgƒŠ‚©‚çƒ\[ƒXƒR[ƒh‚ğƒRƒs[‚µ‚ÄƒvƒƒWƒFƒNƒg‚É’Ç‰Á‚µ‚Ü‚·B
+Please read the help below.
 
-g‚¢•û‚ÍSamplesƒfƒBƒŒƒNƒgƒŠ‚ğQÆ‚¨Šè‚¢‚µ‚Ü‚·B
+ä¸‹è¨˜ã®ãƒ˜ãƒ«ãƒ—ã‚’èª­ã‚“ã§ãã ã•ã„ã€‚
+
+[Help](https://effekseer.github.io/EffekseerForCocos2d-x/)
 
 Todo
 =========
 
-### ŠeŠÂ‹«‚Å‚ÌƒRƒ“ƒpƒCƒ‹‚ÆÀs‚ÌŠm”F
+### æ­ªã¿æ©Ÿèƒ½ã¸ã®å¯¾å¿œ
 
-| OS | Status |
-| ------------- |:-------------:|
-| Windows | OK |
-| OSX | OK |
-| Linux | Unknown |
-| Android | OK |
-| iOS | OK |
-
-### ˜c‚İ‹@”\‚Ö‚Ì‘Î‰
-
-### ƒlƒbƒgƒ[ƒNŒo—R‚Ì“®“IƒŠƒ[ƒh‚Ö‚Ì‘Î‰
-
-### ƒ}ƒjƒ…ƒAƒ‹ì¬
+### ãƒãƒ‹ãƒ¥ã‚¢ãƒ«ä½œæˆ
