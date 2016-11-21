@@ -48,6 +48,16 @@ namespace efk
 #pragma endregion
 
 #pragma region EffekseerFile
+	class EffekseerFile :
+		public Effekseer::FileInterface
+	{
+	public:
+		EffekseerFile();
+		virtual ~EffekseerFile();
+		Effekseer::FileReader* OpenRead(const EFK_CHAR* path);
+		Effekseer::FileWriter* OpenWrite(const EFK_CHAR* path);
+	};
+
 	EffekseerFile::EffekseerFile() {}
 	EffekseerFile::~EffekseerFile() {}
 
@@ -390,6 +400,26 @@ namespace efk
 #pragma endregion
 
 #pragma region Effect
+	::Effekseer::Handle EffectManager::play(Effect* effect, float x, float y, float z)
+	{
+		return manager2d->Play(effect->getInternalPtr(), x, y, z);
+	}
+
+	void EffectManager::setPotation(::Effekseer::Handle handle, float x, float y, float z)
+	{
+		manager2d->SetLocation(handle, x, y, z);
+	}
+
+	void EffectManager::setRotation(::Effekseer::Handle handle, float x, float y, float z)
+	{
+		manager2d->SetRotation(handle, x, y, z);
+	}
+
+	void EffectManager::setScale(::Effekseer::Handle handle, float x, float y, float z)
+	{
+		manager2d->SetScale(handle, x, y, z);
+	}
+
 	bool EffectManager::Initialize(cocos2d::Size visibleSize)
 	{
 #if (CC_TARGET_PLATFORM == CC_PLATFORM_IOS || CC_TARGET_PLATFORM == CC_PLATFORM_ANDROID)
@@ -491,27 +521,6 @@ namespace efk
 	void EffectManager::update()
 	{
 		manager2d->Update();
-	}
-
-
-	::Effekseer::Handle EffectManager::play(Effect* effect, float x, float y, float z)
-	{
-		return manager2d->Play(effect->getInternalPtr(), x, y, z);
-	}
-
-	void EffectManager::setPotation(::Effekseer::Handle handle, float x, float y, float z)
-	{
-		manager2d->SetLocation(handle, x, y, z);
-	}
-
-	void EffectManager::setRotation(::Effekseer::Handle handle, float x, float y, float z)
-	{
-		manager2d->SetRotation(handle, x, y, z);
-	}
-
-	void EffectManager::setScale(::Effekseer::Handle handle, float x, float y, float z)
-	{
-		manager2d->SetScale(handle, x, y, z);
 	}
 
 #pragma endregion

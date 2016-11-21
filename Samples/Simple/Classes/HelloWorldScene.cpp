@@ -56,7 +56,9 @@ void HelloWorld::update(float delta)
 		auto effect = efk::Effect::create("Laser01.efk");
 		if (effect != nullptr)
 		{
-			// create a particle emitter.
+			/**
+				エミッターを生成し、パラメーターを設定してレイヤーに追加します。
+			*/
 			auto emitter = efk::EffectEmitter::create(manager);
 			emitter->setEffect(effect);
 			emitter->setPlayOnEnter(true);
@@ -69,17 +71,26 @@ void HelloWorld::update(float delta)
 		}
 	}
 
+	/**
+		毎フレーム、マネージャーを更新します。
+	*/
 	manager->update();
 	count++;
 }
 
 HelloWorld::~HelloWorld()
 {
+	/**
+		終了時にマネージャーを破棄します。
+	*/
 	manager->release();
 }
 
 void HelloWorld::visit(cocos2d::Renderer *renderer, const cocos2d::Mat4& parentTransform, uint32_t parentFlags)
 {
+	/**
+		visitを継承して、エフェクトを実際に描画する処理を追加します。
+	*/
 	manager->begin(renderer, _globalZOrder);
 	cocos2d::Layer::visit(renderer, parentTransform, parentFlags);
 	manager->end(renderer, _globalZOrder);

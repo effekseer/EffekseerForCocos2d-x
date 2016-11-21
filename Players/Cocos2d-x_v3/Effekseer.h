@@ -10,16 +10,6 @@ namespace efk
 {
 	class EffectManager;
 
-	class EffekseerFile :
-		public Effekseer::FileInterface
-	{
-	public:
-		EffekseerFile();
-		virtual ~EffekseerFile();
-		Effekseer::FileReader* OpenRead(const EFK_CHAR* path);
-		Effekseer::FileWriter* OpenWrite(const EFK_CHAR* path);
-	};
-
 	class Effect
 		: public cocos2d::Ref
 	{
@@ -42,6 +32,8 @@ namespace efk
 	class EffectEmitter
 		: public cocos2d::Node
 	{
+		friend class EffectManager;
+
 	private:
 		bool playOnEnter = false;
 		bool isLooping = false;
@@ -90,6 +82,35 @@ namespace efk
 		*/
 		void setIsLooping(bool value);
 
+		/**
+			@brief	再生終了時にノードを破棄するかどうか、取得する。
+		*/
+
+		/**
+			@brief	再生終了時にノードを破棄するかどうか、設定する。
+		*/
+
+		/**
+			@brief	Y軸方向の回転角度を取得する。
+		*/
+
+		/**
+			@brief	Y軸方向の回転角度を設定する。
+		*/
+
+		/**
+			@brief	再生中かどうか、取得する。
+		*/
+
+
+		/**
+			@brief	エフェクトを停止する。
+		*/
+
+		/**
+			@brief	エフェクトのルートのみを停止する。
+		*/
+
 		void onEnter() override;
 
 		void update(float delta) override;
@@ -100,24 +121,13 @@ namespace efk
 	class EffectManager
 		: public cocos2d::Ref
 	{
+		friend class EffectEmitter;
+
 	private:
 		::Effekseer::Manager*					manager2d = NULL;
 		::EffekseerRendererGL::Renderer*		renderer2d = NULL;
 		cocos2d::CustomCommand					beginCommand;
 		cocos2d::CustomCommand					endCommand;
-
-		bool Initialize(cocos2d::Size visibleSize);
-	public:
-		static EffectManager* create(cocos2d::Size visibleSize);
-
-		EffectManager();
-		virtual ~EffectManager();
-
-		void begin(cocos2d::Renderer *renderer, float globalZOrder);
-
-		void end(cocos2d::Renderer *renderer, float globalZOrder);
-
-		void update();
 
 		::Effekseer::Handle play(Effect* effect, float x, float y, float z);
 
@@ -126,6 +136,31 @@ namespace efk
 		void setRotation(::Effekseer::Handle handle, float x, float y, float z);
 
 		void setScale(::Effekseer::Handle handle, float x, float y, float z);
+
+		bool Initialize(cocos2d::Size visibleSize);
+	public:
+
+		/**
+			@brief	マネージャークラスを生成する。
+			@return	インスタンス
+		*/
+		static EffectManager* create(cocos2d::Size visibleSize);
+
+		/**
+			@brief	コンストラクタ
+		*/
+		EffectManager();
+
+		/**
+			@brief	デストラクタ
+		*/
+		virtual ~EffectManager();
+
+		void begin(cocos2d::Renderer *renderer, float globalZOrder);
+
+		void end(cocos2d::Renderer *renderer, float globalZOrder);
+
+		void update();
 
 		::Effekseer::Manager* getInternalManager() { return manager2d; }
 
