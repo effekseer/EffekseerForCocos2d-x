@@ -17,6 +17,4 @@ Please read the help below.
 Todo
 =========
 
-### 歪み機能への対応
-
 ### マニュアル作成
