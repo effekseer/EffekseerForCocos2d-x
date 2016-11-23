@@ -10,6 +10,9 @@ namespace efk
 {
 	class EffectManager;
 
+	/**
+		@brief	エフェクトのリソースクラス
+	*/
 	class Effect
 		: public cocos2d::Ref
 	{
@@ -23,6 +26,10 @@ namespace efk
 
 		virtual ~Effect();
 
+		/**
+			@brief	EffekseerのEffectのポインタを取得する。
+			@return	EffekseerのEffectのポインタ
+		*/
 		::Effekseer::Effect* getInternalPtr()
 		{
 			return effect;
@@ -50,7 +57,16 @@ namespace efk
 		EffectEmitter(EffectManager* manager);
 		virtual ~EffectEmitter();
 
+		/**
+			@brief	エフェクトのリソースを取得する。
+			@return	エフェクトのリソース
+		*/
 		Effect* getEffect();
+
+		/**
+		@brief	エフェクトのリソースを設定する。
+		@param	effect	エフェクトのリソース
+		*/
 		void setEffect(Effect* effect);
 
 		/**
@@ -156,14 +172,31 @@ namespace efk
 		*/
 		virtual ~EffectManager();
 
+		/**
+			@brief	visitを継承してレイヤーの描画を行う前に実行する。
+		*/
 		void begin(cocos2d::Renderer *renderer, float globalZOrder);
 
+		/**
+		@brief	visitを継承してレイヤーの描画を行った後に実行する。
+		*/
 		void end(cocos2d::Renderer *renderer, float globalZOrder);
 
+		/**
+			@brief	毎フレーム実行する。
+		*/
 		void update();
 
+		/**
+		@brief	EffekseerのManagerのポインタを取得する。
+		@return	EffekseerのManagerのポインタ
+		*/
 		::Effekseer::Manager* getInternalManager() { return manager2d; }
 
+		/**
+			@brief	EffekseerのRendererのポインタを取得する。
+			@return	EffekseerのRendererのポインタ
+		*/
 		::EffekseerRendererGL::Renderer* getInternalRenderer() { return renderer2d; }
 
 	};
