@@ -21,7 +21,7 @@ bool HelloWorld::init()
 	auto rsize = Director::getInstance()->getOpenGLView()->getDesignResolutionSize();
 
     auto sprite = Sprite::create("HelloWorld.png");
-	sprite->setPosition(Vec2(300, 200));
+	sprite->setPosition(Vec2(320, 200));
 	this->addChild(sprite, 0);
     
 	// for update
@@ -43,7 +43,7 @@ bool HelloWorld::init()
 
 void HelloWorld::update(float delta)
 {
-	if (count % 60 == 0)
+	if (count % 240 == 0)
 	{
 		/**
 			エフェクトファイルを読み込みます。
@@ -54,7 +54,7 @@ void HelloWorld::update(float delta)
 
 			您读取效果文件。
 		*/
-		auto effect = efk::Effect::create("Laser01.efk");
+		auto effect = efk::Effect::create("HolySandstorm.efk");
 		if (effect != nullptr)
 		{
 			/**
@@ -70,8 +70,8 @@ void HelloWorld::update(float delta)
 			emitter->setEffect(effect);
 			emitter->setPlayOnEnter(true);
 
-			emitter->setPosition(Vec2(300, 200));
-			emitter->setScale(20);
+			emitter->setPosition(Vec2(320, 150));
+			emitter->setScale(13);
 			this->addChild(emitter, 0);
 
 			effect->release();

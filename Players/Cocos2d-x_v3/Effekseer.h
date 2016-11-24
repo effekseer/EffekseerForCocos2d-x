@@ -43,7 +43,9 @@ namespace efk
 
 	private:
 		bool playOnEnter = false;
+		bool removeOnStop = true;
 		bool isLooping = false;
+		float angleY = 0;
 
 		EffectManager* manager = nullptr;
 		Effect* effect = nullptr;
@@ -101,31 +103,37 @@ namespace efk
 		/**
 			@brief	再生終了時にノードを破棄するかどうか、取得する。
 		*/
+		bool getRemoveOnStop();
 
 		/**
 			@brief	再生終了時にノードを破棄するかどうか、設定する。
 		*/
+		void setRemoveOnStop(bool value);
 
 		/**
 			@brief	Y軸方向の回転角度を取得する。
 		*/
+		float getAngleY();
 
 		/**
 			@brief	Y軸方向の回転角度を設定する。
 		*/
+		void setAngleY(float value);
 
 		/**
 			@brief	再生中かどうか、取得する。
 		*/
-
+		bool isPlaying();
 
 		/**
 			@brief	エフェクトを停止する。
 		*/
+		void stop();
 
 		/**
 			@brief	エフェクトのルートのみを停止する。
 		*/
+		void stopRoot();
 
 		void onEnter() override;
 

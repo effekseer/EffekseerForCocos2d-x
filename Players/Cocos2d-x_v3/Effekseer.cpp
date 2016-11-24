@@ -448,6 +448,40 @@ namespace efk
 		isLooping = value;
 	}
 
+	bool EffectEmitter::getRemoveOnStop()
+	{
+		return removeOnStop;
+	}
+
+	void EffectEmitter::setRemoveOnStop(bool value)
+	{
+		removeOnStop = value;
+	}
+
+	float EffectEmitter::getAngleY()
+	{
+		return angleY;
+	}
+
+	void EffectEmitter::setAngleY(float value)
+	{
+		angleY = value;
+	}
+
+	bool EffectEmitter::isPlaying()
+	{
+		return manager->getInternalManager()->Exists(handle);
+	}
+
+	void EffectEmitter::stop()
+	{
+		manager->getInternalManager()->StopEffect(handle);
+	}
+
+	void EffectEmitter::stopRoot()
+	{
+		manager->getInternalManager()->StopRoot(handle);
+	}
 
 	void EffectEmitter::onEnter()
 	{
@@ -470,7 +504,7 @@ namespace efk
 			{
 				play();
 			}
-			else
+			else if(removeOnStop)
 			{
 				this->removeFromParent();
 			}
@@ -481,7 +515,7 @@ namespace efk
 		auto scale = this->getScale();
 
 		manager->setPotation(handle, pos.x, pos.y, 0);
-		manager->setRotation(handle, 0, 0, rot);
+		manager->setRotation(handle, 0, angleY, rot);
 		manager->setScale(handle, scale, scale, scale);
 
 		cocos2d::Node::update(delta);
