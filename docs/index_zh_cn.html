@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 
 <head>
@@ -11,16 +11,16 @@
 	<div class="main">
 		<h1>Effekseer For Cocos2d-x</h1>
 		
-		<h2>概要</h2>
+		<h2>摘要</h2>
 
 		<p>
-		Effekseerは簡単に綺麗なパーティクルエフェクトを作成できるツールです。このライブラリはEffekseerで作成されたパーティクルエフェクトをCocos2d-xで再生できるようにします。
-		このドキュメントではEffekseerとCocos2d-xの連携について説明します。
-		ライブラリは複数のソースコードのファイルで構成されており、そのソースコードのファイルをCocos2d-xのプロジェクトに追加することでインストールできます。
+        Effekseer是一个工具，你可以轻松地创建一个美丽的粒子效果。该库将能够播放在Effekseer在Cocos2d-x创建一个粒子效果。
+        本文档介绍Effekseer和Cocos2d-x的合作。
+        库是由一个以上的源代码的文件，它可以通过将源代码的文件的Cocos2d-x的项目进行安装。
 		</p>
 
 		<p>
-		対応環境は以下のようになります。
+		相应的环境是如下。
 		</p>
 
 		<table>
@@ -56,9 +56,9 @@
 
 		</table>
 
-		<h2>インストール方法</h2>
+		<h2>如何安装</h2>
 		<p>
-		<b>Players/Cocos2d-x_v3</b>ディレクトリに以下のファイルが存在します。
+		<b>Players/Cocos2d-x_v3</b>的目录存在的以下文件。
 		</p>
 
 <ul>
@@ -71,39 +71,44 @@
 </ul>
 
 		<p>
-		これらのファイルをCocos2d-xのプロジェクトにコピーして、コンパイルする対象に追加してください。
+		这些文件复制到的Cocos2d-x的项目，请添加到对象进行编译。
 		</p>
 
 
-		<h2>使い方</h2>
+		<h2>如何使用</h2>
 
 <p>
-<b>Samples/</b>ディレクトリにCocos2d-xでEffekseerのパーティクルエフェクトを再生するサンプルがあります。このドキュメントでは基本的な使い方しか説明しないので詳しい使い方はサンプルを見てください。
+在<b>Samples/</b>在Cocos2d-x目录是发挥Effekseer的粒子效果的样本。请详细的使用是一看样品，因为只介绍基本用法是本文件中。
 </p>
 
 <p>
-これらのサンプルには、このライブラリは含まれていないため、
-それぞれのサンプルの<b>Classes/Effekseer</b>ディレクトリにライブラリのファイルをコピーしてください。
-目印のために、コピーする先のディレクトリには<b>copyEffekseerFiles.txt</b>というファイルがあらかじめ保存されています。
+这些样品，不包含此库，请复制文件的<b>Classes/Effekseer</b>目录的每个样本。
+它存在于一个名为<b>copyEffekseerFiles.txt</b>复制与您要复制的库上一层目录的标志文件的目标目录。
 </p>
 
-<h3>再生できるファイルについて</h3>
+<h3>有关可播放的文件</h3>
 
 <p>
 Effekseerの標準出力で保存したファイルのみ再生できます。保存されたファイルにはEffekseerのプロジェクトから画像への相対パスが含まれています。
 そのため、標準出力で保存されたファイルから画像への相対パスを維持したまま、画像も配置する必要があります。
+
+您只可以播放保存在Effekseer的标准输出文件。 保存的文件中包含从项目的Effekseer图像的相对路径。 因此，在保持从已保存在一个标准输出到图像文件的相对路径，则需要图像的排列。
+
 </p>
 
-<h3>基本的な再生</h3>
+<h3>基本播放</h3>
 
 <p>
 Effekseerの標準出力で保存したエフェクトファイルをcocos2d-xで再生します。詳しくは<b>Samples/Simple/</b>に保存されているソースコードを見てください。
+
+您在Effekseer的标准输出保存效果文件中的cocos2d-X玩。 欲了解更多信息，请查看存储在Samples /简单/源代码。
 </p>
 
 <br>
 
 <p>
 Effekseer.hをインクルードします。
+它包括Effekseer.h。
 </p>
 
 <pre>
@@ -112,6 +117,7 @@ Effekseer.hをインクルードします。
 <br>
 
 <p>
+cocos2d的继承::层增加EFK :: EffectManager *类的成员变量。
 cocos2d::Layerを継承したクラスのメンバ変数にefk::EffectManager*を加えます。
 </p>
 
@@ -123,6 +129,7 @@ efk::EffectManager* manager = nullptr;
 <br>
 
 <p>
+生成EFK :: EffectManager *实例。
 efk::EffectManager*のインスタンスを生成します。
 </p>
 
@@ -132,6 +139,7 @@ manager = efk::EffectManager::create(Director::getInstance()->getVisibleSize());
 <br>
 
 <p>
+负荷的影响分析文件。
 エフェクトファイルを読み込みます。
 </p>
 
@@ -141,6 +149,7 @@ auto effect = efk::Effect::create("Laser01.efk");
 <br>
 
 <p>
+它产生的发射极，并通过将参数添加到该层。
 エミッターを生成し、パラメーターを設定してレイヤーに追加します。
 </p>
 
@@ -158,6 +167,7 @@ effect->release();
 
 <p>
 毎フレーム、マネージャーを更新します。
+每一帧，然后更新管理器。
 </p>
 
 <pre>
@@ -167,6 +177,7 @@ manager->update();
 
 <p>
 visitを継承して、エフェクトを実際に描画する処理を追加します。
+继承访问，然后添加的实际绘制效果的过程。
 </p>
 
 <pre>
@@ -183,6 +194,7 @@ void HelloWorld::visit(
 <br>
 
 <p>
+让我们摧毁经理在年底。
 終了時にマネージャーを破棄しましょう。
 </p>
 
@@ -193,10 +205,11 @@ HelloWorld::~HelloWorld()
 }
 </pre>
 
-		<h2>ライセンス</h2>
+		<h2>许可证</h2>
 
 <p>
 Effekseerを使用する場合は、ヘルプ等に以下の文面を加える必要があります。
+如果你想使用Effekseer，你需要添加下面的措辞来帮助等等。
 </p>
 
 <pre>
@@ -228,8 +241,8 @@ Microsoft Public License (Ms-PL)
 
 </pre>
 
-		<h2>更新履歴</h2>
-		<p>1.xx (xx/xx/xx) 公開しました。</p>
+		<h2>更新日志</h2>
+		<p>1.xx (xx/xx/xx) 被释放。</p>
 
 	</div>
 </body>
