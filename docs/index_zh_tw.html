@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html>
 
 <head>
@@ -110,8 +110,7 @@
 <br>
 
 <p>
-cocos2d::Layerを継承したクラスのメンバ変数にefk::EffectManager*を加えます。
-cocos2d的繼承::層增加EFK :: EffectManager *類的成員變量。
+使efk::EffectManager*至cocos2d::Layer從繼承類的成員變量。
 </p>
 
 <pre>
@@ -122,8 +121,7 @@ efk::EffectManager* manager = nullptr;
 <br>
 
 <p>
-efk::EffectManager*のインスタンスを生成します。
-生成EFK :: EffectManager *實例。
+生成efk::EffectManager*實例。
 </p>
 
 <pre>
@@ -132,8 +130,7 @@ manager = efk::EffectManager::create(Director::getInstance()->getVisibleSize());
 <br>
 
 <p>
-エフェクトファイルを読み込みます。
-負荷的影響分析文件。
+讀取影響文件。
 </p>
 
 <pre>
@@ -142,7 +139,6 @@ auto effect = efk::Effect::create("Laser01.efk");
 <br>
 
 <p>
-エミッターを生成し、パラメーターを設定してレイヤーに追加します。
 它產生的發射極，並通過將參數添加到該層。
 </p>
 
@@ -159,7 +155,6 @@ effect->release();
 </pre>
 
 <p>
-毎フレーム、マネージャーを更新します。
 每一幀，然後更新管理器。
 </p>
 
@@ -170,7 +165,6 @@ manager->update();
 
 <p>
 繼承visit，然後添加的實際繪製效果的過程。
-visitを継承して、エフェクトを実際に描画する処理を追加します。
 </p>
 
 <pre>
@@ -187,7 +181,6 @@ void HelloWorld::visit(
 <br>
 
 <p>
-終了時にマネージャーを破棄しましょう。
 讓我們摧毀經理在年底。
 </p>
 
