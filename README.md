@@ -11,10 +11,11 @@ Effekseerはパーティクルエフェクト編集ツールです。
 
 這是Cocos2d-x的Effekseer的包裝。
 Effekseer為粒子效果的編輯工具。
-透過組合 library 和插件,由Effekseer制作而成的效果便可以在應用程式內播放。
+透過組合程式庫和插件,由Effekseer制作而成的效果便可以在應用程式內播放。
 
 这是Cocos2d-x的Effekseer的包装。
-透过组合 library 和插件,由Effekseer制作而成的效果便可以在应用程式内播放。
+Effekseer是一个粒子效果的编辑工具。
+透过组合库和插件,由Effekseer制作而成的效果便可以在应用程式内播放。
 
 ![Top](Top.gif)
 
