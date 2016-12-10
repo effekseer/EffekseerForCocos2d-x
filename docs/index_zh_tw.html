@@ -14,13 +14,13 @@
 		<h2>摘要</h2>
 
 		<p>
-		Effekseer是一個工具，你可以輕鬆地創建一個美麗的粒子效果。該庫將能夠播放在Effekseer在Cocos2d-X創建一個粒子效果。
-        本文檔介紹Effekseer和Cocos2d-x的合作。
-        庫是由一個以上的源代碼的文件，它可以通過將源代碼的文件的Cocos2d-x的項目進行安裝。
+		Effekseer是一個可以輕鬆地創建美麗的粒子效果的工具。本程式庫將能夠在Cocos2d-X內播放由Effekseer創建而成的粒子效果。
+        本文檔會介紹如何在Cocos2d-x內使用本程式庫。
+        程式庫是由複數源代碼組成，通過新增本源代碼便可為Cocos2d-x進行安裝。
 		</p>
 
 		<p>
-        相應的環境是如下。
+        對應環境如下
 		</p>
 
 		<table>
@@ -62,7 +62,7 @@
 
 		<h2>如何安裝</h2>
 		<p>
-		<b>Players/Cocos2d-x_v3</b>的目錄存在的以下文件。
+		<b>Players/Cocos2d-x_v3</b>的文件夾內會包含以下文件。
 		</p>
 
 <ul>
@@ -75,37 +75,37 @@
 </ul>
 
 		<p>
-		這些文件複製到的Cocos2d-x的項目，請添加到對象進行編譯。
+		將這些文件複製到的Cocos2d-x的文件夾內，再設定成編譯對象。
 		</p>
 
 
 		<h2>如何使用</h2>
 
 <p>
-在<b>Samples/</b>在Cocos2d-x目錄是發揮Effekseer的粒子效果的樣本。 請詳細的使用是一看樣品，因為只介紹基本用法是本文件中。
+在<b>Samples/</b>文件夾內會有在Cocos2d-x內播放Effekseer粒子效果的樣本。本文件只會作出簡單的使用方法。詳細請參閱樣本。
 </p>
 
 <p>
-這些樣品，不包含此庫，請複製文件的<b>Classes/Effekseer</b>目錄的每個樣本。
-它存在於一個名為<b>copyEffekseerFiles.txt</b>複製與您要複製的庫上一層目錄的標誌文件的目標目錄。
+樣本是不包含在此程式庫內，請將各樣本複製到<b>Classes/Effekseer</b>文件夾內使用。
+為方便得知文件存放的位置、會有一個名為<b>copyEffekseerFiles.txt</b>的文件作為標籤而作識別。
 </p>
 
 <h3>有關可播放的文件</h3>
 
 <p>
-您只可以播放保存在Effekseer的標準輸出文件。 保存的文件中包含從項目的Effekseer圖像的相對路徑。 因此，在保持從已保存在一個標準輸出到圖像文件的相對路徑，則需要圖像的排列。
+您只可以播放由Effekseer保存而成的文件。由Effekseer保存的文件中包含圖像的相對路徑。因此，請留意各檔案的存放位置。
 </p>
 
 <h3>基本播放</h3>
 
 <p>
-您在Effekseer的標準輸出保存效果文件中的cocos2d-x玩。 欲了解更多信息，請查看存儲在<b>Samples/Simple/</b>源代碼。
+由Effekseer保存而成的文件可在cocos2d-x內播放。 欲了解更多資訊，請查看存儲在<b>Samples/Simple/</b>內的源代碼。
 </p>
 
 <br>
 
 <p>
-它包括Effekseer.h。
+包括Effekseer.h。
 </p>
 
 <pre>
@@ -114,7 +114,7 @@
 <br>
 
 <p>
-使efk::EffectManager*至cocos2d::Layer從繼承類的成員變量。
+在cocos2d::Layer的衍生類別內加入成員變量efk::EffectManager*。
 </p>
 
 <pre>
@@ -125,7 +125,7 @@ efk::EffectManager* manager = nullptr;
 <br>
 
 <p>
-生成efk::EffectManager*實例。
+建立執行個體efk::EffectManager*。
 </p>
 
 <pre>
@@ -134,7 +134,7 @@ manager = efk::EffectManager::create(Director::getInstance()->getVisibleSize());
 <br>
 
 <p>
-讀取影響文件。
+讀取粒子效果文件。
 </p>
 
 <pre>
@@ -143,7 +143,7 @@ auto effect = efk::Effect::create("Laser01.efk");
 <br>
 
 <p>
-它產生的發射極，並通過將參數添加到該層。
+建立發射極，並通過將參數添加到階層。
 </p>
 
 <pre>
@@ -159,7 +159,7 @@ effect->release();
 </pre>
 
 <p>
-每一幀，然後更新管理器。
+更新畫面。
 </p>
 
 <pre>
@@ -168,7 +168,7 @@ manager->update();
 <br>
 
 <p>
-繼承visit，然後添加的實際繪製效果的過程。
+衍生visit，使可添加的繪製效果的處理。
 </p>
 
 <pre>
@@ -185,7 +185,7 @@ void HelloWorld::visit(
 <br>
 
 <p>
-讓我們摧毀經理在年底。
+刪除執行個體。
 </p>
 
 <pre>
@@ -195,10 +195,10 @@ HelloWorld::~HelloWorld()
 }
 </pre>
 
-		<h2>許可證</h2>
+		<h2>授權</h2>
 
 <p>
-如果你想使用Effekseer，你需要添加下面的措辭來幫助等等。
+如使用Effekseer，你需要添加下面的措辭。（例如在幫助內）
 </p>
 
 <pre>
@@ -230,8 +230,8 @@ Microsoft Public License (Ms-PL)
 
 </pre>
 
-		<h2>更新日誌</h2>
-		<p>1.xx (xx/xx/xx) 被釋放。</p>
+		<h2>更新</h2>
+		<p>1.xx (xx/xx/xx)發布。</p>
 
 	</div>
 </body>
