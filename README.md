@@ -16,6 +16,8 @@ Effekseer為粒子效果的編輯工具。
 这是Cocos2d-x的Effekseer的包装。
 透过组合 library 和插件,由Effekseer制作而成的效果便可以在应用程式内播放。
 
+![Top](Top.gif)
+
 How to use
 =========
 
