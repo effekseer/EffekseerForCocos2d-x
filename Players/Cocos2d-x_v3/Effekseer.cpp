@@ -533,6 +533,7 @@ namespace efk
 
 			// Reset Parameters
 			cocos2d::GL::useProgram(0);
+			cocos2d::GL::enableVertexAttribs(0);
 		};
 
 		renderer->addCommand(&renderCommand);
