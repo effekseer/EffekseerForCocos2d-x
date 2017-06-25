@@ -25,7 +25,7 @@ namespace efk
 		// コピー先のテクスチャを準備
 		void PrepareTexture(uint32_t width, uint32_t height, GLint internalFormat);
 
-		virtual void OnDistorting();
+		virtual bool OnDistorting() override;
 	};
 
 	DistortingCallbackGL::DistortingCallbackGL(EffekseerRendererGL::Renderer* renderer)
@@ -60,8 +60,13 @@ namespace efk
 		backGroundTextureInternalFormat = internalFormat;
 	}
 
-	void DistortingCallbackGL::OnDistorting()
+	bool DistortingCallbackGL::OnDistorting()
 	{
+#ifndef _WIN32
+		GLint backupFramebuffer;
+		glGetIntegerv(GL_FRAMEBUFFER_BINDING, &backupFramebuffer);
+		if (backupFramebuffer <= 0) return false;
+#endif
 		GLint viewport[4];
 		glGetIntegerv(GL_VIEWPORT, viewport);
 		uint32_t width = viewport[2];
@@ -74,8 +79,6 @@ namespace efk
 		}
 
 #ifndef _WIN32
-		GLint backupFramebuffer;
-		glGetIntegerv(GL_FRAMEBUFFER_BINDING, &backupFramebuffer);
 
 		GLint rbtype;
 		glGetFramebufferAttachmentParameteriv(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
@@ -109,6 +112,8 @@ namespace efk
 #endif
 
 		renderer->SetBackground(backGroundTexture);
+
+		return true;
 	}
 #pragma endregion
 
@@ -195,8 +200,9 @@ namespace efk
 #pragma endregion
 
 #pragma region
-	static std::map<GLuint, std::basic_string<EFK_CHAR>> g_glTex2FilePath;
+	static std::map<Effekseer::TextureData*, std::basic_string<EFK_CHAR>> g_glTex2FilePath;
 	static std::map<std::basic_string<EFK_CHAR>, cocos2d::CCTexture2D*> g_filePath2CTex;
+	static std::map<std::basic_string<EFK_CHAR>, Effekseer::TextureData*> g_filePath2EffectData;
 
 	class TextureLoader
 		: public ::Effekseer::TextureLoader
@@ -210,9 +216,9 @@ namespace efk
 		virtual ~TextureLoader();
 
 	public:
-		void* Load(const EFK_CHAR* path, ::Effekseer::TextureType textureType) override;
+		Effekseer::TextureData* Load(const EFK_CHAR* path, ::Effekseer::TextureType textureType) override;
 
-		void Unload(void* data);
+		void Unload(Effekseer::TextureData* data);
 	};
 
 	TextureLoader::TextureLoader(::Effekseer::FileInterface* fileInterface)
@@ -229,14 +235,14 @@ namespace efk
 
 	}
 
-	void* TextureLoader::Load(const EFK_CHAR* path, ::Effekseer::TextureType textureType)
+	Effekseer::TextureData* TextureLoader::Load(const EFK_CHAR* path, ::Effekseer::TextureType textureType)
 	{
 		auto key = std::basic_string<EFK_CHAR>(path);
 		if (g_filePath2CTex.find(key) != g_filePath2CTex.end())
 		{
 			auto texture = g_filePath2CTex[key];
 			texture->retain();
-			return (void*)texture->getName();
+			return g_filePath2EffectData[key];
 		}
 
 		std::unique_ptr<Effekseer::FileReader>
@@ -268,26 +274,33 @@ namespace efk
 
 			delete[] data_texture;
 
+			Effekseer::TextureData* textureData = new Effekseer::TextureData();
+			textureData->UserID = texture->getName();
+			textureData->Width = texture->getPixelsWide();
+			textureData->Height = texture->getPixelsHigh();
+			textureData->TextureFormat = Effekseer::TextureFormatType::ABGR8;
 			g_filePath2CTex[key] = texture;
-			g_glTex2FilePath[texture->getName()] = key;
-
-			return (void*)texture->getName();
+			g_filePath2EffectData[key] = textureData;
+			g_glTex2FilePath[textureData] = key;
+			
+			return textureData;
 		}
 		return NULL;
 	}
 
-	void TextureLoader::Unload(void* data)
+	void TextureLoader::Unload(Effekseer::TextureData* data)
 	{
 		if (data != NULL)
 		{
-			GLuint gltex = EffekseerRenderer::TexturePointerToTexture <GLuint>(data);
-			auto path = g_glTex2FilePath[gltex];
+			auto path = g_glTex2FilePath[data];
 			auto tex = g_filePath2CTex[path];
 
 			if (tex->getReferenceCount() == 1)
 			{
-				g_glTex2FilePath.erase(gltex);
+				g_glTex2FilePath.erase(data);
+				g_filePath2EffectData.erase(path);
 				g_filePath2CTex.erase(path);
+				delete data;
 			}
 			tex->release();
 		}
@@ -624,7 +637,7 @@ namespace efk
 	
 		if (renderer2d != nullptr)
 		{
-			renderer2d->Destory();
+			renderer2d->Destroy();
 			renderer2d = nullptr;
 		}
 	}

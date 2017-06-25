@@ -280,21 +280,6 @@ RenderStateBase::State& RenderStateBase::GetActiveState()
 //-----------------------------------------------------------------------------------
 namespace EffekseerRenderer
 {
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-RibbonRendererBase::RibbonRendererBase()
-	: m_ringBufferOffset	( 0 )
-	, m_ringBufferData		( NULL )
-{
-}
-
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-RibbonRendererBase::~RibbonRendererBase()
-{
-}
 
 //----------------------------------------------------------------------------------
 //
@@ -316,20 +301,6 @@ namespace EffekseerRenderer
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-RingRendererBase::RingRendererBase()
-	: m_ringBufferOffset	( 0 )
-	, m_ringBufferData		( NULL )
-	, m_spriteCount			( 0 )
-	, m_instanceCount		( 0 )
-{
-}
-
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-RingRendererBase::~RingRendererBase()
-{
-}
 
 //----------------------------------------------------------------------------------
 //
@@ -351,19 +322,6 @@ namespace EffekseerRenderer
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-SpriteRendererBase::SpriteRendererBase()
-	: m_spriteCount			( 0 )
-	, m_ringBufferOffset	( 0 )
-	, m_ringBufferData		( NULL )
-{
-}
-
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-SpriteRendererBase::~SpriteRendererBase()
-{
-}
 
 //----------------------------------------------------------------------------------
 //
@@ -385,19 +343,6 @@ namespace EffekseerRenderer
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-TrackRendererBase::TrackRendererBase()
-	: m_ribbonCount			( 0 )
-	, m_ringBufferOffset	( 0 )
-	, m_ringBufferData		( NULL )
-{
-}
-
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-TrackRendererBase::~TrackRendererBase()
-{
-}
 
 //----------------------------------------------------------------------------------
 //
@@ -633,6 +578,10 @@ namespace GLExt
 #define GL_COMPILE_STATUS 0x8B81
 #define GL_LINK_STATUS 0x8B82
 
+#define GL_COMPRESSED_RGBA_S3TC_DXT1_EXT 0x83F1
+#define GL_COMPRESSED_RGBA_S3TC_DXT3_EXT 0x83F2
+#define GL_COMPRESSED_RGBA_S3TC_DXT5_EXT 0x83F3
+
 typedef ptrdiff_t GLsizeiptr;
 typedef ptrdiff_t GLintptr;
 typedef char GLchar;
@@ -681,6 +630,8 @@ void glDeleteSamplers(GLsizei n, const GLuint * samplers);
 void glSamplerParameteri(GLuint sampler, GLenum pname, GLint param);
 void glBindSampler(GLuint unit, GLuint sampler);
 
+void glCompressedTexImage2D(GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLint border, GLsizei imageSize, const void *data);
+
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
@@ -725,8 +676,8 @@ public:	// デバイス復旧用
 	virtual void OnResetDevice();
 
 public:
-	void Lock();
-	void Unlock();
+	void Lock() override;
+	void Unlock() override;
 };
 
 //-----------------------------------------------------------------------------------
@@ -835,9 +786,9 @@ public:
 	static ModelRenderer* Create( RendererImplemented* renderer );
 
 public:
-	void BeginRendering(const efkModelNodeParam& parameter, int32_t count, void* userData);
+	void BeginRendering(const efkModelNodeParam& parameter, int32_t count, void* userData) override;
 
-	void EndRendering( const efkModelNodeParam& parameter, void* userData );
+	void EndRendering( const efkModelNodeParam& parameter, void* userData ) override;
 };
 //----------------------------------------------------------------------------------
 //
@@ -858,8 +809,7 @@ public:
 #define EFK_SSE2
 #endif
 
-/* Visual Studio 2008 */
-#if _MSC_VER == 1500
+#ifdef _MSC_VER
 #endif
 
 //----------------------------------------------------------------------------------
@@ -1120,7 +1070,7 @@ private:
 	Shader*							m_shader_distortion;
 	Shader*							m_shader_no_texture_distortion;
 
-	EffekseerRenderer::StandardRenderer<RendererImplemented, Shader, GLuint, Vertex, VertexDistortion>*	m_standardRenderer;
+	EffekseerRenderer::StandardRenderer<RendererImplemented, Shader, Vertex, VertexDistortion>*	m_standardRenderer;
 
 	VertexArray*			m_vao;
 	VertexArray*			m_vao_no_texture;
@@ -1138,7 +1088,7 @@ private:
 
 	::EffekseerRenderer::RenderStateBase*		m_renderState;
 
-	GLuint					m_background;
+	Effekseer::TextureData	m_background;
 
 	std::set<DeviceObject*>	m_deviceObjects;
 
@@ -1175,7 +1125,7 @@ public:
 	*/
 	bool Initialize();
 
-	void Destory();
+	void Destroy();
 
 	void SetRestorationOfStatesFlag(bool flag);
 
@@ -1211,97 +1161,97 @@ public:
 	/**
 		@brief	ライトの方向を取得する。
 	*/
-	const ::Effekseer::Vector3D& GetLightDirection() const;
+	const ::Effekseer::Vector3D& GetLightDirection() const override;
 
 	/**
 		@brief	ライトの方向を設定する。
 	*/
-	void SetLightDirection( ::Effekseer::Vector3D& direction );
+	void SetLightDirection( ::Effekseer::Vector3D& direction ) override;
 
 	/**
 		@brief	ライトの色を取得する。
 	*/
-	const ::Effekseer::Color& GetLightColor() const;
+	const ::Effekseer::Color& GetLightColor() const override;
 
 	/**
 		@brief	ライトの色を設定する。
 	*/
-	void SetLightColor( ::Effekseer::Color& color );
+	void SetLightColor( ::Effekseer::Color& color ) override;
 
 	/**
 		@brief	ライトの環境光の色を取得する。
 	*/
-	const ::Effekseer::Color& GetLightAmbientColor() const;
+	const ::Effekseer::Color& GetLightAmbientColor() const override;
 
 	/**
 		@brief	ライトの環境光の色を設定する。
 	*/
-	void SetLightAmbientColor( ::Effekseer::Color& color );
+	void SetLightAmbientColor( ::Effekseer::Color& color ) override;
 
 	/**
 		@brief	投影行列を取得する。
 	*/
-	const ::Effekseer::Matrix44& GetProjectionMatrix() const;
+	const ::Effekseer::Matrix44& GetProjectionMatrix() const override;
 
 	/**
 		@brief	投影行列を設定する。
 	*/
-	void SetProjectionMatrix( const ::Effekseer::Matrix44& mat );
+	void SetProjectionMatrix( const ::Effekseer::Matrix44& mat ) override;
 
 	/**
 		@brief	カメラ行列を取得する。
 	*/
-	const ::Effekseer::Matrix44& GetCameraMatrix() const;
+	const ::Effekseer::Matrix44& GetCameraMatrix() const override;
 
 	/**
 		@brief	カメラ行列を設定する。
 	*/
-	void SetCameraMatrix( const ::Effekseer::Matrix44& mat );
+	void SetCameraMatrix( const ::Effekseer::Matrix44& mat ) override;
 
 	/**
 		@brief	カメラプロジェクション行列を取得する。
 	*/
-	::Effekseer::Matrix44& GetCameraProjectionMatrix();
+	::Effekseer::Matrix44& GetCameraProjectionMatrix() override;
 
 	/**
 		@brief	スプライトレンダラーを生成する。
 	*/
-	::Effekseer::SpriteRenderer* CreateSpriteRenderer();
+	::Effekseer::SpriteRenderer* CreateSpriteRenderer() override;
 
 	/**
 		@brief	リボンレンダラーを生成する。
 	*/
-	::Effekseer::RibbonRenderer* CreateRibbonRenderer();
+	::Effekseer::RibbonRenderer* CreateRibbonRenderer() override;
 	
 	/**
 		@brief	リングレンダラーを生成する。
 	*/
-	::Effekseer::RingRenderer* CreateRingRenderer();
+	::Effekseer::RingRenderer* CreateRingRenderer() override;
 	
 	/**
 		@brief	モデルレンダラーを生成する。
 	*/
-	::Effekseer::ModelRenderer* CreateModelRenderer();
+	::Effekseer::ModelRenderer* CreateModelRenderer() override;
 
 	/**
 		@brief	軌跡レンダラーを生成する。
 	*/
-	::Effekseer::TrackRenderer* CreateTrackRenderer();
+	::Effekseer::TrackRenderer* CreateTrackRenderer() override;
 
 	/**
 		@brief	テクスチャ読込クラスを生成する。
 	*/
-	::Effekseer::TextureLoader* CreateTextureLoader( ::Effekseer::FileInterface* fileInterface = NULL );
+	::Effekseer::TextureLoader* CreateTextureLoader( ::Effekseer::FileInterface* fileInterface = NULL )override;
 	
 	/**
 		@brief	モデル読込クラスを生成する。
 	*/
-	::Effekseer::ModelLoader* CreateModelLoader( ::Effekseer::FileInterface* fileInterface = NULL );
+	::Effekseer::ModelLoader* CreateModelLoader( ::Effekseer::FileInterface* fileInterface = NULL )override;
 
 	/**
 	@brief	背景を取得する。
 	*/
-	GLuint GetBackground() override { return m_background; }
+	Effekseer::TextureData* GetBackground() override { return &m_background; }
 
 	/**
 	@brief	背景を設定する。
@@ -1312,7 +1262,7 @@ public:
 
 	void SetDistortingCallback(EffekseerRenderer::DistortingCallback* callback) override;
 
-	EffekseerRenderer::StandardRenderer<RendererImplemented, Shader, GLuint, Vertex, VertexDistortion>* GetStandardRenderer() { return m_standardRenderer; }
+	EffekseerRenderer::StandardRenderer<RendererImplemented, Shader, Vertex, VertexDistortion>* GetStandardRenderer() { return m_standardRenderer; }
 
 	void SetVertexBuffer( VertexBuffer* vertexBuffer, int32_t size );
 	void SetVertexBuffer(GLuint vertexBuffer, int32_t size);
@@ -1326,7 +1276,7 @@ public:
 	void BeginShader(Shader* shader);
 	void EndShader(Shader* shader);
 
-	void SetTextures(Shader* shader, GLuint* textures, int32_t count);
+	void SetTextures(Shader* shader, Effekseer::TextureData** textures, int32_t count);
 
 	void ResetRenderState();
 
@@ -1387,102 +1337,6 @@ public:
 //
 //-----------------------------------------------------------------------------------
 #endif	// __EFFEKSEERRENDERER_GL_RENDERSTATE_H__
-#ifndef	__EFFEKSEERRENDERER_GL_STRIPE_RENDERER_H__
-#define	__EFFEKSEERRENDERER_GL_STRIPE_RENDERER_H__
-
-//----------------------------------------------------------------------------------
-// Include
-//----------------------------------------------------------------------------------
-
-//-----------------------------------------------------------------------------------
-//
-//-----------------------------------------------------------------------------------
-namespace EffekseerRendererGL
-{
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-typedef ::Effekseer::RibbonRenderer::NodeParameter efkRibbonNodeParam;
-typedef ::Effekseer::RibbonRenderer::InstanceParameter efkRibbonInstanceParam;
-typedef ::Effekseer::Vector3D efkVector3D;
-
-class RibbonRenderer
-	: public ::EffekseerRenderer::RibbonRendererBase
-{
-private:
-	RendererImplemented*	m_renderer;
-	
-	RibbonRenderer(RendererImplemented* renderer);
-
-public:
-
-	virtual ~RibbonRenderer();
-
-	static RibbonRenderer* Create( RendererImplemented* renderer );
-
-public:
-	void BeginRendering( const efkRibbonNodeParam& parameter, int32_t count, void* userData );
-
-	void Rendering( const efkRibbonNodeParam& parameter, const efkRibbonInstanceParam& instanceParameter, void* userData );
-
-	void EndRendering( const efkRibbonNodeParam& parameter, void* userData );
-};
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-}
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-#endif	// __EFFEKSEERRENDERER_GL_STRIPE_RENDERER_H__
-#ifndef	__EFFEKSEERRENDERER_GL_RING_RENDERER_H__
-#define	__EFFEKSEERRENDERER_GL_RING_RENDERER_H__
-
-//----------------------------------------------------------------------------------
-// Include
-//----------------------------------------------------------------------------------
-
-//-----------------------------------------------------------------------------------
-//
-//-----------------------------------------------------------------------------------
-namespace EffekseerRendererGL
-{
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-typedef ::Effekseer::RingRenderer::NodeParameter efkRingNodeParam;
-typedef ::Effekseer::RingRenderer::InstanceParameter efkRingInstanceParam;
-typedef ::Effekseer::Vector3D efkVector3D;
-
-class RingRenderer
-	: public ::EffekseerRenderer::RingRendererBase
-{
-private:
-	RendererImplemented*	m_renderer;
-
-	RingRenderer(RendererImplemented* renderer);
-
-public:
-
-	virtual ~RingRenderer();
-
-	static RingRenderer* Create(RendererImplemented* renderer);
-
-public:
-	void BeginRendering(const efkRingNodeParam& parameter, int32_t count, void* userData);
-
-	void Rendering(const efkRingNodeParam& parameter, const efkRingInstanceParam& instanceParameter, void* userData);
-
-	void EndRendering(const efkRingNodeParam& parameter, void* userData);
-};
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-}
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-#endif	// __EFFEKSEERRENDERER_GL_RING_RENDERER_H__
 #ifndef	__EFFEKSEERRENDERER_GL_SHADER_H__
 #define	__EFFEKSEERRENDERER_GL_SHADER_H__
 
@@ -1649,54 +1503,6 @@ public:
 //
 //----------------------------------------------------------------------------------
 #endif	// __EFFEKSEERRENDERER_GL_SHADER_H__
-#ifndef	__EFFEKSEERRENDERER_GL_SPRITE_RENDERER_H__
-#define	__EFFEKSEERRENDERER_GL_SPRITE_RENDERER_H__
-
-//----------------------------------------------------------------------------------
-// Include
-//----------------------------------------------------------------------------------
-
-//-----------------------------------------------------------------------------------
-//
-//-----------------------------------------------------------------------------------
-namespace EffekseerRendererGL
-{
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-typedef ::Effekseer::SpriteRenderer::NodeParameter efkSpriteNodeParam;
-typedef ::Effekseer::SpriteRenderer::InstanceParameter efkSpriteInstanceParam;
-typedef ::Effekseer::Vector3D efkVector3D;
-
-class SpriteRenderer
-	: public ::EffekseerRenderer::SpriteRendererBase
-{
-private:
-	RendererImplemented*	m_renderer;
-	
-	SpriteRenderer(RendererImplemented* renderer);
-
-public:
-
-	virtual ~SpriteRenderer();
-
-	static SpriteRenderer* Create( RendererImplemented* renderer );
-
-public:
-	void BeginRendering( const efkSpriteNodeParam& parameter, int32_t count, void* userData );
-
-	void Rendering( const efkSpriteNodeParam& parameter, const efkSpriteInstanceParam& instanceParameter, void* userData );
-
-	void EndRendering( const efkSpriteNodeParam& parameter, void* userData );
-};
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-}
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-#endif	// __EFFEKSEERRENDERER_GL_SPRITE_RENDERER_H__
 #ifdef __EFFEKSEER_RENDERER_INTERNAL_LOADER__
 
 #ifndef	__EFFEKSEERRENDERER_GL_TEXTURELOADER_H__
@@ -1722,14 +1528,15 @@ private:
 	::Effekseer::DefaultFileInterface m_defaultFileInterface;
 
 public:
-	TextureLoader( ::Effekseer::FileInterface* fileInterface = NULL );
+	TextureLoader(::Effekseer::FileInterface* fileInterface = NULL);
 	virtual ~TextureLoader();
 
 public:
-	void* Load(const EFK_CHAR* path, ::Effekseer::TextureType textureType) override;
+	Effekseer::TextureData* Load(const EFK_CHAR* path, ::Effekseer::TextureType textureType) override;
 
-	void Unload( void* data );
+	void Unload(Effekseer::TextureData* data) override;
 };
+
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
@@ -1740,54 +1547,6 @@ public:
 #endif	// __EFFEKSEERRENDERER_GL_TEXTURELOADER_H__
 
 #endif
-#ifndef	__EFFEKSEERRENDERER_GL_TRACK_RENDERER_H__
-#define	__EFFEKSEERRENDERER_GL_TRACK_RENDERER_H__
-
-//----------------------------------------------------------------------------------
-// Include
-//----------------------------------------------------------------------------------
-
-//-----------------------------------------------------------------------------------
-//
-//-----------------------------------------------------------------------------------
-namespace EffekseerRendererGL
-{
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-typedef ::Effekseer::TrackRenderer::NodeParameter efkTrackNodeParam;
-typedef ::Effekseer::TrackRenderer::InstanceParameter efkTrackInstanceParam;
-typedef ::Effekseer::Vector3D efkVector3D;
-
-class TrackRenderer
-	: public ::EffekseerRenderer::TrackRendererBase
-{
-private:
-	RendererImplemented*	m_renderer;
-	
-	TrackRenderer(RendererImplemented* renderer);
-
-public:
-
-	virtual ~TrackRenderer();
-
-	static TrackRenderer* Create( RendererImplemented* renderer );
-
-public:
-	void BeginRendering( const efkTrackNodeParam& parameter, int32_t count, void* userData );
-
-	void Rendering( const efkTrackNodeParam& parameter, const efkTrackInstanceParam& instanceParameter, void* userData );
-
-	void EndRendering( const efkTrackNodeParam& parameter, void* userData );
-};
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-}
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-#endif	// __EFFEKSEERRENDERER_GL_TRACK_RENDERER_H__
 
 
 //----------------------------------------------------------------------------------
@@ -2013,6 +1772,8 @@ typedef void (EFK_STDCALL * FP_glDeleteSamplers) (GLsizei n, const GLuint * samp
 typedef void (EFK_STDCALL * FP_glSamplerParameteri) (GLuint sampler, GLenum pname, GLint param);
 typedef void (EFK_STDCALL * FP_glBindSampler) (GLuint unit, GLuint sampler);
 
+typedef void (EFK_STDCALL * FP_glCompressedTexImage2D) (GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLint border, GLsizei imageSize, const void *data);
+
 static FP_glDeleteBuffers g_glDeleteBuffers = NULL;
 static FP_glCreateShader g_glCreateShader = NULL;
 static FP_glBindBuffer g_glBindBuffer = NULL;
@@ -2051,6 +1812,8 @@ static FP_glGenSamplers g_glGenSamplers = nullptr;
 static FP_glDeleteSamplers g_glDeleteSamplers = nullptr;
 static FP_glSamplerParameteri g_glSamplerParameteri = nullptr;
 static FP_glBindSampler g_glBindSampler = nullptr;
+
+static FP_glCompressedTexImage2D g_glCompressedTexImage2D = nullptr;
 
 #elif defined(__EFFEKSEER_RENDERER_GLES2__)
 
@@ -2126,31 +1889,32 @@ bool Initialize(OpenGLDeviceType deviceType)
 	GET_PROC(glSamplerParameteri);
 	GET_PROC(glBindSampler);
 
+	GET_PROC(glCompressedTexImage2D);
+
 	g_isSupportedVertexArray = (g_glGenVertexArrays && g_glDeleteVertexArrays && g_glBindVertexArray);
 #endif
 
 #if defined(__EFFEKSEER_RENDERER_GLES2__)
-	if (deviceType == OpenGLDeviceType::OpenGLES2)
-	{
+
 #if defined(__APPLE__)
-		g_isSupportedVertexArray = true;
+	g_glGenVertexArraysOES = ::glGenVertexArraysOES;
+	g_glDeleteVertexArraysOES = ::glDeleteVertexArraysOES;
+	g_glBindVertexArrayOES = ::glBindVertexArrayOES;
+	g_isSupportedVertexArray = true;
 #else
-		g_isSupportedVertexArray = strstr((const char*) glGetString(GL_EXTENSIONS), "GL_OES_vertex_array_object") != NULL;
-		if (g_isSupportedVertexArray)
-		{
-			GET_PROC(glGenVertexArraysOES);
-			GET_PROC(glDeleteVertexArraysOES);
-			GET_PROC(glBindVertexArrayOES);
-		}
-#endif
-	}
+	GET_PROC(glGenVertexArraysOES);
+	GET_PROC(glDeleteVertexArraysOES);
+	GET_PROC(glBindVertexArrayOES);
+	g_isSupportedVertexArray = (g_glGenVertexArraysOES && g_glDeleteVertexArraysOES && g_glBindVertexArrayOES);
 #endif
 
+#else
 	if (deviceType == OpenGLDeviceType::OpenGL3 ||
 		deviceType == OpenGLDeviceType::OpenGLES3)
 	{
 		g_isSupportedVertexArray = true;
 	}
+#endif
 
 	g_isInitialized = true;
 	return true;
@@ -2444,8 +2208,6 @@ void glGenVertexArrays(GLsizei n, GLuint *arrays)
 {
 #if _WIN32
 	g_glGenVertexArrays(n, arrays);
-#elif defined(__EFFEKSEER_RENDERER_GLES2__) && defined(__APPLE__)
-	::glGenVertexArraysOES(n, arrays);
 #elif defined(__EFFEKSEER_RENDERER_GLES2__)
 	g_glGenVertexArraysOES(n, arrays);
 #else
@@ -2457,8 +2219,6 @@ void glDeleteVertexArrays(GLsizei n, const GLuint *arrays)
 {
 #if _WIN32
 	g_glDeleteVertexArrays(n, arrays);
-#elif defined(__EFFEKSEER_RENDERER_GLES2__) && defined(__APPLE__)
-	::glDeleteVertexArraysOES(n, arrays);
 #elif defined(__EFFEKSEER_RENDERER_GLES2__)
 	g_glDeleteVertexArraysOES(n, arrays);
 #else
@@ -2470,8 +2230,6 @@ void glBindVertexArray(GLuint array)
 {
 #if _WIN32
 	g_glBindVertexArray(array);
-#elif defined(__EFFEKSEER_RENDERER_GLES2__) && defined(__APPLE__)
-	::glBindVertexArrayOES(array);
 #elif defined(__EFFEKSEER_RENDERER_GLES2__)
 	g_glBindVertexArrayOES(array);
 #else
@@ -2516,6 +2274,16 @@ void glBindSampler(GLuint unit, GLuint sampler)
 #elif defined(__EFFEKSEER_RENDERER_GLES2__) || defined(__EFFEKSEER_RENDERER_GL2__)
 #else
 	::glBindSampler(unit, sampler);
+#endif
+}
+
+void glCompressedTexImage2D(GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLint border, GLsizei imageSize, const void *data)
+{
+#if _WIN32
+	g_glCompressedTexImage2D(target, level,internalformat, width, height, border,imageSize, data);
+#elif defined(__EFFEKSEER_RENDERER_GLES2__) || defined(__EFFEKSEER_RENDERER_GL2__)
+#else
+	glCompressedTexImage2D(target, level,internalformat, width, height, border,imageSize, data);
 #endif
 }
 
@@ -3423,7 +3191,6 @@ void ModelRenderer::EndRendering( const efkModelNodeParam& parameter, void* user
 	EndRendering_<
 		RendererImplemented,
 		Shader,
-		GLuint,
 		Model,
 		false,
 		1>(
@@ -3614,6 +3381,7 @@ void ModelRenderer::EndRendering( const efkModelNodeParam& parameter, void* user
 //----------------------------------------------------------------------------------
 // Include
 //----------------------------------------------------------------------------------
+
 
 
 
@@ -3818,6 +3586,28 @@ void main() {
 }
 )";
 
+//-----------------------------------------------------------------------------------
+//
+//-----------------------------------------------------------------------------------
+::Effekseer::TextureLoader* CreateTextureLoader(::Effekseer::FileInterface* fileInterface)
+{
+#ifdef __EFFEKSEER_RENDERER_INTERNAL_LOADER__
+	return new TextureLoader(fileInterface);
+#else
+	return NULL;
+#endif
+}
+
+::Effekseer::ModelLoader* CreateModelLoader(::Effekseer::FileInterface* fileInterface)
+{
+#ifdef __EFFEKSEER_RENDERER_INTERNAL_LOADER__
+	return new ModelLoader(fileInterface);
+#else
+	return NULL;
+#endif
+}
+
+
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
@@ -3854,8 +3644,6 @@ RendererImplemented::RendererImplemented(int32_t squareMaxCount, OpenGLDeviceTyp
 	, m_vao_no_texture(nullptr)
 	, m_vao_distortion(nullptr)
 	, m_vao_no_texture_distortion(nullptr)
-
-	, m_background(0)
 	, m_distortingCallback(nullptr)
 
 	, m_deviceType(deviceType)
@@ -3866,6 +3654,8 @@ RendererImplemented::RendererImplemented(int32_t squareMaxCount, OpenGLDeviceTyp
 	SetLightColor( lightColor );
 	::Effekseer::Color lightAmbient( 40, 40, 40, 255 );
 	SetLightAmbientColor( lightAmbient );
+
+	m_background.UserID = 0;
 
 #ifdef __EFFEKSEER_RENDERER_INTERNAL_LOADER__
 	EffekseerRenderer::PngTextureLoader::Initialize();
@@ -4157,7 +3947,7 @@ bool RendererImplemented::Initialize()
 	// 参照カウントの調整
 	if (m_vao_no_texture_distortion != nullptr) Release();
 
-	m_standardRenderer = new EffekseerRenderer::StandardRenderer<RendererImplemented, Shader, GLuint, Vertex, VertexDistortion>(this, m_shader, m_shader_no_texture, m_shader_distortion, m_shader_no_texture_distortion);
+	m_standardRenderer = new EffekseerRenderer::StandardRenderer<RendererImplemented, Shader, Vertex, VertexDistortion>(this, m_shader, m_shader_no_texture, m_shader_distortion, m_shader_no_texture_distortion);
 
 	return true;
 }
@@ -4165,7 +3955,7 @@ bool RendererImplemented::Initialize()
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-void RendererImplemented::Destory()
+void RendererImplemented::Destroy()
 {
 	Release();
 }
@@ -4437,7 +4227,7 @@ void RendererImplemented::SetCameraMatrix( const ::Effekseer::Matrix44& mat )
 //----------------------------------------------------------------------------------
 ::Effekseer::SpriteRenderer* RendererImplemented::CreateSpriteRenderer()
 {
-	return SpriteRenderer::Create( this );
+	return new ::EffekseerRenderer::SpriteRendererBase<RendererImplemented, Vertex, VertexDistortion>(this);
 }
 
 //----------------------------------------------------------------------------------
@@ -4445,7 +4235,7 @@ void RendererImplemented::SetCameraMatrix( const ::Effekseer::Matrix44& mat )
 //----------------------------------------------------------------------------------
 ::Effekseer::RibbonRenderer* RendererImplemented::CreateRibbonRenderer()
 {
-	return RibbonRenderer::Create( this );
+	return new ::EffekseerRenderer::RibbonRendererBase<RendererImplemented, Vertex, VertexDistortion>( this );
 }
 
 //----------------------------------------------------------------------------------
@@ -4453,7 +4243,7 @@ void RendererImplemented::SetCameraMatrix( const ::Effekseer::Matrix44& mat )
 //----------------------------------------------------------------------------------
 ::Effekseer::RingRenderer* RendererImplemented::CreateRingRenderer()
 {
-	return RingRenderer::Create( this );
+	return new ::EffekseerRenderer::RingRendererBase<RendererImplemented, Vertex, VertexDistortion>(this);
 }
 
 //----------------------------------------------------------------------------------
@@ -4469,7 +4259,7 @@ void RendererImplemented::SetCameraMatrix( const ::Effekseer::Matrix44& mat )
 //----------------------------------------------------------------------------------
 ::Effekseer::TrackRenderer* RendererImplemented::CreateTrackRenderer()
 {
-	return TrackRenderer::Create( this );
+	return new ::EffekseerRenderer::TrackRendererBase<RendererImplemented, Vertex, VertexDistortion>(this);
 }
 
 //----------------------------------------------------------------------------------
@@ -4498,7 +4288,7 @@ void RendererImplemented::SetCameraMatrix( const ::Effekseer::Matrix44& mat )
 
 void RendererImplemented::SetBackground(GLuint background)
 {
-	m_background = background;
+	m_background.UserID = background;
 }
 
 EffekseerRenderer::DistortingCallback* RendererImplemented::GetDistortingCallback()
@@ -4687,7 +4477,7 @@ void RendererImplemented::EndShader(Shader* shader)
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-void RendererImplemented::SetTextures(Shader* shader, GLuint* textures, int32_t count)
+void RendererImplemented::SetTextures(Shader* shader, Effekseer::TextureData** textures, int32_t count)
 {
 	GLCheckError();
 
@@ -4696,10 +4486,16 @@ void RendererImplemented::SetTextures(Shader* shader, GLuint* textures, int32_t 
 
 	for (int32_t i = 0; i < count; i++)
 	{
+		auto id = 0;
+		if (textures[i] != nullptr)
+		{
+			id = textures[i]->UserID;
+		}
+
 		GLExt::glActiveTexture(GL_TEXTURE0 + i);
-		glBindTexture(GL_TEXTURE_2D, textures[i]);
+		glBindTexture(GL_TEXTURE_2D, id);
 		
-		m_currentTextures[i] = textures[i];
+		m_currentTextures[i] = id;
 
 		if (shader->GetTextureSlotEnable(i))
 		{
@@ -4973,148 +4769,6 @@ void RenderState::Update( bool forced )
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
-
-//----------------------------------------------------------------------------------
-// Include
-//----------------------------------------------------------------------------------
-
-
-//-----------------------------------------------------------------------------------
-//
-//-----------------------------------------------------------------------------------
-namespace EffekseerRendererGL
-{
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-RibbonRenderer::RibbonRenderer(RendererImplemented* renderer)
-	: m_renderer	( renderer )
-{
-}
-
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-RibbonRenderer::~RibbonRenderer()
-{
-}
-
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-RibbonRenderer* RibbonRenderer::Create(RendererImplemented* renderer)
-{
-	assert(renderer != NULL);
-
-	return new RibbonRenderer(renderer);
-}
-
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-void RibbonRenderer::BeginRendering( const efkRibbonNodeParam& parameter, int32_t count, void* userData )
-{
-	BeginRendering_<RendererImplemented, Vertex>(m_renderer, count, parameter);
-}
-
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-void RibbonRenderer::Rendering( const efkRibbonNodeParam& parameter, const efkRibbonInstanceParam& instanceParameter, void* userData )
-{
-	Rendering_<Vertex, VertexDistortion>(parameter, instanceParameter, userData, m_renderer->GetCameraMatrix());
-}
-
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-void RibbonRenderer::EndRendering( const efkRibbonNodeParam& parameter, void* userData )
-{
-	if( m_ringBufferData == NULL ) return;
-
-	if( m_ribbonCount <= 1 ) return;
-	
-	EndRendering_<RendererImplemented, GLuint, Vertex>(m_renderer, parameter);
-}
-
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-}
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-
-//----------------------------------------------------------------------------------
-// Include
-//----------------------------------------------------------------------------------
-
-
-//-----------------------------------------------------------------------------------
-//
-//-----------------------------------------------------------------------------------
-namespace EffekseerRendererGL
-{
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-RingRenderer::RingRenderer(RendererImplemented* renderer)
-	: m_renderer(renderer)
-
-{
-}
-
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-RingRenderer::~RingRenderer()
-{
-}
-
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-RingRenderer* RingRenderer::Create(RendererImplemented* renderer)
-{
-	assert(renderer != NULL);
-
-	return new RingRenderer(renderer);
-}
-
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-void RingRenderer::BeginRendering( const efkRingNodeParam& parameter, int32_t count, void* userData )
-{
-	BeginRendering_<RendererImplemented, Vertex>(m_renderer, count, parameter);
-}
-
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-void RingRenderer::Rendering( const efkRingNodeParam& parameter, const efkRingInstanceParam& instanceParameter, void* userData )
-{
-	if( m_spriteCount == m_renderer->GetSquareMaxCount() ) return;
-	Rendering_<Vertex, VertexDistortion>(parameter, instanceParameter, userData, m_renderer->GetCameraMatrix());
-}
-
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-void RingRenderer::EndRendering( const efkRingNodeParam& parameter, void* userData )
-{
-	if( m_spriteCount == 0 ) return;
-	
-	EndRendering_<RendererImplemented, Shader, GLuint, Vertex>(m_renderer, parameter);
-}
-
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-}
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------------
 //
@@ -5702,78 +5356,6 @@ bool Shader::GetTextureSlotEnable(int32_t index)
 //
 //-----------------------------------------------------------------------------------
 }
-//----------------------------------------------------------------------------------
-// Include
-//----------------------------------------------------------------------------------
-
-
-//-----------------------------------------------------------------------------------
-//
-//-----------------------------------------------------------------------------------
-namespace EffekseerRendererGL
-{
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-SpriteRenderer::SpriteRenderer(RendererImplemented* renderer)
-	: m_renderer(renderer)
-{
-
-}
-
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-SpriteRenderer::~SpriteRenderer()
-{
-}
-
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-SpriteRenderer* SpriteRenderer::Create(RendererImplemented* renderer)
-{
-	assert(renderer != NULL);
-	return new SpriteRenderer(renderer);
-}
-
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-void SpriteRenderer::BeginRendering(const efkSpriteNodeParam& parameter, int32_t count, void* userData)
-{
-	BeginRendering_<RendererImplemented>(m_renderer, count, parameter);
-}
-
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-void SpriteRenderer::Rendering(const efkSpriteNodeParam& parameter, const efkSpriteInstanceParam& instanceParameter, void* userData)
-{
-	if (m_spriteCount == m_renderer->GetSquareMaxCount()) return;
-	Rendering_<Vertex, VertexDistortion>(parameter, instanceParameter, userData, m_renderer->GetCameraMatrix());
-}
-
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-void SpriteRenderer::EndRendering( const efkSpriteNodeParam& parameter, void* userData )
-{
-	if( m_ringBufferData == NULL ) return;
-
-	if( m_spriteCount == 0 ) return;
-
-	EndRendering_<RendererImplemented, Shader, GLuint, Vertex>(m_renderer, parameter);
-}
-
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-}
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-
 #ifdef __EFFEKSEER_RENDERER_INTERNAL_LOADER__
 
 //----------------------------------------------------------------------------------
@@ -5795,6 +5377,10 @@ TextureLoader::TextureLoader( ::Effekseer::FileInterface* fileInterface )
 	{
 		m_fileInterface = &m_defaultFileInterface;
 	}
+
+#ifdef __EFFEKSEER_RENDERER_INTERNAL_LOADER__
+	EffekseerRenderer::PngTextureLoader::Initialize();
+#endif
 }
 
 //----------------------------------------------------------------------------------
@@ -5802,13 +5388,15 @@ TextureLoader::TextureLoader( ::Effekseer::FileInterface* fileInterface )
 //----------------------------------------------------------------------------------
 TextureLoader::~TextureLoader()
 {
-
+#ifdef __EFFEKSEER_RENDERER_INTERNAL_LOADER__
+	EffekseerRenderer::PngTextureLoader::Finalize();
+#endif
 }
 
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-void* TextureLoader::Load(const EFK_CHAR* path, ::Effekseer::TextureType textureType)
+Effekseer::TextureData* TextureLoader::Load(const EFK_CHAR* path, ::Effekseer::TextureType textureType)
 {
 	std::unique_ptr<Effekseer::FileReader> 
 		reader( m_fileInterface->OpenRead( path ) );
@@ -5817,44 +5405,157 @@ void* TextureLoader::Load(const EFK_CHAR* path, ::Effekseer::TextureType texture
 	{
 		size_t size_texture = reader->GetLength();
 		char* data_texture = new char[size_texture];
-		reader->Read( data_texture, size_texture );
-		EffekseerRenderer::PngTextureLoader::Load( data_texture, size_texture, false);
-		delete [] data_texture;
-		
-		GLuint texture = 0;
-		glGenTextures(1, &texture);
-		glBindTexture(GL_TEXTURE_2D, texture);
-		glTexImage2D(
-			GL_TEXTURE_2D, 
-			0, 
-			GL_RGBA,
-			EffekseerRenderer::PngTextureLoader::GetWidth(), 
-			EffekseerRenderer::PngTextureLoader::GetHeight(),
-			0,
-			GL_RGBA,
-			GL_UNSIGNED_BYTE,
-			EffekseerRenderer::PngTextureLoader::GetData().data());
-		
-		/* ミップマップの生成 */
-		GLExt::glGenerateMipmap(GL_TEXTURE_2D);
+		reader->Read(data_texture, size_texture);
 
-		glBindTexture(GL_TEXTURE_2D, 0);
-		EffekseerRenderer::PngTextureLoader::Unload();
+		if (size_texture < 4)
+		{
+		}
+		else if (data_texture[1] == 'P' &&
+			data_texture[2] == 'N' &&
+			data_texture[3] == 'G')
+		{
+			EffekseerRenderer::PngTextureLoader::Load(data_texture, size_texture, false);
+			delete [] data_texture;
 
-		return (void*)texture;
+			GLuint texture = 0;
+			glGenTextures(1, &texture);
+			glBindTexture(GL_TEXTURE_2D, texture);
+			glTexImage2D(
+				GL_TEXTURE_2D,
+				0,
+				GL_RGBA,
+				EffekseerRenderer::PngTextureLoader::GetWidth(),
+				EffekseerRenderer::PngTextureLoader::GetHeight(),
+				0,
+				GL_RGBA,
+				GL_UNSIGNED_BYTE,
+				EffekseerRenderer::PngTextureLoader::GetData().data());
+
+			// Generate mipmap
+			GLExt::glGenerateMipmap(GL_TEXTURE_2D);
+
+			glBindTexture(GL_TEXTURE_2D, 0);
+			EffekseerRenderer::PngTextureLoader::Unload();
+
+			auto textureData = new Effekseer::TextureData();
+			textureData->UserPtr = nullptr;
+			textureData->UserID = texture;
+			textureData->TextureFormat = Effekseer::TextureFormatType::ABGR8;
+			textureData->Width = EffekseerRenderer::PngTextureLoader::GetWidth();
+			textureData->Height = EffekseerRenderer::PngTextureLoader::GetHeight();
+			return textureData;
+		}
+		else if (data_texture[0] == 'D' &&
+			data_texture[1] == 'D' &&
+			data_texture[2] == 'S' &&
+			data_texture[3] == ' ')
+		{
+			if (EffekseerRenderer::DDSTextureLoader::Load(data_texture, size_texture))
+			{
+				delete[] data_texture;
+
+				if (EffekseerRenderer::DDSTextureLoader::GetTextureFormat() == Effekseer::TextureFormatType::ABGR8)
+				{
+					GLuint texture = 0;
+
+					glGenTextures(1, &texture);
+					glBindTexture(GL_TEXTURE_2D, texture);
+
+					glTexImage2D(
+						GL_TEXTURE_2D,
+						0,
+						GL_RGBA,
+						EffekseerRenderer::DDSTextureLoader::GetWidth(),
+						EffekseerRenderer::DDSTextureLoader::GetHeight(),
+						0,
+						GL_RGBA,
+						GL_UNSIGNED_BYTE,
+						EffekseerRenderer::DDSTextureLoader::GetData().data());
+
+					// Generate mipmap
+					GLExt::glGenerateMipmap(GL_TEXTURE_2D);
+
+					glBindTexture(GL_TEXTURE_2D, 0);
+
+					delete[] data_texture;
+
+					auto textureData = new Effekseer::TextureData();
+					textureData->UserPtr = nullptr;
+					textureData->UserID = texture;
+					textureData->TextureFormat = EffekseerRenderer::DDSTextureLoader::GetTextureFormat();
+					textureData->Width = EffekseerRenderer::DDSTextureLoader::GetWidth();
+					textureData->Height = EffekseerRenderer::DDSTextureLoader::GetHeight();
+					return textureData;
+				}
+				else
+				{
+					uint32_t format = 0;
+
+					if (EffekseerRenderer::DDSTextureLoader::GetTextureFormat() == Effekseer::TextureFormatType::BC1)
+					{
+						format = GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
+					}
+					else if (EffekseerRenderer::DDSTextureLoader::GetTextureFormat() == Effekseer::TextureFormatType::BC2)
+					{
+						format = GL_COMPRESSED_RGBA_S3TC_DXT3_EXT;
+					}
+					else if (EffekseerRenderer::DDSTextureLoader::GetTextureFormat() == Effekseer::TextureFormatType::BC3)
+					{
+						format = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
+					}
+
+					GLuint texture = 0;
+					glGenTextures(1, &texture);
+					glBindTexture(GL_TEXTURE_2D, texture);
+
+					GLExt::glCompressedTexImage2D(
+						GL_TEXTURE_2D,
+						0,
+						format,
+						EffekseerRenderer::DDSTextureLoader::GetWidth(),
+						EffekseerRenderer::DDSTextureLoader::GetHeight(),
+						0,
+						EffekseerRenderer::DDSTextureLoader::GetData().size(),
+						EffekseerRenderer::DDSTextureLoader::GetData().data());
+
+					// Generate mipmap
+					GLExt::glGenerateMipmap(GL_TEXTURE_2D);
+
+					glBindTexture(GL_TEXTURE_2D, 0);
+
+					auto textureData = new Effekseer::TextureData();
+					textureData->UserPtr = nullptr;
+					textureData->UserID = texture;
+					textureData->TextureFormat = EffekseerRenderer::DDSTextureLoader::GetTextureFormat();
+					textureData->Width = EffekseerRenderer::DDSTextureLoader::GetWidth();
+					textureData->Height = EffekseerRenderer::DDSTextureLoader::GetHeight();
+					return textureData;
+				}
+			}
+			else
+			{
+				delete[] data_texture;
+			}
+		}
 	}
-	return NULL;
+
+	return nullptr;
 }
 
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-void TextureLoader::Unload( void* data )
+void TextureLoader::Unload(Effekseer::TextureData* data )
 {
 	if( data != NULL )
 	{
-		GLuint texture = EffekseerRenderer::TexturePointerToTexture <GLuint> (data);
+		GLuint texture = data->UserID;
 		glDeleteTextures(1, &texture);
+	}
+
+	if (data != nullptr)
+	{
+		delete data;
 	}
 }
 
@@ -5867,77 +5568,6 @@ void TextureLoader::Unload( void* data )
 //----------------------------------------------------------------------------------
 
 #endif
-
-//----------------------------------------------------------------------------------
-// Include
-//----------------------------------------------------------------------------------
-
-
-//-----------------------------------------------------------------------------------
-//
-//-----------------------------------------------------------------------------------
-namespace EffekseerRendererGL
-{
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-TrackRenderer::TrackRenderer(RendererImplemented* renderer)
-	: m_renderer(renderer)
-{
-}
-
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-TrackRenderer::~TrackRenderer()
-{
-}
-
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-TrackRenderer* TrackRenderer::Create(RendererImplemented* renderer)
-{
-	assert(renderer != NULL);
-
-	return new TrackRenderer(renderer);
-}
-
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-void TrackRenderer::BeginRendering( const efkTrackNodeParam& parameter, int32_t count, void* userData )
-{
-	BeginRendering_<Vertex>( m_renderer, parameter, count, userData );
-}
-
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-void TrackRenderer::Rendering( const efkTrackNodeParam& parameter, const efkTrackInstanceParam& instanceParameter, void* userData )
-{
-	Rendering_<Vertex, VertexDistortion>(parameter, instanceParameter, userData, m_renderer->GetCameraMatrix());
-}
-
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-void TrackRenderer::EndRendering(const efkTrackNodeParam& parameter, void* userData)
-{
-	if (m_ringBufferData == NULL) return;
-
-	if (m_ribbonCount <= 1) return;
-
-	EndRendering_<RendererImplemented, GLuint, Vertex>(m_renderer, parameter);
-}
-
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-}
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------------
 //
