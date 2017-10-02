@@ -587,7 +587,7 @@ namespace efk
 		renderer2d = ::EffekseerRendererGL::Renderer::Create(2000, EffekseerRendererGL::OpenGLDeviceType::OpenGL2);
 #endif
 		
-		manager2d = ::Effekseer::Manager::Create(2000);
+		manager2d = ::Effekseer::Manager::Create(8000);
 
 		renderer2d->SetProjectionMatrix(
 			::Effekseer::Matrix44().OrthographicRH(visibleSize.width, visibleSize.height, 1.0f, 400.0f));
@@ -599,7 +599,8 @@ namespace efk
 				::Effekseer::Vector3D(visibleSize.width / 2.0f, visibleSize.height / 2.0f, -200.0f),
 				::Effekseer::Vector3D(0.0f, 1.0f, 0.0f)));
 
-		renderer2d->SetDistortingCallback(new DistortingCallbackGL(renderer2d));
+		distortingCallback = new DistortingCallbackGL(renderer2d);
+
 		manager2d->SetSpriteRenderer(renderer2d->CreateSpriteRenderer());
 		manager2d->SetRibbonRenderer(renderer2d->CreateRibbonRenderer());
 		manager2d->SetRingRenderer(renderer2d->CreateRingRenderer());
@@ -629,6 +630,12 @@ namespace efk
 
 	EffectManager::~EffectManager()
 	{
+		if (distortingCallback != nullptr)
+		{
+			delete distortingCallback;
+			distortingCallback = nullptr;
+		}
+
 		if (manager2d != nullptr)
 		{
 			manager2d->Destroy();
@@ -642,8 +649,37 @@ namespace efk
 		}
 	}
 
+	void EffectManager::setIsDistortionEnabled(bool value)
+	{
+		isDistortionEnabled = value;
+	}
+
 	void EffectManager::begin(cocos2d::Renderer *renderer, float globalZOrder)
 	{
+		if (isDistortionEnabled)
+		{
+			distortionCommand.init(globalZOrder);
+			distortionCommand.func = [this]() -> void
+			{
+				renderer2d->SetRestorationOfStatesFlag(true);
+				renderer2d->BeginRendering();
+				distortingCallback->OnDistorting();
+				renderer2d->EndRendering();
+
+				// Reset Parameters
+				cocos2d::GL::useProgram(0);
+				cocos2d::GL::enableVertexAttribs(0);
+				cocos2d::GL::bindVAO(0);
+				cocos2d::GL::bindTexture2D((GLuint)0);
+			};
+
+			renderer->addCommand(&distortionCommand);
+		}
+		else
+		{
+			renderer2d->SetBackground(0);
+		}
+
 		// TODO Batch render
 		/*
 		beginCommand.init(globalZOrder);
