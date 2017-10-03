@@ -11,7 +11,9 @@ namespace efk
 	class EffectManager;
 
 	/**
-		@brief	エフェクトのリソースクラス
+		@brief	
+		\~English	Effect resource class
+		\~Japanese	エフェクトのリソースクラス
 	*/
 	class Effect
 		: public cocos2d::Ref
@@ -27,8 +29,12 @@ namespace efk
 		virtual ~Effect();
 
 		/**
-			@brief	EffekseerのEffectのポインタを取得する。
-			@return	EffekseerのEffectのポインタ
+			@brief
+			\~English	Get the pointer of Effekseer::Effect
+			\~Japanese	Effekseer::Effectのポインタを取得する。
+			@return
+			\~English　	The pointer of Effekseer::Effect
+			\~Japanese	Effekseer::Effectのポインタ
 		*/
 		::Effekseer::Effect* getInternalPtr()
 		{
@@ -54,20 +60,48 @@ namespace efk
 		cocos2d::CustomCommand	renderCommand;
 
 	public:
+		/**
+			@brief
+			\~English	Create the instance of emitter class.
+			\~Japanese	エミッタークラスのインスタンスを生成する。
+
+			@return
+			\~English	Instance
+			\~Japanese	インスタンス
+		*/
 		static EffectEmitter* create(EffectManager* manager);
 
+		/**
+			@brief
+			\~English	Constructor
+			\~Japanese	コンストラクタ
+		*/
 		EffectEmitter(EffectManager* manager);
+
+		/**
+			@brief
+			\~English	Destructor
+			\~Japanese	デストラクタ
+		*/
 		virtual ~EffectEmitter();
 
 		/**
-			@brief	エフェクトのリソースを取得する。
-			@return	エフェクトのリソース
+			@brief
+			\~English	Get an effect's resource
+			\~Japanese	エフェクトのリソースを取得する。
+			@return
+			\~English	An effect's resource
+			\~Japanese	エフェクトのリソース
 		*/
 		Effect* getEffect();
 
 		/**
-		@brief	エフェクトのリソースを設定する。
-		@param	effect	エフェクトのリソース
+			@brief
+			\~English	Set an effect's resource 
+			\~Japanese	エフェクトのリソースを設定する。
+			@param	effect
+			\~English	An effect's resource 
+			\~Japanese	エフェクトのリソース
 		*/
 		void setEffect(Effect* effect);
 
@@ -79,14 +113,22 @@ namespace efk
 		void play();
 
 		/**
-			@brief	追加時に再生を開始するかどうか、取得する。
-			@return	フラグ
+			@brief
+			\~English	Get whether to start playing the effect when adding a node.
+			\~Japanese	追加時に再生を開始するかどうか、設定する。
+			@return	value
+			\~English	Flag
+			\~Japanese	フラグ
 		*/
 		bool getPlayOnEnter();
 
 		/**
-			@brief	追加時に再生を開始するかどうか、設定する。
-			@return	value	フラグ
+			@brief	
+			\~English	Set whether to start playing the effect when adding a node.
+			\~Japanese	追加時に再生を開始するかどうか、設定する。
+			@return	value
+			\~English	Flag
+			\~Japanese	フラグ
 		*/
 		void setPlayOnEnter(bool value);
 
@@ -177,6 +219,8 @@ namespace efk
 		::EffekseerRenderer::DistortingCallback*	distortingCallback = NULL;
 		bool										isDistortionEnabled = false;
 
+		bool										isDistorted = false;
+
 		cocos2d::CustomCommand					distortionCommand;
 		cocos2d::CustomCommand					beginCommand;
 		cocos2d::CustomCommand					endCommand;
@@ -246,14 +290,22 @@ namespace efk
 		void update();
 
 		/**
-		@brief	EffekseerのManagerのポインタを取得する。
-		@return	EffekseerのManagerのポインタ
+			@brief
+			\~English	Get the pointer of Effekseer::Manager
+			\~Japanese	Effekseer::Managerのポインタを取得する。
+			@return
+			\~English　	The pointer of Effekseer::Manager
+			\~Japanese	Effekseer::Managerのポインタ
 		*/
 		::Effekseer::Manager* getInternalManager() { return manager2d; }
 
 		/**
-			@brief	EffekseerのRendererのポインタを取得する。
-			@return	EffekseerのRendererのポインタ
+			@brief
+			\~English	Get the pointer of Effekseer::Renderer
+			\~Japanese	Effekseer::Rendererのポインタを取得する。
+			@return
+			\~English　	The pointer of Effekseer::Renderer
+			\~Japanese	Effekseer::Rendererのポインタ
 		*/
 		::EffekseerRendererGL::Renderer* getInternalRenderer() { return renderer2d; }
 

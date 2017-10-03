@@ -366,8 +366,8 @@ namespace efk
 		}
 
 		// TODO
-		// キャッシュ
-		// autoreleaseをどうするか
+		// Cache
+		// autorelease
 
 		return nullptr;
 	}
@@ -539,6 +539,18 @@ namespace efk
 		renderCommand.init(_globalZOrder);
 		renderCommand.func = [this]() -> void
 		{
+			if (!manager->isDistorted)
+			{
+				auto renderer2d = manager->getInternalRenderer();
+
+				renderer2d->SetRestorationOfStatesFlag(true);
+				renderer2d->BeginRendering();
+				manager->distortingCallback->OnDistorting();
+				renderer2d->EndRendering();
+
+				manager->isDistorted = true;
+			}
+
 			manager->getInternalRenderer()->SetRestorationOfStatesFlag(true);
 			manager->getInternalRenderer()->BeginRendering();
 			manager->getInternalManager()->DrawHandle(handle);
@@ -658,25 +670,11 @@ namespace efk
 	{
 		if (isDistortionEnabled)
 		{
-			distortionCommand.init(globalZOrder);
-			distortionCommand.func = [this]() -> void
-			{
-				renderer2d->SetRestorationOfStatesFlag(true);
-				renderer2d->BeginRendering();
-				distortingCallback->OnDistorting();
-				renderer2d->EndRendering();
-
-				// Reset Parameters
-				cocos2d::GL::useProgram(0);
-				cocos2d::GL::enableVertexAttribs(0);
-				cocos2d::GL::bindVAO(0);
-				cocos2d::GL::bindTexture2D((GLuint)0);
-			};
-
-			renderer->addCommand(&distortionCommand);
+			isDistorted = false;
 		}
 		else
 		{
+			isDistorted = true;
 			renderer2d->SetBackground(0);
 		}
 
