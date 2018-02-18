@@ -1,4 +1,6 @@
-﻿EffekseerForCocos2d-x
+﻿# This repository is for maintenance 1.3x
+
+EffekseerForCocos2d-x
 =========
 
 This is a wrapper of Effekseer for Cocos2d-x.
