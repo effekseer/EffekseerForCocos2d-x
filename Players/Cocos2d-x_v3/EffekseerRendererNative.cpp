@@ -96,58 +96,6 @@ void* IndexBufferBase::GetBufferDirect( int count )
 //-----------------------------------------------------------------------------------
 namespace EffekseerRenderer
 {
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-ModelRendererBase::ModelRendererBase()
-{
-}
-
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-ModelRendererBase::~ModelRendererBase()
-{
-}
-
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-void ModelRendererBase::Rendering( const efkModelNodeParam& parameter, const efkModelInstanceParam& instanceParameter, void* userData )
-{
-	Effekseer::Matrix44 mat;
-	for( int32_t r = 0; r < 4; r++ )
-	{
-		for( int32_t c = 0; c < 3; c++ )
-		{
-			mat.Values[r][c] = instanceParameter.SRTMatrix43.Value[r][c];
-		}
-	}
-
-	if( parameter.Magnification != 1.0f )
-	{
-		Effekseer::Matrix44 mat_scale;
-		mat_scale.Values[0][0] = parameter.Magnification;
-		mat_scale.Values[1][1] = parameter.Magnification;
-		mat_scale.Values[2][2] = parameter.Magnification;
-
-		Effekseer::Matrix44::Mul( mat, mat_scale, mat );
-	}
-
-	if( !parameter.IsRightHand )
-	{
-		Effekseer::Matrix44 mat_scale;
-		mat_scale.Values[0][0] = 1.0f;
-		mat_scale.Values[1][1] = 1.0f;
-		mat_scale.Values[2][2] = -1.0f;
-
-		Effekseer::Matrix44::Mul( mat, mat_scale, mat );
-	}
-
-	m_matrixes.push_back( mat );
-	m_uv.push_back( instanceParameter.UV );
-	m_colors.push_back( instanceParameter.AllColor );
-}
 
 //----------------------------------------------------------------------------------
 //
@@ -788,6 +736,8 @@ public:
 public:
 	void BeginRendering(const efkModelNodeParam& parameter, int32_t count, void* userData) override;
 
+	virtual void Rendering(const efkModelNodeParam& parameter, const InstanceParameter& instanceParameter, void* userData) override;
+
 	void EndRendering( const efkModelNodeParam& parameter, void* userData ) override;
 };
 //----------------------------------------------------------------------------------
@@ -807,6 +757,8 @@ public:
 
 #if defined(_M_IX86) || defined(__x86__)
 #define EFK_SSE2
+#elif defined(__ARM_NEON__)
+#define EFK_NEON
 #endif
 
 #ifdef _MSC_VER
@@ -918,6 +870,54 @@ inline void TransformVertexes( Vertex* vertexes, int32_t count, const ::Effeksee
 			inout_prev->Y = tmp_out[1];
 			inout_prev->Z = tmp_out[2];
 		}
+	#elif defined(EFK_NEON)
+		float32x4_t r0 = vld1q_f32( mat.Value[0] );
+		float32x4_t r1 = vld1q_f32( mat.Value[1] );
+		float32x4_t r2 = vld1q_f32( mat.Value[2] );
+		float32x4_t r3 = vld1q_f32( mat.Value[3] );
+	
+		float tmp_out[4];
+		::Effekseer::Vector3D* inout_prev;
+	
+		// １ループ目
+		{
+			::Effekseer::Vector3D* inout_cur = &vertexes[0].Pos;
+			float32x4_t v = vld1q_f32( (const float*)inout_cur );
+			
+			float32x4_t a = vmlaq_lane_f32( r3, r0, vget_low_f32(v), 0 );
+			a = vmlaq_lane_f32( a, r1, vget_low_f32(v), 1 );
+			a = vmlaq_lane_f32( a, r2, vget_high_f32(v), 0 );
+			
+			// 今回の結果をストアしておく
+			vst1q_f32( tmp_out, a );
+			inout_prev = inout_cur;
+		}
+	
+		for( int i = 1; i < count; i++ )
+		{
+			::Effekseer::Vector3D* inout_cur = &vertexes[i].Pos;
+			float32x4_t v = vld1q_f32( (const float*)inout_cur );
+			
+			float32x4_t a = vmlaq_lane_f32( r3, r0, vget_low_f32(v), 0 );
+			a = vmlaq_lane_f32( a, r1, vget_low_f32(v), 1 );
+			a = vmlaq_lane_f32( a, r2, vget_high_f32(v), 0 );
+			
+			// 直前のループの結果を書き込みます
+			inout_prev->X = tmp_out[0];
+			inout_prev->Y = tmp_out[1];
+			inout_prev->Z = tmp_out[2];
+			
+			// 今回の結果をストアしておく
+			vst1q_f32( tmp_out, a );
+			inout_prev = inout_cur;
+		}
+	
+		// 最後のループの結果を書き込み
+		{
+			inout_prev->X = tmp_out[0];
+			inout_prev->Y = tmp_out[1];
+			inout_prev->Z = tmp_out[2];
+		}
 	#else
 		for( int i = 0; i < count; i++ )
 		{
@@ -996,6 +996,54 @@ inline void TransformVertexes(VertexDistortion* vertexes, int32_t count, const :
 			inout_prev->Y = tmp_out[1];
 			inout_prev->Z = tmp_out[2];
 		}
+#elif defined(EFK_NEON)
+	float32x4_t r0 = vld1q_f32(mat.Value[0]);
+	float32x4_t r1 = vld1q_f32(mat.Value[1]);
+	float32x4_t r2 = vld1q_f32(mat.Value[2]);
+	float32x4_t r3 = vld1q_f32(mat.Value[3]);
+	
+	float tmp_out[4];
+	::Effekseer::Vector3D* inout_prev;
+	
+	// １ループ目
+	{
+		::Effekseer::Vector3D* inout_cur = &vertexes[0].Pos;
+		float32x4_t v = vld1q_f32((const float*) inout_cur);
+		
+		float32x4_t a = vmlaq_lane_f32( r3, r0, vget_low_f32(v), 0 );
+		a = vmlaq_lane_f32( a, r1, vget_low_f32(v), 1 );
+		a = vmlaq_lane_f32( a, r2, vget_high_f32(v), 0 );
+		
+		// 今回の結果をストアしておく
+		vst1q_f32(tmp_out, a);
+		inout_prev = inout_cur;
+	}
+	
+	for (int i = 1; i < count; i++)
+	{
+		::Effekseer::Vector3D* inout_cur = &vertexes[i].Pos;
+		float32x4_t v = vld1q_f32((const float*) inout_cur);
+		
+		float32x4_t a = vmlaq_lane_f32( r3, r0, vget_low_f32(v), 0 );
+		a = vmlaq_lane_f32( a, r1, vget_low_f32(v), 1 );
+		a = vmlaq_lane_f32( a, r2, vget_high_f32(v), 0 );
+		
+		// 直前のループの結果を書き込みます
+		inout_prev->X = tmp_out[0];
+		inout_prev->Y = tmp_out[1];
+		inout_prev->Z = tmp_out[2];
+		
+		// 今回の結果をストアしておく
+		vst1q_f32(tmp_out, a);
+		inout_prev = inout_cur;
+	}
+	
+	// 最後のループの結果を書き込み
+	{
+		inout_prev->X = tmp_out[0];
+		inout_prev->Y = tmp_out[1];
+		inout_prev->Z = tmp_out[2];
+	}
 #else
 	for (int i = 0; i < count; i++)
 	{
@@ -1251,7 +1299,11 @@ public:
 	/**
 	@brief	背景を取得する。
 	*/
-	Effekseer::TextureData* GetBackground() override { return &m_background; }
+	Effekseer::TextureData* GetBackground() override 
+	{
+		if (m_background.UserID == 0) return nullptr;
+		return &m_background;
+	}
 
 	/**
 	@brief	背景を設定する。
@@ -3116,9 +3168,16 @@ void ModelRenderer::BeginRendering(const efkModelNodeParam& parameter, int32_t c
 	BeginRendering_(m_renderer, parameter, count, userData);
 }
 
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
+void ModelRenderer::Rendering(const efkModelNodeParam& parameter, const InstanceParameter& instanceParameter, void* userData)
+{
+	Rendering_<
+		RendererImplemented>(
+		m_renderer,
+		parameter,
+		instanceParameter,
+		userData);
+}
+
 void ModelRenderer::EndRendering( const efkModelNodeParam& parameter, void* userData )
 {
 	if (parameter.Distortion)
@@ -4519,40 +4578,54 @@ void RendererImplemented::ResetRenderState()
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-Model::Model(void* data, int32_t size)
-	: ::Effekseer::Model(data, size)
-	, VertexBuffer(0)
-	, IndexBuffer(0)
-	, ModelCount(1)
+
+Model::InternalModel::InternalModel()
 {
-	auto vertexData = GetVertexes();
-	auto vertexCount = GetVertexCount();
-	auto faceData = GetFaces();
-	auto faceCount = GetFaceCount();
-
-	VertexCount = vertexCount;
-	IndexCount = faceCount * 3;
-
-	GLExt::glGenBuffers(1, &VertexBuffer);
-	GLExt::glBindBuffer(GL_ARRAY_BUFFER, VertexBuffer);
-	size_t vertexSize = vertexCount * sizeof(::Effekseer::Model::Vertex);
-	GLExt::glBufferData(GL_ARRAY_BUFFER, vertexSize, vertexData, GL_STATIC_DRAW);
-	GLExt::glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-	GLExt::glGenBuffers(1, &IndexBuffer);
-	GLExt::glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IndexBuffer);
-	size_t indexSize = faceCount * sizeof(::Effekseer::Model::Face);
-	GLExt::glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexSize, faceData, GL_STATIC_DRAW);
-	GLExt::glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+	VertexBuffer = 0;
+	IndexBuffer = 0;
 }
 
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
+Model::InternalModel::~InternalModel()
+{
+	GLExt::glDeleteBuffers(1, &IndexBuffer);
+	GLExt::glDeleteBuffers(1, &VertexBuffer);
+}
+
+Model::Model(void* data, int32_t size)
+	: ::Effekseer::Model(data, size)
+	, InternalModels(nullptr)
+	, ModelCount(1)
+{
+	InternalModels = new Model::InternalModel[GetFrameCount()];
+
+	for (int32_t f = 0; f < GetFrameCount(); f++)
+	{
+		auto vertexData = GetVertexes(f);
+		auto vertexCount = GetVertexCount(f);
+		auto faceData = GetFaces(f);
+		auto faceCount = GetFaceCount(f);
+
+		InternalModels[f].VertexCount = vertexCount;
+		InternalModels[f].IndexCount = faceCount * 3;
+
+		GLExt::glGenBuffers(1, &InternalModels[f].VertexBuffer);
+		GLExt::glBindBuffer(GL_ARRAY_BUFFER, InternalModels[f].VertexBuffer);
+		size_t vertexSize = vertexCount * sizeof(::Effekseer::Model::Vertex);
+		GLExt::glBufferData(GL_ARRAY_BUFFER, vertexSize, vertexData, GL_STATIC_DRAW);
+		GLExt::glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+		GLExt::glGenBuffers(1, &InternalModels[f].IndexBuffer);
+		GLExt::glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, InternalModels[f].IndexBuffer);
+		size_t indexSize = faceCount * sizeof(::Effekseer::Model::Face);
+		GLExt::glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexSize, faceData, GL_STATIC_DRAW);
+		GLExt::glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+	}
+}
+
 Model::~Model()
 {
-	GLExt::glDeleteBuffers( 1, &IndexBuffer );
-	GLExt::glDeleteBuffers( 1, &VertexBuffer );
+	ES_SAFE_DELETE_ARRAY(InternalModels);
+
 }
 
 //----------------------------------------------------------------------------------
@@ -4659,7 +4732,7 @@ void RenderState::Update( bool forced )
 			if( m_next.AlphaBlend == ::Effekseer::AlphaBlendType::Sub )
 			{
 				GLExt::glBlendEquationSeparate(GL_FUNC_REVERSE_SUBTRACT, GL_FUNC_ADD);
-				GLExt::glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE, GL_ONE, GL_ONE);
+				GLExt::glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE, GL_ZERO, GL_ONE);
 			}
 			else
 			{
@@ -4674,7 +4747,7 @@ void RenderState::Update( bool forced )
 				}
 				else if( m_next.AlphaBlend == ::Effekseer::AlphaBlendType::Mul )
 				{
-					GLExt::glBlendFuncSeparate(GL_ZERO, GL_SRC_COLOR, GL_ONE, GL_ONE);
+					GLExt::glBlendFuncSeparate(GL_ZERO, GL_SRC_COLOR, GL_ZERO, GL_ONE);
 				}
 			}
 		}
