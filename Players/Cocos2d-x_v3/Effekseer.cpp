@@ -366,8 +366,8 @@ namespace efk
 		}
 
 		// TODO
-		// Cache
-		// autorelease
+		// キャッシュ
+		// autoreleaseをどうするか
 
 		return nullptr;
 	}
@@ -432,13 +432,9 @@ namespace efk
 		if (effect == nullptr) return;
 		if (manager == nullptr) return;
 
-		auto pos = this->getPosition();
-		auto rot = this->getRotation();
-		auto scale = this->getScale();
-
-		handle = manager->play(effect, pos.x, pos.y, 0);
-		manager->setRotation(handle, 0, 0, rot);
-		manager->setScale(handle, scale, scale, scale);
+		handle = manager->play(effect, 0, 0, 0);
+		auto transform = this->getNodeToWorldTransform();
+		manager->setMatrix(handle, transform);
 	}
 
 	bool EffectEmitter::getPlayOnEnter()
@@ -523,13 +519,8 @@ namespace efk
 			}
 		}
 
-		auto pos = this->getPosition();
-		auto rot = this->getRotation();
-		auto scale = this->getScale();
-
-		manager->setPotation(handle, pos.x, pos.y, 0);
-		manager->setRotation(handle, 0, angleY, rot);
-		manager->setScale(handle, scale, scale, scale);
+		auto transform = this->getNodeToWorldTransform();
+		manager->setMatrix(handle, transform);
 
 		cocos2d::Node::update(delta);
 	}
@@ -539,18 +530,6 @@ namespace efk
 		renderCommand.init(_globalZOrder);
 		renderCommand.func = [this]() -> void
 		{
-			if (!manager->isDistorted)
-			{
-				auto renderer2d = manager->getInternalRenderer();
-
-				renderer2d->SetRestorationOfStatesFlag(true);
-				renderer2d->BeginRendering();
-				manager->distortingCallback->OnDistorting();
-				renderer2d->EndRendering();
-
-				manager->isDistorted = true;
-			}
-
 			manager->getInternalRenderer()->SetRestorationOfStatesFlag(true);
 			manager->getInternalRenderer()->BeginRendering();
 			manager->getInternalManager()->DrawHandle(handle);
@@ -591,6 +570,20 @@ namespace efk
 		manager2d->SetScale(handle, x, y, z);
 	}
 
+	void EffectManager::setMatrix(::Effekseer::Handle handle, const cocos2d::Mat4& mat)
+	{
+		Effekseer::Matrix43 mat_;
+		for (int32_t i = 0; i < 4; i++)
+		{
+			for (int32_t j = 0; j < 3; j++)
+			{
+				mat_.Value[i][j] = mat.m[i * 4 + j];
+			}
+		}
+
+		manager2d->SetMatrix(handle, mat_);
+	}
+
 	bool EffectManager::Initialize(cocos2d::Size visibleSize)
 	{
 #if (CC_TARGET_PLATFORM == CC_PLATFORM_IOS || CC_TARGET_PLATFORM == CC_PLATFORM_ANDROID)
@@ -599,7 +592,7 @@ namespace efk
 		renderer2d = ::EffekseerRendererGL::Renderer::Create(2000, EffekseerRendererGL::OpenGLDeviceType::OpenGL2);
 #endif
 		
-		manager2d = ::Effekseer::Manager::Create(8000);
+		manager2d = ::Effekseer::Manager::Create(2000);
 
 		renderer2d->SetProjectionMatrix(
 			::Effekseer::Matrix44().OrthographicRH(visibleSize.width, visibleSize.height, 1.0f, 400.0f));
@@ -611,8 +604,7 @@ namespace efk
 				::Effekseer::Vector3D(visibleSize.width / 2.0f, visibleSize.height / 2.0f, -200.0f),
 				::Effekseer::Vector3D(0.0f, 1.0f, 0.0f)));
 
-		distortingCallback = new DistortingCallbackGL(renderer2d);
-
+		renderer2d->SetDistortingCallback(new DistortingCallbackGL(renderer2d));
 		manager2d->SetSpriteRenderer(renderer2d->CreateSpriteRenderer());
 		manager2d->SetRibbonRenderer(renderer2d->CreateRibbonRenderer());
 		manager2d->SetRingRenderer(renderer2d->CreateRingRenderer());
@@ -642,12 +634,6 @@ namespace efk
 
 	EffectManager::~EffectManager()
 	{
-		if (distortingCallback != nullptr)
-		{
-			delete distortingCallback;
-			distortingCallback = nullptr;
-		}
-
 		if (manager2d != nullptr)
 		{
 			manager2d->Destroy();
@@ -661,23 +647,8 @@ namespace efk
 		}
 	}
 
-	void EffectManager::setIsDistortionEnabled(bool value)
-	{
-		isDistortionEnabled = value;
-	}
-
 	void EffectManager::begin(cocos2d::Renderer *renderer, float globalZOrder)
 	{
-		if (isDistortionEnabled)
-		{
-			isDistorted = false;
-		}
-		else
-		{
-			isDistorted = true;
-			renderer2d->SetBackground(0);
-		}
-
 		// TODO Batch render
 		/*
 		beginCommand.init(globalZOrder);
