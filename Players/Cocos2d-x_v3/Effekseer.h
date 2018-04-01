@@ -11,7 +11,9 @@ namespace efk
 	class EffectManager;
 
 	/**
-		@brief	エフェクトのリソースクラス
+		@brief	
+		\~English	Effect resource class
+		\~Japanese	エフェクトのリソースクラス
 	*/
 	class Effect
 		: public cocos2d::Ref
@@ -27,8 +29,12 @@ namespace efk
 		virtual ~Effect();
 
 		/**
-			@brief	EffekseerのEffectのポインタを取得する。
-			@return	EffekseerのEffectのポインタ
+			@brief
+			\~English	Get the pointer of Effekseer::Effect
+			\~Japanese	Effekseer::Effectのポインタを取得する。
+			@return
+			\~English　	The pointer of Effekseer::Effect
+			\~Japanese	Effekseer::Effectのポインタ
 		*/
 		::Effekseer::Effect* getInternalPtr()
 		{
@@ -54,84 +60,144 @@ namespace efk
 		cocos2d::CustomCommand	renderCommand;
 
 	public:
+		/**
+			@brief
+			\~English	Create the instance of emitter class.
+			\~Japanese	エミッタークラスのインスタンスを生成する。
+
+			@return
+			\~English	Instance
+			\~Japanese	インスタンス
+		*/
 		static EffectEmitter* create(EffectManager* manager);
 
+		/**
+			@brief
+			\~English	Constructor
+			\~Japanese	コンストラクタ
+		*/
 		EffectEmitter(EffectManager* manager);
+
+		/**
+			@brief
+			\~English	Destructor
+			\~Japanese	デストラクタ
+		*/
 		virtual ~EffectEmitter();
 
 		/**
-			@brief	エフェクトのリソースを取得する。
-			@return	エフェクトのリソース
+			@brief
+			\~English	Get an effect's resource
+			\~Japanese	エフェクトのリソースを取得する。
+			@return
+			\~English	An effect's resource
+			\~Japanese	エフェクトのリソース
 		*/
 		Effect* getEffect();
 
 		/**
-		@brief	エフェクトのリソースを設定する。
-		@param	effect	エフェクトのリソース
+			@brief
+			\~English	Set an effect's resource 
+			\~Japanese	エフェクトのリソースを設定する。
+			@param	effect
+			\~English	An effect's resource 
+			\~Japanese	エフェクトのリソース
 		*/
 		void setEffect(Effect* effect);
 
 		/**
-			@brief	エフェクトを再生する。
+			@brief
+			\~English	Play the effect.
+			\~Japanese	エフェクトを再生する。
 		*/
 		void play();
 
 		/**
-			@brief	追加時に再生を開始するかどうか、取得する。
-			@return	フラグ
+			@brief
+			\~English	Get whether to start playing the effect when adding a node.
+			\~Japanese	追加時に再生を開始するかどうか、設定する。
+			@return	value
+			\~English	Flag
+			\~Japanese	フラグ
 		*/
 		bool getPlayOnEnter();
 
 		/**
-			@brief	追加時に再生を開始するかどうか、設定する。
-			@return	value	フラグ
+			@brief	
+			\~English	Set whether to start playing the effect when adding a node.
+			\~Japanese	追加時に再生を開始するかどうか、設定する。
+			@return	value
+			\~English	Flag
+			\~Japanese	フラグ
 		*/
 		void setPlayOnEnter(bool value);
 
 		/**
-		@brief	ループ再生するかどうか、取得する。
-		@return	フラグ
+		@brief
+			\~English	Get whether to loop play the effect.
+			\~Japanese	ループ再生するかどうか、取得する。
+			@return	value
+			\~English	Flag
+			\~Japanese	フラグ
 		*/
 		bool getIsLooping();
 
 		/**
-		@brief	ループ再生するかどうか、設定する。
-		@return	value	フラグ
+			@brief	
+			\~English	Set whether to loop play the effect.
+			\~Japanese	ループ再生するかどうか、設定する。
+			@return	value
+			\~English	Flag
+			\~Japanese	フラグ
 		*/
 		void setIsLooping(bool value);
 
 		/**
-			@brief	再生終了時にノードを破棄するかどうか、取得する。
+			@brief
+			\~English	Get whether to discard the node at the end of playback.
+			\~Japanese	再生終了時にノードを破棄するかどうか、設定する。
 		*/
 		bool getRemoveOnStop();
 
 		/**
-			@brief	再生終了時にノードを破棄するかどうか、設定する。
+			@brief	
+			\~English	Set whether to discard the node at the end of playback.
+			\~Japanese	再生終了時にノードを破棄するかどうか、設定する。
 		*/
 		void setRemoveOnStop(bool value);
 
 		/**
-			@brief	Y軸方向の回転角度を取得する。
+			@brief
+			\~English	Get the angle around Y axis.
+			\~Japanese	Y軸方向の回転角度を取得する。
 		*/
 		float getAngleY();
 
 		/**
-			@brief	Y軸方向の回転角度を設定する。
+			@brief	
+			\~English	Set the angle around Y axis.
+			\~Japanese	Y軸方向の回転角度を設定する。
 		*/
 		void setAngleY(float value);
 
 		/**
-			@brief	再生中かどうか、取得する。
+			@brief	
+			\~English	Get whether or not playing the effect.
+			\~Japanese	再生中かどうか、取得する。
 		*/
 		bool isPlaying();
 
 		/**
-			@brief	エフェクトを停止する。
+			@brief
+			\~English	Stop the effect.
+			\~Japanese	エフェクトを停止する。
 		*/
 		void stop();
 
 		/**
-			@brief	エフェクトのルートのみを停止する。
+			@brief
+			\~English	Stop only the effect's root.
+			\~Japanese	エフェクトのルートのみを停止する。	
 		*/
 		void stopRoot();
 
@@ -148,12 +214,20 @@ namespace efk
 		friend class EffectEmitter;
 
 	private:
-		::Effekseer::Manager*					manager2d = NULL;
-		::EffekseerRendererGL::Renderer*		renderer2d = NULL;
+		::Effekseer::Manager*						manager2d = NULL;
+		::EffekseerRendererGL::Renderer*			renderer2d = NULL;
+		::EffekseerRenderer::DistortingCallback*	distortingCallback = NULL;
+		bool										isDistortionEnabled = false;
+
+		bool										isDistorted = false;
+
+		cocos2d::CustomCommand					distortionCommand;
 		cocos2d::CustomCommand					beginCommand;
 		cocos2d::CustomCommand					endCommand;
 
 		::Effekseer::Handle play(Effect* effect, float x, float y, float z);
+
+		void setMatrix(::Effekseer::Handle handle, const cocos2d::Mat4& mat);
 
 		void setPotation(::Effekseer::Handle handle, float x, float y, float z);
 
@@ -161,51 +235,79 @@ namespace efk
 
 		void setScale(::Effekseer::Handle handle, float x, float y, float z);
 
-		void setMatrix(::Effekseer::Handle handle, const cocos2d::Mat4& mat);
-
 		bool Initialize(cocos2d::Size visibleSize);
 	public:
 
 		/**
-			@brief	マネージャークラスを生成する。
-			@return	インスタンス
+			@brief
+			\~English	Create the instance of manager class.
+			\~Japanese	マネージャークラスのインスタンスを生成する。
+
+			@return	
+			\~English	Instance
+			\~Japanese	インスタンス
 		*/
 		static EffectManager* create(cocos2d::Size visibleSize);
 
 		/**
-			@brief	コンストラクタ
+			@brief
+			\~English	Constructor
+			\~Japanese	コンストラクタ
 		*/
 		EffectManager();
 
 		/**
-			@brief	デストラクタ
+			@brief
+			\~English	Destructor
+			\~Japanese	デストラクタ
 		*/
 		virtual ~EffectManager();
 
 		/**
-			@brief	visitを継承してレイヤーの描画を行う前に実行する。
+			@brief
+			\~English	Set whether distortion is enabled.
+			\~Japanese	歪みが有功かどうかを設定する。
+		*/
+		void setIsDistortionEnabled(bool value);
+
+		/**
+			@brief
+			\~English	Inherit visit and add a process before drawing the layer.
+			\~Japanese	visitを継承してレイヤーの描画を行う前に実行する。
 		*/
 		void begin(cocos2d::Renderer *renderer, float globalZOrder);
 
 		/**
-		@brief	visitを継承してレイヤーの描画を行った後に実行する。
+			@brief	
+			\~English	Inherit visit and add a process after drawing the layer.
+			\~Japanese	visitを継承してレイヤーの描画を行った後に実行する。
 		*/
 		void end(cocos2d::Renderer *renderer, float globalZOrder);
 
 		/**
-			@brief	毎フレーム実行する。
+			@brief
+			\~English	Update the manager every frame.
+			\~Japanese	毎フレーム実行する。
 		*/
 		void update();
 
 		/**
-		@brief	EffekseerのManagerのポインタを取得する。
-		@return	EffekseerのManagerのポインタ
+			@brief
+			\~English	Get the pointer of Effekseer::Manager
+			\~Japanese	Effekseer::Managerのポインタを取得する。
+			@return
+			\~English　	The pointer of Effekseer::Manager
+			\~Japanese	Effekseer::Managerのポインタ
 		*/
 		::Effekseer::Manager* getInternalManager() { return manager2d; }
 
 		/**
-			@brief	EffekseerのRendererのポインタを取得する。
-			@return	EffekseerのRendererのポインタ
+			@brief
+			\~English	Get the pointer of Effekseer::Renderer
+			\~Japanese	Effekseer::Rendererのポインタを取得する。
+			@return
+			\~English　	The pointer of Effekseer::Renderer
+			\~Japanese	Effekseer::Rendererのポインタ
 		*/
 		::EffekseerRendererGL::Renderer* getInternalRenderer() { return renderer2d; }
 
