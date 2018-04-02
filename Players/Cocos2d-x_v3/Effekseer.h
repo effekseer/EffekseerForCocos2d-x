@@ -72,6 +72,21 @@ namespace efk
 		static EffectEmitter* create(EffectManager* manager);
 
 		/**
+		@brief
+		\~English	Create the instance of emitter class.
+		\~Japanese	エミッタークラスのインスタンスを生成する。
+
+		@param	filename
+		\~English	An effect files's path
+		\~Japanese	エフェクトファイルのパス
+
+		@return
+		\~English	Instance
+		\~Japanese	インスタンス
+		*/
+		static EffectEmitter* create(EffectManager* manager, const std::string& filename);
+
+		/**
 			@brief
 			\~English	Constructor
 			\~Japanese	コンストラクタ
@@ -310,6 +325,9 @@ namespace efk
 			\~Japanese	Effekseer::Rendererのポインタ
 		*/
 		::EffekseerRendererGL::Renderer* getInternalRenderer() { return renderer2d; }
+
+		void setCameraMatrix(const cocos2d::Mat4& mat);
+		void setProjectionMatrix(const cocos2d::Mat4& mat);
 
 	};
 }

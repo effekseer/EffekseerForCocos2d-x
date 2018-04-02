@@ -321,7 +321,7 @@ namespace efk
 
 		EffekseerSetting()
 		{
-			effectFile = new efk::EffekseerFile();
+			effectFile = new EffekseerFile();
 			SetEffectLoader(Effekseer::Effect::CreateEffectLoader(effectFile));
 			SetTextureLoader(new TextureLoader(effectFile));
 			SetModelLoader(new ::EffekseerRendererGL::ModelLoader(effectFile));
@@ -390,6 +390,16 @@ namespace efk
 		return new EffectEmitter(manager);
 	}
 
+	EffectEmitter* EffectEmitter::create(EffectManager* manager, const std::string& filename)
+	{
+		auto effectEmitter = new EffectEmitter(manager);
+		auto effect = Effect::create(filename);
+		effectEmitter->setEffect(effect);
+		effectEmitter->playOnEnter = true;
+		effect->release();
+		return effectEmitter;
+	}
+
 	EffectEmitter::EffectEmitter(EffectManager* manager)
 	{
 		this->manager = manager;
@@ -433,8 +443,7 @@ namespace efk
 		if (manager == nullptr) return;
 
 		handle = manager->play(effect, 0, 0, 0);
-		auto transform = this->getNodeToWorldTransform();
-		manager->setMatrix(handle, transform);
+		manager->setMatrix(handle, _modelViewTransform);
 	}
 
 	bool EffectEmitter::getPlayOnEnter()
@@ -519,8 +528,7 @@ namespace efk
 			}
 		}
 
-		auto transform = this->getNodeToWorldTransform();
-		manager->setMatrix(handle, transform);
+		manager->setMatrix(handle, _modelViewTransform);
 
 		cocos2d::Node::update(delta);
 	}
@@ -528,12 +536,15 @@ namespace efk
 	void EffectEmitter::draw(cocos2d::Renderer *renderer, const cocos2d::Mat4& parentTransform, uint32_t parentFlags)
 	{
 		renderCommand.init(_globalZOrder);
-		renderCommand.func = [this]() -> void
+		auto renderer2d = manager->getInternalRenderer();
+		Effekseer::Matrix44 mCamera = renderer2d->GetCameraMatrix();
+		Effekseer::Matrix44 mProj = renderer2d->GetProjectionMatrix();
+		renderCommand.func = [=]() -> void
 		{
+			renderer2d->SetCameraMatrix(mCamera);
+			renderer2d->SetProjectionMatrix(mProj);
 			if (!manager->isDistorted)
 			{
-				auto renderer2d = manager->getInternalRenderer();
-
 				renderer2d->SetRestorationOfStatesFlag(true);
 				renderer2d->BeginRendering();
 				manager->distortingCallback->OnDistorting();
@@ -542,10 +553,10 @@ namespace efk
 				manager->isDistorted = true;
 			}
 
-			manager->getInternalRenderer()->SetRestorationOfStatesFlag(true);
-			manager->getInternalRenderer()->BeginRendering();
+			renderer2d->SetRestorationOfStatesFlag(true);
+			renderer2d->BeginRendering();
 			manager->getInternalManager()->DrawHandle(handle);
-			manager->getInternalRenderer()->EndRendering();
+			renderer2d->EndRendering();
 
 			// Reset Parameters
 			cocos2d::GL::useProgram(0);
@@ -570,14 +581,12 @@ namespace efk
 	void EffectManager::setMatrix(::Effekseer::Handle handle, const cocos2d::Mat4& mat)
 	{
 		Effekseer::Matrix43 mat_;
-		for (int32_t i = 0; i < 4; i++)
-		{
-			for (int32_t j = 0; j < 3; j++)
-			{
-				mat_.Value[i][j] = mat.m[i * 4 + j];
-			}
-		}
-
+		const float *p = mat.m;
+		int size = sizeof(float) * 3;
+		memcpy(mat_.Value[0], p, size); p += 4;
+		memcpy(mat_.Value[1], p, size); p += 4;
+		memcpy(mat_.Value[2], p, size); p += 4;
+		memcpy(mat_.Value[3], p, size);
 		manager2d->SetMatrix(handle, mat_);
 	}
 
@@ -606,10 +615,11 @@ namespace efk
 		
 		manager2d = ::Effekseer::Manager::Create(8000);
 
+		// set camera and projection matrix for 2d
+		// If you special camera or 3d, please set yourself with setCameraMatrix and setProjectionMatrix
 		renderer2d->SetProjectionMatrix(
 			::Effekseer::Matrix44().OrthographicRH(visibleSize.width, visibleSize.height, 1.0f, 400.0f));
 
-		// カメラ行列を設定
 		renderer2d->SetCameraMatrix(
 			::Effekseer::Matrix44().LookAtRH(
 				::Effekseer::Vector3D(visibleSize.width / 2.0f, visibleSize.height / 2.0f, 200.0f),
@@ -716,6 +726,20 @@ namespace efk
 		*/
 	}
 
+
+	void EffectManager::setCameraMatrix(const cocos2d::Mat4& mat)
+	{
+		Effekseer::Matrix44 mat_;
+		memcpy(mat_.Values, mat.m, sizeof(float) * 16);
+		getInternalRenderer()->SetCameraMatrix(mat_);
+	}
+
+	void EffectManager::setProjectionMatrix(const cocos2d::Mat4& mat)
+	{
+		Effekseer::Matrix44 mat_;
+		memcpy(mat_.Values, mat.m, sizeof(float) * 16);
+		getInternalRenderer()->SetProjectionMatrix(mat_);
+	}
 
 	void EffectManager::update()
 	{
