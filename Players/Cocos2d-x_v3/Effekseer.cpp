@@ -563,6 +563,12 @@ namespace efk
 			cocos2d::GL::enableVertexAttribs(0);
 			cocos2d::GL::bindVAO(0);
 			cocos2d::GL::bindTexture2D((GLuint)0);
+
+			// Count drawcall and vertex
+			renderer->addDrawnBatches(renderer2d->GetDrawCallCount());
+			renderer->addDrawnVertices(renderer2d->GetDrawVertexCount());
+			renderer2d->ResetDrawCallCount();
+			renderer2d->ResetDrawVertexCount();
 		};
 
 		renderer->addCommand(&renderCommand);

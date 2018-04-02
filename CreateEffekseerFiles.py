@@ -247,6 +247,8 @@ rendererHeader.readLines(rootRDir + 'EffekseerRenderer.IndexBufferBase.h')
 rendererHeader.readLines(rootRDir + 'EffekseerRenderer.StandardRenderer.h')
 rendererHeader.readLines(rootRDir + 'EffekseerRenderer.ModelRendererBase.h')
 
+rendererHeader.readLines(rootRDir + 'EffekseerRenderer.ShaderBase.h')
+
 rendererHeader.readLines(rootRDir + 'EffekseerRenderer.RibbonRendererBase.h')
 rendererHeader.readLines(rootRDir + 'EffekseerRenderer.RingRendererBase.h')
 rendererHeader.readLines(rootRDir + 'EffekseerRenderer.SpriteRendererBase.h')

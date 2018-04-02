@@ -67,6 +67,7 @@ class ManagerImplemented;
 class Effect;
 class EffectImplemented;
 class EffectNode;
+class EffectNodeImplemented;
 class EffectNodeRoot;
 class EffectNodeSprite;
 class EffectNodeRibbon;
@@ -2356,6 +2357,17 @@ Vector3D Vector3D::operator / ( const float& o ) const
 {
 	return Vector3D( X / o, Y / o, Z / o );
 }
+
+Vector3D Vector3D::operator * (const Vector3D& o) const
+{
+	return Vector3D(X * o.X, Y * o.Y, Z * o.Z);
+}
+
+Vector3D Vector3D::operator / (const Vector3D& o) const
+{
+	return Vector3D(X / o.X, Y / o.Y, Z / o.Z);
+}
+
 
 //----------------------------------------------------------------------------------
 //
@@ -5368,6 +5380,8 @@ struct ParameterDepthValues
 	float	DepthOffset;
 	bool	IsDepthOffsetScaledWithCamera;
 	bool	IsDepthOffsetScaledWithParticleScale;
+	ZSortType	ZSort;
+	int32_t	DrawingPriority;
 	float	SoftParticle;
 
 	ParameterDepthValues()
@@ -5375,6 +5389,8 @@ struct ParameterDepthValues
 		DepthOffset = 0;
 		IsDepthOffsetScaledWithCamera = false;
 		IsDepthOffsetScaledWithParticleScale = false;
+		ZSort = ZSortType::None;
+		DrawingPriority = 0;
 		SoftParticle = 0.0f;
 	}
 };
@@ -6089,6 +6105,8 @@ public:
 
 	eRenderingOrder				RenderingOrder;
 
+	int32_t						RenderingPriority;
+
 	Effect* GetEffect() const override;
 
 	int GetChildrenCount() const override;
@@ -6429,6 +6447,8 @@ public:
 	RibbonPositionParameter RibbonPosition;
 
 	int RibbonTexture;
+
+	int32_t	SplineDivision = 1;
 
 	EffectNodeRibbon( Effect* effect, unsigned char*& pos )
 		: EffectNodeImplemented(effect, pos)
@@ -7085,6 +7105,8 @@ public:
 
 	int TrackTexture;
 
+	int32_t	SplineDivision = 1;
+
 	EffectNodeTrack( Effect* effect, unsigned char*& pos )
 		: EffectNodeImplemented(effect, pos)
 		, TrackTexture	( -1 )
@@ -7156,6 +7178,7 @@ class EffectImplemented
 	, public ReferenceObject
 {
 	friend class ManagerImplemented;
+	friend class EffectNodeImplemented;
 private:
 	ManagerImplemented* m_pManager;
 
@@ -7187,6 +7210,9 @@ private:
 
 	std::basic_string<EFK_CHAR>		m_materialPath;
 
+	int32_t			renderingNodesCount = 0;
+	int32_t			renderingNodesThreshold = 0;
+
 	/* 拡大率 */
 	float	m_maginification;
 
@@ -7217,7 +7243,6 @@ private:
 		};
 
 	} Culling;
-
 
 public:
 	/**
@@ -7891,12 +7916,17 @@ public:
 	/**
 		@brief	描画処理
 	*/
-	void Draw();
+	void Draw() override;
 	
-	/**
-		@brief	ハンドル単位の描画処理
-	*/
-	void DrawHandle( Handle handle );
+	void DrawBack() override;
+
+	void DrawFront() override;
+
+	void DrawHandle( Handle handle ) override;
+
+	void DrawHandleBack(Handle handle) override;
+
+	void DrawHandleFront(Handle handle) override;
 
 	/**
 		@brief	再生
@@ -8700,6 +8730,8 @@ public:
 	bool		IsGlobalColorSet = false;
 	Color		GlobalColor = Color(255, 255, 255, 255);
 
+	std::vector<InstanceContainer*>	RenderedInstanceContainers;
+
 	void SetSeed(int32_t seed);
 
 	virtual float GetRand() override;
@@ -9180,6 +9212,13 @@ void EffectNodeImplemented::LoadParameter(unsigned char*& pos, EffectNode* paren
 			IsRendered = rendered != 0;
 		}
 
+		// To render with priority, nodes are assigned a list.
+		if (m_effect->GetVersion() >= 13)
+		{
+			memcpy(&RenderingPriority, pos, sizeof(int32_t));
+			pos += sizeof(int32_t);
+		}
+
 		memcpy( &size, pos, sizeof(int) );
 		pos += sizeof(int);
 
@@ -9502,6 +9541,14 @@ void EffectNodeImplemented::LoadParameter(unsigned char*& pos, EffectNode* paren
 			pos += sizeof(int32_t);
 
 			DepthValues.IsDepthOffsetScaledWithParticleScale = IsDepthOffsetScaledWithParticleScale > 0;
+
+			if (m_effect->GetVersion() >= 13)
+			{
+				memcpy(&DepthValues.ZSort, pos, sizeof(int32_t));
+				pos += sizeof(int32_t);
+				memcpy(&DepthValues.DrawingPriority, pos, sizeof(int32_t));
+				pos += sizeof(int32_t);
+			}
 
 			memcpy(&DepthValues.SoftParticle, pos, sizeof(float));
 			pos += sizeof(float);
@@ -10317,6 +10364,12 @@ void EffectNodeRibbon::LoadRendererParameter(unsigned char*& pos, Setting* setti
 		pos += sizeof(RibbonPosition.fixed);
 	}
 
+	if (m_effect->GetVersion() >= 13)
+	{
+		memcpy(&SplineDivision, pos, sizeof(int32_t));
+		pos += sizeof(int32_t);
+	}
+
 	if( m_effect->GetVersion() >= 3)
 	{
 		RibbonTexture = RendererCommon.ColorTextureIndex;
@@ -10366,6 +10419,7 @@ void EffectNodeRibbon::BeginRendering(int32_t count, Manager* manager)
 		m_nodeParameter.Distortion = RendererCommon.Distortion;
 		m_nodeParameter.DistortionIntensity = RendererCommon.DistortionIntensity;
 
+		m_nodeParameter.SplineDivision = SplineDivision;
 
 		renderer->BeginRendering( m_nodeParameter, count, m_userData );
 	}
@@ -11322,6 +11376,8 @@ void EffectNodeSprite::BeginRendering(int32_t count, Manager* manager)
 		nodeParameter.IsDepthOffsetScaledWithCamera = DepthValues.IsDepthOffsetScaledWithCamera;
 		nodeParameter.IsDepthOffsetScaledWithParticleScale = DepthValues.IsDepthOffsetScaledWithParticleScale;
 
+		nodeParameter.ZSort = DepthValues.ZSort;
+
 		renderer->BeginRendering( nodeParameter, count, m_userData );
 	}
 }
@@ -11353,6 +11409,8 @@ void EffectNodeSprite::Rendering(const Instance& instance, Manager* manager)
 		nodeParameter.DepthOffset = DepthValues.DepthOffset;
 		nodeParameter.IsDepthOffsetScaledWithCamera = DepthValues.IsDepthOffsetScaledWithCamera;
 		nodeParameter.IsDepthOffsetScaledWithParticleScale = DepthValues.IsDepthOffsetScaledWithParticleScale;
+
+		nodeParameter.ZSort = DepthValues.ZSort;
 
 		SpriteRenderer::InstanceParameter instanceParameter;
 		instValues._color.setValueToArg( instanceParameter.AllColor );
@@ -11450,6 +11508,8 @@ void EffectNodeSprite::EndRendering(Manager* manager)
 		nodeParameter.DepthOffset = DepthValues.DepthOffset;
 		nodeParameter.IsDepthOffsetScaledWithCamera = DepthValues.IsDepthOffsetScaledWithCamera;
 		nodeParameter.IsDepthOffsetScaledWithParticleScale = DepthValues.IsDepthOffsetScaledWithParticleScale;
+
+		nodeParameter.ZSort = DepthValues.ZSort;
 
 		renderer->EndRendering( nodeParameter, m_userData );
 	}
@@ -11602,6 +11662,12 @@ void EffectNodeTrack::LoadRendererParameter(unsigned char*& pos, Setting* settin
 	LoadValues( TrackSizeMiddle, pos );
 	LoadValues( TrackSizeBack, pos );
 
+	if (m_effect->GetVersion() >= 13)
+	{
+		memcpy(&SplineDivision, pos, sizeof(int32_t));
+		pos += sizeof(int32_t);
+	}
+
 	TrackColorLeft.load( pos, m_effect->GetVersion() );
 	TrackColorLeftMiddle.load( pos, m_effect->GetVersion() );
 
@@ -11654,6 +11720,8 @@ void EffectNodeTrack::BeginRendering(int32_t count, Manager* manager)
 		m_nodeParameter.Distortion = RendererCommon.Distortion;
 		m_nodeParameter.DistortionIntensity = RendererCommon.DistortionIntensity;
 
+		m_nodeParameter.SplineDivision = SplineDivision;
+		
 		renderer->BeginRendering( m_nodeParameter, count, m_userData );
 	}
 }
@@ -12026,9 +12094,6 @@ Effect* Effect::Create(Manager* manager, const EFK_CHAR* path, float magnificati
 	return effect;
 }
 
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
 Effect* EffectImplemented::Create( Manager* pManager, void* pData, int size, float magnification, const EFK_CHAR* materialPath )
 {
 	if( pData == NULL || size == 0 ) return NULL;
@@ -12338,6 +12403,15 @@ bool EffectImplemented::Load( void* pData, int size, float mag, const EFK_CHAR* 
 				m_pModels[i] = NULL;
 			}
 		}
+	}
+
+	if (m_version >= 13)
+	{
+		memcpy(&renderingNodesCount, pos, sizeof(int32_t));
+		pos += sizeof(int32_t);
+
+		memcpy(&renderingNodesThreshold, pos, sizeof(int32_t));
+		pos += sizeof(int32_t);	
 	}
 
 	// 拡大率
@@ -14170,7 +14244,17 @@ void ManagerImplemented::Draw()
 
 			if( drawSet.IsShown && drawSet.IsAutoDrawing )
 			{
-				drawSet.InstanceContainerPointer->Draw( true );
+				if (drawSet.GlobalPointer->RenderedInstanceContainers.size() > 0)
+				{
+					for (auto& c : drawSet.GlobalPointer->RenderedInstanceContainers)
+					{
+						c->Draw(false);
+					}
+				}
+				else
+				{
+					drawSet.InstanceContainerPointer->Draw( true );
+				}
 			}
 		}
 	}
@@ -14182,7 +14266,109 @@ void ManagerImplemented::Draw()
 
 			if( drawSet.IsShown && drawSet.IsAutoDrawing )
 			{
-				drawSet.InstanceContainerPointer->Draw( true );
+				if (drawSet.GlobalPointer->RenderedInstanceContainers.size() > 0)
+				{
+					for (auto& c : drawSet.GlobalPointer->RenderedInstanceContainers)
+					{
+						c->Draw(false);
+					}
+				}
+				else
+				{
+					drawSet.InstanceContainerPointer->Draw(true);
+				}
+			}
+		}
+	}
+
+	// 経過時間を計算
+	m_drawTime = (int)(Effekseer::GetTime() - beginTime);
+
+	m_renderingSession.Leave();
+}
+
+void ManagerImplemented::DrawBack()
+{
+	m_renderingSession.Enter();
+
+	// 開始時間を記録
+	int64_t beginTime = ::Effekseer::GetTime();
+
+	if (m_culled)
+	{
+		for (size_t i = 0; i < m_culledObjects.size(); i++)
+		{
+			DrawSet& drawSet = *m_culledObjects[i];
+
+			if (drawSet.IsShown && drawSet.IsAutoDrawing)
+			{
+				auto e = (EffectImplemented*)drawSet.ParameterPointer;
+				for (int32_t i = 0; i < e->renderingNodesThreshold; i++)
+				{
+					drawSet.GlobalPointer->RenderedInstanceContainers[i]->Draw(false);
+				}
+			}
+		}
+	}
+	else
+	{
+		for (size_t i = 0; i < m_renderingDrawSets.size(); i++)
+		{
+			DrawSet& drawSet = m_renderingDrawSets[i];
+
+			if (drawSet.IsShown && drawSet.IsAutoDrawing)
+			{
+				auto e = (EffectImplemented*)drawSet.ParameterPointer;
+				for (int32_t i = 0; i < e->renderingNodesThreshold; i++)
+				{
+					drawSet.GlobalPointer->RenderedInstanceContainers[i]->Draw(false);
+				}
+			}
+		}
+	}
+
+	// 経過時間を計算
+	m_drawTime = (int)(Effekseer::GetTime() - beginTime);
+
+	m_renderingSession.Leave();
+}
+
+void ManagerImplemented::DrawFront()
+{
+	m_renderingSession.Enter();
+
+	// 開始時間を記録
+	int64_t beginTime = ::Effekseer::GetTime();
+
+	if (m_culled)
+	{
+		for (size_t i = 0; i < m_culledObjects.size(); i++)
+		{
+			DrawSet& drawSet = *m_culledObjects[i];
+
+			if (drawSet.IsShown && drawSet.IsAutoDrawing)
+			{
+				auto e = (EffectImplemented*)drawSet.ParameterPointer;
+				for (int32_t i = e->renderingNodesThreshold; i < drawSet.GlobalPointer->RenderedInstanceContainers.size(); i++)
+				{
+					drawSet.GlobalPointer->RenderedInstanceContainers[i]->Draw(false);
+				}
+			}
+		}
+	}
+	else
+	{
+		for (size_t i = 0; i < m_renderingDrawSets.size(); i++)
+		{
+			DrawSet& drawSet = m_renderingDrawSets[i];
+
+			if (drawSet.IsShown && drawSet.IsAutoDrawing)
+			{
+				auto e = (EffectImplemented*)drawSet.ParameterPointer;
+				for (int32_t i = e->renderingNodesThreshold; i < drawSet.GlobalPointer->RenderedInstanceContainers.size(); i++)
+				{
+					drawSet.GlobalPointer->RenderedInstanceContainers[i]->Draw(false);
+				}
 			}
 		}
 	}
@@ -14212,6 +14398,12 @@ Handle ManagerImplemented::Play( Effect* effect, float x, float y, float z )
 	else
 	{
 		pGlobal->SetSeed(GetRandFunc()());
+	}
+
+	pGlobal->RenderedInstanceContainers.resize(e->renderingNodesCount);
+	for (auto i = 0; i < pGlobal->RenderedInstanceContainers.size(); i++)
+	{
+		pGlobal->RenderedInstanceContainers[i] = nullptr;
 	}
 
 	InstanceContainer* pContainer = CreateInstanceContainer( ((EffectImplemented*)effect)->GetRoot(), pGlobal, true, NULL );
@@ -14250,7 +14442,17 @@ void ManagerImplemented::DrawHandle( Handle handle )
 			{
 				if( drawSet.IsShown )
 				{
-					drawSet.InstanceContainerPointer->Draw( true );
+					if (drawSet.GlobalPointer->RenderedInstanceContainers.size() > 0)
+					{
+						for (auto& c : drawSet.GlobalPointer->RenderedInstanceContainers)
+						{
+							c->Draw(false);
+						}
+					}
+					else
+					{
+						drawSet.InstanceContainerPointer->Draw(true);
+					}
 				}
 			}
 		}
@@ -14258,7 +14460,95 @@ void ManagerImplemented::DrawHandle( Handle handle )
 		{
 			if( drawSet.IsShown )
 			{
-				drawSet.InstanceContainerPointer->Draw( true );
+				if (drawSet.GlobalPointer->RenderedInstanceContainers.size() > 0)
+				{
+					for (auto& c : drawSet.GlobalPointer->RenderedInstanceContainers)
+					{
+						c->Draw(false);
+					}
+				}
+				else
+				{
+					drawSet.InstanceContainerPointer->Draw(true);
+				}
+			}
+		}
+	}
+
+	m_renderingSession.Leave();
+}
+
+void ManagerImplemented::DrawHandleBack(Handle handle)
+{
+	m_renderingSession.Enter();
+
+	std::map<Handle, DrawSet>::iterator it = m_renderingDrawSetMaps.find(handle);
+	if (it != m_renderingDrawSetMaps.end())
+	{
+		DrawSet& drawSet = it->second;
+
+		if (m_culled)
+		{
+			if (m_culledObjectSets.find(drawSet.Self) != m_culledObjectSets.end())
+			{
+				if (drawSet.IsShown)
+				{
+					auto e = (EffectImplemented*)drawSet.ParameterPointer;
+					for (int32_t i = 0; i < e->renderingNodesThreshold; i++)
+					{
+						drawSet.GlobalPointer->RenderedInstanceContainers[i]->Draw(false);
+					}
+				}
+			}
+		}
+		else
+		{
+			if (drawSet.IsShown)
+			{
+				auto e = (EffectImplemented*)drawSet.ParameterPointer;
+				for (int32_t i = 0; i < e->renderingNodesThreshold; i++)
+				{
+					drawSet.GlobalPointer->RenderedInstanceContainers[i]->Draw(false);
+				}
+			}
+		}
+	}
+
+	m_renderingSession.Leave();
+}
+
+void ManagerImplemented::DrawHandleFront(Handle handle)
+{
+	m_renderingSession.Enter();
+
+	std::map<Handle, DrawSet>::iterator it = m_renderingDrawSetMaps.find(handle);
+	if (it != m_renderingDrawSetMaps.end())
+	{
+		DrawSet& drawSet = it->second;
+
+		if (m_culled)
+		{
+			if (m_culledObjectSets.find(drawSet.Self) != m_culledObjectSets.end())
+			{
+				if (drawSet.IsShown)
+				{
+					auto e = (EffectImplemented*)drawSet.ParameterPointer;
+					for (int32_t i = e->renderingNodesThreshold; i < drawSet.GlobalPointer->RenderedInstanceContainers.size(); i++)
+					{
+						drawSet.GlobalPointer->RenderedInstanceContainers[i]->Draw(false);
+					}
+				}
+			}
+		}
+		else
+		{
+			if (drawSet.IsShown)
+			{
+				auto e = (EffectImplemented*)drawSet.ParameterPointer;
+				for (int32_t i = e->renderingNodesThreshold; i < drawSet.GlobalPointer->RenderedInstanceContainers.size(); i++)
+				{
+					drawSet.GlobalPointer->RenderedInstanceContainers[i]->Draw(false);
+				}
 			}
 		}
 	}
@@ -14437,6 +14727,12 @@ InstanceContainer::InstanceContainer( Manager* pManager, EffectNode* pEffectNode
 	, m_tailGroups		( NULL )
 
 {
+	auto en = (EffectNodeImplemented*)pEffectNode;
+	if (en->RenderingPriority >= 0)
+	{
+		pGlobal->RenderedInstanceContainers[en->RenderingPriority] = this;
+	}
+
 	m_Children = (InstanceContainer**)m_pManager->GetMallocFunc()( sizeof(InstanceContainer*) * m_ChildrenCount );
 	for( int i = 0; i < m_ChildrenCount; i++ )
 	{

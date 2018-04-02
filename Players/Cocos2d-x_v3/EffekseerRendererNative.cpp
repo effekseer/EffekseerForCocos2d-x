@@ -388,6 +388,9 @@ void* VertexBufferBase::GetBufferDirect( int size )
 
 
 
+#if _WIN32
+#elif EMSCRIPTEN
+#endif
 
 //----------------------------------------------------------------------------------
 //
@@ -424,7 +427,6 @@ class TextureLoader;
 #endif
 #elif EMSCRIPTEN
 #ifdef _DEBUG
-#include  <emscripten.h>
 #define GLCheckError()		{ int __code = glGetError(); if(__code != GL_NO_ERROR) { EM_ASM_ARGS({console.log("GLError filename = " + Pointer_stringify($0) + " , line = " + $1);}, __FILE__, __LINE__); } }
 #else
 #define GLCheckError()
@@ -526,9 +528,13 @@ namespace GLExt
 #define GL_COMPILE_STATUS 0x8B81
 #define GL_LINK_STATUS 0x8B82
 
+#define GL_VERTEX_ARRAY_BINDING 0x85B5
+
 #define GL_COMPRESSED_RGBA_S3TC_DXT1_EXT 0x83F1
 #define GL_COMPRESSED_RGBA_S3TC_DXT3_EXT 0x83F2
 #define GL_COMPRESSED_RGBA_S3TC_DXT5_EXT 0x83F3
+
+#define GL_FRAMEBUFFER_SRGB 0x8DB9
 
 typedef ptrdiff_t GLsizeiptr;
 typedef ptrdiff_t GLintptr;
@@ -626,6 +632,8 @@ public:	// デバイス復旧用
 public:
 	void Lock() override;
 	void Unlock() override;
+
+	bool IsValid();
 };
 
 //-----------------------------------------------------------------------------------
@@ -1094,6 +1102,7 @@ struct RenderStateSet
 	GLint		blendSrc;
 	GLint		blendDst;
 	GLint		blendEquation;
+	GLint		vao;
 };
 
 /**
@@ -1112,6 +1121,9 @@ private:
 	IndexBuffer*		m_indexBuffer;
 	int32_t				m_squareMaxCount;
 	
+	int32_t				drawcallCount = 0;
+	int32_t				drawvertexCount = 0;
+
 	Shader*							m_shader;
 	Shader*							m_shader_no_texture;
 
@@ -1214,7 +1226,7 @@ public:
 	/**
 		@brief	ライトの方向を設定する。
 	*/
-	void SetLightDirection( ::Effekseer::Vector3D& direction ) override;
+	void SetLightDirection( const ::Effekseer::Vector3D& direction ) override;
 
 	/**
 		@brief	ライトの色を取得する。
@@ -1224,7 +1236,7 @@ public:
 	/**
 		@brief	ライトの色を設定する。
 	*/
-	void SetLightColor( ::Effekseer::Color& color ) override;
+	void SetLightColor( const ::Effekseer::Color& color ) override;
 
 	/**
 		@brief	ライトの環境光の色を取得する。
@@ -1234,7 +1246,7 @@ public:
 	/**
 		@brief	ライトの環境光の色を設定する。
 	*/
-	void SetLightAmbientColor( ::Effekseer::Color& color ) override;
+	void SetLightAmbientColor( const ::Effekseer::Color& color ) override;
 
 	/**
 		@brief	投影行列を取得する。
@@ -1332,6 +1344,14 @@ public:
 
 	void ResetRenderState();
 
+	int32_t GetDrawCallCount() const override;
+
+	int32_t GetDrawVertexCount() const override;
+
+	void ResetDrawCallCount() override;
+
+	void ResetDrawVertexCount() override;
+
 	std::vector<GLuint>& GetCurrentTextures() { return m_currentTextures; }
 
 	OpenGLDeviceType GetDeviceType() { return m_deviceType; }
@@ -1397,6 +1417,7 @@ public:
 //----------------------------------------------------------------------------------
 
 
+
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
@@ -1440,6 +1461,7 @@ enum eConstantType
 //----------------------------------------------------------------------------------
 class Shader
 	: public DeviceObject
+	, public ::EffekseerRenderer::ShaderBase
 {
 private:
 	struct Layout
@@ -1448,6 +1470,20 @@ private:
 		uint16_t	count;
 		uint16_t	offset;
 		bool		normalized;
+	};
+
+	struct ShaderAttribInfoInternal
+	{
+		std::string	name;
+		GLenum		type;
+		uint16_t	count;
+		uint16_t	offset;
+		bool		normalized;
+	};
+
+	struct ShaderUniformInfoInternal
+	{
+		std::string	name;
 	};
 
 	struct ConstantLayout
@@ -1473,9 +1509,12 @@ private:
 	GLuint	m_textureSlots[4];
 	bool	m_textureSlotEnables[4];
 
-	std::vector<uint8_t>	m_vsSrc;
-	std::vector<uint8_t>	m_psSrc;
+	std::vector<char>	m_vsSrc;
+	std::vector<char>	m_psSrc;
 	std::string				m_name;
+
+	std::vector<ShaderAttribInfoInternal>	attribs;
+	std::vector<ShaderUniformInfoInternal>	uniforms;
 
 	static bool CompileShader(
 		RendererImplemented* renderer,
@@ -1530,20 +1569,22 @@ public:
 
 	void SetVertexSize(int32_t vertexSize);
 
-	void SetVertexConstantBufferSize(int32_t size);
-	void SetPixelConstantBufferSize(int32_t size);
+	void SetVertexConstantBufferSize(int32_t size) override;
+	void SetPixelConstantBufferSize(int32_t size) override;
 
-	void* GetVertexConstantBuffer() { return m_vertexConstantBuffer; }
-	void* GetPixelConstantBuffer() { return m_pixelConstantBuffer; }
+	void* GetVertexConstantBuffer()  override { return m_vertexConstantBuffer; }
+	void* GetPixelConstantBuffer()  override { return m_pixelConstantBuffer; }
 
 	void AddVertexConstantLayout(eConstantType type, GLint id, int32_t offset);
 	void AddPixelConstantLayout(eConstantType type, GLint id, int32_t offset);
 
-	void SetConstantBuffer();
+	void SetConstantBuffer() override;
 
 	void SetTextureSlot(int32_t index, GLuint value);
 	GLuint GetTextureSlot(int32_t index);
 	bool GetTextureSlotEnable(int32_t index);
+
+	bool IsValid() const;
 };
 
 //----------------------------------------------------------------------------------
@@ -1695,6 +1736,8 @@ public:
 	bool TryRingBufferLock(int32_t size, int32_t& offset, void*& data);
 
 	void Unlock();
+
+	bool IsValid();
 };
 
 //-----------------------------------------------------------------------------------
@@ -2390,6 +2433,7 @@ IndexBuffer* IndexBuffer::Create( RendererImplemented* renderer, int maxCount, b
 void IndexBuffer::OnLostDevice()
 {
 	GLExt::glDeleteBuffers(1, &m_buffer);
+	m_buffer = 0;
 }
 
 //-----------------------------------------------------------------------------------
@@ -2397,6 +2441,7 @@ void IndexBuffer::OnLostDevice()
 //-----------------------------------------------------------------------------------
 void IndexBuffer::OnResetDevice()
 {
+	if (IsValid()) return;
 	GLuint ib;
 	GLExt::glGenBuffers(1, &ib);
 	m_buffer = ib;
@@ -2425,6 +2470,12 @@ void IndexBuffer::Unlock()
 	GLExt::glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
 	m_isLock = false;
+}
+
+
+bool IndexBuffer::IsValid()
+{
+	return m_buffer != 0;
 }
 
 //-----------------------------------------------------------------------------------
@@ -4051,6 +4102,11 @@ bool RendererImplemented::BeginRendering()
 		glGetIntegerv(GL_BLEND_SRC_RGB, &m_originalState.blendSrc);
 		glGetIntegerv(GL_BLEND_DST_RGB, &m_originalState.blendDst);
 		glGetIntegerv(GL_BLEND_EQUATION, &m_originalState.blendEquation);
+
+		if (GLExt::IsSupportedVertexArray())
+		{
+			glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &m_originalState.vao);
+		}
 	}
 
 	glDepthFunc(GL_LEQUAL);
@@ -4076,10 +4132,10 @@ bool RendererImplemented::EndRendering()
 {
 	GLCheckError();
 
-	// レンダラーリセット
+	// reset renderer
 	m_standardRenderer->ResetAndRenderingIfRequired();
 
-	// ステートを復元する
+	// restore states
 	if(m_restorationOfStates)
 	{
 		if (m_originalState.blend) glEnable(GL_BLEND); else glDisable(GL_BLEND);
@@ -4103,6 +4159,11 @@ bool RendererImplemented::EndRendering()
 			{
 				GLExt::glBindSampler(i, 0);
 			}
+		}
+
+		if (GLExt::IsSupportedVertexArray())
+		{
+			GLExt::glBindVertexArray(m_originalState.vao);
 		}
 	}
 
@@ -4204,7 +4265,7 @@ const ::Effekseer::Vector3D& RendererImplemented::GetLightDirection() const
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-void RendererImplemented::SetLightDirection( ::Effekseer::Vector3D& direction )
+void RendererImplemented::SetLightDirection( const ::Effekseer::Vector3D& direction )
 {
 	m_lightDirection = direction;
 }
@@ -4220,7 +4281,7 @@ const ::Effekseer::Color& RendererImplemented::GetLightColor() const
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-void RendererImplemented::SetLightColor( ::Effekseer::Color& color )
+void RendererImplemented::SetLightColor( const ::Effekseer::Color& color )
 {
 	m_lightColor = color;
 }
@@ -4236,7 +4297,7 @@ const ::Effekseer::Color& RendererImplemented::GetLightAmbientColor() const
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-void RendererImplemented::SetLightAmbientColor( ::Effekseer::Color& color )
+void RendererImplemented::SetLightAmbientColor( const ::Effekseer::Color& color )
 {
 	m_lightAmbient = color;
 }
@@ -4440,6 +4501,9 @@ void RendererImplemented::DrawSprites( int32_t spriteCount, int32_t vertexOffset
 	// 全てがスプライトであること前提
 	auto triangles = vertexOffset / 4 * 2;
 
+	drawcallCount++;
+	drawvertexCount += spriteCount * 4;
+
 	glDrawElements(GL_TRIANGLES, spriteCount * 6, GL_UNSIGNED_SHORT, (void*) (triangles * 3 * sizeof(GLushort)));
 	
 	GLCheckError();
@@ -4451,6 +4515,9 @@ void RendererImplemented::DrawSprites( int32_t spriteCount, int32_t vertexOffset
 void RendererImplemented::DrawPolygon( int32_t vertexCount, int32_t indexCount)
 {
 	GLCheckError();
+
+	drawcallCount++;
+	drawvertexCount += vertexCount;
 
 	glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, NULL);
 
@@ -4573,6 +4640,26 @@ void RendererImplemented::ResetRenderState()
 {
 	m_renderState->GetActiveState().Reset();
 	m_renderState->Update( true );
+}
+
+int32_t RendererImplemented::GetDrawCallCount() const
+{
+	return drawcallCount;
+}
+
+int32_t RendererImplemented::GetDrawVertexCount() const
+{
+	return drawvertexCount;
+}
+
+void RendererImplemented::ResetDrawCallCount()
+{
+	drawcallCount = 0;
+}
+
+void RendererImplemented::ResetDrawVertexCount()
+{
+	drawvertexCount = 0;
 }
 
 //----------------------------------------------------------------------------------
@@ -5037,10 +5124,12 @@ Shader::Shader(
 	}
 
 	m_vsSrc.resize(vertexShaderSize);
-	memcpy( &(m_vsSrc[0]), vs_src, vertexShaderSize );
+	memcpy(m_vsSrc.data(), vs_src, vertexShaderSize );
+	m_vsSrc.push_back(0);
 
 	m_psSrc.resize(pixelShaderSize);
-	memcpy( &(m_psSrc[0]), fs_src, pixelShaderSize );
+	memcpy(m_psSrc.data(), fs_src, pixelShaderSize );
+	m_psSrc.push_back(0);
 
 	m_name = name;
 }
@@ -5116,6 +5205,7 @@ Shader* Shader::Create(
 void Shader::OnLostDevice()
 {
 	GLExt::glDeleteProgram(m_program);
+	m_program = 0;
 }
 
 //----------------------------------------------------------------------------------
@@ -5123,22 +5213,25 @@ void Shader::OnLostDevice()
 //----------------------------------------------------------------------------------
 void Shader::OnResetDevice()
 {
+	if (IsValid()) return;
+
 	GLuint program;
 	
 	if(CompileShader(
 		GetRenderer(),
 		program,
-		(const char*)&(m_vsSrc[0]),
+		(const char*)(m_vsSrc.data()),
 		m_vsSrc.size(),
-		(const char*)&(m_psSrc[0]),
+		(const char*)(m_psSrc.data()),
 		m_psSrc.size(),
 		m_name.c_str()))
 	{
 		m_program = program;
+		GetAttribIdList(0, nullptr);
 	}
 	else
 	{
-
+		printf("Failed to reset device.\n");
 	}
 }
 
@@ -5161,10 +5254,11 @@ void Shader::OnChangeDevice()
 		m_name.c_str()))
 	{
 		m_program = program;
+		GetAttribIdList(0, nullptr);
 	}
 	else
 	{
-
+		printf("Failed to change device.\n");
 	}
 }
 
@@ -5178,20 +5272,51 @@ GLuint Shader::GetInterface() const
 
 void Shader::GetAttribIdList(int count, const ShaderAttribInfo* info )
 {
+	// TODO : refactoring
+
 	m_aid.clear();
 
-	for (int i = 0; i < count; i++)
+	if (info != nullptr)
 	{
-		m_aid.push_back( GLExt::glGetAttribLocation(m_program, info[i].name) );
-		Layout layout;
+		for (int i = 0; i < count; i++)
+		{
+			m_aid.push_back(GLExt::glGetAttribLocation(m_program, info[i].name));
+			Layout layout;
 
-		layout.normalized = info[i].normalized;
-		layout.type = info[i].type;
-		layout.offset = info[i].offset;
-		layout.count = info[i].count;
+			layout.normalized = info[i].normalized;
+			layout.type = info[i].type;
+			layout.offset = info[i].offset;
+			layout.count = info[i].count;
 
-		m_layout.push_back(layout);
+			m_layout.push_back(layout);
+		}
+
+		attribs.resize(count);
+
+		for (int i = 0; i < count; i++)
+		{
+			attribs[i].name = info[i].name;
+			attribs[i].normalized = info[i].normalized;
+			attribs[i].type = info[i].type;
+			attribs[i].offset = info[i].offset;
+			attribs[i].count = info[i].count;
+		}
 	}
+	else
+	{
+		for (int i = 0; i < attribs.size(); i++)
+		{
+			m_aid.push_back(GLExt::glGetAttribLocation(m_program, attribs[i].name.c_str()));
+			Layout layout;
+
+			layout.normalized = attribs[i].normalized;
+			layout.type = attribs[i].type;
+			layout.offset = attribs[i].offset;
+			layout.count = attribs[i].count;
+
+			m_layout.push_back(layout);
+		}
+	}	
 }
 
 void Shader::GetUniformIdList(int count, const ShaderUniformInfo* info, GLint* uid_list) const
@@ -5214,6 +5339,7 @@ void Shader::EndScene()
 
 void Shader::EnableAttribs()
 {
+	GLCheckError();
 	for( size_t i = 0; i < m_aid.size(); i++ )
 	{
 		if ( m_aid[i] >= 0 ) 
@@ -5423,6 +5549,11 @@ GLuint Shader::GetTextureSlot(int32_t index)
 bool Shader::GetTextureSlotEnable(int32_t index)
 {
 	return m_textureSlotEnables[index];
+}
+
+bool Shader::IsValid() const
+{
+	return m_program != 0;
 }
 
 //-----------------------------------------------------------------------------------
@@ -5706,17 +5837,34 @@ void VertexArray::OnResetDevice()
 //-----------------------------------------------------------------------------------
 void VertexArray::Init()
 {
+	if (!m_shader->IsValid())
+	{
+		m_shader->OnResetDevice();
+	}
+
+	GLCheckError();
+
 	GLExt::glGenVertexArrays(1, &m_vertexArray);
 
 	GLExt::glBindVertexArray(m_vertexArray);
 	
 	if (m_vertexBuffer != nullptr)
 	{
+		if (!m_vertexBuffer->IsValid())
+		{
+			m_vertexBuffer->OnResetDevice();
+		}
+
 		GLExt::glBindBuffer(GL_ARRAY_BUFFER, m_vertexBuffer->GetInterface());
 	}
 	
 	if (m_indexBuffer != nullptr)
 	{
+		if (!m_indexBuffer->IsValid())
+		{
+			m_indexBuffer->OnResetDevice();
+		}
+
 		GLExt::glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_indexBuffer->GetInterface());
 	}
 
@@ -5724,6 +5872,8 @@ void VertexArray::Init()
 	m_shader->SetVertex();
 
 	GLExt::glBindVertexArray(0);
+
+	GLCheckError();
 }
 
 //-----------------------------------------------------------------------------------
@@ -5731,11 +5881,15 @@ void VertexArray::Init()
 //-----------------------------------------------------------------------------------
 void VertexArray::Release()
 {
+	GLCheckError();
+
 	if (m_vertexArray != 0)
 	{
 		GLExt::glDeleteVertexArrays(1, &m_vertexArray);
 		m_vertexArray = 0;
 	}
+
+	GLCheckError();
 }
 
 //-----------------------------------------------------------------------------------
@@ -5796,6 +5950,7 @@ VertexBuffer* VertexBuffer::Create( RendererImplemented* renderer, int size, boo
 void VertexBuffer::OnLostDevice()
 {
 	GLExt::glDeleteBuffers(1, &m_buffer);
+	m_buffer = 0;
 }
 
 //-----------------------------------------------------------------------------------
@@ -5803,6 +5958,8 @@ void VertexBuffer::OnLostDevice()
 //-----------------------------------------------------------------------------------
 void VertexBuffer::OnResetDevice()
 {
+	if (IsValid()) return;
+
 	GLExt::glGenBuffers(1, &m_buffer);
 	GLExt::glBindBuffer(GL_ARRAY_BUFFER, m_buffer);
 	GLExt::glBufferData(GL_ARRAY_BUFFER, m_size, m_resource, GL_STREAM_DRAW);
@@ -5878,6 +6035,11 @@ void VertexBuffer::Unlock()
 	
 	m_isLock = false;
 	m_ringBufferLock = false;
+}
+
+bool VertexBuffer::IsValid()
+{
+	return m_buffer != 0;
 }
 
 //-----------------------------------------------------------------------------------
