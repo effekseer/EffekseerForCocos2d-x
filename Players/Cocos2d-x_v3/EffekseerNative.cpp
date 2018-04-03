@@ -6113,7 +6113,7 @@ public:
 
 	eRenderingOrder				RenderingOrder;
 
-	int32_t						RenderingPriority;
+	int32_t						RenderingPriority = -1;
 
 	Effect* GetEffect() const override;
 
@@ -9208,6 +9208,8 @@ void EffectNodeImplemented::LoadParameter(unsigned char*& pos, EffectNode* paren
 		GenerationLocation.EffectsRotation = 0;
 		GenerationLocation.type = ParameterGenerationLocation::TYPE_POINT;
 		GenerationLocation.point.location.reset();
+
+		RenderingPriority = -1;
 	}
 	else
 	{
@@ -9225,6 +9227,10 @@ void EffectNodeImplemented::LoadParameter(unsigned char*& pos, EffectNode* paren
 		{
 			memcpy(&RenderingPriority, pos, sizeof(int32_t));
 			pos += sizeof(int32_t);
+		}
+		else
+		{
+			RenderingPriority = -1;
 		}
 
 		memcpy( &size, pos, sizeof(int) );
