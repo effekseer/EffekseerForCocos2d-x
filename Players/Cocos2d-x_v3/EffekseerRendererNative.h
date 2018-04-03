@@ -428,6 +428,15 @@ public:
 	*/
 	virtual void ResetDrawVertexCount() = 0;
 
+	/**
+	@brief	描画モードを設定する。
+	*/
+	virtual void SetRenderMode( Effekseer::RenderMode renderMode ) = 0;
+
+	/**
+	@brief	描画モードを取得する。
+	*/
+	virtual Effekseer::RenderMode GetRenderMode() = 0;
 };
 
 //----------------------------------------------------------------------------------
@@ -626,6 +635,7 @@ struct StandardRendererState
 	bool								DepthWrite;
 	bool								Distortion;
 	float								DistortionIntensity;
+	bool								Wireframe;
 
 	::Effekseer::AlphaBlendType			AlphaBlend;
 	::Effekseer::CullingType			CullingType;
@@ -639,6 +649,7 @@ struct StandardRendererState
 		DepthWrite = false;
 		Distortion = false;
 		DistortionIntensity = 1.0f;
+		Wireframe = true;
 
 		AlphaBlend = ::Effekseer::AlphaBlendType::Blend;
 		CullingType = ::Effekseer::CullingType::Front;
@@ -816,28 +827,7 @@ public:
 
 		bool distortion = m_state.Distortion;
 
-		if (distortion)
-		{
-			if (m_state.TexturePtr != nullptr)
-			{
-				shader_ = m_shader_distortion;
-			}
-			else
-			{
-				shader_ = m_shader_no_texture_distortion;
-			}
-		}
-		else
-		{
-			if (m_state.TexturePtr != nullptr)
-			{
-				shader_ = m_shader;
-			}
-			else
-			{
-				shader_ = m_shader_no_texture;
-			}
-		}
+		shader_ = m_renderer->GetShader(m_state.TexturePtr != nullptr, distortion);
 
 		m_renderer->BeginShader(shader_);
 

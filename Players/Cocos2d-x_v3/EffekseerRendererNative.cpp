@@ -9,6 +9,14 @@
 #include <EGL/egl.h>
 #endif
 
+#if (_M_IX86_FP >= 2) || defined(__SSE__)
+#define EFK_SSE2
+#include <emmintrin.h>
+#elif defined(__ARM_NEON__)
+#define EFK_NEON
+#include <arm_neon.h>
+#endif
+
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
@@ -1119,6 +1127,7 @@ friend class DeviceObject;
 private:
 	VertexBuffer*		m_vertexBuffer;
 	IndexBuffer*		m_indexBuffer;
+	IndexBuffer*		m_indexBufferForWireframe;
 	int32_t				m_squareMaxCount;
 	
 	int32_t				drawcallCount = 0;
@@ -1137,6 +1146,8 @@ private:
 
 	VertexArray*			m_vao_distortion;
 	VertexArray*			m_vao_no_texture_distortion;
+
+	VertexArray*			m_vao_wire_frame;
 
 	::Effekseer::Vector3D	m_lightDirection;
 	::Effekseer::Color		m_lightColor;
@@ -1165,6 +1176,8 @@ private:
 	std::vector<GLuint>	m_currentTextures;
 
 	VertexArray*	m_currentVertexArray;
+
+	Effekseer::RenderMode m_renderMode = Effekseer::RenderMode::Normal;
 
 public:
 	/**
@@ -1326,6 +1339,18 @@ public:
 
 	void SetDistortingCallback(EffekseerRenderer::DistortingCallback* callback) override;
 
+	/**
+	@brief	描画モードを設定する。
+	*/
+	void SetRenderMode( Effekseer::RenderMode renderMode ) override
+	{
+		m_renderMode = renderMode;
+	}
+	Effekseer::RenderMode GetRenderMode() override
+	{
+		return m_renderMode;
+	}
+
 	EffekseerRenderer::StandardRenderer<RendererImplemented, Shader, Vertex, VertexDistortion>* GetStandardRenderer() { return m_standardRenderer; }
 
 	void SetVertexBuffer( VertexBuffer* vertexBuffer, int32_t size );
@@ -1337,6 +1362,8 @@ public:
 	void SetLayout(Shader* shader);
 	void DrawSprites( int32_t spriteCount, int32_t vertexOffset );
 	void DrawPolygon( int32_t vertexCount, int32_t indexCount);
+
+	Shader* GetShader(bool useTexture, bool useDistortion) const;
 	void BeginShader(Shader* shader);
 	void EndShader(Shader* shader);
 
@@ -3739,6 +3766,7 @@ Renderer* Renderer::Create(int32_t squareMaxCount, OpenGLDeviceType deviceType)
 RendererImplemented::RendererImplemented(int32_t squareMaxCount, OpenGLDeviceType deviceType)
 	: m_vertexBuffer( NULL )
 	, m_indexBuffer	( NULL )
+	, m_indexBufferForWireframe	( NULL )
 	, m_squareMaxCount	( squareMaxCount )
 	, m_renderState		( NULL )
 	, m_restorationOfStates(true)
@@ -3857,41 +3885,7 @@ void RendererImplemented::OnResetDevice()
 //----------------------------------------------------------------------------------
 bool RendererImplemented::Initialize()
 {
-	// 頂点の生成
-	{
-		// 最大でfloat * 10 と仮定
-		m_vertexBuffer = VertexBuffer::Create( this, sizeof(Vertex) * m_squareMaxCount * 4, true );
-		if( m_vertexBuffer == NULL ) return false;
-	}
-
-	// 参照カウントの調整
-	Release();
-
-
-	// インデックスの生成
-	{
-		m_indexBuffer = IndexBuffer::Create( this, m_squareMaxCount * 6, false );
-		if( m_indexBuffer == NULL ) return false;
-
-		m_indexBuffer->Lock();
-
-		// ( 標準設定で　DirectX 時計周りが表, OpenGLは反時計回りが表 )
-		for( int i = 0; i < m_squareMaxCount; i++ )
-		{
-			uint16_t* buf = (uint16_t*)m_indexBuffer->GetBufferDirect( 6 );
-			buf[0] = (uint16_t)(3 + 4 * i);
-			buf[1] = (uint16_t)(1 + 4 * i);
-			buf[2] = (uint16_t)(0 + 4 * i);
-			buf[3] = (uint16_t)(3 + 4 * i);
-			buf[4] = (uint16_t)(0 + 4 * i);
-			buf[5] = (uint16_t)(2 + 4 * i);
-		}
-
-		m_indexBuffer->Unlock();
-	}
-
-	// 参照カウントの調整
-	Release();
+	SetSquareMaxCount( m_squareMaxCount );
 
 	m_renderState = new RenderState( this );
 
@@ -4057,6 +4051,9 @@ bool RendererImplemented::Initialize()
 	// 参照カウントの調整
 	if (m_vao_no_texture_distortion != nullptr) Release();
 
+	m_vao_wire_frame = VertexArray::Create(this, m_shader_no_texture, GetVertexBuffer(), m_indexBufferForWireframe);
+	if (m_vao_wire_frame != nullptr) Release();
+
 	m_standardRenderer = new EffekseerRenderer::StandardRenderer<RendererImplemented, Shader, Vertex, VertexDistortion>(this, m_shader, m_shader_no_texture, m_shader_distortion, m_shader_no_texture_distortion);
 
 	return true;
@@ -4201,7 +4198,6 @@ int32_t RendererImplemented::GetSquareMaxCount() const
 //----------------------------------------------------------------------------------
 void RendererImplemented::SetSquareMaxCount(int32_t count)
 {
-	if (m_squareMaxCount == count) return;
 	m_squareMaxCount = count;
 
 	if (m_vertexBuffer != nullptr) AddRef();
@@ -4240,6 +4236,33 @@ void RendererImplemented::SetSquareMaxCount(int32_t count)
 		}
 
 		m_indexBuffer->Unlock();
+	}
+
+	// 参照カウントの調整
+	Release();
+
+	// ワイヤーフレーム用インデックスの生成
+	{
+		m_indexBufferForWireframe = IndexBuffer::Create( this, m_squareMaxCount * 8, false );
+		if( m_indexBufferForWireframe == NULL ) return;
+
+		m_indexBufferForWireframe->Lock();
+
+		// ( 標準設定で　DirectX 時計周りが表, OpenGLは反時計回りが表 )
+		for( int i = 0; i < m_squareMaxCount; i++ )
+		{
+			uint16_t* buf = (uint16_t*)m_indexBufferForWireframe->GetBufferDirect( 8 );
+			buf[0] = (uint16_t)(0 + 4 * i);
+			buf[1] = (uint16_t)(1 + 4 * i);
+			buf[2] = (uint16_t)(2 + 4 * i);
+			buf[3] = (uint16_t)(3 + 4 * i);
+			buf[4] = (uint16_t)(0 + 4 * i);
+			buf[5] = (uint16_t)(2 + 4 * i);
+			buf[6] = (uint16_t)(1 + 4 * i);
+			buf[7] = (uint16_t)(3 + 4 * i);
+		}
+
+		m_indexBufferForWireframe->Unlock();
 	}
 
 	// 参照カウントの調整
@@ -4496,15 +4519,17 @@ void RendererImplemented::DrawSprites( int32_t spriteCount, int32_t vertexOffset
 {
 	GLCheckError();
 
-	//assert( vertexOffset == 0 );
-
-	// 全てがスプライトであること前提
-	auto triangles = vertexOffset / 4 * 2;
-
 	drawcallCount++;
 	drawvertexCount += spriteCount * 4;
 
-	glDrawElements(GL_TRIANGLES, spriteCount * 6, GL_UNSIGNED_SHORT, (void*) (triangles * 3 * sizeof(GLushort)));
+	if( m_renderMode == ::Effekseer::RenderMode::Normal )
+	{
+		glDrawElements(GL_TRIANGLES, spriteCount * 6, GL_UNSIGNED_SHORT, (void*) (vertexOffset / 4 * 6 * sizeof(GLushort)));
+	}
+	else if( m_renderMode == ::Effekseer::RenderMode::Wireframe )
+	{
+		glDrawElements(GL_LINES, spriteCount * 8, GL_UNSIGNED_SHORT, (void*) (vertexOffset / 4 * 8 * sizeof(GLushort)));
+	}
 	
 	GLCheckError();
 }
@@ -4527,12 +4552,45 @@ void RendererImplemented::DrawPolygon( int32_t vertexCount, int32_t indexCount)
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
+Shader* RendererImplemented::GetShader(bool useTexture, bool useDistortion) const
+{
+	if( useDistortion )
+	{
+		if( useTexture && m_renderMode == Effekseer::RenderMode::Normal )
+		{
+			return m_shader_distortion;
+		}
+		else
+		{
+			return m_shader_no_texture_distortion;
+		}
+	}
+	else
+	{
+		if( useTexture && m_renderMode == Effekseer::RenderMode::Normal )
+		{
+			return m_shader;
+		}
+		else
+		{
+			return m_shader_no_texture;
+		}
+	}
+}
+
+//----------------------------------------------------------------------------------
+//
+//----------------------------------------------------------------------------------
 void RendererImplemented::BeginShader(Shader* shader)
 {
 	GLCheckError();
 
 	// VAOの切り替え
-	if (shader == m_shader)
+	if (m_renderMode == ::Effekseer::RenderMode::Wireframe)
+	{
+		SetVertexArray(m_vao_wire_frame);
+	}
+	else if (shader == m_shader)
 	{
 		SetVertexArray(m_vao);
 	}
@@ -4548,7 +4606,7 @@ void RendererImplemented::BeginShader(Shader* shader)
 	{
 		SetVertexArray(m_vao_no_texture_distortion);
 	}
-
+	
 	shader->BeginScene();
 
 	if (m_currentVertexArray)
@@ -4808,7 +4866,8 @@ void RenderState::Update( bool forced )
 
 	if( m_active.AlphaBlend != m_next.AlphaBlend || forced )
 	{
-		if(  m_next.AlphaBlend == ::Effekseer::AlphaBlendType::Opacity )
+		if(  m_next.AlphaBlend == ::Effekseer::AlphaBlendType::Opacity ||
+			m_renderer->GetRenderMode() == ::Effekseer::RenderMode::Wireframe )
 		{
 			glDisable( GL_BLEND );
 		}

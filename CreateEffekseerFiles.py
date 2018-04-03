@@ -137,6 +137,14 @@ effekseerCPP.addLine('#include <arpa/inet.h>')
 effekseerCPP.addLine('#include <netdb.h>')
 effekseerCPP.addLine('#include <unistd.h>')
 effekseerCPP.addLine('#endif')
+effekseerCPP.addLine('')
+effekseerCPP.addLine('#if (_M_IX86_FP >= 2) || defined(__SSE__)')
+effekseerCPP.addLine('#define EFK_SSE2')
+effekseerCPP.addLine('#include <emmintrin.h>')
+effekseerCPP.addLine('#elif defined(__ARM_NEON__)')
+effekseerCPP.addLine('#define EFK_NEON')
+effekseerCPP.addLine('#include <arm_neon.h>')
+effekseerCPP.addLine('#endif')
 
 effekseerCPP.readLines(rootEDir + 'Effekseer.Base.h')
 
@@ -279,6 +287,15 @@ rendererCPP.addLine('#if defined(__ANDROID__) || defined(__EMSCRIPTEN__)')
 
 rendererCPP.addLine('#include <EGL/egl.h>')
 
+rendererCPP.addLine('#endif')
+
+rendererCPP.addLine('')
+rendererCPP.addLine('#if (_M_IX86_FP >= 2) || defined(__SSE__)')
+rendererCPP.addLine('#define EFK_SSE2')
+rendererCPP.addLine('#include <emmintrin.h>')
+rendererCPP.addLine('#elif defined(__ARM_NEON__)')
+rendererCPP.addLine('#define EFK_NEON')
+rendererCPP.addLine('#include <arm_neon.h>')
 rendererCPP.addLine('#endif')
 
 rendererCPP.readLines(rootRDir + 'EffekseerRenderer.IndexBufferBase.cpp')
