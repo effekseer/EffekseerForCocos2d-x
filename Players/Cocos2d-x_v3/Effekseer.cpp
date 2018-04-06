@@ -443,7 +443,8 @@ namespace efk
 		if (manager == nullptr) return;
 
 		handle = manager->play(effect, 0, 0, 0);
-		manager->setMatrix(handle, _modelViewTransform);
+		auto transform = this->getNodeToWorldTransform();
+		manager->setMatrix(handle, transform);
 	}
 
 	bool EffectEmitter::getPlayOnEnter()
@@ -528,7 +529,8 @@ namespace efk
 			}
 		}
 
-		manager->setMatrix(handle, _modelViewTransform);
+		auto transform = this->getNodeToWorldTransform();
+		manager->setMatrix(handle, transform);
 
 		cocos2d::Node::update(delta);
 	}
