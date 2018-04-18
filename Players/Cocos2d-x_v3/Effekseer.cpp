@@ -437,6 +437,11 @@ namespace efk
 		if (this->effect != nullptr) effect->retain();
 	}
 
+	::Effekseer::Handle EffectEmitter::getInternalHandle() const
+	{
+		return handle;
+	}
+
 	void EffectEmitter::play()
 	{
 		if (effect == nullptr) return;

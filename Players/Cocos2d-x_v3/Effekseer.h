@@ -122,6 +122,16 @@ namespace efk
 
 		/**
 			@brief
+			\~English	Get an internal handle of Effekseer
+			\~Japanese	Effekseerの内部のハンドルを取得する。
+			@param	effect
+			\~English	An internal handle of Effekseer
+			\~Japanese	Effekseerの内部のハンドル
+		*/
+		::Effekseer::Handle getInternalHandle() const;
+
+		/**
+			@brief
 			\~English	Play the effect.
 			\~Japanese	エフェクトを再生する。
 		*/
