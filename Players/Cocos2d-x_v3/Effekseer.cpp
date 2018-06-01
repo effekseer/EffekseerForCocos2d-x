@@ -620,10 +620,13 @@ namespace efk
 
 	bool EffectManager::Initialize(cocos2d::Size visibleSize)
 	{
+		// large buffer make application slow on Android
+		int32_t spriteSize = 600;
+
 #if (CC_TARGET_PLATFORM == CC_PLATFORM_IOS || CC_TARGET_PLATFORM == CC_PLATFORM_ANDROID)
-		renderer2d = ::EffekseerRendererGL::Renderer::Create(2000, EffekseerRendererGL::OpenGLDeviceType::OpenGLES2);
+		renderer2d = ::EffekseerRendererGL::Renderer::Create(spriteSize, EffekseerRendererGL::OpenGLDeviceType::OpenGLES2);
 #else
-		renderer2d = ::EffekseerRendererGL::Renderer::Create(2000, EffekseerRendererGL::OpenGLDeviceType::OpenGL2);
+		renderer2d = ::EffekseerRendererGL::Renderer::Create(spriteSize, EffekseerRendererGL::OpenGLDeviceType::OpenGL2);
 #endif
 		
 		manager2d = ::Effekseer::Manager::Create(8000);
