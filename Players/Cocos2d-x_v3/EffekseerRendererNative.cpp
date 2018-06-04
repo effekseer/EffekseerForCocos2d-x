@@ -1766,11 +1766,7 @@ class VertexBuffer
 	, public ::EffekseerRenderer::VertexBufferBase
 {
 private:
-	bool					nBufferingMode = false;
-	int32_t					bufferingIndex = 0;
-	int32_t					bufferingCount = 0;
-
-	GLuint					m_buffers[3];
+	GLuint					m_buffer;
 
 	uint32_t				m_vertexRingStart;
 	uint32_t				m_vertexRingOffset;
@@ -1796,8 +1792,6 @@ public:
 	void Unlock();
 
 	bool IsValid();
-
-	bool IsNBufferingMode() const { return nBufferingMode; }
 };
 
 //-----------------------------------------------------------------------------------
@@ -4572,8 +4566,7 @@ void RendererImplemented::SetDistortingCallback(EffekseerRenderer::DistortingCal
 void RendererImplemented::SetVertexBuffer( VertexBuffer* vertexBuffer, int32_t size )
 {
 	if (m_currentVertexArray == nullptr ||
-		m_currentVertexArray->GetVertexBuffer() == nullptr ||
-		m_currentVertexArray->GetVertexBuffer()->IsNBufferingMode())
+		m_currentVertexArray->GetVertexBuffer() == nullptr)
 	{
 		GLExt::glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer->GetInterface());
 	}
@@ -4628,8 +4621,7 @@ void RendererImplemented::SetLayout(Shader* shader)
 	GLCheckError();
 	
 	if (m_currentVertexArray == nullptr || 
-		m_currentVertexArray->GetVertexBuffer() == nullptr ||
-		m_currentVertexArray->GetVertexBuffer()->IsNBufferingMode())
+		m_currentVertexArray->GetVertexBuffer() == nullptr)
 	{
 		shader->EnableAttribs();
 		shader->SetVertex();
@@ -6120,28 +6112,14 @@ VertexBuffer::VertexBuffer( RendererImplemented* renderer, int size, bool isDyna
 	m_resource = new uint8_t[m_size];
 	memset(m_resource, 0, (size_t)m_size);
 
-	// it is for android opengl ES2.0 mainly
-	nBufferingMode = !GLExt::IsSupportedBufferRange() && GLExt::IsSupportedMapBuffer();
+	GLExt::glGenBuffers(1, &m_buffer);
+	GLExt::glBindBuffer(GL_ARRAY_BUFFER, m_buffer);
 
-	if (nBufferingMode)
-	{
-		bufferingCount = 3;
-		GLExt::glGenBuffers(bufferingCount, m_buffers);
+#ifndef __ANDROID__
+	GLExt::glBufferData(GL_ARRAY_BUFFER, m_size, m_resource, GL_STREAM_DRAW);
+#endif // !__ANDROID__
 
-		for (int32_t i = 0; i < bufferingCount; i++)
-		{
-			GLExt::glBindBuffer(GL_ARRAY_BUFFER, m_buffers[i]);
-			GLExt::glBufferData(GL_ARRAY_BUFFER, m_size, m_resource, GL_STREAM_DRAW);
-			GLExt::glBindBuffer(GL_ARRAY_BUFFER, 0);
-		}
-	}
-	else
-	{
-		GLExt::glGenBuffers(1, &m_buffers[0]);
-		GLExt::glBindBuffer(GL_ARRAY_BUFFER, m_buffers[0]);
-		GLExt::glBufferData(GL_ARRAY_BUFFER, m_size, m_resource, GL_STREAM_DRAW);
-		GLExt::glBindBuffer(GL_ARRAY_BUFFER, 0);
-	}
+	GLExt::glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 //-----------------------------------------------------------------------------------
@@ -6149,15 +6127,7 @@ VertexBuffer::VertexBuffer( RendererImplemented* renderer, int size, bool isDyna
 //-----------------------------------------------------------------------------------
 VertexBuffer::~VertexBuffer()
 {
-	if (nBufferingMode)
-	{
-		GLExt::glDeleteBuffers(bufferingCount, m_buffers);
-	}
-	else
-	{
-		GLExt::glDeleteBuffers(1, &m_buffers[0]);
-	}
-
+	GLExt::glDeleteBuffers(1, &m_buffer);
 	delete [] m_resource;
 }
 
@@ -6171,7 +6141,7 @@ VertexBuffer* VertexBuffer::Create( RendererImplemented* renderer, int size, boo
 
 GLuint VertexBuffer::GetInterface()
 {
-	return m_buffers[bufferingIndex];
+	return m_buffer;
 }
 
 //-----------------------------------------------------------------------------------
@@ -6179,20 +6149,8 @@ GLuint VertexBuffer::GetInterface()
 //-----------------------------------------------------------------------------------
 void VertexBuffer::OnLostDevice()
 {
-	if (nBufferingMode)
-	{
-		GLExt::glDeleteBuffers(bufferingCount, m_buffers);
-
-		for (int32_t i = 0; i < bufferingCount; i++)
-		{
-			m_buffers[i] = 0;
-		}
-	}
-	else
-	{
-		GLExt::glDeleteBuffers(1, &m_buffers[0]);
-		m_buffers[0] = 0;
-	}
+	GLExt::glDeleteBuffers(1, &m_buffer);
+	m_buffer = 0;
 }
 
 //-----------------------------------------------------------------------------------
@@ -6202,25 +6160,14 @@ void VertexBuffer::OnResetDevice()
 {
 	if (IsValid()) return;
 
-	if (nBufferingMode)
-	{
-		bufferingCount = 3;
-		GLExt::glGenBuffers(bufferingCount, m_buffers);
+	GLExt::glGenBuffers(1, &m_buffer);
+	GLExt::glBindBuffer(GL_ARRAY_BUFFER, m_buffer);
 
-		for (int32_t i = 0; i < bufferingCount; i++)
-		{
-			GLExt::glBindBuffer(GL_ARRAY_BUFFER, m_buffers[i]);
-			GLExt::glBufferData(GL_ARRAY_BUFFER, m_size, m_resource, GL_STREAM_DRAW);
-			GLExt::glBindBuffer(GL_ARRAY_BUFFER, 0);
-		}
-	}
-	else
-	{
-		GLExt::glGenBuffers(1, &m_buffers[0]);
-		GLExt::glBindBuffer(GL_ARRAY_BUFFER, m_buffers[0]);
-		GLExt::glBufferData(GL_ARRAY_BUFFER, m_size, m_resource, GL_STREAM_DRAW);
-		GLExt::glBindBuffer(GL_ARRAY_BUFFER, 0);
-	}
+#ifndef __ANDROID__
+	GLExt::glBufferData(GL_ARRAY_BUFFER, m_size, m_resource, GL_STREAM_DRAW);
+#endif // !__ANDROID__
+
+	GLExt::glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 //-----------------------------------------------------------------------------------
@@ -6246,9 +6193,11 @@ bool VertexBuffer::RingBufferLock( int32_t size, int32_t& offset, void*& data )
 
 	if( size > m_size ) return false;
 
-	// glDrawElementsでオフセットを指定できないため
-	if ( m_vertexRingOffset + size > m_size )
-	//if( true )
+#ifdef __ANDROID__
+	if (m_vertexRingOffset + size > m_size)
+#else
+	if (true)
+#endif
 	{
 		offset = 0;
 		data = m_resource;
@@ -6286,33 +6235,25 @@ void VertexBuffer::Unlock()
 {
 	assert( m_isLock || m_ringBufferLock );
 
-	if (nBufferingMode)
-	{
-		bufferingIndex++;
-		bufferingIndex = bufferingIndex % bufferingCount;
-	}
-
-	GLExt::glBindBuffer(GL_ARRAY_BUFFER, m_buffers[bufferingIndex]);
-
+	GLExt::glBindBuffer(GL_ARRAY_BUFFER, m_buffer);
 
 	if (GLExt::IsSupportedBufferRange() && m_vertexRingOffset > 0)
 	{
+#ifdef __ANDROID__
+		GLExt::glBufferData(GL_ARRAY_BUFFER, m_size, m_resource, GL_STREAM_DRAW);
+#endif // !__ANDROID__
+
 		auto target = GLExt::glMapBufferRange(GL_ARRAY_BUFFER, m_vertexRingStart, m_offset, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
 		memcpy(target, m_resource, m_offset);
 		GLExt::glUnmapBuffer(GL_ARRAY_BUFFER);
 	}
 	else
 	{
-		if (nBufferingMode)
-		{
-			auto target = (uint8_t*)GLExt::glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
-			memcpy(target + m_vertexRingStart, m_resource, m_offset);
-			GLExt::glUnmapBuffer(GL_ARRAY_BUFFER);
-		}
-		else
-		{
-			GLExt::glBufferSubData(GL_ARRAY_BUFFER, m_vertexRingStart, m_offset, m_resource);
-		}
+#ifdef __ANDROID__
+		GLExt::glBufferData(GL_ARRAY_BUFFER, m_size, m_resource, GL_STREAM_DRAW);
+#else
+		GLExt::glBufferSubData(GL_ARRAY_BUFFER, m_vertexRingStart, m_offset, m_resource);
+#endif
 	}
 
 	GLExt::glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -6323,14 +6264,7 @@ void VertexBuffer::Unlock()
 
 bool VertexBuffer::IsValid()
 {
-	if (nBufferingMode)
-	{
-		return m_buffers[bufferingIndex] != 0;
-	}
-	else
-	{
-		return m_buffers[0] != 0;
-	}
+	return m_buffer != 0;
 }
 
 //-----------------------------------------------------------------------------------
