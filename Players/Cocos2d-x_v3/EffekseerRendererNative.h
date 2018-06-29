@@ -1503,12 +1503,17 @@ namespace EffekseerRenderer
 			std::vector<efkVector3D>	c;
 			std::vector<efkVector3D>	d;
 			std::vector<efkVector3D>	w;
+			std::vector<bool>			isSame;
 
 		public:
 
 			void AddVertex(const efkVector3D& v)
 			{
 				a.push_back(v);
+				if (a.size() >= 2)
+				{
+					isSame.push_back(a[a.size() - 1] == a[a.size() - 2]);
+				}
 			}
 
 			void Calculate()
@@ -1549,6 +1554,7 @@ namespace EffekseerRenderer
 				c.clear();
 				d.clear();
 				w.clear();
+				isSame.clear();
 			}
 
 			efkVector3D GetValue(float t)
@@ -1566,6 +1572,8 @@ namespace EffekseerRenderer
 				}
 
 				auto dt = t - j;
+
+				if (j < isSame.size() && isSame[j]) return a[j];
 
 				return a[j] + (b[j] + (c[j] + d[j] * dt) * dt) * dt;
 			}
@@ -1692,17 +1700,19 @@ namespace EffekseerRenderer
 				for (auto sploop = 0; sploop < parameter.SplineDivision; sploop++)
 				{
 					bool isFirst = param.InstanceIndex == 0 && sploop == 0;
-					bool isLast = param.InstanceIndex == (param.InstanceCount - 1) && sploop == parameter.SplineDivision - 1;
+					bool isLast = param.InstanceIndex == (param.InstanceCount - 1);
 
 					VERTEX* verteies = (VERTEX*)m_ringBufferData;
+
+					float percent_instance = sploop / (float)parameter.SplineDivision;
 
 					if (parameter.SplineDivision > 1)
 					{
 						verteies[0].Pos = spline_left.GetValue(param.InstanceIndex + sploop / (float)parameter.SplineDivision);
 						verteies[1].Pos = spline_right.GetValue(param.InstanceIndex + sploop / (float)parameter.SplineDivision);
 
-						verteies[0].SetColor(param.Colors[0]);
-						verteies[1].SetColor(param.Colors[1]);
+						verteies[0].SetColor(Effekseer::Color::Lerp(param.Colors[0], param.Colors[2], percent_instance));
+						verteies[1].SetColor(Effekseer::Color::Lerp(param.Colors[1], param.Colors[3], percent_instance));
 					}
 					else
 					{
@@ -1808,6 +1818,11 @@ namespace EffekseerRenderer
 					if (!isFirst)
 					{
 						m_ribbonCount++;
+					}
+
+					if (isLast)
+					{
+						break;
 					}
 				}
 			}
@@ -3025,12 +3040,17 @@ namespace EffekseerRenderer
 			std::vector<efkVector3D>	c;
 			std::vector<efkVector3D>	d;
 			std::vector<efkVector3D>	w;
+			std::vector<bool>			isSame;
 
 		public:
 
 			void AddVertex(const efkVector3D& v)
 			{
 				a.push_back(v);
+				if (a.size() >= 2)
+				{
+					isSame.push_back(a[a.size() - 1] == a[a.size() - 2]);
+				}
 			}
 
 			void Calculate()
@@ -3071,6 +3091,7 @@ namespace EffekseerRenderer
 				c.clear();
 				d.clear();
 				w.clear();
+				isSame.clear();
 			}
 
 			efkVector3D GetValue(float t)
@@ -3088,6 +3109,8 @@ namespace EffekseerRenderer
 				}
 
 				auto dt = t - j;
+
+				if (j < isSame.size() && isSame[j]) return a[j];
 
 				return a[j] + (b[j] + (c[j] + d[j] * dt) * dt) * dt;
 			}
@@ -3138,7 +3161,7 @@ namespace EffekseerRenderer
 				for (auto sploop = 0; sploop < parameter.SplineDivision; sploop++)
 				{
 					bool isFirst = param.InstanceIndex == 0 && sploop == 0;
-					bool isLast = param.InstanceIndex == (param.InstanceCount - 1) && sploop == parameter.SplineDivision - 1;
+					bool isLast = param.InstanceIndex == (param.InstanceCount - 1);
 
 					VERTEX* verteies = (VERTEX*)m_ringBufferData;
 
@@ -3267,6 +3290,11 @@ namespace EffekseerRenderer
 
 						m_ringBufferData += sizeof(VERTEX) * 8;
 						m_ribbonCount += 2;
+					}
+
+					if (isLast)
+					{
+						break;
 					}
 				}
 			}

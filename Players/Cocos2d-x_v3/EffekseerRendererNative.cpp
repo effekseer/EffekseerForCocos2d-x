@@ -1144,8 +1144,8 @@ friend class DeviceObject;
 
 private:
 	VertexBuffer*		m_vertexBuffer;
-	IndexBuffer*		m_indexBuffer;
-	IndexBuffer*		m_indexBufferForWireframe;
+	IndexBuffer*		m_indexBuffer = nullptr;
+	IndexBuffer*		m_indexBufferForWireframe = nullptr;
 	int32_t				m_squareMaxCount;
 	
 	int32_t				drawcallCount = 0;
@@ -3943,10 +3943,11 @@ RendererImplemented::~RendererImplemented()
 	ES_SAFE_DELETE( m_renderState );
 	ES_SAFE_DELETE( m_vertexBuffer );
 	ES_SAFE_DELETE( m_indexBuffer );
+	ES_SAFE_DELETE(m_indexBufferForWireframe);
 
 	if (isVaoEnabled)
 	{
-		assert(GetRef() == -10);
+		assert(GetRef() == -11);
 	}
 	else
 	{

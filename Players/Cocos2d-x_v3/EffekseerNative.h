@@ -610,6 +610,8 @@ public:
 
 	Vector3D& operator /= ( const float& o );
 
+	bool operator == (const Vector3D& o);
+
 	/**
 		@brief	加算
 	*/
@@ -2143,7 +2145,7 @@ public:
 		Matrix43		SRTMatrix43;
 		Color		AllColor;
 
-		// 左下、右下、左上、右上
+		// Lower left, Lower right, Upper left, Upper right
 		Color		Colors[4];
 
 		Vector2D	Positions[4];
@@ -2216,10 +2218,10 @@ namespace Effekseer
 			Matrix43		SRTMatrix43;
 			Color		AllColor;
 
-			// 左、右
-			Color		Colors[2];
+			// Lower left, Lower right, Upper left, Upper right
+			Color	Colors[4];
 
-			float	Positions[2];
+			float	Positions[4];
 
 			RectF	UV;
 		};

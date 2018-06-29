@@ -2376,6 +2376,10 @@ Vector3D Vector3D::operator / (const Vector3D& o) const
 	return Vector3D(X / o.X, Y / o.Y, Z / o.Z);
 }
 
+bool Vector3D::operator == (const Vector3D& o)
+{
+	return this->X == o.X && this->Y == o.Y && this->Z == o.Z;
+}
 
 //----------------------------------------------------------------------------------
 //
@@ -6220,7 +6224,7 @@ public:
 	/**
 	@brief	描画
 	*/
-	virtual void Rendering(const Instance& instance, Manager* manager);
+	virtual void Rendering(const Instance& instance, const Instance* next_instance, Manager* manager);
 
 	/**
 	@brief	描画終了
@@ -6355,7 +6359,7 @@ public:
 
 	void BeginRendering(int32_t count, Manager* manager);
 
-	void Rendering(const Instance& instance, Manager* manager);
+	void Rendering(const Instance& instance, const Instance* next_instance, Manager* manager) override;
 
 	void EndRendering(Manager* manager);
 
@@ -6550,7 +6554,7 @@ public:
 
 	void EndRenderingGroup(InstanceGroup* group, Manager* manager) override;
 
-	void Rendering(const Instance& instance, Manager* manager);
+	void Rendering(const Instance& instance, const Instance* next_instance, Manager* manager) override;
 
 	void EndRendering(Manager* manager);
 
@@ -6795,7 +6799,7 @@ public:
 
 	void BeginRendering(int32_t count, Manager* manager);
 
-	void Rendering(const Instance& instance, Manager* manager);
+	void Rendering(const Instance& instance, const Instance* next_instance, Manager* manager) override;
 
 	void EndRendering(Manager* manager);
 
@@ -7027,7 +7031,7 @@ public:
 
 	void BeginRendering(int32_t count, Manager* manager);
 
-	void Rendering(const Instance& instance, Manager* manager);
+	void Rendering(const Instance& instance, const Instance* next_instance, Manager* manager) override;
 
 	void EndRendering(Manager* manager);
 
@@ -7209,7 +7213,7 @@ public:
 
 	void EndRenderingGroup(InstanceGroup* group, Manager* manager) override;
 
-	void Rendering(const Instance& instance, Manager* manager);
+	void Rendering(const Instance& instance, const Instance* next_instance, Manager* manager) override;
 
 	void EndRendering(Manager* manager);
 
@@ -8727,9 +8731,9 @@ public:
 	void Update( float deltaFrame, bool shown );
 
 	/**
-		@brief	描画
+		@brief	Draw instance
 	*/
-	void Draw();
+	void Draw(Instance* next);
 
 	/**
 		@brief	破棄
@@ -9905,7 +9909,7 @@ void EffectNodeImplemented::EndRenderingGroup(InstanceGroup* group, Manager* man
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-void EffectNodeImplemented::Rendering(const Instance& instance, Manager* manager)
+void EffectNodeImplemented::Rendering(const Instance& instance, const Instance* next_instance, Manager* manager)
 {
 }
 
@@ -10168,7 +10172,7 @@ void EffectNodeModel::BeginRendering(int32_t count, Manager* manager)
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-void EffectNodeModel::Rendering(const Instance& instance, Manager* manager)
+void EffectNodeModel::Rendering(const Instance& instance, const Instance* next_instance, Manager* manager)
 {
 	const InstanceValues& instValues = instance.rendererValues.model;
 	ModelRenderer* renderer = manager->GetModelRenderer();
@@ -10555,7 +10559,7 @@ void EffectNodeRibbon::EndRenderingGroup(InstanceGroup* group, Manager* manager)
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-void EffectNodeRibbon::Rendering(const Instance& instance, Manager* manager)
+void EffectNodeRibbon::Rendering(const Instance& instance, const Instance* next_instance, Manager* manager)
 {
 	const InstanceValues& instValues = instance.rendererValues.ribbon;
 	RibbonRenderer* renderer = manager->GetRibbonRenderer();
@@ -10576,6 +10580,25 @@ void EffectNodeRibbon::Rendering(const Instance& instance, Manager* manager)
 
 		Color color_l = _color;
 		Color color_r = _color;
+		Color color_nl = _color;
+		Color color_nr = _color;
+
+		if (next_instance != nullptr)
+		{
+			const InstanceValues& instValues_next = next_instance->rendererValues.ribbon;
+			Color _color_next;
+			if (RendererCommon.ColorBindType == BindType::Always || RendererCommon.ColorBindType == BindType::WhenCreating)
+			{
+				_color_next = Color::Mul(instValues_next._original, next_instance->ColorParent);
+			}
+			else
+			{
+				_color_next = instValues_next._original;
+			}
+
+			color_nl = _color_next;
+			color_nr = _color_next;
+		}
 
 		if (RibbonColor.type == RibbonColorParameter::Default)
 		{
@@ -10585,10 +10608,14 @@ void EffectNodeRibbon::Rendering(const Instance& instance, Manager* manager)
 		{
 			color_l = Color::Mul(color_l, RibbonColor.fixed.l);
 			color_r = Color::Mul(color_r, RibbonColor.fixed.r);
+			color_nl = Color::Mul(color_nl, RibbonColor.fixed.l);
+			color_nr = Color::Mul(color_nr, RibbonColor.fixed.r);
 		}
 
 		m_instanceParameter.Colors[0] = color_l;
 		m_instanceParameter.Colors[1] = color_r;
+		m_instanceParameter.Colors[2] = color_nl;
+		m_instanceParameter.Colors[3] = color_nr;
 
 		// Apply global Color
 		if (instance.m_pContainer->GetRootInstance()->IsGlobalColorSet)
@@ -10913,7 +10940,7 @@ void EffectNodeRing::BeginRendering(int32_t count, Manager* manager)
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-void EffectNodeRing::Rendering(const Instance& instance, Manager* manager)
+void EffectNodeRing::Rendering(const Instance& instance, const Instance* next_instance, Manager* manager)
 {
 	const InstanceValues& instValues = instance.rendererValues.ring;
 	RingRenderer* renderer = manager->GetRingRenderer();
@@ -11491,7 +11518,7 @@ void EffectNodeSprite::BeginRendering(int32_t count, Manager* manager)
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-void EffectNodeSprite::Rendering(const Instance& instance, Manager* manager)
+void EffectNodeSprite::Rendering(const Instance& instance, const Instance* next_instance, Manager* manager)
 {
 	const InstanceValues& instValues = instance.rendererValues.sprite;
 	SpriteRenderer* renderer = manager->GetSpriteRenderer();
@@ -11877,7 +11904,7 @@ void EffectNodeTrack::EndRenderingGroup(InstanceGroup* group, Manager* manager)
 	}
 }
 
-void EffectNodeTrack::Rendering(const Instance& instance, Manager* manager)
+void EffectNodeTrack::Rendering(const Instance& instance, const Instance* next_instance, Manager* manager)
 {
 	const InstanceValues& instValues = instance.rendererValues.track;
 
@@ -15045,12 +15072,26 @@ void InstanceContainer::Draw(bool recursive)
 
 				if (m_pEffectNode->RenderingOrder == RenderingOrder_FirstCreatedInstanceIsFirst)
 				{
-					for (auto instance : group->m_instances)
+					auto it = group->m_instances.begin();
+
+					while (it != group->m_instances.end())
 					{
-						if (instance->m_State == INSTANCE_STATE_ACTIVE)
+						if ((*it)->m_State == INSTANCE_STATE_ACTIVE)
 						{
-							instance->Draw();
+							auto it_temp = it;
+							it_temp++;
+
+							if (it_temp != group->m_instances.end())
+							{
+								(*it)->Draw((*it_temp));
+							}
+							else
+							{
+								(*it)->Draw(nullptr);
+							}
 						}
+
+						it++;
 					}
 				}
 				else
@@ -15061,7 +15102,17 @@ void InstanceContainer::Draw(bool recursive)
 					{
 						if ((*it)->m_State == INSTANCE_STATE_ACTIVE)
 						{
-							(*it)->Draw();
+							auto it_temp = it;
+							it_temp++;
+
+							if (it_temp != group->m_instances.rend())
+							{
+								(*it)->Draw((*it_temp));
+							}
+							else
+							{
+								(*it)->Draw(nullptr);
+							}
 						}
 						it++;
 					}
@@ -16357,7 +16408,7 @@ void Instance::ModifyMatrixFromLocationAbs( float deltaFrame )
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-void Instance::Draw()
+void Instance::Draw(Instance* next)
 {
 	assert( m_pEffectNode != NULL );
 
@@ -16368,7 +16419,7 @@ void Instance::Draw()
 		CalculateMatrix( 0 );
 	}
 
-	m_pEffectNode->Rendering(*this, m_pManager);
+	m_pEffectNode->Rendering(*this, next, m_pManager);
 }
 
 //----------------------------------------------------------------------------------
