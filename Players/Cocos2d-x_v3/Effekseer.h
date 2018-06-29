@@ -206,6 +206,27 @@ namespace efk
 		void setAngleY(float value);
 
 		/**
+			@brief
+			\~English	Set the color which affects whole particles.
+			\~Japanese	全てのパーティクルに影響する色を設定する。
+		*/
+		void setColor(cocos2d::Color4B color);
+
+		/**
+		@brief
+		\~English	Get the playback speed
+		\~Japanese	再生速度を取得する。
+		*/
+		float getSpeed();
+
+		/**
+		@brief
+		\~English	Set the playback speed
+		\~Japanese	再生速度を設定する。
+		*/
+		void setSpeed(float speed);
+
+		/**
 			@brief	
 			\~English	Get whether or not playing the effect.
 			\~Japanese	再生中かどうか、取得する。

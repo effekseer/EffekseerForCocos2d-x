@@ -492,6 +492,26 @@ namespace efk
 		angleY = value;
 	}
 
+	void EffectEmitter::setColor(cocos2d::Color4B color)
+	{
+		Effekseer::Color col;
+		col.R = color.r;
+		col.G = color.g;
+		col.B = color.b;
+		col.A = color.a;
+		manager->getInternalManager()->SetAllColor(handle, col);
+	}
+
+	float EffectEmitter::getSpeed()
+	{
+		return manager->getInternalManager()->GetSpeed(handle);
+	}
+
+	void EffectEmitter::setSpeed(float speed)
+	{
+		manager->getInternalManager()->SetSpeed(handle, speed);
+	}
+
 	bool EffectEmitter::isPlaying()
 	{
 		return manager->getInternalManager()->Exists(handle);
