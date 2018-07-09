@@ -13,7 +13,7 @@ Scene* HelloWorld::createScene()
 
 bool HelloWorld::init()
 {
-    if ( !Layer::init() )
+    if ( !Scene::init() )
     {
         return false;
     }
@@ -136,7 +136,7 @@ void HelloWorld::visit(cocos2d::Renderer *renderer, const cocos2d::Mat4& parentT
 		你继承的visit，然后添加的实际绘制效果的过程。
 	*/
 	manager->begin(renderer, _globalZOrder);
-	cocos2d::Layer::visit(renderer, parentTransform, parentFlags);
+	cocos2d::Scene::visit(renderer, parentTransform, parentFlags);
 	manager->end(renderer, _globalZOrder);
 }
 

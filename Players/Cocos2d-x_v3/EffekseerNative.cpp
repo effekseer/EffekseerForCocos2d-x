@@ -684,9 +684,9 @@ namespace Culling3D
 		void ChangeIntoCuboid(Vector3DF size) override;
 
 		void* GetUserData() override;
-		void SetUserData(void* userData) override;
+		void SetUserData(void* userData_) override;
 
-		void SetWorld(World* world);
+		void SetWorld(World* world_);
 
 		Status	GetCurrentStatus() { return currentStatus; }
 		Status	GetNextStatus() { return nextStatus; }
@@ -1345,15 +1345,15 @@ namespace Culling3D
 		return userData;
 	}
 
-	void ObjectInternal::SetUserData(void* userData)
+	void ObjectInternal::SetUserData(void* userData_)
 	{
-		this->userData = userData;
+		this->userData = userData_;
 	}
 
 
-	void ObjectInternal::SetWorld(World* world)
+	void ObjectInternal::SetWorld(World* world_)
 	{
-		this->world = world;
+		this->world = world_;
 	}
 }
 
@@ -1803,11 +1803,11 @@ namespace Culling3D
 					float t = -FLT_MAX;
 					float t_max = FLT_MAX;
 
-					for (int i = 0; i < 3; ++i)
+					for (int k = 0; k < 3; ++k)
 					{
-						if (std::abs(d[i]) < FLT_EPSILON)
+						if (std::abs(d[k]) < FLT_EPSILON)
 						{
-							if (p[i] < min[i] || p[i] > max[i])
+							if (p[k] < min[k] || p[k] > max[k])
 							{
 								// 交差していない
 								continue;
@@ -1817,9 +1817,9 @@ namespace Culling3D
 						{
 							// スラブとの距離を算出
 							// t1が近スラブ、t2が遠スラブとの距離
-							float odd = 1.0f / d[i];
-							float t1 = (min[i] - p[i]) * odd;
-							float t2 = (max[i] - p[i]) * odd;
+							float odd = 1.0f / d[k];
+							float t1 = (min[k] - p[k]) * odd;
+							float t2 = (max[k] - p[k]) * odd;
 							if (t1 > t2)
 							{
 								float tmp = t1; t1 = t2; t2 = tmp;
@@ -1860,17 +1860,12 @@ namespace Culling3D
 	{
 		objs.clear();
 	
-#if _MSC_VER == 1700
-		if (_finite(cameraProjMat.Values[2][2]) &&
+
+		if (!std::isinf(cameraProjMat.Values[2][2]) &&
 			cameraProjMat.Values[0][0] != 0.0f &&
 			cameraProjMat.Values[1][1] != 0.0f)
 		{
-#else
-				if (!std::isinf(cameraProjMat.Values[2][2]) &&
-			cameraProjMat.Values[0][0] != 0.0f &&
-			cameraProjMat.Values[1][1] != 0.0f)
-		{
-#endif
+
 			Matrix44 cameraProjMatInv = cameraProjMat;
 			cameraProjMatInv.SetInverted();
 
@@ -2555,7 +2550,7 @@ Vector3D& Vector3D::Transform( Vector3D& o, const Vector3D& in, const Matrix44& 
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-#if (_M_IX86_FP >= 2) || defined(__SSE__)
+#if (defined(_M_IX86_FP) && _M_IX86_FP >= 2) || defined(__SSE__)
 #define EFK_SSE2
 #elif defined(__ARM_NEON__)
 #define EFK_NEON
@@ -2804,7 +2799,7 @@ Vector2D RectF::Size() const
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-#if (_M_IX86_FP >= 2) || defined(__SSE__)
+#if (defined(_M_IX86_FP) && _M_IX86_FP >= 2) || defined(__SSE__)
 #define EFK_SSE2
 #elif defined(__ARM_NEON__)
 #define EFK_NEON
@@ -4732,7 +4727,7 @@ bool Thread::Wait() const
 	return true;
 }
 
-#elif defined(_PSVITA) || defined(_PS4) || defined(_SWITCH) || defined(_XBOXONE)
+#elif defined(_PSVITA) || defined(_PS4) || defined(NN_NINTENDO_SDK) || defined(_XBOXONE)
 	//-----------------------------------------------------------------------------------
 	//
 	//-----------------------------------------------------------------------------------
@@ -14423,9 +14418,9 @@ void ManagerImplemented::DrawBack()
 			if (drawSet.IsShown && drawSet.IsAutoDrawing)
 			{
 				auto e = (EffectImplemented*)drawSet.ParameterPointer;
-				for (int32_t i = 0; i < e->renderingNodesThreshold; i++)
+				for (int32_t j = 0; j < e->renderingNodesThreshold; j++)
 				{
-					drawSet.GlobalPointer->RenderedInstanceContainers[i]->Draw(false);
+					drawSet.GlobalPointer->RenderedInstanceContainers[j]->Draw(false);
 				}
 			}
 		}
@@ -14439,9 +14434,9 @@ void ManagerImplemented::DrawBack()
 			if (drawSet.IsShown && drawSet.IsAutoDrawing)
 			{
 				auto e = (EffectImplemented*)drawSet.ParameterPointer;
-				for (int32_t i = 0; i < e->renderingNodesThreshold; i++)
+				for (int32_t j = 0; j < e->renderingNodesThreshold; j++)
 				{
-					drawSet.GlobalPointer->RenderedInstanceContainers[i]->Draw(false);
+					drawSet.GlobalPointer->RenderedInstanceContainers[j]->Draw(false);
 				}
 			}
 		}
@@ -14468,10 +14463,17 @@ void ManagerImplemented::DrawFront()
 
 			if (drawSet.IsShown && drawSet.IsAutoDrawing)
 			{
-				auto e = (EffectImplemented*)drawSet.ParameterPointer;
-				for (int32_t i = e->renderingNodesThreshold; i < drawSet.GlobalPointer->RenderedInstanceContainers.size(); i++)
+				if (drawSet.GlobalPointer->RenderedInstanceContainers.size() > 0)
 				{
-					drawSet.GlobalPointer->RenderedInstanceContainers[i]->Draw(false);
+					auto e = (EffectImplemented*)drawSet.ParameterPointer;
+					for (int32_t j = e->renderingNodesThreshold; j < drawSet.GlobalPointer->RenderedInstanceContainers.size(); j++)
+					{
+						drawSet.GlobalPointer->RenderedInstanceContainers[j]->Draw(false);
+					}
+				}
+				else
+				{
+					drawSet.InstanceContainerPointer->Draw(true);
 				}
 			}
 		}
@@ -14484,10 +14486,17 @@ void ManagerImplemented::DrawFront()
 
 			if (drawSet.IsShown && drawSet.IsAutoDrawing)
 			{
-				auto e = (EffectImplemented*)drawSet.ParameterPointer;
-				for (int32_t i = e->renderingNodesThreshold; i < drawSet.GlobalPointer->RenderedInstanceContainers.size(); i++)
+				if (drawSet.GlobalPointer->RenderedInstanceContainers.size() > 0)
 				{
-					drawSet.GlobalPointer->RenderedInstanceContainers[i]->Draw(false);
+					auto e = (EffectImplemented*)drawSet.ParameterPointer;
+					for (int32_t j = e->renderingNodesThreshold; j < drawSet.GlobalPointer->RenderedInstanceContainers.size(); j++)
+					{
+						drawSet.GlobalPointer->RenderedInstanceContainers[j]->Draw(false);
+					}
+				}
+				else
+				{
+					drawSet.InstanceContainerPointer->Draw(true);
 				}
 			}
 		}
@@ -14652,10 +14661,17 @@ void ManagerImplemented::DrawHandleFront(Handle handle)
 			{
 				if (drawSet.IsShown)
 				{
-					auto e = (EffectImplemented*)drawSet.ParameterPointer;
-					for (int32_t i = e->renderingNodesThreshold; i < drawSet.GlobalPointer->RenderedInstanceContainers.size(); i++)
+					if (drawSet.GlobalPointer->RenderedInstanceContainers.size() > 0)
 					{
-						drawSet.GlobalPointer->RenderedInstanceContainers[i]->Draw(false);
+						auto e = (EffectImplemented*)drawSet.ParameterPointer;
+						for (int32_t i = e->renderingNodesThreshold; i < drawSet.GlobalPointer->RenderedInstanceContainers.size(); i++)
+						{
+							drawSet.GlobalPointer->RenderedInstanceContainers[i]->Draw(false);
+						}
+					}
+					else
+					{
+						drawSet.InstanceContainerPointer->Draw(true);
 					}
 				}
 			}
@@ -14664,10 +14680,17 @@ void ManagerImplemented::DrawHandleFront(Handle handle)
 		{
 			if (drawSet.IsShown)
 			{
-				auto e = (EffectImplemented*)drawSet.ParameterPointer;
-				for (int32_t i = e->renderingNodesThreshold; i < drawSet.GlobalPointer->RenderedInstanceContainers.size(); i++)
+				if (drawSet.GlobalPointer->RenderedInstanceContainers.size() > 0)
 				{
-					drawSet.GlobalPointer->RenderedInstanceContainers[i]->Draw(false);
+					auto e = (EffectImplemented*)drawSet.ParameterPointer;
+					for (int32_t i = e->renderingNodesThreshold; i < drawSet.GlobalPointer->RenderedInstanceContainers.size(); i++)
+					{
+						drawSet.GlobalPointer->RenderedInstanceContainers[i]->Draw(false);
+					}
+				}
+				else
+				{
+					drawSet.InstanceContainerPointer->Draw(true);
 				}
 			}
 		}
@@ -15209,16 +15232,16 @@ Instance::Instance(Manager* pManager, EffectNode* pEffectNode, InstanceContainer
 
 	for( int i = 0; i < m_pEffectNode->GetChildrenCount(); i++ )
 	{
-		InstanceContainer* pContainer = m_pContainer->GetChild( i );
+		InstanceContainer* childContainer = m_pContainer->GetChild( i );
 
 		if( group != NULL )
 		{
-			group->NextUsedByInstance = pContainer->CreateGroup();
+			group->NextUsedByInstance = childContainer->CreateGroup();
 			group = group->NextUsedByInstance;
 		}
 		else
 		{
-			group = pContainer->CreateGroup();
+			group = childContainer->CreateGroup();
 			m_headGroups = group;
 		}
 	}
@@ -16361,8 +16384,6 @@ void Instance::ModifyMatrixFromLocationAbs( float deltaFrame )
 	}
 	else if( m_pEffectNode->LocationAbs.type == LocationAbsType::AttractiveForce )
 	{
-		InstanceGlobal* instanceGlobal = m_pContainer->GetRootInstance();
-
 		float force = m_pEffectNode->LocationAbs.attractiveForce.force;
 		float control = m_pEffectNode->LocationAbs.attractiveForce.control;
 		float minRange = m_pEffectNode->LocationAbs.attractiveForce.minRange;

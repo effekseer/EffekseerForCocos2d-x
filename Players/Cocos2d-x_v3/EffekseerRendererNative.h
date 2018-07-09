@@ -1119,21 +1119,21 @@ public:
 			mat_scale.Scaling(s.X, s.Y, s.Z);
 			::Effekseer::Matrix43::Multiple(mat_rot, mat_scale, mat_rot);
 
-			for (int32_t r = 0; r < 4; r++)
+			for (int32_t r_ = 0; r_ < 4; r_++)
 			{
-				for (int32_t c = 0; c < 3; c++)
+				for (int32_t c_ = 0; c_ < 3; c_++)
 				{
-					mat44.Values[r][c] = mat_rot.Value[r][c];
+					mat44.Values[r_][c_] = mat_rot.Value[r_][c_];
 				}
 			}
 		}
 		else if (btype == ::Effekseer::BillboardType::Fixed)
 		{
-			for (int32_t r = 0; r < 4; r++)
+			for (int32_t r_ = 0; r_ < 4; r_++)
 			{
-				for (int32_t c = 0; c < 3; c++)
+				for (int32_t c_ = 0; c_ < 3; c_++)
 				{
-					mat44.Values[r][c] = instanceParameter.SRTMatrix43.Value[r][c];
+					mat44.Values[r_][c_] = instanceParameter.SRTMatrix43.Value[r_][c_];
 				}
 			}
 		}
@@ -1331,13 +1331,13 @@ public:
 		vcb->CameraMatrix = renderer->GetCameraProjectionMatrix();
 
 		// Check time
-		auto stTime = m_times[0] % model->GetFrameCount();
+		auto stTime0 = m_times[0] % model->GetFrameCount();
 		auto isTimeSame = true;
 
 		for (auto t : m_times)
 		{
 			t = t % model->GetFrameCount();
-			if(t != stTime)
+			if(t != stTime0)
 			{
 				isTimeSame = false;
 				break;
@@ -1346,7 +1346,7 @@ public:
 
 		if(Instancing && isTimeSame)
 		{
-			auto& imodel = model->InternalModels[stTime];
+			auto& imodel = model->InternalModels[stTime0];
 
 			// Invalid unless layout is set after buffer
 			renderer->SetVertexBuffer(imodel.VertexBuffer, sizeof(Effekseer::Model::VertexWithIndex));
@@ -2320,11 +2320,11 @@ protected:
 		
 		const float stepC = cosf(stepAngle);
 		const float stepS = sinf(stepAngle);
-		float c = cosf(beginAngle);
-		float s = sinf(beginAngle);
-		::Effekseer::Vector3D outerCurrent( c * outerRadius, s * outerRadius, outerHeight );
-		::Effekseer::Vector3D innerCurrent( c * innerRadius, s * innerRadius, innerHeight );
-		::Effekseer::Vector3D centerCurrent( c * centerRadius, s * centerRadius, centerHeight );
+		float cos_ = cosf(beginAngle);
+		float sin_ = sinf(beginAngle);
+		::Effekseer::Vector3D outerCurrent( cos_ * outerRadius, sin_ * outerRadius, outerHeight );
+		::Effekseer::Vector3D innerCurrent( cos_ * innerRadius, sin_ * innerRadius, innerHeight );
+		::Effekseer::Vector3D centerCurrent( cos_ * centerRadius, sin_ * centerRadius, centerHeight );
 		float texCurrent = instanceParameter.UV.X;
 		const float texStep = instanceParameter.UV.Width / parameter.VertexCount;
 		const float v1 = instanceParameter.UV.Y;
@@ -2336,22 +2336,22 @@ protected:
 
 		for( int i = 0; i < vertexCount; i += 8 )
 		{
-			float old_c = c;
-			float old_s = s;
+			float old_c = cos_;
+			float old_s = sin_;
 
 			float t;
-			t = c * stepC - s * stepS;
-			s = s * stepC + c * stepS;
-			c = t;
+			t = cos_ * stepC - sin_ * stepS;
+			sin_ = sin_ * stepC + cos_ * stepS;
+			cos_ = t;
 
-			outerNext.X = c * outerRadius;
-			outerNext.Y = s * outerRadius;
+			outerNext.X = cos_ * outerRadius;
+			outerNext.Y = sin_ * outerRadius;
 			outerNext.Z = outerHeight;
-			innerNext.X = c * innerRadius;
-			innerNext.Y = s * innerRadius;
+			innerNext.X = cos_ * innerRadius;
+			innerNext.Y = sin_ * innerRadius;
 			innerNext.Z = innerHeight;
-			centerNext.X = c * centerRadius;
-			centerNext.Y = s * centerRadius;
+			centerNext.X = cos_ * centerRadius;
+			centerNext.Y = sin_ * centerRadius;
 			centerNext.Z = centerHeight;
 
 			texNext = texCurrent + texStep;
@@ -2410,8 +2410,8 @@ protected:
 				outerBefore.Z = outerHeight;
 
 				// 次
-				auto t_n = c * stepC - s * stepS;
-				auto s_n = s * stepC + c * stepS;
+				auto t_n = cos_ * stepC - sin_ * stepS;
+				auto s_n = sin_ * stepC + cos_ * stepS;
 				auto c_n = t_n;
 
 				::Effekseer::Vector3D outerNN;

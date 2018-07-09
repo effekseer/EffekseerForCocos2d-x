@@ -14,7 +14,7 @@
 */
 #include "Effekseer/Effekseer.h"
 
-class HelloWorld : public cocos2d::Layer
+class HelloWorld : public cocos2d::Scene
 {
 private:
 	/**
