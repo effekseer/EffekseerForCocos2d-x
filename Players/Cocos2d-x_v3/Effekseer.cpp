@@ -643,6 +643,10 @@ namespace efk
 		// large buffer make application slow on Android
 		int32_t spriteSize = 600;
 
+#if (CC_TARGET_PLATFORM == CC_PLATFORM_IOS)
+		spriteSize = 2400;
+#endif
+
 #if (CC_TARGET_PLATFORM == CC_PLATFORM_IOS || CC_TARGET_PLATFORM == CC_PLATFORM_ANDROID)
 		renderer2d = ::EffekseerRendererGL::Renderer::Create(spriteSize, EffekseerRendererGL::OpenGLDeviceType::OpenGLES2);
 #else
