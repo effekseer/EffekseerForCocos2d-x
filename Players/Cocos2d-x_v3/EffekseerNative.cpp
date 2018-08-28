@@ -2329,9 +2329,11 @@ Vector3D::Vector3D( float x, float y, float z )
 
 }
 
-//-----------------------------------------------------------------------------------
-//
-//-----------------------------------------------------------------------------------
+Vector3D Vector3D::operator-()
+{
+	return Vector3D(-X, -Y, -Z);
+}
+
 Vector3D Vector3D::operator + ( const Vector3D& o ) const
 {
 	return Vector3D( X + o.X, Y + o.Y, Z + o.Z );
@@ -4501,367 +4503,6 @@ struct easing_color
 //
 //----------------------------------------------------------------------------------
 #endif	// __EFFEKSEER_INTERNAL_STRUCT_H__
-//----------------------------------------------------------------------------------
-// Include
-//----------------------------------------------------------------------------------
-
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-namespace Effekseer
-{
-	
-#ifdef _WIN32
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-CriticalSection::CriticalSection()
-{
-	::InitializeCriticalSection( &m_criticalSection );
-}
-
-//-----------------------------------------------------------------------------------
-/**
-*/
-//-----------------------------------------------------------------------------------
-CriticalSection::~CriticalSection()
-{
-	::DeleteCriticalSection( &m_criticalSection );
-}
-
-//-----------------------------------------------------------------------------------
-/**
-*/
-//-----------------------------------------------------------------------------------
-void CriticalSection::Enter() const
-{
-	::EnterCriticalSection( &m_criticalSection );
-}
-
-//-----------------------------------------------------------------------------------
-/**
-*/
-//-----------------------------------------------------------------------------------
-void CriticalSection::Leave() const
-{
-	::LeaveCriticalSection( &m_criticalSection );
-}
-//-----------------------------------------------------------------------------------
-/**
-*/
-//-----------------------------------------------------------------------------------
-#elif defined(_PSVITA) || defined(_PS4) || defined(_SWITCH) || defined(_XBOXONE)
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-CriticalSection::CriticalSection()
-{
-	::ConsoleGameInitializeCriticalSection(&m_mutex);
-}
-
-//-----------------------------------------------------------------------------------
-/**
-*/
-//-----------------------------------------------------------------------------------
-CriticalSection::~CriticalSection()
-{
-	::ConsoleGameDeleteCriticalSection(&m_mutex);
-}
-
-//-----------------------------------------------------------------------------------
-/**
-*/
-//-----------------------------------------------------------------------------------
-void CriticalSection::Enter() const
-{
-	::ConsoleGameEnterCriticalSection(&m_mutex);
-}
-
-//-----------------------------------------------------------------------------------
-/**
-*/
-//-----------------------------------------------------------------------------------
-void CriticalSection::Leave() const
-{
-	::ConsoleGameLeaveCriticalSection(&m_mutex);
-}
-#else
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-CriticalSection::CriticalSection()
-{
-	pthread_mutex_init( &m_mutex, NULL );
-}
-
-//-----------------------------------------------------------------------------------
-/**
-*/
-//-----------------------------------------------------------------------------------
-CriticalSection::~CriticalSection()
-{
-	pthread_mutex_destroy( &m_mutex );
-}
-
-//-----------------------------------------------------------------------------------
-/**
-*/
-//-----------------------------------------------------------------------------------
-void CriticalSection::Enter() const
-{
-	pthread_mutex_lock( &m_mutex );
-}
-
-//-----------------------------------------------------------------------------------
-/**
-*/
-//-----------------------------------------------------------------------------------
-void CriticalSection::Leave() const
-{
-	pthread_mutex_unlock( &m_mutex );
-}
-#endif
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-}
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-
-
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-namespace Effekseer { 
-
-#ifdef _WIN32
-
-//-----------------------------------------------------------------------------------
-//
-//-----------------------------------------------------------------------------------
-/* DWORDを置きかえ */
-unsigned long EFK_STDCALL Thread::ThreadProc(void* arguments)
-{
-	Thread* thread = (Thread*)(arguments);
-
-	thread->m_mainProc( thread->m_data );
-
-	thread->m_cs.Enter();
-
-	thread->m_mainProc	= NULL;
-	thread->m_data		= NULL;
-
-	::CloseHandle( thread->m_thread );
-	thread->m_thread		= NULL;
-
-	thread->m_cs.Leave();
-
-	return 0;
-}
-
-//-----------------------------------------------------------------------------------
-//
-//-----------------------------------------------------------------------------------
-Thread::Thread()
-	: m_data		( NULL )
-	, m_thread		( NULL )
-	, m_mainProc	( NULL )
-{
-}
-
-//-----------------------------------------------------------------------------------
-//
-//-----------------------------------------------------------------------------------
-Thread::~Thread()
-{
-}
-
-//-----------------------------------------------------------------------------------
-//
-//-----------------------------------------------------------------------------------
-bool Thread::Create( void (*threadFunc)( void* ), void* data )
-{
-	m_cs.Enter();
-
-	if ( m_thread == NULL )
-	{
-		m_data		= data;
-		m_mainProc	= threadFunc;
-		m_thread	= ::CreateThread( NULL, 0, ThreadProc, this, CREATE_SUSPENDED, NULL );
-
-		// スレッド開始
-		::SetThreadPriority( m_thread, THREAD_PRIORITY_NORMAL );
-		::ResumeThread( m_thread );
-
-		m_cs.Leave();
-		return true;
-	}
-
-	m_cs.Leave();
-	return false;
-}
-
-//-----------------------------------------------------------------------------------
-//
-//-----------------------------------------------------------------------------------
-bool Thread::IsExitThread() const
-{
-	m_cs.Enter();
-	bool ret = m_thread == NULL;
-	m_cs.Leave();
-	return ret;
-}
-
-//-----------------------------------------------------------------------------------
-//
-//-----------------------------------------------------------------------------------
-bool Thread::Wait() const
-{
-	::WaitForSingleObject( m_thread, INFINITE );
-
-	return true;
-}
-
-#elif defined(_PSVITA) || defined(_PS4) || defined(NN_NINTENDO_SDK) || defined(_XBOXONE)
-	//-----------------------------------------------------------------------------------
-	//
-	//-----------------------------------------------------------------------------------
-	Thread::Thread()
-	{
-	}
-
-	//-----------------------------------------------------------------------------------
-	//
-	//-----------------------------------------------------------------------------------
-	Thread::~Thread()
-	{
-	}
-
-	//-----------------------------------------------------------------------------------
-	//
-	//-----------------------------------------------------------------------------------
-	bool Thread::Create(void(*threadFunc)(void*), void* data)
-	{
-		return false;
-	}
-
-	//-----------------------------------------------------------------------------------
-	//
-	//-----------------------------------------------------------------------------------
-	bool Thread::IsExitThread() const
-	{
-		return false;
-	}
-
-	//-----------------------------------------------------------------------------------
-	//
-	//-----------------------------------------------------------------------------------
-	bool Thread::Wait() const
-	{
-		return false;
-	}
-#else
-
-//-----------------------------------------------------------------------------------
-//
-//-----------------------------------------------------------------------------------
-void* Thread::ThreadProc( void* arguments )
-{
-	Thread* thread = (Thread*)(arguments);
-
-	thread->m_mainProc( thread->m_data );
-
-	thread->m_cs.Enter();
-
-	thread->m_mainProc	= NULL;
-	thread->m_data		= NULL;
-
-	pthread_detach( thread->m_thread );
-
-	thread->m_running	= false;
-
-	thread->m_cs.Leave();
-
-	return 0;
-}
-
-//-----------------------------------------------------------------------------------
-//
-//-----------------------------------------------------------------------------------
-Thread::Thread()
-	: m_thread		()
-	, m_running		( false )
-	, m_data		( NULL )
-	, m_mainProc	( NULL )
-{
-}
-
-//-----------------------------------------------------------------------------------
-//
-//-----------------------------------------------------------------------------------
-Thread::~Thread()
-{
-}
-
-//-----------------------------------------------------------------------------------
-//
-//-----------------------------------------------------------------------------------
-bool Thread::Create( void (*threadFunc)( void* ), void* data )
-{
-	m_cs.Enter();
-
-	if ( !m_running )
-	{
-		m_data		= data;
-		m_mainProc	= threadFunc;
-
-		pthread_attr_t attr;
-		pthread_attr_init( &attr );
-
-		// スレッド開始
-		m_running = true;
-		pthread_create( &m_thread, &attr, ThreadProc, this );
-		
-		m_cs.Leave();
-		return true;
-	}
-
-	m_cs.Leave();
-	return false;
-}
-
-//-----------------------------------------------------------------------------------
-//
-//-----------------------------------------------------------------------------------
-bool Thread::IsExitThread() const
-{
-	m_cs.Enter();
-	bool ret = !m_running;
-	m_cs.Leave();
-	return ret;
-}
-
-//-----------------------------------------------------------------------------------
-//
-//-----------------------------------------------------------------------------------
-bool Thread::Wait() const
-{
-	pthread_join( m_thread, NULL );
-
-	return true;
-}
-#endif
-
-//-----------------------------------------------------------------------------------
-//
-//-----------------------------------------------------------------------------------
-}
-
 #ifndef	__EFFEKSEER_DEFAULTEFFECTLOADER_H__
 #define	__EFFEKSEER_DEFAULTEFFECTLOADER_H__
 
@@ -7602,8 +7243,8 @@ private:
 	std::vector<DrawSet>		m_renderingDrawSets;
 	std::map<Handle,DrawSet>	m_renderingDrawSetMaps;
 
-	/* 描画セッション */
-	CriticalSection				m_renderingSession;
+	// mutex for rendering
+	std::mutex					m_renderingMutex;
 
 	/* 設定インスタンス */
 	Setting*					m_setting;
@@ -12997,29 +12638,7 @@ namespace Effekseer
 //----------------------------------------------------------------------------------
 static int64_t GetTime(void)
 {
-#ifdef _WIN32
-	int64_t count, freq;
-	if (QueryPerformanceCounter((LARGE_INTEGER*)&count))
-	{
-		if (QueryPerformanceFrequency((LARGE_INTEGER*)&freq))
-		{
-			return count * 1000000 / freq;
-		}
-	}
-	return 0;
-#elif defined(_PSVITA)
 	return std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
-#elif defined(_PS4)
-	return std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
-#elif defined(_SWITCH)
-	return std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
-#elif defined(_XBOXONE)
-	return std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
-#else
-	struct timeval tv;
-    gettimeofday(&tv, NULL);
-    return (int64_t)tv.tv_sec * 1000000 + (int64_t)tv.tv_usec;
-#endif
 }
 
 //----------------------------------------------------------------------------------
@@ -14125,7 +13744,7 @@ void ManagerImplemented::Flip()
 {
 	if( !m_autoFlip )
 	{
-		m_renderingSession.Enter();
+		m_renderingMutex.lock();
 	}
 
 	ExecuteEvents();
@@ -14260,7 +13879,7 @@ void ManagerImplemented::Flip()
 
 	if( !m_autoFlip )
 	{
-		m_renderingSession.Leave();
+		m_renderingMutex.unlock();
 	}
 }
 
@@ -14292,7 +13911,7 @@ void ManagerImplemented::Update( float deltaFrame )
 //----------------------------------------------------------------------------------
 void ManagerImplemented::BeginUpdate()
 {
-	m_renderingSession.Enter();
+	m_renderingMutex.lock();
 
 	if( m_autoFlip )
 	{
@@ -14307,7 +13926,7 @@ void ManagerImplemented::BeginUpdate()
 //----------------------------------------------------------------------------------
 void ManagerImplemented::EndUpdate()
 {
-	m_renderingSession.Leave();
+	m_renderingMutex.unlock();
 }
 
 //----------------------------------------------------------------------------------
@@ -14346,7 +13965,7 @@ void ManagerImplemented::UpdateHandle( DrawSet& drawSet, float deltaFrame )
 //----------------------------------------------------------------------------------
 void ManagerImplemented::Draw()
 {
-	m_renderingSession.Enter();
+	m_renderingMutex.lock();
 
 	// 開始時間を記録
 	int64_t beginTime = ::Effekseer::GetTime();
@@ -14399,13 +14018,13 @@ void ManagerImplemented::Draw()
 	// 経過時間を計算
 	m_drawTime = (int)(Effekseer::GetTime() - beginTime);
 
-	m_renderingSession.Leave();
+	m_renderingMutex.unlock();
 }
 
 void ManagerImplemented::DrawBack()
 {
-	m_renderingSession.Enter();
-
+	std::lock_guard<std::mutex> lock(m_renderingMutex);
+	
 	// 開始時間を記録
 	int64_t beginTime = ::Effekseer::GetTime();
 
@@ -14444,13 +14063,11 @@ void ManagerImplemented::DrawBack()
 
 	// 経過時間を計算
 	m_drawTime = (int)(Effekseer::GetTime() - beginTime);
-
-	m_renderingSession.Leave();
 }
 
 void ManagerImplemented::DrawFront()
 {
-	m_renderingSession.Enter();
+	std::lock_guard<std::mutex> lock(m_renderingMutex);
 
 	// 開始時間を記録
 	int64_t beginTime = ::Effekseer::GetTime();
@@ -14504,8 +14121,6 @@ void ManagerImplemented::DrawFront()
 
 	// 経過時間を計算
 	m_drawTime = (int)(Effekseer::GetTime() - beginTime);
-
-	m_renderingSession.Leave();
 }
 
 //----------------------------------------------------------------------------------
@@ -14558,8 +14173,8 @@ Handle ManagerImplemented::Play( Effect* effect, float x, float y, float z )
 //----------------------------------------------------------------------------------
 void ManagerImplemented::DrawHandle( Handle handle )
 {
-	m_renderingSession.Enter();
-	
+	std::lock_guard<std::mutex> lock(m_renderingMutex);
+
 	std::map<Handle,DrawSet>::iterator it = m_renderingDrawSetMaps.find( handle );
 	if( it != m_renderingDrawSetMaps.end() )
 	{
@@ -14603,13 +14218,11 @@ void ManagerImplemented::DrawHandle( Handle handle )
 			}
 		}
 	}
-
-	m_renderingSession.Leave();
 }
 
 void ManagerImplemented::DrawHandleBack(Handle handle)
 {
-	m_renderingSession.Enter();
+	std::lock_guard<std::mutex> lock(m_renderingMutex);
 
 	std::map<Handle, DrawSet>::iterator it = m_renderingDrawSetMaps.find(handle);
 	if (it != m_renderingDrawSetMaps.end())
@@ -14642,13 +14255,11 @@ void ManagerImplemented::DrawHandleBack(Handle handle)
 			}
 		}
 	}
-
-	m_renderingSession.Leave();
 }
 
 void ManagerImplemented::DrawHandleFront(Handle handle)
 {
-	m_renderingSession.Enter();
+	std::lock_guard<std::mutex> lock(m_renderingMutex);
 
 	std::map<Handle, DrawSet>::iterator it = m_renderingDrawSetMaps.find(handle);
 	if (it != m_renderingDrawSetMaps.end())
@@ -14695,8 +14306,6 @@ void ManagerImplemented::DrawHandleFront(Handle handle)
 			}
 		}
 	}
-
-	m_renderingSession.Leave();
 }
 
 //----------------------------------------------------------------------------------
@@ -14704,7 +14313,7 @@ void ManagerImplemented::DrawHandleFront(Handle handle)
 //----------------------------------------------------------------------------------
 void ManagerImplemented::BeginReloadEffect( Effect* effect )
 {
-	m_renderingSession.Enter();
+	m_renderingMutex.lock();
 
 	std::map<Handle,DrawSet>::iterator it = m_DrawSets.begin();
 	std::map<Handle,DrawSet>::iterator it_end = m_DrawSets.end();
@@ -14750,7 +14359,7 @@ void ManagerImplemented::EndReloadEffect( Effect* effect )
 		(*it).second.InstanceContainerPointer->Update( true, 1.0f, (*it).second.IsShown );
 	}
 
-	m_renderingSession.Leave();
+	m_renderingMutex.unlock();
 }
 
 //----------------------------------------------------------------------------------
@@ -17226,7 +16835,7 @@ private:
 	class InternalClient
 	{
 	public:
-		Thread		m_threadRecv;
+		std::thread		m_threadRecv;
 		EfkSocket	m_socket;
 		ServerImplemented*		m_server;
 		bool		m_active;
@@ -17234,7 +16843,7 @@ private:
 		std::vector<uint8_t>	m_recvBuffer;
 
 		std::vector<std::vector<uint8_t> >	m_recvBuffers;
-		CriticalSection						m_ctrlRecvBuffers;
+		std::mutex						m_ctrlRecvBuffers;
 
 		static void RecvAsync( void* data );
 
@@ -17248,8 +16857,8 @@ private:
 	EfkSocket	m_socket;
 	uint16_t	m_port;
 
-	Thread		m_thread;
-	CriticalSection		m_ctrlClients;
+	std::thread		m_thread;
+	std::mutex		m_ctrlClients;
 
 	bool		m_running;
 
@@ -17272,7 +16881,9 @@ public:
 	virtual ~ServerImplemented();
 
 	/**
-		@brief	サーバーを開始する。
+	@brief
+	\~Japanese	サーバーを開始する。
+	\~English	Start a server
 	*/
 	bool Start( uint16_t port );
 
@@ -17366,9 +16977,9 @@ void ServerImplemented::InternalClient::RecvAsync( void* data )
 		}
 
 		/* 受信処理 */
-		client->m_ctrlRecvBuffers.Enter();
+		client->m_ctrlRecvBuffers.lock();
 		client->m_recvBuffers.push_back(client->m_recvBuffer);
-		client->m_ctrlRecvBuffers.Leave();
+		client->m_ctrlRecvBuffers.unlock();
 	}
 }
 
@@ -17380,7 +16991,11 @@ ServerImplemented::InternalClient::InternalClient( EfkSocket socket_, ServerImpl
 	, m_server	( server )
 	, m_active	( true )
 {
-	m_threadRecv.Create( RecvAsync, this );
+	m_threadRecv = std::thread(
+		[this]() 
+	{
+		RecvAsync(this);
+	});
 }
 
 //----------------------------------------------------------------------------------
@@ -17388,7 +17003,7 @@ ServerImplemented::InternalClient::InternalClient( EfkSocket socket_, ServerImpl
 //----------------------------------------------------------------------------------
 ServerImplemented::InternalClient::~InternalClient()
 {
-	m_threadRecv.Wait();
+	m_threadRecv.join();
 }
 
 //----------------------------------------------------------------------------------
@@ -17437,9 +17052,8 @@ Server* Server::Create()
 //----------------------------------------------------------------------------------
 void ServerImplemented::AddClient( InternalClient* client )
 {
-	m_ctrlClients.Enter();
+	std::lock_guard<std::mutex> lock(m_ctrlClients);
 	m_clients.insert( client );
-	m_ctrlClients.Leave();
 }
 
 //----------------------------------------------------------------------------------
@@ -17447,13 +17061,12 @@ void ServerImplemented::AddClient( InternalClient* client )
 //----------------------------------------------------------------------------------
 void ServerImplemented::RemoveClient( InternalClient* client )
 {
-	m_ctrlClients.Enter();
+	std::lock_guard<std::mutex> lock(m_ctrlClients);
 	if( m_clients.count( client ) > 0 )
 	{
 		m_clients.erase( client );
 		m_removedClients.insert( client );
 	}
-	m_ctrlClients.Leave();
 }
 
 //----------------------------------------------------------------------------------
@@ -17535,7 +17148,12 @@ bool ServerImplemented::Start( uint16_t port )
 	m_running = true;
 	m_socket = socket_;
 	m_port = port;
-	m_thread.Create( AcceptAsync, this );
+
+	m_thread = std::thread(
+		[this]()
+	{
+		AcceptAsync(this);
+	});
 
 	EffekseerPrintDebug("Server : Start\n");
 
@@ -17555,23 +17173,23 @@ void ServerImplemented::Stop()
 	
 	m_running = false;
 
-	m_thread.Wait();
+	m_thread.join();
 
 	/* クライアント停止 */
-	m_ctrlClients.Enter();
+	m_ctrlClients.lock();
 	for( std::set<InternalClient*>::iterator it = m_clients.begin(); it != m_clients.end(); ++it )
 	{
 		(*it)->ShutDown();
 	}
-	m_ctrlClients.Leave();
+	m_ctrlClients.unlock();
 	
 
 	/* クライアントの消滅待ち */
 	while(true)
 	{
-		m_ctrlClients.Enter();
+		m_ctrlClients.lock();
 		int32_t size = m_clients.size();
-		m_ctrlClients.Leave();
+		m_ctrlClients.unlock();
 	
 		if( size == 0 ) break;
 
@@ -17647,7 +17265,7 @@ void ServerImplemented::Unregist( Effect* effect )
 //----------------------------------------------------------------------------------
 void ServerImplemented::Update()
 {
-	m_ctrlClients.Enter();
+	m_ctrlClients.lock();
 
 	for( std::set<InternalClient*>::iterator it = m_removedClients.begin(); it != m_removedClients.end(); ++it )
 	{
@@ -17661,7 +17279,7 @@ void ServerImplemented::Update()
 
 	for( std::set<InternalClient*>::iterator it = m_clients.begin(); it != m_clients.end(); ++it )
 	{
-		(*it)->m_ctrlRecvBuffers.Enter();
+		(*it)->m_ctrlRecvBuffers.lock();
 
 		for( size_t i = 0; i < (*it)->m_recvBuffers.size(); i++ )
 		{
@@ -17707,10 +17325,10 @@ void ServerImplemented::Update()
 		}
 
 		(*it)->m_recvBuffers.clear();
-		(*it)->m_ctrlRecvBuffers.Leave();
+		(*it)->m_ctrlRecvBuffers.unlock();
 
 	}
-	m_ctrlClients.Leave();
+	m_ctrlClients.unlock();
 	
 }
 
@@ -17749,7 +17367,6 @@ void ServerImplemented::SetMaterialPath( const EFK_CHAR* materialPath )
 //----------------------------------------------------------------------------------
 
 
-
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
@@ -17760,7 +17377,7 @@ namespace Effekseer {
 class ClientImplemented : public Client
 {
 private:
-	Thread		m_threadRecv;
+	std::thread	m_threadRecv;
 
 	EfkSocket	m_socket;
 	uint16_t	m_port;
@@ -17939,7 +17556,10 @@ bool ClientImplemented::Start( char* host, uint16_t port )
 
 	m_running = true;
 
-	m_threadRecv.Create( RecvAsync, this );
+	m_threadRecv = std::thread(
+		[this](){
+		RecvAsync(this);
+	});
 
 	EffekseerPrintDebug("Client : Start\n");
 
@@ -17956,6 +17576,7 @@ void ClientImplemented::Stop()
 	Socket::Shutsown( m_socket );
 	Socket::Close( m_socket );
 	m_running = false;
+	m_threadRecv.join();
 
 	EffekseerPrintDebug("Client : Stop\n");
 }

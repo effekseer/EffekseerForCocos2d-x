@@ -1177,6 +1177,9 @@ private:
 	::Effekseer::Matrix44	m_camera;
 	::Effekseer::Matrix44	m_cameraProj;
 
+	::Effekseer::Vector3D	m_cameraPosition;
+	::Effekseer::Vector3D	m_cameraFrontDirection;
+
 	::EffekseerRenderer::RenderStateBase*		m_renderState;
 
 	Effekseer::TextureData	m_background;
@@ -1305,6 +1308,12 @@ public:
 		@brief	カメラプロジェクション行列を取得する。
 	*/
 	::Effekseer::Matrix44& GetCameraProjectionMatrix() override;
+
+	::Effekseer::Vector3D GetCameraFrontDirection() const override;
+
+	::Effekseer::Vector3D GetCameraPosition() const  override;
+
+	void SetCameraParameter(const ::Effekseer::Vector3D& front, const ::Effekseer::Vector3D& position)  override;
 
 	/**
 		@brief	スプライトレンダラーを生成する。
@@ -4520,6 +4529,15 @@ const ::Effekseer::Matrix44& RendererImplemented::GetCameraMatrix() const
 //----------------------------------------------------------------------------------
 void RendererImplemented::SetCameraMatrix( const ::Effekseer::Matrix44& mat )
 {
+	m_cameraFrontDirection = ::Effekseer::Vector3D(mat.Values[0][2], mat.Values[1][2], mat.Values[2][2]);
+
+	auto localPos = ::Effekseer::Vector3D(-mat.Values[3][0], -mat.Values[3][1], -mat.Values[3][2]);
+	auto f = m_cameraFrontDirection;
+	auto r = ::Effekseer::Vector3D(mat.Values[0][0], mat.Values[1][0], mat.Values[2][0]);
+	auto u = ::Effekseer::Vector3D(mat.Values[0][1], mat.Values[1][1], mat.Values[2][1]);
+
+	m_cameraPosition = r * localPos.X + u * localPos.Y + f * localPos.Z;
+
 	m_camera = mat;
 }
 
@@ -4529,6 +4547,22 @@ void RendererImplemented::SetCameraMatrix( const ::Effekseer::Matrix44& mat )
 ::Effekseer::Matrix44& RendererImplemented::GetCameraProjectionMatrix()
 {
 	return m_cameraProj;
+}
+
+::Effekseer::Vector3D RendererImplemented::GetCameraFrontDirection() const
+{
+	return m_cameraFrontDirection;
+}
+
+::Effekseer::Vector3D RendererImplemented::GetCameraPosition() const
+{
+	return m_cameraPosition;
+}
+
+void RendererImplemented::SetCameraParameter(const ::Effekseer::Vector3D& front, const ::Effekseer::Vector3D& position)
+{
+	m_cameraFrontDirection = front;
+	m_cameraPosition = position;
 }
 
 //----------------------------------------------------------------------------------

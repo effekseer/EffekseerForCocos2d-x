@@ -99,9 +99,6 @@ effekseerHeader.readLines(rootEDir + 'Effekseer.Setting.h')
 effekseerHeader.readLines(rootEDir + 'Effekseer.Server.h')
 effekseerHeader.readLines(rootEDir + 'Effekseer.Client.h')
 
-effekseerHeader.readLines(rootEDir + 'Effekseer.CriticalSection.h')
-effekseerHeader.readLines(rootEDir + 'Effekseer.Thread.h')
-
 #effekseerHeader.output('test/test/EffekseerNative.h')
 effekseerHeader.output('Players/Cocos2d-x_v3/EffekseerNative.h')
 
@@ -173,9 +170,6 @@ effekseerCPP.readLines(rootEDir + 'Effekseer.Matrix43.cpp')
 effekseerCPP.readLines(rootEDir + 'Effekseer.Matrix44.cpp')
 
 effekseerCPP.readLines(rootEDir + 'Effekseer.InternalStruct.h')
-
-effekseerCPP.readLines(rootEDir + 'Effekseer.CriticalSection.cpp')
-effekseerCPP.readLines(rootEDir + 'Effekseer.Thread.cpp')
 
 effekseerCPP.readLines(rootEDir + 'Effekseer.DefaultEffectLoader.h')
 effekseerCPP.readLines(rootEDir + 'Effekseer.DefaultEffectLoader.cpp')
