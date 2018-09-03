@@ -65,7 +65,7 @@ void HelloWorld::update(float delta)
 
 			您读取效果文件。
 		*/
-		auto effect = efk::Effect::create("HolySandstorm.efk");
+		auto effect = efk::Effect::create("Laser01.efk");
 		if (effect != nullptr)
 		{
 			/**

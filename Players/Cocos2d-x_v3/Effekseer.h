@@ -51,7 +51,6 @@ namespace efk
 		bool playOnEnter = false;
 		bool removeOnStop = true;
 		bool isLooping = false;
-		float angleY = 0;
 
 		EffectManager* manager = nullptr;
 		Effect* effect = nullptr;

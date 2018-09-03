@@ -482,16 +482,6 @@ namespace efk
 		removeOnStop = value;
 	}
 
-	float EffectEmitter::getAngleY()
-	{
-		return angleY;
-	}
-
-	void EffectEmitter::setAngleY(float value)
-	{
-		angleY = value;
-	}
-
 	void EffectEmitter::setColor(cocos2d::Color4B color)
 	{
 		Effekseer::Color col;

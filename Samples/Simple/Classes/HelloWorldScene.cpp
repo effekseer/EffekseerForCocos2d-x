@@ -54,7 +54,7 @@ void HelloWorld::update(float delta)
 
 			您读取效果文件。
 		*/
-		auto effect = efk::Effect::create("HolySandstorm.efk");
+		auto effect = efk::Effect::create("Laser01.efk");
 		if (effect != nullptr)
 		{
 			/**
@@ -70,7 +70,9 @@ void HelloWorld::update(float delta)
 			emitter->setEffect(effect);
 			emitter->setPlayOnEnter(true);
 
+			emitter->setRotation3D(cocos2d::vertex3(0, 90, 0));
 			emitter->setPosition(Vec2(320, 150));
+			
 			emitter->setScale(13);
 			this->addChild(emitter, 0);
 
