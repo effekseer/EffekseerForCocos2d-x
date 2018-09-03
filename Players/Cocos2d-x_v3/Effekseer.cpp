@@ -502,6 +502,11 @@ namespace efk
 		manager->getInternalManager()->SetSpeed(handle, speed);
 	}
 
+	void EffectEmitter::setTargetPosition(cocos2d::Vec3 position)
+	{
+		manager->getInternalManager()->SetTargetLocation(handle, position.x, position.y, position.z);
+	}
+
 	bool EffectEmitter::isPlaying()
 	{
 		return manager->getInternalManager()->Exists(handle);

@@ -192,20 +192,6 @@ namespace efk
 
 		/**
 			@brief
-			\~English	Get the angle around Y axis.
-			\~Japanese	Y軸方向の回転角度を取得する。
-		*/
-		float getAngleY();
-
-		/**
-			@brief	
-			\~English	Set the angle around Y axis.
-			\~Japanese	Y軸方向の回転角度を設定する。
-		*/
-		void setAngleY(float value);
-
-		/**
-			@brief
 			\~English	Set the color which affects whole particles.
 			\~Japanese	全てのパーティクルに影響する色を設定する。
 		*/
@@ -224,6 +210,13 @@ namespace efk
 		\~Japanese	再生速度を設定する。
 		*/
 		void setSpeed(float speed);
+
+		/**
+		@brief
+		\~English	Set the position of target to gather
+		\~Japanese	エフェクトが集まる位置を設定する。
+		*/
+		void setTargetPosition(cocos2d::Vec3 position);
 
 		/**
 			@brief	

@@ -43,7 +43,8 @@ bool HelloWorld::init()
 
 void HelloWorld::update(float delta)
 {
-	if (count % 240 == 0)
+	// Effect1
+	if (count % 300 == 0)
 	{
 		/**
 			エフェクトファイルを読み込みます。
@@ -66,15 +67,60 @@ void HelloWorld::update(float delta)
 
 				您会生成一个发射极，并通过将参数添加到该层。
 			*/
+
 			auto emitter = efk::EffectEmitter::create(manager);
 			emitter->setEffect(effect);
 			emitter->setPlayOnEnter(true);
 
-			emitter->setRotation3D(cocos2d::vertex3(0, 90, 0));
+			emitter->setRotation3D(cocos2d::Vec3(0, 90, 0));
 			emitter->setPosition(Vec2(320, 150));
 			
 			emitter->setScale(13);
 			this->addChild(emitter, 0);
+
+			effect->release();
+		}
+	}
+
+	// Effect2
+	if (count % 300 == 120)
+	{
+		/**
+		エフェクトファイルを読み込みます。
+
+		You read an effect file.
+
+		您讀取效果文件。
+
+		您读取效果文件。
+		*/
+		auto effect = efk::Effect::create("Homing_Laser01.efk");
+		if (effect != nullptr)
+		{
+			/**
+			エミッターを生成し、パラメーターを設定してレイヤーに追加します。
+
+			You generate an emitter, set parameters and add it to the layer.
+
+			您會生成一個發射極，並通過將參數添加到該層。
+
+			您会生成一个发射极，并通过将参数添加到该层。
+			*/
+
+			auto emitter = efk::EffectEmitter::create(manager);
+			emitter->setEffect(effect);
+			emitter->setPlayOnEnter(true);
+
+			emitter->setPosition(Vec2(320, 150));
+			emitter->setScale(4);
+			this->addChild(emitter, 0);
+
+			/**
+			Some parameters are required to set after addChild
+
+			一部のパラメーターはAddChildした後に設定する必要があります。
+			*/
+			emitter->setTargetPosition(cocos2d::Vec3(320, 480, 0));
 
 			effect->release();
 		}
