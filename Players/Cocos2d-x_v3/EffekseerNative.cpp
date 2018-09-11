@@ -1,5 +1,6 @@
 ﻿#define _WINSOCK_DEPRECATED_NO_WARNINGS
 #define _WINSOCKAPI_
+#define NOMINMAX
 #include "EffekseerNative.h"
 #include <math.h>
 #include <float.h>
