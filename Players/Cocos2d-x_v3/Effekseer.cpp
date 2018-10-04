@@ -452,6 +452,16 @@ namespace efk
 		manager->setMatrix(handle, transform);
 	}
 
+	void EffectEmitter::play(int32_t startTime)
+	{
+		if (effect == nullptr) return;
+		if (manager == nullptr) return;
+
+		handle = manager->play(effect, 0, 0, 0, startTime);
+		auto transform = this->getNodeToWorldTransform();
+		manager->setMatrix(handle, transform);
+	}
+
 	bool EffectEmitter::getPlayOnEnter()
 	{
 		return playOnEnter;
@@ -604,6 +614,11 @@ namespace efk
 	::Effekseer::Handle EffectManager::play(Effect* effect, float x, float y, float z)
 	{
 		return manager2d->Play(effect->getInternalPtr(), x, y, z);
+	}
+
+	::Effekseer::Handle EffectManager::play(Effect* effect, float x, float y, float z, int startTime)
+	{
+		return manager2d->Play(effect->getInternalPtr(), Effekseer::Vector3D(x, y, z), startTime);
 	}
 
 	void EffectManager::setMatrix(::Effekseer::Handle handle, const cocos2d::Mat4& mat)

@@ -137,6 +137,16 @@ namespace efk
 		void play();
 
 		/**
+		@brief
+		\~English	Play the effect.
+		\~Japanese	エフェクトを再生する。
+		@param	startFrame
+		\~English	A time to play from middle
+		\~Japanese	途中から再生するための時間
+		*/
+		void play(int32_t startTime);
+
+		/**
 			@brief
 			\~English	Get whether to start playing the effect when adding a node.
 			\~Japanese	追加時に再生を開始するかどうか、設定する。
@@ -264,6 +274,8 @@ namespace efk
 		cocos2d::CustomCommand					endCommand;
 
 		::Effekseer::Handle play(Effect* effect, float x, float y, float z);
+
+		::Effekseer::Handle play(Effect* effect, float x, float y, float z, int startTime);
 
 		void setMatrix(::Effekseer::Handle handle, const cocos2d::Mat4& mat);
 
