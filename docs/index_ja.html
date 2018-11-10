@@ -117,7 +117,7 @@ Effekseer.hをインクルードします。
 <br>
 
 <p>
-cocos2d::Layerを継承したクラスのメンバ変数にefk::EffectManager*を加えます。
+cocos2d::Sceneを継承したクラスのメンバ変数にefk::EffectManager*を加えます。
 </p>
 
 <pre>
@@ -146,7 +146,7 @@ auto effect = efk::Effect::create("Laser01.efk");
 <br>
 
 <p>
-エミッターを生成し、パラメーターを設定してレイヤーに追加します。
+エミッターを生成し、パラメーターを設定してシーンに追加します。
 </p>
 
 <pre>
@@ -158,7 +158,8 @@ emitter->setPosition(Vec2(300, 300));
 emitter->setScale(20);
 this->addChild(emitter, 0);
 
-effect->release();
+// No need (because it uses autorelease after 1.41)
+//effect->release();
 </pre>
 
 <p>
@@ -181,7 +182,7 @@ void HelloWorld::visit(
 	uint32_t parentFlags)
 {
 	manager->begin(renderer, _globalZOrder);
-	cocos2d::Layer::visit(renderer, parentTransform, parentFlags);
+	cocos2d::Scene::visit(renderer, parentTransform, parentFlags);
 	manager->end(renderer, _globalZOrder);
 }
 </pre>
@@ -225,15 +226,14 @@ FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
 COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
 IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-
-DirectX Tool Kit
-https://directxtk.codeplex.com/
-Microsoft Public License (Ms-PL)
-
 </pre>
 
 <h2>更新履歴</h2>
+
+<h3>1.41 (18/11/10) </h3>
+<p>setRemoveOnStopを使用しているときクラッシュすることがある不具合を修正. サンプルのメモリリークを修正</p>
+<p>この更新でEffectとEffectEmitterクラスはautoreleaseにより自動的に解放されるようになりました。releaseに関するコードを修正する必要があります。</p>
+
 <p>1.40 (18/09/12) 複数の関数を追加しました。AndroidとiOSで高速化しました。3Dのサポートをしました。</p>
 
 <p>1.30 (17/11/03) 公開しました。</p>

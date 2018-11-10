@@ -114,11 +114,11 @@
 <br>
 
 <p>
-在cocos2d::Layer的衍生類別內加入成員變量efk::EffectManager*。
+在cocos2d::Scene的衍生類別內加入成員變量efk::EffectManager*。
 </p>
 
 <pre>
-class HelloWorld : public cocos2d::Layer {
+class HelloWorld : public cocos2d::Scene {
 efk::EffectManager* manager = nullptr;
 ...
 </pre>
@@ -155,7 +155,8 @@ emitter->setPosition(Vec2(300, 300));
 emitter->setScale(20);
 this->addChild(emitter, 0);
 
-effect->release();
+// No need (because it uses autorelease after 1.41)
+//effect->release();
 </pre>
 
 <p>
@@ -178,7 +179,7 @@ void HelloWorld::visit(
 	uint32_t parentFlags)
 {
 	manager->begin(renderer, _globalZOrder);
-	cocos2d::Layer::visit(renderer, parentTransform, parentFlags);
+	cocos2d::Scene::visit(renderer, parentTransform, parentFlags);
 	manager->end(renderer, _globalZOrder);
 }
 </pre>
@@ -222,15 +223,14 @@ FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
 COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
 IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-
-DirectX Tool Kit
-https://directxtk.codeplex.com/
-Microsoft Public License (Ms-PL)
-
 </pre>
 
 <h2>更新</h2>
+
+<h3>1.41 (18/11/10) </h3>
+<p>Fixed a bug causes crach when setRemoveOnStop is used. Fixed memory leak in samples.</p>
+<p>This release makes Effect and EffectEmitter released automatically. So you need to edit codes about release</p>
+
 <p>1.40 (18/09/12) More functions added. Speed up with Android and iOS. Supported 3D.</p>
 
 <p>1.30 (17/11/03) 發布。</p>

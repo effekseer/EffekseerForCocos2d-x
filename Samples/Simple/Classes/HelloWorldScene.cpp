@@ -5,25 +5,25 @@ USING_NS_CC;
 
 Scene* HelloWorld::createScene()
 {
-    auto scene = Scene::create();
-    auto layer = HelloWorld::create();
-    scene->addChild(layer);
-    return scene;
+	auto scene = Scene::create();
+	auto layer = HelloWorld::create();
+	scene->addChild(layer);
+	return scene;
 }
 
 bool HelloWorld::init()
 {
-    if ( !Scene::init() )
-    {
-        return false;
-    }
-    
+	if ( !Scene::init() )
+	{
+		return false;
+	}
+	
 	auto rsize = Director::getInstance()->getOpenGLView()->getDesignResolutionSize();
 
-    auto sprite = Sprite::create("HelloWorld.png");
+	auto sprite = Sprite::create("HelloWorld.png");
 	sprite->setPosition(Vec2(320, 200));
 	this->addChild(sprite, 0);
-    
+	
 	// for update
 	this->scheduleUpdate();
 
@@ -38,7 +38,7 @@ bool HelloWorld::init()
 	*/
 	manager = efk::EffectManager::create(rsize);
 
-    return true;
+	return true;
 }
 
 void HelloWorld::update(float delta)
@@ -71,14 +71,15 @@ void HelloWorld::update(float delta)
 			auto emitter = efk::EffectEmitter::create(manager);
 			emitter->setEffect(effect);
 			emitter->setPlayOnEnter(true);
-
+			
 			emitter->setRotation3D(cocos2d::Vec3(0, 90, 0));
 			emitter->setPosition(Vec2(320, 150));
 			
 			emitter->setScale(13);
 			this->addChild(emitter, 0);
 
-			effect->release();
+			// No need (because it uses autorelease after 1.41)
+			//effect->release();
 		}
 	}
 
@@ -122,7 +123,8 @@ void HelloWorld::update(float delta)
 			*/
 			emitter->setTargetPosition(cocos2d::Vec3(320, 480, 0));
 
-			effect->release();
+			// No need (because it uses autorelease after 1.41)
+			//effect->release();
 		}
 	}
 

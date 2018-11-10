@@ -362,13 +362,13 @@ namespace efk
 		{
 			auto e = new Effect();
 			e->effect = effect;
+			e->autorelease();
 			return e;
 		}
 
 		// TODO
 		// Cache
-		// autorelease
-
+		
 		return nullptr;
 	}
 
@@ -408,6 +408,8 @@ namespace efk
 		{
 			manager->retain();
 		}
+
+		autorelease();
 	}
 
 	EffectEmitter::~EffectEmitter()
@@ -555,14 +557,21 @@ namespace efk
 			}
 			else if(removeOnStop)
 			{
+				auto transform = this->getNodeToWorldTransform();
+				manager->setMatrix(handle, transform);
+				cocos2d::Node::update(delta);
+
 				this->removeFromParent();
+				return;
 			}
 		}
 
-		auto transform = this->getNodeToWorldTransform();
-		manager->setMatrix(handle, transform);
+		{
+			auto transform = this->getNodeToWorldTransform();
+			manager->setMatrix(handle, transform);
 
-		cocos2d::Node::update(delta);
+			cocos2d::Node::update(delta);
+		}
 	}
 
 	void EffectEmitter::draw(cocos2d::Renderer *renderer, const cocos2d::Mat4& parentTransform, uint32_t parentFlags)

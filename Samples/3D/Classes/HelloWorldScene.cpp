@@ -5,27 +5,27 @@ USING_NS_CC;
 
 Scene* HelloWorld::createScene()
 {
-    auto scene = Scene::create();
-    auto layer = HelloWorld::create();
-    scene->addChild(layer);
-    return scene;
+	auto scene = Scene::create();
+	auto layer = HelloWorld::create();
+	scene->addChild(layer);
+	return scene;
 }
 
 bool HelloWorld::init()
 {
-    if ( !Scene::init() )
-    {
-        return false;
-    }
-    
+	if ( !Scene::init() )
+	{
+		return false;
+	}
+	
 	auto rsize = Director::getInstance()->getOpenGLView()->getDesignResolutionSize();
 
-    auto sprite = BillBoard::create("HelloWorld.png");
+	auto sprite = BillBoard::create("HelloWorld.png");
 	sprite->setPosition3D(Vec3(0, 0, 0));
 	sprite->setScale(0.1);
 	sprite->setCameraMask(2);
 	this->addChild(sprite);
-    
+	
 	// 3D
 	auto s = Director::getInstance()->getWinSize();
 	camera = Camera::createPerspective(60, (GLfloat)s.width / s.height, 1, 1000);
@@ -49,7 +49,7 @@ bool HelloWorld::init()
 	*/
 	manager = efk::EffectManager::create(rsize);
 
-    return true;
+	return true;
 }
 
 void HelloWorld::update(float delta)
@@ -87,7 +87,8 @@ void HelloWorld::update(float delta)
 			emitter->setCameraMask(2);
 			this->addChild(emitter);
 
-			effect->release();
+			// No need (because it uses autorelease after 1.41)
+			//effect->release();
 		}
 	}
 

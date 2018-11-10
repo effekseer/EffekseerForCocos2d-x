@@ -14,6 +14,12 @@ namespace efk
 		@brief	
 		\~English	Effect resource class
 		\~Japanese	エフェクトのリソースクラス
+		@note
+		\~English
+		It is released automatically with autorelease after version1.41
+
+		\~Japanese
+		1.41以降、autoreleaseにより自動的に解放されます。
 	*/
 	class Effect
 		: public cocos2d::Ref
@@ -42,6 +48,17 @@ namespace efk
 		}
 	};
 
+	/**
+		@brief
+		\~English	Effect emitter class
+		\~Japanese	エフェクトのエミッタークラス
+		@note
+		\~English
+		It is released automatically with autorelease after version1.41
+	
+		\~Japanese
+		1.41以降、autoreleaseにより自動的に解放されます。
+	*/
 	class EffectEmitter
 		: public cocos2d::Node
 	{
