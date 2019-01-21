@@ -17,6 +17,206 @@
 #include <arm_neon.h>
 #endif
 
+
+
+
+namespace EffekseerRenderer
+{
+	
+void ApplyDepthOffset(::Effekseer::Matrix43& mat, const ::Effekseer::Vector3D& cameraFront, const ::Effekseer::Vector3D& cameraPos, float depthOffset, bool isDepthOffsetScaledWithCamera, bool isDepthOffsetScaledWithEffect, bool isRightHand)
+{
+	if (depthOffset != 0)
+	{
+		auto offset = depthOffset;
+
+		if (isDepthOffsetScaledWithEffect)
+		{
+			std::array<float, 3> scales;
+			scales.fill(0.0);
+
+			for (auto r = 0; r < 3; r++)
+			{
+				for (auto c = 0; c < 3; c++)
+				{
+					scales[c] += mat.Value[c][r] * mat.Value[c][r];
+				}
+			}
+
+			for (auto c = 0; c < 3; c++)
+			{
+				scales[c] = sqrt(scales[c]);
+			}
+
+			auto scale = (scales[0] + scales[1] + scales[2]) / 3.0f;
+
+			offset *= scale;
+		}
+
+		if (isDepthOffsetScaledWithCamera)
+		{
+			auto cx = mat.Value[3][0] + cameraPos.X;
+			auto cy = mat.Value[3][1] + cameraPos.Y;
+			auto cz = mat.Value[3][2] + cameraPos.Z;
+			auto cl = sqrt(cx * cx + cy * cy + cz * cz);
+
+			if (cl != 0.0)
+			{
+				auto scale = (cl - offset) / cl;
+
+				for (auto r = 0; r < 3; r++)
+				{
+					for (auto c = 0; c < 3; c++)
+					{
+						mat.Value[c][r] *= scale;
+					}
+				}
+			}
+		}
+
+		auto objPos = ::Effekseer::Vector3D(mat.Value[3][0], mat.Value[3][1], mat.Value[3][2]);
+		auto dir = cameraPos - objPos;
+		Effekseer::Vector3D::Normal(dir, dir);
+
+		if (isRightHand)
+		{
+			mat.Value[3][0] += dir.X * offset;
+			mat.Value[3][1] += dir.Y * offset;
+			mat.Value[3][2] += dir.Z * offset;
+		}
+		else
+		{
+			mat.Value[3][0] += dir.X * offset;
+			mat.Value[3][1] += dir.Y * offset;
+			mat.Value[3][2] += dir.Z * offset;
+		}
+	}
+}
+
+void ApplyDepthOffset(::Effekseer::Matrix43& mat, const ::Effekseer::Vector3D& cameraFront, const ::Effekseer::Vector3D& cameraPos, ::Effekseer::Vector3D& scaleValues, float depthOffset, bool isDepthOffsetScaledWithCamera, bool isDepthOffsetScaledWithEffect, bool isRightHand)
+{
+	if (depthOffset != 0)
+	{
+		auto offset = depthOffset;
+
+		if (isDepthOffsetScaledWithEffect)
+		{
+			auto scale = (scaleValues.X + scaleValues.Y + scaleValues.Z) / 3.0f;
+
+			offset *= scale;
+		}
+
+		if (isDepthOffsetScaledWithCamera)
+		{
+			auto cx = mat.Value[3][0] + cameraPos.X;
+			auto cy = mat.Value[3][1] + cameraPos.Y;
+			auto cz = mat.Value[3][2] + cameraPos.Z;
+			auto cl = sqrt(cx * cx + cy * cy + cz * cz);
+
+			if (cl != 0.0)
+			{
+				auto scale = (cl - offset) / cl;
+
+				for (auto r = 0; r < 3; r++)
+				{
+					for (auto c = 0; c < 3; c++)
+					{
+						mat.Value[c][r] *= scale;
+					}
+				}
+			}
+		}
+
+		auto objPos = ::Effekseer::Vector3D(mat.Value[3][0], mat.Value[3][1], mat.Value[3][2]);
+		auto dir = cameraPos - objPos;
+		Effekseer::Vector3D::Normal(dir, dir);
+
+		if (isRightHand)
+		{
+			mat.Value[3][0] += dir.X * offset;
+			mat.Value[3][1] += dir.Y * offset;
+			mat.Value[3][2] += dir.Z * offset;
+		}
+		else
+		{
+			mat.Value[3][0] += dir.X * offset;
+			mat.Value[3][1] += dir.Y * offset;
+			mat.Value[3][2] += dir.Z * offset;
+		}
+	}
+}
+
+void ApplyDepthOffset(::Effekseer::Matrix44& mat, const ::Effekseer::Vector3D& cameraFront, const ::Effekseer::Vector3D& cameraPos, float depthOffset, bool isDepthOffsetScaledWithCamera, bool isDepthOffsetScaledWithEffect, bool isRightHand)
+{
+	if (depthOffset != 0)
+	{
+		auto offset = depthOffset;
+
+		if (isDepthOffsetScaledWithEffect)
+		{
+			std::array<float, 3> scales;
+			scales.fill(0.0);
+
+			for (auto r = 0; r < 3; r++)
+			{
+				for (auto c = 0; c < 3; c++)
+				{
+					scales[c] += mat.Values[c][r] * mat.Values[c][r];
+				}
+			}
+
+			for (auto c = 0; c < 3; c++)
+			{
+				scales[c] = sqrt(scales[c]);
+			}
+
+			auto scale = (scales[0] + scales[1] + scales[2]) / 3.0f;
+
+			offset *= scale;
+		}
+
+		if (isDepthOffsetScaledWithCamera)
+		{
+			auto cx = mat.Values[3][0] + cameraPos.X;
+			auto cy = mat.Values[3][1] + cameraPos.Y;
+			auto cz = mat.Values[3][2] + cameraPos.Z;
+			auto cl = sqrt(cx * cx + cy * cy + cz * cz);
+
+			if (cl != 0.0)
+			{
+				auto scale = (cl - offset) / cl;
+
+				for (auto r = 0; r < 3; r++)
+				{
+					for (auto c = 0; c < 3; c++)
+					{
+						mat.Values[c][r] *= scale;
+					}
+				}
+			}
+		}
+
+		auto objPos = ::Effekseer::Vector3D(mat.Values[3][0], mat.Values[3][1], mat.Values[3][2]);
+		auto dir = cameraPos - objPos;
+		Effekseer::Vector3D::Normal(dir, dir);
+
+		if (isRightHand)
+		{
+			mat.Values[3][0] += dir.X * offset;
+			mat.Values[3][1] += dir.Y * offset;
+			mat.Values[3][2] += dir.Z * offset;
+		}
+		else
+		{
+			mat.Values[3][0] += dir.X * offset;
+			mat.Values[3][1] += dir.Y * offset;
+			mat.Values[3][2] += dir.Z * offset;
+		}
+	}
+}
+
+
+}
+
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
@@ -1452,7 +1652,7 @@ class RenderState
 {
 private:
 	RendererImplemented*	m_renderer;
-
+	bool					m_isCCW = true;
 
 	GLuint					m_samplers[4];
 
@@ -3473,6 +3673,26 @@ void ModelRenderer::EndRendering( const efkModelNodeParam& parameter, void* user
 		}
 	}
 
+	auto model = (Model*) parameter.EffectPointer->GetModel(parameter.ModelIndex);
+	if(model != nullptr)
+	{
+		for(auto i = 0; i < model->GetFrameCount(); i++)
+		{
+			model->InternalModels[i].TryDelayLoad();
+		}
+	
+		m_shader_lighting_texture_normal->SetVertexSize(model->GetVertexSize());
+		m_shader_lighting_normal->SetVertexSize(model->GetVertexSize());
+		m_shader_lighting_texture->SetVertexSize(model->GetVertexSize());
+		m_shader_lighting->SetVertexSize(model->GetVertexSize());
+		m_shader_texture->SetVertexSize(model->GetVertexSize());
+		m_shader->SetVertexSize(model->GetVertexSize());
+		m_shader_distortion_texture->SetVertexSize(model->GetVertexSize());
+		m_shader_distortion->SetVertexSize(model->GetVertexSize());
+	}
+
+
+
 #if defined(MODEL_SOFTWARE_INSTANCING)
 	EndRendering_<
 		RendererImplemented,
@@ -4010,7 +4230,7 @@ RendererImplemented::~RendererImplemented()
 	}
 	else
 	{
-		assert(GetRef() == -6);
+		assert(GetRef() == -7);
 	}
 }
 
@@ -4953,6 +5173,29 @@ Model::InternalModel::~InternalModel()
 	GLExt::glDeleteBuffers(1, &VertexBuffer);
 }
 
+bool Model::InternalModel::TryDelayLoad()
+{
+	if(VertexBuffer > 0) return false;
+	
+	GLExt::glGenBuffers(1, &VertexBuffer);
+	if (VertexBuffer > 0)
+	{
+		GLExt::glBindBuffer(GL_ARRAY_BUFFER, VertexBuffer);
+		GLExt::glBufferData(GL_ARRAY_BUFFER, delayVertexBuffer.size(), delayVertexBuffer.data(), GL_STATIC_DRAW);
+		GLExt::glBindBuffer(GL_ARRAY_BUFFER, 0);
+	}
+	
+	GLExt::glGenBuffers(1, &IndexBuffer);
+	if (IndexBuffer > 0)
+	{
+		GLExt::glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IndexBuffer);
+		GLExt::glBufferData(GL_ELEMENT_ARRAY_BUFFER, delayIndexBuffer.size(), delayIndexBuffer.data(), GL_STATIC_DRAW);
+		GLExt::glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+	}
+
+	return true;
+}
+	
 Model::Model(void* data, int32_t size)
 	: ::Effekseer::Model(data, size)
 	, InternalModels(nullptr)
@@ -4969,18 +5212,29 @@ Model::Model(void* data, int32_t size)
 
 		InternalModels[f].VertexCount = vertexCount;
 		InternalModels[f].IndexCount = faceCount * 3;
-
+		
 		GLExt::glGenBuffers(1, &InternalModels[f].VertexBuffer);
-		GLExt::glBindBuffer(GL_ARRAY_BUFFER, InternalModels[f].VertexBuffer);
 		size_t vertexSize = vertexCount * sizeof(::Effekseer::Model::Vertex);
-		GLExt::glBufferData(GL_ARRAY_BUFFER, vertexSize, vertexData, GL_STATIC_DRAW);
-		GLExt::glBindBuffer(GL_ARRAY_BUFFER, 0);
-
+		if (InternalModels[f].VertexBuffer > 0)
+		{
+			GLExt::glBindBuffer(GL_ARRAY_BUFFER, InternalModels[f].VertexBuffer);
+			GLExt::glBufferData(GL_ARRAY_BUFFER, vertexSize, vertexData, GL_STATIC_DRAW);
+			GLExt::glBindBuffer(GL_ARRAY_BUFFER, 0);
+		}
+		InternalModels[f].delayVertexBuffer.resize(vertexSize);
+		memcpy(InternalModels[f].delayVertexBuffer.data(), vertexData, vertexSize);
+		
 		GLExt::glGenBuffers(1, &InternalModels[f].IndexBuffer);
-		GLExt::glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, InternalModels[f].IndexBuffer);
 		size_t indexSize = faceCount * sizeof(::Effekseer::Model::Face);
-		GLExt::glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexSize, faceData, GL_STATIC_DRAW);
-		GLExt::glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+		if (InternalModels[f].IndexBuffer > 0)
+		{
+			GLExt::glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, InternalModels[f].IndexBuffer);
+			GLExt::glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexSize, faceData, GL_STATIC_DRAW);
+			GLExt::glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+		}
+		InternalModels[f].delayIndexBuffer.resize(indexSize);
+		memcpy(InternalModels[f].delayIndexBuffer.data(), faceData, indexSize);
 	}
 }
 
@@ -5018,6 +5272,14 @@ RenderState::RenderState( RendererImplemented* renderer )
 	if (m_renderer->GetDeviceType() == OpenGLDeviceType::OpenGL3 || m_renderer->GetDeviceType() == OpenGLDeviceType::OpenGLES3)
 	{
 		GLExt::glGenSamplers(4, m_samplers);
+	}
+
+	GLint frontFace = 0;
+	glGetIntegerv(GL_FRONT_FACE, &frontFace);
+
+	if (GL_CW == frontFace)
+	{
+		m_isCCW = false;
 	}
 }
 
@@ -5062,20 +5324,41 @@ void RenderState::Update( bool forced )
 
 	if( m_active.CullingType != m_next.CullingType || forced )
 	{
-		if( m_next.CullingType == Effekseer::CullingType::Front )
+		if (m_isCCW)
 		{
-			glEnable( GL_CULL_FACE );
-			glCullFace( GL_FRONT );
+			if (m_next.CullingType == Effekseer::CullingType::Front)
+			{
+				glEnable(GL_CULL_FACE);
+				glCullFace(GL_FRONT);
+			}
+			else if (m_next.CullingType == Effekseer::CullingType::Back)
+			{
+				glEnable(GL_CULL_FACE);
+				glCullFace(GL_BACK);
+			}
+			else if (m_next.CullingType == Effekseer::CullingType::Double)
+			{
+				glDisable(GL_CULL_FACE);
+				glCullFace(GL_FRONT_AND_BACK);
+			}
 		}
-		else if (m_next.CullingType == Effekseer::CullingType::Back)
+		else
 		{
-			glEnable( GL_CULL_FACE );
-			glCullFace( GL_BACK );
-		}
-		else if( m_next.CullingType == Effekseer::CullingType::Double )
-		{
-			glDisable( GL_CULL_FACE );
-			glCullFace( GL_FRONT_AND_BACK );
+			if (m_next.CullingType == Effekseer::CullingType::Front)
+			{
+				glEnable(GL_CULL_FACE);
+				glCullFace(GL_BACK);
+			}
+			else if (m_next.CullingType == Effekseer::CullingType::Back)
+			{
+				glEnable(GL_CULL_FACE);
+				glCullFace(GL_FRONT);
+			}
+			else if (m_next.CullingType == Effekseer::CullingType::Double)
+			{
+				glDisable(GL_CULL_FACE);
+				glCullFace(GL_FRONT_AND_BACK);
+			}
 		}
 	}
 

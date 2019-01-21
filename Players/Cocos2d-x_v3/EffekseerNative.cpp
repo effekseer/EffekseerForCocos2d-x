@@ -20,6 +20,7 @@
 #include <random>
 #include <thread>
 #include <mutex>
+#include <iostream>
 #ifdef _WIN32
 #include <winsock2.h>
 #pragma comment( lib, "ws2_32.lib" )
@@ -7248,6 +7249,7 @@ private:
 
 	// mutex for rendering
 	std::mutex					m_renderingMutex;
+	bool						m_isLockedWithRenderingMutex = false;
 
 	/* 設定インスタンス */
 	Setting*					m_setting;
@@ -7316,6 +7318,8 @@ private:
 
 	// 破棄等のイベントを実際に実行
 	void ExecuteEvents();
+
+	void ShowErrorAndExit(const char* message);
 public:
 
 	// コンストラクタ
@@ -12631,6 +12635,7 @@ void EffectImplemented::UnloadResources()
 
 
 
+
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
@@ -12883,6 +12888,12 @@ void ManagerImplemented::ExecuteEvents()
 
 		++it;
 	}
+}
+
+void ManagerImplemented::ShowErrorAndExit(const char* message)
+{
+	std::cerr << "EffekseerError : " << message << std::endl;
+	abort();
 }
 
 //----------------------------------------------------------------------------------
@@ -13750,6 +13761,11 @@ void ManagerImplemented::Flip()
 {
 	if( !m_autoFlip )
 	{
+		if (m_isLockedWithRenderingMutex)
+		{
+			ShowErrorAndExit("Rendering thread is locked.");
+		}
+
 		m_renderingMutex.lock();
 	}
 
@@ -13917,7 +13933,13 @@ void ManagerImplemented::Update( float deltaFrame )
 //----------------------------------------------------------------------------------
 void ManagerImplemented::BeginUpdate()
 {
+	if (m_isLockedWithRenderingMutex)
+	{
+		ShowErrorAndExit("Rendering thread is locked.");
+	}
+
 	m_renderingMutex.lock();
+	m_isLockedWithRenderingMutex = true;
 
 	if( m_autoFlip )
 	{
@@ -13933,6 +13955,7 @@ void ManagerImplemented::BeginUpdate()
 void ManagerImplemented::EndUpdate()
 {
 	m_renderingMutex.unlock();
+	m_isLockedWithRenderingMutex = false;
 }
 
 //----------------------------------------------------------------------------------
@@ -13971,7 +13994,11 @@ void ManagerImplemented::UpdateHandle( DrawSet& drawSet, float deltaFrame )
 //----------------------------------------------------------------------------------
 void ManagerImplemented::Draw()
 {
-	m_renderingMutex.lock();
+	if (m_isLockedWithRenderingMutex)
+	{
+		ShowErrorAndExit("Rendering thread is locked.");
+	}
+	std::lock_guard<std::mutex> lock(m_renderingMutex);
 
 	// 開始時間を記録
 	int64_t beginTime = ::Effekseer::GetTime();
@@ -14023,12 +14050,14 @@ void ManagerImplemented::Draw()
 
 	// 経過時間を計算
 	m_drawTime = (int)(Effekseer::GetTime() - beginTime);
-
-	m_renderingMutex.unlock();
 }
 
 void ManagerImplemented::DrawBack()
 {
+	if (m_isLockedWithRenderingMutex)
+	{
+		ShowErrorAndExit("Rendering thread is locked.");
+	}
 	std::lock_guard<std::mutex> lock(m_renderingMutex);
 	
 	// 開始時間を記録
@@ -14073,6 +14102,10 @@ void ManagerImplemented::DrawBack()
 
 void ManagerImplemented::DrawFront()
 {
+	if (m_isLockedWithRenderingMutex)
+	{
+		ShowErrorAndExit("Rendering thread is locked.");
+	}
 	std::lock_guard<std::mutex> lock(m_renderingMutex);
 
 	// 開始時間を記録
@@ -14183,6 +14216,10 @@ Handle ManagerImplemented::Play(Effect* effect, const Vector3D& position, int32_
 
 void ManagerImplemented::DrawHandle( Handle handle )
 {
+	if (m_isLockedWithRenderingMutex)
+	{
+		ShowErrorAndExit("Rendering thread is locked.");
+	}
 	std::lock_guard<std::mutex> lock(m_renderingMutex);
 
 	std::map<Handle,DrawSet>::iterator it = m_renderingDrawSetMaps.find( handle );
@@ -14232,6 +14269,10 @@ void ManagerImplemented::DrawHandle( Handle handle )
 
 void ManagerImplemented::DrawHandleBack(Handle handle)
 {
+	if (m_isLockedWithRenderingMutex)
+	{
+		ShowErrorAndExit("Rendering thread is locked.");
+	}
 	std::lock_guard<std::mutex> lock(m_renderingMutex);
 
 	std::map<Handle, DrawSet>::iterator it = m_renderingDrawSetMaps.find(handle);
@@ -14269,6 +14310,10 @@ void ManagerImplemented::DrawHandleBack(Handle handle)
 
 void ManagerImplemented::DrawHandleFront(Handle handle)
 {
+	if (m_isLockedWithRenderingMutex)
+	{
+		ShowErrorAndExit("Rendering thread is locked.");
+	}
 	std::lock_guard<std::mutex> lock(m_renderingMutex);
 
 	std::map<Handle, DrawSet>::iterator it = m_renderingDrawSetMaps.find(handle);
@@ -14323,7 +14368,12 @@ void ManagerImplemented::DrawHandleFront(Handle handle)
 //----------------------------------------------------------------------------------
 void ManagerImplemented::BeginReloadEffect( Effect* effect )
 {
+	if (m_isLockedWithRenderingMutex)
+	{
+		ShowErrorAndExit("Rendering thread is locked.");
+	}
 	m_renderingMutex.lock();
+	m_isLockedWithRenderingMutex = true;
 
 	std::map<Handle,DrawSet>::iterator it = m_DrawSets.begin();
 	std::map<Handle,DrawSet>::iterator it_end = m_DrawSets.end();
@@ -14369,6 +14419,7 @@ void ManagerImplemented::EndReloadEffect( Effect* effect )
 	}
 
 	m_renderingMutex.unlock();
+	m_isLockedWithRenderingMutex = false;
 }
 
 //----------------------------------------------------------------------------------
@@ -16658,14 +16709,20 @@ void Setting::SetSoundLoader(SoundLoader* loader)
 #ifndef	__EFFEKSEER_SOCKET_H__
 #define	__EFFEKSEER_SOCKET_H__
 
-#if !( defined(_PSVITA) || defined(_PS4) || defined(_SWITCH) || defined(_XBOXONE) )
-
 //----------------------------------------------------------------------------------
 // Include
 //----------------------------------------------------------------------------------
 
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(_PS4)
+#define _WINSOCK
+#endif
+
+#if defined(_WINSOCK)
 #else
+
+#if !defined(_PS4)
+#endif
+
 #endif
 
 //----------------------------------------------------------------------------------
@@ -16676,7 +16733,7 @@ namespace Effekseer {
 //
 //----------------------------------------------------------------------------------
 
-#ifdef _WIN32
+#if defined(_WINSOCK)
 
 typedef SOCKET	EfkSocket;
 typedef int		SOCKLEN;
@@ -16699,7 +16756,7 @@ typedef struct sockaddr SOCKADDR;
 
 #endif
 
-#ifdef _WIN32
+#if defined(_WINSOCK)
 static void Sleep_(int32_t ms)
 {
 	Sleep(ms);
@@ -16736,16 +16793,10 @@ public:
 //
 //----------------------------------------------------------------------------------
 
-#endif	// #if !( defined(_PSVITA) || defined(_PS4) || defined(_SWITCH) || defined(_XBOXONE) )
-
 #endif	// __EFFEKSEER_SOCKET_H__
 
-#if !( defined(_PSVITA) || defined(_PS4) || defined(_SWITCH) || defined(_XBOXONE) )
 
-//----------------------------------------------------------------------------------
-// Include
-//----------------------------------------------------------------------------------
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(_PS4)
 #pragma comment( lib, "ws2_32.lib" )
 #else
 #endif
@@ -16760,8 +16811,8 @@ namespace Effekseer {
 //----------------------------------------------------------------------------------
 void Socket::Initialize()
 {
-#ifdef _WIN32
-	/* Winsock初期化 */
+#if defined(_WINSOCK)
+	// Initialize winsock
 	WSADATA m_WsaData;
 	::WSAStartup( MAKEWORD(2,0), &m_WsaData );
 #endif
@@ -16772,8 +16823,8 @@ void Socket::Initialize()
 //----------------------------------------------------------------------------------
 void Socket::Finalize()
 {
-#ifdef _WIN32
-	/* Winsock参照カウンタ減少+破棄 */
+#if defined(_WINSOCK)
+	// Release winsock
 	WSACleanup();
 #endif
 }
@@ -16791,7 +16842,7 @@ EfkSocket Socket::GenSocket()
 //----------------------------------------------------------------------------------
 void Socket::Close( EfkSocket s )
 {
-#ifdef _WIN32
+#if defined(_WINSOCK)
 	::closesocket( s );
 #else
 	::close( s );
@@ -16803,7 +16854,7 @@ void Socket::Close( EfkSocket s )
 //----------------------------------------------------------------------------------
 void Socket::Shutsown( EfkSocket s )
 {
-#ifdef _WIN32
+#if defined(_WINSOCK)
 	::shutdown( s, SD_BOTH );
 #else
 	::shutdown( s, SHUT_RDWR );
@@ -16815,7 +16866,7 @@ void Socket::Shutsown( EfkSocket s )
 //----------------------------------------------------------------------------------
 bool Socket::Listen( EfkSocket s, int32_t backlog )
 {
-#ifdef _WIN32
+#if defined(_WINSOCK)
 	return ::listen( s, backlog ) != SocketError;
 #else
 	return listen( s, backlog ) >= 0;
@@ -16830,13 +16881,9 @@ bool Socket::Listen( EfkSocket s, int32_t backlog )
 //
 //----------------------------------------------------------------------------------
 
-#endif	// #if !( defined(_PSVITA) || defined(_PS4) || defined(_SWITCH) || defined(_XBOXONE) )
-
 
 #ifndef	__EFFEKSEER_SERVER_IMPLEMENTED_H__
 #define	__EFFEKSEER_SERVER_IMPLEMENTED_H__
-
-#if !( defined(_PSVITA) || defined(_PS4) || defined(_SWITCH) || defined(_XBOXONE) )
 
 //----------------------------------------------------------------------------------
 // Include
@@ -16912,9 +16959,9 @@ public:
 
 	void Stop();
 
-	void Regist( const EFK_CHAR* key, Effect* effect );
+	void Register( const EFK_CHAR* key, Effect* effect );
 
-	void Unregist( Effect* effect );
+	void Unregister( Effect* effect );
 
 	void Update();
 
@@ -16929,11 +16976,7 @@ public:
 //
 //----------------------------------------------------------------------------------
 
-#endif	// #if !( defined(_PSVITA) || defined(_PS4) || defined(_SWITCH) || defined(_XBOXONE) )
-
-#endif	// __EFFEKSEER_SERVER_IMPLEMENTED_H__
-
-#if !( defined(_PSVITA) || defined(_PS4) || defined(_SWITCH) || defined(_XBOXONE) )
+#endif
 
 //----------------------------------------------------------------------------------
 // Include
@@ -16970,7 +17013,7 @@ void ServerImplemented::InternalClient::RecvAsync( void* data )
 
 			if( recvSize == 0 || recvSize == -1 )
 			{
-				/* 失敗 */
+				// Failed
 				client->m_server->RemoveClient( client );
 				client->ShutDown();
 				return;
@@ -16987,7 +17030,7 @@ void ServerImplemented::InternalClient::RecvAsync( void* data )
 
 			if( recvSize == 0 || recvSize == -1 )
 			{
-				/* 失敗 */
+				// Failed
 				client->m_server->RemoveClient( client );
 				client->ShutDown();
 				return;
@@ -16999,7 +17042,7 @@ void ServerImplemented::InternalClient::RecvAsync( void* data )
 			}
 		}
 
-		/* 受信処理 */
+		// recieve buffer
 		client->m_ctrlRecvBuffers.lock();
 		client->m_recvBuffers.push_back(client->m_recvBuffer);
 		client->m_ctrlRecvBuffers.unlock();
@@ -17114,7 +17157,7 @@ void ServerImplemented::AcceptAsync( void* data )
 			break;
 		}
 
-		/* 接続追加 */
+		// Accept and add an internal client
 		server->AddClient( new InternalClient( socket_, server ) );
 
 		EffekseerPrintDebug("Server : AcceptClient\n");
@@ -17142,12 +17185,10 @@ bool ServerImplemented::Start( uint16_t port )
 		return false;
 	}
 
-	/* 接続用データ生成 */
 	memset( &sockAddr, 0, sizeof(SOCKADDR_IN));
 	sockAddr.sin_family	= AF_INET;
 	sockAddr.sin_port	= htons( port );
 
-	/* 関連付け */
 	returnCode = ::bind( socket_, (sockaddr*)&sockAddr, sizeof(sockaddr_in) );
 	if ( returnCode == SocketError )
 	{
@@ -17158,7 +17199,7 @@ bool ServerImplemented::Start( uint16_t port )
 		return false;
 	}
 
-	/* 接続 */
+	// Connect
 	if ( !Socket::Listen( socket_, 30 ) )
 	{
 		if ( socket_ != InvalidSocket )
@@ -17198,7 +17239,7 @@ void ServerImplemented::Stop()
 
 	m_thread.join();
 
-	/* クライアント停止 */
+	// Stop clients
 	m_ctrlClients.lock();
 	for( std::set<InternalClient*>::iterator it = m_clients.begin(); it != m_clients.end(); ++it )
 	{
@@ -17207,7 +17248,7 @@ void ServerImplemented::Stop()
 	m_ctrlClients.unlock();
 	
 
-	/* クライアントの消滅待ち */
+	// Wait clients to be removed
 	while(true)
 	{
 		m_ctrlClients.lock();
@@ -17219,7 +17260,7 @@ void ServerImplemented::Stop()
 		Sleep_(1);
 	}
 
-	/* 破棄 */
+	// Delete clients
 	for( std::set<InternalClient*>::iterator it = m_removedClients.begin(); it != m_removedClients.end(); ++it )
 	{
 		while( (*it)->m_active )
@@ -17233,7 +17274,7 @@ void ServerImplemented::Stop()
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-void ServerImplemented::Regist( const EFK_CHAR* key, Effect* effect )
+void ServerImplemented::Register( const EFK_CHAR* key, Effect* effect )
 {
 	if( effect == NULL ) return;
 
@@ -17263,7 +17304,7 @@ void ServerImplemented::Regist( const EFK_CHAR* key, Effect* effect )
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-void ServerImplemented::Unregist( Effect* effect )
+void ServerImplemented::Unregister( Effect* effect )
 {
 	if( effect == NULL ) return;
 
@@ -17371,15 +17412,8 @@ void ServerImplemented::SetMaterialPath( const EFK_CHAR* materialPath )
 	m_materialPath.push_back(0);
 }
 
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
 } 
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
 
-#endif	// #if !( defined(_PSVITA) || defined(_PS4) || defined(_SWITCH) || defined(_XBOXONE) )
 #ifndef	__EFFEKSEER_CLIENT_IMPLEMENTED_H__
 #define	__EFFEKSEER_CLIENT_IMPLEMENTED_H__
 

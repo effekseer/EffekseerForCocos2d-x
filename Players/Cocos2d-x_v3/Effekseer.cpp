@@ -546,6 +546,17 @@ namespace efk
 		scheduleUpdate();
 	}
 
+	void EffectEmitter::onExit()
+	{
+		auto m = manager->getInternalManager();
+		if (m->Exists(handle))
+		{
+			manager->getInternalManager()->StopEffect(handle);
+		}
+
+		cocos2d::Node::onExit();
+	}
+
 	void EffectEmitter::update(float delta)
 	{
 		auto m = manager->getInternalManager();

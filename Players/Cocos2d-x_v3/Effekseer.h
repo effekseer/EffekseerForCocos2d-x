@@ -268,6 +268,8 @@ namespace efk
 
 		void onEnter() override;
 
+		void onExit() override;
+
 		void update(float delta) override;
 
 		void draw(cocos2d::Renderer *renderer, const cocos2d::Mat4& parentTransform, uint32_t parentFlags) override;
