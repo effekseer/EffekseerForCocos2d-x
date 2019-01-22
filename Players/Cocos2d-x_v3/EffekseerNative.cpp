@@ -4025,11 +4025,10 @@ namespace Effekseer
 {
 
 template <typename T>
-T ReadData( unsigned char*& pos )
+void ReadData( T& dst, unsigned char*& pos )
 {
-	T result = *(T*)pos;
+	memcpy(&dst, pos, sizeof(T));
 	pos += sizeof(T);
-	return result;
 }
 
 //----------------------------------------------------------------------------------
@@ -4445,15 +4444,17 @@ struct random_color
 	{
 		if( version >= 4 )
 		{
-			mode = (ColorMode)ReadData<uint8_t>( pos );
+			uint8_t mode_ = 0;
+			ReadData<uint8_t>(mode_, pos);
+			mode = static_cast<ColorMode>(mode_);
 			pos++;	// reserved
 		}
 		else
 		{
 			mode = COLOR_MODE_RGBA;
 		}
-		max = ReadData<Color>( pos );
-		min = ReadData<Color>( pos );
+		ReadData<Color>(max, pos );
+		ReadData<Color>(min, pos );
 	}
 };
 
@@ -4493,9 +4494,9 @@ struct easing_color
 	{
 		start.load( version, pos );
 		end.load( version, pos );
-		easingA = ReadData<float>( pos );
-		easingB = ReadData<float>( pos );
-		easingC = ReadData<float>( pos );
+		ReadData<float>(easingA, pos );
+		ReadData<float>(easingB, pos );
+		ReadData<float>(easingC, pos );
 	}
 };
 
@@ -16709,20 +16710,14 @@ void Setting::SetSoundLoader(SoundLoader* loader)
 #ifndef	__EFFEKSEER_SOCKET_H__
 #define	__EFFEKSEER_SOCKET_H__
 
+#if !( defined(_PSVITA) || defined(_PS4) || defined(_SWITCH) || defined(_XBOXONE) )
+
 //----------------------------------------------------------------------------------
 // Include
 //----------------------------------------------------------------------------------
 
-#if defined(_WIN32) && !defined(_PS4)
-#define _WINSOCK
-#endif
-
-#if defined(_WINSOCK)
+#ifdef _WIN32
 #else
-
-#if !defined(_PS4)
-#endif
-
 #endif
 
 //----------------------------------------------------------------------------------
@@ -16733,7 +16728,7 @@ namespace Effekseer {
 //
 //----------------------------------------------------------------------------------
 
-#if defined(_WINSOCK)
+#ifdef _WIN32
 
 typedef SOCKET	EfkSocket;
 typedef int		SOCKLEN;
@@ -16756,7 +16751,7 @@ typedef struct sockaddr SOCKADDR;
 
 #endif
 
-#if defined(_WINSOCK)
+#ifdef _WIN32
 static void Sleep_(int32_t ms)
 {
 	Sleep(ms);
@@ -16793,10 +16788,16 @@ public:
 //
 //----------------------------------------------------------------------------------
 
+#endif	// #if !( defined(_PSVITA) || defined(_PS4) || defined(_SWITCH) || defined(_XBOXONE) )
+
 #endif	// __EFFEKSEER_SOCKET_H__
 
+#if !( defined(_PSVITA) || defined(_PS4) || defined(_SWITCH) || defined(_XBOXONE) )
 
-#if defined(_WIN32) && !defined(_PS4)
+//----------------------------------------------------------------------------------
+// Include
+//----------------------------------------------------------------------------------
+#ifdef _WIN32
 #pragma comment( lib, "ws2_32.lib" )
 #else
 #endif
@@ -16811,8 +16812,8 @@ namespace Effekseer {
 //----------------------------------------------------------------------------------
 void Socket::Initialize()
 {
-#if defined(_WINSOCK)
-	// Initialize winsock
+#ifdef _WIN32
+	/* Winsock初期化 */
 	WSADATA m_WsaData;
 	::WSAStartup( MAKEWORD(2,0), &m_WsaData );
 #endif
@@ -16823,8 +16824,8 @@ void Socket::Initialize()
 //----------------------------------------------------------------------------------
 void Socket::Finalize()
 {
-#if defined(_WINSOCK)
-	// Release winsock
+#ifdef _WIN32
+	/* Winsock参照カウンタ減少+破棄 */
 	WSACleanup();
 #endif
 }
@@ -16842,7 +16843,7 @@ EfkSocket Socket::GenSocket()
 //----------------------------------------------------------------------------------
 void Socket::Close( EfkSocket s )
 {
-#if defined(_WINSOCK)
+#ifdef _WIN32
 	::closesocket( s );
 #else
 	::close( s );
@@ -16854,7 +16855,7 @@ void Socket::Close( EfkSocket s )
 //----------------------------------------------------------------------------------
 void Socket::Shutsown( EfkSocket s )
 {
-#if defined(_WINSOCK)
+#ifdef _WIN32
 	::shutdown( s, SD_BOTH );
 #else
 	::shutdown( s, SHUT_RDWR );
@@ -16866,7 +16867,7 @@ void Socket::Shutsown( EfkSocket s )
 //----------------------------------------------------------------------------------
 bool Socket::Listen( EfkSocket s, int32_t backlog )
 {
-#if defined(_WINSOCK)
+#ifdef _WIN32
 	return ::listen( s, backlog ) != SocketError;
 #else
 	return listen( s, backlog ) >= 0;
@@ -16881,9 +16882,13 @@ bool Socket::Listen( EfkSocket s, int32_t backlog )
 //
 //----------------------------------------------------------------------------------
 
+#endif	// #if !( defined(_PSVITA) || defined(_PS4) || defined(_SWITCH) || defined(_XBOXONE) )
+
 
 #ifndef	__EFFEKSEER_SERVER_IMPLEMENTED_H__
 #define	__EFFEKSEER_SERVER_IMPLEMENTED_H__
+
+#if !( defined(_PSVITA) || defined(_PS4) || defined(_SWITCH) || defined(_XBOXONE) )
 
 //----------------------------------------------------------------------------------
 // Include
@@ -16959,9 +16964,9 @@ public:
 
 	void Stop();
 
-	void Register( const EFK_CHAR* key, Effect* effect );
+	void Regist( const EFK_CHAR* key, Effect* effect );
 
-	void Unregister( Effect* effect );
+	void Unregist( Effect* effect );
 
 	void Update();
 
@@ -16976,7 +16981,11 @@ public:
 //
 //----------------------------------------------------------------------------------
 
-#endif
+#endif	// #if !( defined(_PSVITA) || defined(_PS4) || defined(_SWITCH) || defined(_XBOXONE) )
+
+#endif	// __EFFEKSEER_SERVER_IMPLEMENTED_H__
+
+#if !( defined(_PSVITA) || defined(_PS4) || defined(_SWITCH) || defined(_XBOXONE) )
 
 //----------------------------------------------------------------------------------
 // Include
@@ -17013,7 +17022,7 @@ void ServerImplemented::InternalClient::RecvAsync( void* data )
 
 			if( recvSize == 0 || recvSize == -1 )
 			{
-				// Failed
+				/* 失敗 */
 				client->m_server->RemoveClient( client );
 				client->ShutDown();
 				return;
@@ -17030,7 +17039,7 @@ void ServerImplemented::InternalClient::RecvAsync( void* data )
 
 			if( recvSize == 0 || recvSize == -1 )
 			{
-				// Failed
+				/* 失敗 */
 				client->m_server->RemoveClient( client );
 				client->ShutDown();
 				return;
@@ -17042,7 +17051,7 @@ void ServerImplemented::InternalClient::RecvAsync( void* data )
 			}
 		}
 
-		// recieve buffer
+		/* 受信処理 */
 		client->m_ctrlRecvBuffers.lock();
 		client->m_recvBuffers.push_back(client->m_recvBuffer);
 		client->m_ctrlRecvBuffers.unlock();
@@ -17157,7 +17166,7 @@ void ServerImplemented::AcceptAsync( void* data )
 			break;
 		}
 
-		// Accept and add an internal client
+		/* 接続追加 */
 		server->AddClient( new InternalClient( socket_, server ) );
 
 		EffekseerPrintDebug("Server : AcceptClient\n");
@@ -17185,10 +17194,12 @@ bool ServerImplemented::Start( uint16_t port )
 		return false;
 	}
 
+	/* 接続用データ生成 */
 	memset( &sockAddr, 0, sizeof(SOCKADDR_IN));
 	sockAddr.sin_family	= AF_INET;
 	sockAddr.sin_port	= htons( port );
 
+	/* 関連付け */
 	returnCode = ::bind( socket_, (sockaddr*)&sockAddr, sizeof(sockaddr_in) );
 	if ( returnCode == SocketError )
 	{
@@ -17199,7 +17210,7 @@ bool ServerImplemented::Start( uint16_t port )
 		return false;
 	}
 
-	// Connect
+	/* 接続 */
 	if ( !Socket::Listen( socket_, 30 ) )
 	{
 		if ( socket_ != InvalidSocket )
@@ -17239,7 +17250,7 @@ void ServerImplemented::Stop()
 
 	m_thread.join();
 
-	// Stop clients
+	/* クライアント停止 */
 	m_ctrlClients.lock();
 	for( std::set<InternalClient*>::iterator it = m_clients.begin(); it != m_clients.end(); ++it )
 	{
@@ -17248,7 +17259,7 @@ void ServerImplemented::Stop()
 	m_ctrlClients.unlock();
 	
 
-	// Wait clients to be removed
+	/* クライアントの消滅待ち */
 	while(true)
 	{
 		m_ctrlClients.lock();
@@ -17260,7 +17271,7 @@ void ServerImplemented::Stop()
 		Sleep_(1);
 	}
 
-	// Delete clients
+	/* 破棄 */
 	for( std::set<InternalClient*>::iterator it = m_removedClients.begin(); it != m_removedClients.end(); ++it )
 	{
 		while( (*it)->m_active )
@@ -17274,7 +17285,7 @@ void ServerImplemented::Stop()
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-void ServerImplemented::Register( const EFK_CHAR* key, Effect* effect )
+void ServerImplemented::Regist( const EFK_CHAR* key, Effect* effect )
 {
 	if( effect == NULL ) return;
 
@@ -17304,7 +17315,7 @@ void ServerImplemented::Register( const EFK_CHAR* key, Effect* effect )
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-void ServerImplemented::Unregister( Effect* effect )
+void ServerImplemented::Unregist( Effect* effect )
 {
 	if( effect == NULL ) return;
 
@@ -17412,8 +17423,15 @@ void ServerImplemented::SetMaterialPath( const EFK_CHAR* materialPath )
 	m_materialPath.push_back(0);
 }
 
+//----------------------------------------------------------------------------------
+//
+//----------------------------------------------------------------------------------
 } 
+//----------------------------------------------------------------------------------
+//
+//----------------------------------------------------------------------------------
 
+#endif	// #if !( defined(_PSVITA) || defined(_PS4) || defined(_SWITCH) || defined(_XBOXONE) )
 #ifndef	__EFFEKSEER_CLIENT_IMPLEMENTED_H__
 #define	__EFFEKSEER_CLIENT_IMPLEMENTED_H__
 
