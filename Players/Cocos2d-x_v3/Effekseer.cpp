@@ -3,6 +3,38 @@
 
 namespace efk
 {
+	static std::u16string getFilenameWithoutExt(const char16_t* path)
+	{
+		int start = 0;
+		int end = 0;
+
+		for (int i = 0; path[i] != 0; i++)
+		{
+			if (path[i] == u'/' || path[i] == u'\\')
+			{
+				start = i;
+			}
+		}
+
+		for (int i = start; path[i] != 0; i++)
+		{
+			if (path[i] == u'.')
+			{
+				end = i;
+			}
+		}
+
+		std::vector<char16_t> ret;
+
+		for (int i = start; i < end; i++)
+		{
+			ret.push_back(path[i]);
+		}
+		ret.push_back(0);
+
+		return std::u16string(ret.data());
+	}
+
 #pragma region DistortingCallbackGL
 	class DistortingCallbackGL
 		: public EffekseerRenderer::DistortingCallback
@@ -350,13 +382,150 @@ namespace efk
 	};
 #pragma endregion
 
+	struct EffectResource
+	{
+		Effekseer::Effect* effect = nullptr;
+		int counter = 0;
+	};
+
+	class InternalManager
+	{
+		std::map<std::u16string, EffectResource> path2effect;
+		std::map <Effekseer::Effect*, std::u16string > effect2path;
+		
+		std::set<Effekseer::Manager*> managers;
+		std::vector< Effekseer::Manager*> managersVector;
+
+		Effekseer::Server* server = nullptr;
+
+	public:
+
+		InternalManager()
+		{
+		}
+
+		~InternalManager()
+		{
+			if (server != nullptr)
+			{
+				server->Stop();
+				ES_SAFE_DELETE(server);
+			}
+		}
+
+		Effekseer::Effect* loadEffect(const EFK_CHAR* path)
+		{
+			auto it_effect = path2effect.find(path);
+
+			if (it_effect == path2effect.end())
+			{
+				EffectResource resource;
+				resource.effect = Effekseer::Effect::Create(EffekseerSetting::create(), path);
+				resource.counter = 1;
+
+				if (resource.effect != nullptr)
+				{
+					path2effect[path] = resource;
+					effect2path[resource.effect] = path;
+
+					if (server != nullptr)
+					{
+						auto key = getFilenameWithoutExt(path);
+						server->Register(key.c_str(), resource.effect);
+					}
+
+					return resource.effect;
+				}
+				return nullptr;
+			}
+			else
+			{
+				it_effect->second.counter++;
+				return it_effect->second.effect;
+			}
+		}
+
+		void unloadEffect(Effekseer::Effect* effect)
+		{
+			auto it_path = effect2path.find(effect);
+			if (it_path == effect2path.end()) return;
+
+			auto it_effect = path2effect.find(it_path->second);
+			if (it_effect == path2effect.end()) return;
+
+			it_effect->second.counter--;
+			if (it_effect->second.counter == 0)
+			{
+				if (server != nullptr)
+				{
+					server->Unregister(it_effect->second.effect);
+				}
+
+				ES_SAFE_RELEASE(it_effect->second.effect);
+				effect2path.erase(it_path);
+				path2effect.erase(it_effect);
+			}
+		}
+
+		void registerManager(Effekseer::Manager* manager)
+		{
+			managers.insert(manager);
+
+			managersVector.clear();
+			for (auto m : managers)
+			{
+				managersVector.push_back(m);
+			}
+		}
+
+		void unregisterManager(Effekseer::Manager* manager)
+		{
+			managers.erase(manager);
+			managersVector.clear();
+			for (auto m : managers)
+			{
+				managersVector.push_back(m);
+			}
+		}
+
+		bool makeNetworkServerEnabled(uint16_t port)
+		{
+			if (server != nullptr) return false;
+			server = Effekseer::Server::Create();
+			if (!server->Start(port))
+			{
+				ES_SAFE_DELETE(server);
+				return false;
+			}
+
+			return true;
+		}
+
+		void update()
+		{
+			if (server != nullptr)
+			{
+				if (managersVector.size() > 0)
+				{
+					server->Update(managersVector.data(), managersVector.size());
+				}
+				else
+				{
+					server->Update();
+				}
+			}
+		}
+	};
+
+	static  InternalManager g_internalManager;
+
 #pragma region Effect
 	Effect* Effect::create(const std::string& filename)
 	{
 		EFK_CHAR path_[300];
 		::Effekseer::ConvertUtf8ToUtf16((int16_t*)path_, 300, (const int8_t*)filename.c_str());
 
-		auto effect = Effekseer::Effect::Create(EffekseerSetting::create(), path_);
+		auto effect = g_internalManager.loadEffect(path_);
 
 		if (effect != nullptr)
 		{
@@ -366,9 +535,6 @@ namespace efk
 			return e;
 		}
 
-		// TODO
-		// Cache
-		
 		return nullptr;
 	}
 
@@ -379,7 +545,7 @@ namespace efk
 
 	Effect::~Effect()
 	{
-		ES_SAFE_RELEASE(effect);
+		g_internalManager.unloadEffect(effect);
 	}
 
 #pragma endregion
@@ -704,6 +870,8 @@ namespace efk
 		manager2d->SetModelRenderer(renderer2d->CreateModelRenderer());
 		manager2d->SetTrackRenderer(renderer2d->CreateTrackRenderer());
 
+		g_internalManager.registerManager(manager2d);
+
 		return true;
 	}
 
@@ -735,6 +903,7 @@ namespace efk
 
 		if (manager2d != nullptr)
 		{
+			g_internalManager.unregisterManager(manager2d);
 			manager2d->Destroy();
 			manager2d = nullptr;
 		}
@@ -817,4 +986,14 @@ namespace efk
 	}
 
 #pragma endregion
+
+	bool NetworkServer::makeNetworkServerEnabled(uint16_t port)
+	{
+		return g_internalManager.makeNetworkServerEnabled(port);
+	}
+
+	void NetworkServer::update()
+	{
+		g_internalManager.update();
+	}
 }

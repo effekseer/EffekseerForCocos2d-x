@@ -126,6 +126,7 @@ effekseerCPP.addLine('#include <random>')
 effekseerCPP.addLine('#include <thread>')
 effekseerCPP.addLine('#include <mutex>')
 effekseerCPP.addLine('#include <iostream>')
+effekseerCPP.addLine('#include <array>')
 
 effekseerCPP.addLine('#ifdef _WIN32')
 effekseerCPP.addLine('#include <winsock2.h>')

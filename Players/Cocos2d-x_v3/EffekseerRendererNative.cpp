@@ -751,7 +751,9 @@ namespace GLExt
 #define GL_MAP_FLUSH_EXPLICIT_BIT 0x0010
 #define GL_MAP_UNSYNCHRONIZED_BIT 0x0020
 
+#ifndef GL_WRITE_ONLY
 #define GL_WRITE_ONLY 0x000088b9
+#endif
 
 #if defined(__APPLE__) || defined(__ANDROID__)
 #else
@@ -823,6 +825,7 @@ void glCompressedTexImage2D(GLenum target, GLint level, GLenum internalformat, G
 #endif	// __EFFEKSEERRENDERER_GL_GLEXTENSION_H__
 
 
+
 //----------------------------------------------------------------------------------
 // Include
 //----------------------------------------------------------------------------------
@@ -852,8 +855,8 @@ public:
 	GLuint GetInterface() { return m_buffer; }
 
 public:	// デバイス復旧用
-	virtual void OnLostDevice();
-	virtual void OnResetDevice();
+	virtual void OnLostDevice() override;
+	virtual void OnResetDevice() override;
 
 public:
 	void Lock() override;
@@ -869,6 +872,7 @@ public:
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
+
 #ifndef	__EFFEKSEERRENDERER_GL_MODEL_RENDERER_H__
 #define	__EFFEKSEERRENDERER_GL_MODEL_RENDERER_H__
 
@@ -1413,27 +1417,27 @@ public:
 	*/
 	~RendererImplemented();
 
-	void OnLostDevice();
-	void OnResetDevice();
+	void OnLostDevice() override;
+	void OnResetDevice() override;
 
 	/**
 		@brief	初期化
 	*/
 	bool Initialize();
 
-	void Destroy();
+	void Destroy() override;
 
-	void SetRestorationOfStatesFlag(bool flag);
+	void SetRestorationOfStatesFlag(bool flag) override;
 
 	/**
 		@brief	描画開始
 	*/
-	bool BeginRendering();
+	bool BeginRendering() override;
 
 	/**
 		@brief	描画終了
 	*/
-	bool EndRendering();
+	bool EndRendering() override;
 
 	/**
 		@brief	頂点バッファ取得
@@ -1448,7 +1452,7 @@ public:
 	/**
 		@brief	最大描画スプライト数
 	*/
-	int32_t GetSquareMaxCount() const;
+	int32_t GetSquareMaxCount() const override;
 
 	void SetSquareMaxCount(int32_t count) override;
 
@@ -1602,7 +1606,7 @@ public:
 
 	void SetTextures(Shader* shader, Effekseer::TextureData** textures, int32_t count);
 
-	void ResetRenderState();
+	void ResetRenderState() override;
 
 	int32_t GetDrawCallCount() const override;
 
@@ -1616,9 +1620,9 @@ public:
 
 	OpenGLDeviceType GetDeviceType() { return m_deviceType; }
 
-	virtual int GetRef() { return ::Effekseer::ReferenceObject::GetRef(); }
-	virtual int AddRef() { return ::Effekseer::ReferenceObject::AddRef(); }
-	virtual int Release() { return ::Effekseer::ReferenceObject::Release(); }
+	virtual int GetRef() override { return ::Effekseer::ReferenceObject::GetRef(); }
+	virtual int AddRef() override { return ::Effekseer::ReferenceObject::AddRef(); }
+	virtual int Release() override { return ::Effekseer::ReferenceObject::Release(); }
 
 private:
 	void GenerateIndexData();
@@ -1632,6 +1636,7 @@ private:
 //
 //----------------------------------------------------------------------------------
 #endif	// __EFFEKSEERRENDERER_GL_RENDERER_IMPLEMENTED_H__
+
 #ifndef	__EFFEKSEERRENDERER_GL_RENDERSTATE_H__
 #define	__EFFEKSEERRENDERER_GL_RENDERSTATE_H__
 
@@ -1783,18 +1788,18 @@ private:
 		RendererImplemented* renderer,
 		GLuint& program,
 		const char* vs_src,
-		int32_t vertexShaderSize,
+		size_t vertexShaderSize,
 		const char* fs_src,
-		int32_t pixelShaderSize,
+		size_t pixelShaderSize,
 		const char* name);
 
 	Shader(
 		RendererImplemented* renderer, 
 		GLuint program,
 		const char* vs_src,
-		int32_t vertexShaderSize,
+		size_t vertexShaderSize,
 		const char* fs_src,
-		int32_t pixelShaderSize,
+		size_t pixelShaderSize,
 		const char* name);
 
 	GLint GetAttribId(const char* name) const;
@@ -1808,14 +1813,14 @@ public:
 	static Shader* Create(
 		RendererImplemented* renderer,
 		const char* vs_src,
-		int32_t vertexShaderSize,
+		size_t vertexShaderSize,
 		const char* fs_src,
-		int32_t pixelShaderSize,
+		size_t pixelShaderSize,
 		const char* name);
 
 public:	// デバイス復旧用
-	virtual void OnLostDevice();
-	virtual void OnResetDevice();
+	virtual void OnLostDevice() override;
+	virtual void OnResetDevice() override;
 	virtual void OnChangeDevice();
 
 public:
@@ -1859,6 +1864,7 @@ public:
 //
 //----------------------------------------------------------------------------------
 #endif	// __EFFEKSEERRENDERER_GL_SHADER_H__
+
 #ifdef __EFFEKSEER_RENDERER_INTERNAL_LOADER__
 
 #ifndef	__EFFEKSEERRENDERER_GL_TEXTURELOADER_H__
@@ -2740,7 +2746,7 @@ void glCompressedTexImage2D(GLenum target, GLint level, GLenum internalformat, G
 	g_glCompressedTexImage2D(target, level,internalformat, width, height, border,imageSize, data);
 #elif defined(__EFFEKSEER_RENDERER_GLES2__) || defined(__EFFEKSEER_RENDERER_GL2__)
 #else
-	glCompressedTexImage2D(target, level,internalformat, width, height, border,imageSize, data);
+	::glCompressedTexImage2D(target, level,internalformat, width, height, border,imageSize, data);
 #endif
 }
 
@@ -2891,7 +2897,7 @@ void* ModelLoader::Load( const EFK_CHAR* path )
 		char* data_model = new char[size_model];
 		reader->Read( data_model, size_model );
 
-		Model* model = new Model(data_model, size_model);
+		Model* model = new Model(data_model, (int32_t)size_model);
 
 		delete [] data_model;
 
@@ -5107,10 +5113,10 @@ void RendererImplemented::SetTextures(Shader* shader, Effekseer::TextureData** t
 
 	for (int32_t i = 0; i < count; i++)
 	{
-		auto id = 0;
+		GLuint id = 0;
 		if (textures[i] != nullptr)
 		{
-			id = textures[i]->UserID;
+			id = (GLuint)textures[i]->UserID;
 		}
 
 		GLExt::glActiveTexture(GL_TEXTURE0 + i);
@@ -5438,7 +5444,7 @@ void RenderState::Update( bool forced )
 	else
 	{
 		GLCheckError();
-		for (int32_t i = 0; i < m_renderer->GetCurrentTextures().size(); i++)
+		for (int32_t i = 0; i < (int32_t)m_renderer->GetCurrentTextures().size(); i++)
 		{
 			/* テクスチャが設定されていない場合はスキップ */
 			if (m_renderer->GetCurrentTextures()[i] == 0) continue;
@@ -5570,9 +5576,9 @@ bool Shader::CompileShader(
 	RendererImplemented* renderer,
 	GLuint& program,
 	const char* vs_src,
-	int32_t vertexShaderSize,
+	size_t vertexShaderSize,
 	const char* fs_src,
-	int32_t pixelShaderSize,
+	size_t pixelShaderSize,
 	const char* name)
 {
 	const char* src_data[2];
@@ -5605,7 +5611,7 @@ bool Shader::CompileShader(
 
 	src_size[0] = (GLint) strlen(src_data[0]);
 	src_data[1] = fs_src;
-	src_size[1] = strlen(fs_src);
+	src_size[1] = (GLint)strlen(fs_src);
 
 	frag_shader = GLExt::glCreateShader(GL_FRAGMENT_SHADER);
 	GLExt::glShaderSource(frag_shader, 2, src_data, src_size);
@@ -5666,9 +5672,9 @@ Shader::Shader(
 	RendererImplemented* renderer,
 	GLuint program,
 	const char* vs_src,
-	int32_t vertexShaderSize,
+	size_t vertexShaderSize,
 	const char* fs_src,
-	int32_t pixelShaderSize,
+	size_t pixelShaderSize,
 	const char* name)
 	: DeviceObject		( renderer )
 	, m_program			( program )
@@ -5725,9 +5731,9 @@ Shader::~Shader()
 Shader* Shader::Create(
 	RendererImplemented* renderer,
 		const char* vs_src,
-		int32_t vertexShaderSize,
+		size_t vertexShaderSize,
 		const char* fs_src,
-		int32_t pixelShaderSize,
+		size_t pixelShaderSize,
 		const char* name)
 {
 	GLuint program;
@@ -5863,7 +5869,7 @@ void Shader::GetAttribIdList(int count, const ShaderAttribInfo* info )
 	}
 	else
 	{
-		for (int i = 0; i < attribs.size(); i++)
+		for (int i = 0; i < (int)attribs.size(); i++)
 		{
 			m_aid.push_back(GLExt::glGetAttribLocation(m_program, attribs[i].name.c_str()));
 			Layout layout;
@@ -6119,6 +6125,7 @@ bool Shader::IsValid() const
 //
 //-----------------------------------------------------------------------------------
 }
+
 #ifdef __EFFEKSEER_RENDERER_INTERNAL_LOADER__
 
 //----------------------------------------------------------------------------------
@@ -6312,7 +6319,7 @@ void TextureLoader::Unload(Effekseer::TextureData* data )
 {
 	if( data != NULL )
 	{
-		GLuint texture = data->UserID;
+		GLuint texture = (GLuint)data->UserID;
 		glDeleteTextures(1, &texture);
 	}
 
@@ -6564,7 +6571,7 @@ bool VertexBuffer::RingBufferLock( int32_t size, int32_t& offset, void*& data )
 #ifdef __ANDROID__
 	if (true)
 #else
-	if (m_vertexRingOffset + size > m_size)
+	if ((int32_t)m_vertexRingOffset + size > m_size)
 #endif
 	{
 		offset = 0;

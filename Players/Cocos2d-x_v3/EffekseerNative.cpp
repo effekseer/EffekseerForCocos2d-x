@@ -21,6 +21,7 @@
 #include <thread>
 #include <mutex>
 #include <iostream>
+#include <array>
 #ifdef _WIN32
 #include <winsock2.h>
 #pragma comment( lib, "ws2_32.lib" )
@@ -313,7 +314,7 @@ namespace Culling3D
 		*/
 		float GetLength() const
 		{
-			return sqrt(GetSquaredLength());
+			return sqrtf(GetSquaredLength());
 		}
 
 		/**
@@ -658,7 +659,7 @@ namespace Culling3D
 				radius = 0.0f;
 				if (Type == OBJECT_SHAPE_TYPE_NONE) radius = 0.0f;
 				if (Type == OBJECT_SHAPE_TYPE_SPHERE) radius = Data.Sphere.Radius;
-				if (Type == OBJECT_SHAPE_TYPE_CUBOID) radius = sqrt(Data.Cuboid.X * Data.Cuboid.X + Data.Cuboid.Y * Data.Cuboid.Y + Data.Cuboid.Z * Data.Cuboid.Z) / 2.0f;
+				if (Type == OBJECT_SHAPE_TYPE_CUBOID) radius = sqrtf(Data.Cuboid.X * Data.Cuboid.X + Data.Cuboid.Y * Data.Cuboid.Y + Data.Cuboid.Z * Data.Cuboid.Z) / 2.0f;
 			}
 
 			float GetRadius()
@@ -697,11 +698,12 @@ namespace Culling3D
 
 		int32_t ObjectIndex;
 
-		virtual int32_t GetRef() { return ReferenceObject::GetRef(); }
-		virtual int32_t AddRef() { return ReferenceObject::AddRef(); }
-		virtual int32_t Release() { return ReferenceObject::Release(); }
+		virtual int32_t GetRef() override { return ReferenceObject::GetRef(); }
+		virtual int32_t AddRef() override { return ReferenceObject::AddRef(); }
+		virtual int32_t Release() override { return ReferenceObject::Release(); }
 	};
 }
+
 
 
 
@@ -737,28 +739,29 @@ namespace Culling3D
 		WorldInternal(float xSize, float ySize, float zSize, int32_t layerCount);
 		virtual ~WorldInternal();
 
-		void AddObject(Object* o);
-		void RemoveObject(Object* o);
+		void AddObject(Object* o) override;
+		void RemoveObject(Object* o) override;
 
 		void AddObjectInternal(Object* o);
 		void RemoveObjectInternal(Object* o);
 
 		void CastRay(Vector3DF from, Vector3DF to) override;
 
-		void Culling(const Matrix44& cameraProjMat, bool isOpenGL);
+		void Culling(const Matrix44& cameraProjMat, bool isOpenGL) override;
 
 		bool Reassign() override;
 
-		void Dump(const char* path, const Matrix44& cameraProjMat, bool isOpenGL);
+		void Dump(const char* path, const Matrix44& cameraProjMat, bool isOpenGL) override;
 
-		int32_t GetObjectCount() { return objs.size(); }
-		Object* GetObject(int32_t index) { return objs[index]; }
+		int32_t GetObjectCount() override { return (int32_t)objs.size(); }
+		Object* GetObject(int32_t index) override { return objs[index]; }
 
-		virtual int32_t GetRef() { return ReferenceObject::GetRef(); }
-		virtual int32_t AddRef() { return ReferenceObject::AddRef(); }
-		virtual int32_t Release() { return ReferenceObject::Release(); }
+		virtual int32_t GetRef() override { return ReferenceObject::GetRef(); }
+		virtual int32_t AddRef() override { return ReferenceObject::AddRef(); }
+		virtual int32_t Release() override { return ReferenceObject::Release(); }
 	};
 }
+
 
 namespace Culling3D
 {
@@ -775,7 +778,7 @@ namespace Culling3D
 		assert(o_->ObjectIndex == -1);
 
 		objects.push_back(o_);
-		o_->ObjectIndex = objects.size() - 1;
+		o_->ObjectIndex = (int32_t)objects.size() - 1;
 	}
 
 	void Grid::RemoveObject(Object* o)
@@ -804,6 +807,7 @@ namespace Culling3D
 		o_->ObjectIndex = -1;
 	}
 }
+
 
 namespace Culling3D
 {
@@ -1515,7 +1519,7 @@ namespace Culling3D
 		float dx = v1.X - v2.X;
 		float dy = v1.Y - v2.Y;
 		float dz = v1.Z - v2.Z;
-		return sqrt(dx * dx + dy * dy + dz * dz);
+		return sqrtf(dx * dx + dy * dy + dz * dz);
 	}
 }
 
@@ -1938,7 +1942,7 @@ namespace Culling3D
 
 						for (int32_t e = 0; e < 8; e++)
 						{
-							float x_, y_, z_;
+							float x_ = 0.0f, y_ = 0.0f, z_ = 0.0f;
 							if (e == 0){ x_ = xsize * x; y_ = ysize * y; z_ = zsize * z; }
 							if (e == 1){ x_ = xsize * (x + 1); y_ = ysize * y; z_ = zsize * z; }
 							if (e == 2){ x_ = xsize * x; y_ = ysize * (y + 1); z_ = zsize * z; }
@@ -2161,7 +2165,7 @@ namespace Culling3D
 
 					for (int32_t e = 0; e < 8; e++)
 					{
-						float x_, y_, z_;
+						float x_ = 0.0f, y_ = 0.0f, z_ = 0.0f;
 						if (e == 0){ x_ = xsize * x; y_ = ysize * y; z_ = zsize * z; }
 						if (e == 1){ x_ = xsize * (x + 1); y_ = ysize * y; z_ = zsize * z; }
 						if (e == 2){ x_ = xsize * x; y_ = ysize * (y + 1); z_ = zsize * z; }
@@ -2237,6 +2241,7 @@ namespace Culling3D
 
 	}
 }
+
 
 //----------------------------------------------------------------------------------
 //
@@ -2931,12 +2936,33 @@ void Matrix43::RotationXYZ( float rx, float ry, float rz )
 {
 	float cx, sx, cy, sy, cz, sz;
 	
-	if( rx != 0.0f )	::Effekseer::SinCos( rx, sx, cx );
-	else				sx = 0.0f, cx = 1.0f;
-	if( ry != 0.0f )	::Effekseer::SinCos( ry, sy, cy );
-	else				sy = 0.0f, cy = 1.0f;
-	if( rz != 0.0f )	::Effekseer::SinCos( rz, sz, cz );
-	else				sz = 0.0f, cz = 1.0f;
+	if( rx != 0.0f )
+	{
+		::Effekseer::SinCos( rx, sx, cx );
+	}
+	else
+	{
+		sx = 0.0f;
+		cx = 1.0f;
+	}
+	if( ry != 0.0f )
+	{
+		::Effekseer::SinCos( ry, sy, cy );
+	}
+	else
+	{
+		sy = 0.0f;
+		cy = 1.0f;
+	}
+	if( rz != 0.0f )
+	{
+		::Effekseer::SinCos( rz, sz, cz );
+	}
+	else
+	{
+		sz = 0.0f;
+		cz = 1.0f;
+	}
 
 	Value[0][0] = cy * cz;
 	Value[0][1] = cy * sz;
@@ -2962,12 +2988,33 @@ void Matrix43::RotationZXY( float rz, float rx, float ry )
 {
 	float cx, sx, cy, sy, cz, sz;
 
-	if( rx != 0.0f )	::Effekseer::SinCos( rx, sx, cx );
-	else				sx = 0.0f, cx = 1.0f;
-	if( ry != 0.0f )	::Effekseer::SinCos( ry, sy, cy );
-	else				sy = 0.0f, cy = 1.0f;
-	if( rz != 0.0f )	::Effekseer::SinCos( rz, sz, cz );
-	else				sz = 0.0f, cz = 1.0f;
+	if( rx != 0.0f )
+	{
+		::Effekseer::SinCos( rx, sx, cx );
+	}
+	else
+	{
+		sx = 0.0f;
+		cx = 1.0f;
+	}
+	if( ry != 0.0f )
+	{
+		::Effekseer::SinCos( ry, sy, cy );
+	}
+	else
+	{
+		sy = 0.0f;
+		cy = 1.0f;
+	}
+	if( rz != 0.0f )
+	{
+		::Effekseer::SinCos( rz, sz, cz );
+	}
+	else
+	{
+		sz = 0.0f;
+		cz = 1.0f;
+	}
 	
 	Value[0][0] = cz * cy + sz * sx * sy;
 	Value[0][1] = sz * cx;
@@ -3282,6 +3329,20 @@ void Matrix43::SetSRT( const Vector3D& s, const Matrix43& r, const Vector3D& t )
 	Value[3][2] = t.Z;
 }
 
+void Matrix43::ToMatrix44(Matrix44& dst)
+{
+	for (int m = 0; m < 4; m++)
+	{
+		for (int n = 0; n < 3; n++)
+		{
+			dst.Values[m][n] = Value[m][n];
+		}
+		dst.Values[m][3] = 0.0f;
+	}
+
+	dst.Values[3][3] = 1.0f;
+}
+
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
@@ -3434,6 +3495,7 @@ void Matrix43::Multiple( Matrix43& out, const Matrix43& in1, const Matrix43& in2
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
+
 
 //----------------------------------------------------------------------------------
 //
@@ -4068,7 +4130,7 @@ struct random_int
 	float getValue(IRandObject& g) const
 	{
 		float r;
-		r = (int32_t)g.GetRand(min, max);
+		r = g.GetRand((float)min, (float)max);
 		return r;
 	}
 };
@@ -4592,7 +4654,7 @@ bool DefaultEffectLoader::Load( const EFK_CHAR* path, void*& data, int32_t& size
 		reader( m_fileInterface->OpenRead( path ) );
 	if( reader.get() == NULL ) return false;
 
-	size = reader->GetLength();
+	size = (int32_t)reader->GetLength();
 	data = new uint8_t[size];
 	reader->Read( data, size );
 
@@ -5996,19 +6058,19 @@ public:
 	{
 	}
 
-	void LoadRendererParameter(unsigned char*& pos, Setting* setting);
+	void LoadRendererParameter(unsigned char*& pos, Setting* setting) override;
 
-	void BeginRendering(int32_t count, Manager* manager);
+	void BeginRendering(int32_t count, Manager* manager) override;
 
 	void Rendering(const Instance& instance, const Instance* next_instance, Manager* manager) override;
 
-	void EndRendering(Manager* manager);
+	void EndRendering(Manager* manager) override;
 
-	void InitializeRenderedInstance(Instance& instance, Manager* manager);
+	void InitializeRenderedInstance(Instance& instance, Manager* manager) override;
 
-	void UpdateRenderedInstance(Instance& instance, Manager* manager);
+	void UpdateRenderedInstance(Instance& instance, Manager* manager) override;
 
-	eEffectNodeType GetType() const { return EFFECT_NODE_TYPE_MODEL; }
+	eEffectNodeType GetType() const override { return EFFECT_NODE_TYPE_MODEL; }
 };
 
 //----------------------------------------------------------------------------------
@@ -6187,9 +6249,9 @@ public:
 	{
 	}
 
-	void LoadRendererParameter(unsigned char*& pos, Setting* setting);
+	void LoadRendererParameter(unsigned char*& pos, Setting* setting) override;
 
-	void BeginRendering(int32_t count, Manager* manager);
+	void BeginRendering(int32_t count, Manager* manager) override;
 
 	void BeginRenderingGroup(InstanceGroup* group, Manager* manager) override;
 
@@ -6197,13 +6259,13 @@ public:
 
 	void Rendering(const Instance& instance, const Instance* next_instance, Manager* manager) override;
 
-	void EndRendering(Manager* manager);
+	void EndRendering(Manager* manager) override;
 
-	void InitializeRenderedInstance(Instance& instance, Manager* manager);
+	void InitializeRenderedInstance(Instance& instance, Manager* manager) override;
 
-	void UpdateRenderedInstance(Instance& instance, Manager* manager);
+	void UpdateRenderedInstance(Instance& instance, Manager* manager) override;
 
-	eEffectNodeType GetType() const { return EFFECT_NODE_TYPE_RIBBON; }
+	eEffectNodeType GetType() const override { return EFFECT_NODE_TYPE_RIBBON; }
 };
 
 //----------------------------------------------------------------------------------
@@ -6214,6 +6276,7 @@ public:
 //
 //----------------------------------------------------------------------------------
 #endif	// __EFFEKSEER_ParameterNODE_RIBBON_H__
+
 #ifndef	__EFFEKSEER_ParameterNODE_RING_H__
 #define	__EFFEKSEER_ParameterNODE_RING_H__
 
@@ -6436,19 +6499,19 @@ public:
 	{
 	}
 
-	void LoadRendererParameter(unsigned char*& pos, Setting* setting);
+	void LoadRendererParameter(unsigned char*& pos, Setting* setting) override;
 
-	void BeginRendering(int32_t count, Manager* manager);
+	void BeginRendering(int32_t count, Manager* manager) override;
 
 	void Rendering(const Instance& instance, const Instance* next_instance, Manager* manager) override;
 
-	void EndRendering(Manager* manager);
+	void EndRendering(Manager* manager) override;
 
-	void InitializeRenderedInstance(Instance& instance, Manager* manager);
+	void InitializeRenderedInstance(Instance& instance, Manager* manager) override;
 
-	void UpdateRenderedInstance(Instance& instance, Manager* manager);
+	void UpdateRenderedInstance(Instance& instance, Manager* manager) override;
 
-	eEffectNodeType GetType() const { return EFFECT_NODE_TYPE_RING; }
+	eEffectNodeType GetType() const override { return EFFECT_NODE_TYPE_RING; }
 
 private:
 	void LoadSingleParameter( unsigned char*& pos, RingSingleParameter& param );
@@ -6668,19 +6731,19 @@ public:
 	{
 	}
 
-	void LoadRendererParameter(unsigned char*& pos, Setting* setting);
+	void LoadRendererParameter(unsigned char*& pos, Setting* setting) override;
 
-	void BeginRendering(int32_t count, Manager* manager);
+	void BeginRendering(int32_t count, Manager* manager) override;
 
 	void Rendering(const Instance& instance, const Instance* next_instance, Manager* manager) override;
 
-	void EndRendering(Manager* manager);
+	void EndRendering(Manager* manager) override;
 
-	void InitializeRenderedInstance(Instance& instance, Manager* manager);
+	void InitializeRenderedInstance(Instance& instance, Manager* manager) override;
 
-	void UpdateRenderedInstance(Instance& instance, Manager* manager);
+	void UpdateRenderedInstance(Instance& instance, Manager* manager) override;
 
-	eEffectNodeType GetType() const { return EFFECT_NODE_TYPE_SPRITE; }
+	eEffectNodeType GetType() const override { return EFFECT_NODE_TYPE_SPRITE; }
 };
 
 //----------------------------------------------------------------------------------
@@ -6846,9 +6909,9 @@ public:
 	{
 	}
 
-	void LoadRendererParameter(unsigned char*& pos, Setting* setting);
+	void LoadRendererParameter(unsigned char*& pos, Setting* setting) override;
 
-	void BeginRendering(int32_t count, Manager* manager);
+	void BeginRendering(int32_t count, Manager* manager) override;
 
 	void BeginRenderingGroup(InstanceGroup* group, Manager* manager) override;
 
@@ -6856,15 +6919,15 @@ public:
 
 	void Rendering(const Instance& instance, const Instance* next_instance, Manager* manager) override;
 
-	void EndRendering(Manager* manager);
+	void EndRendering(Manager* manager) override;
 
-	void InitializeRenderedInstanceGroup(InstanceGroup& instanceGroup, Manager* manager);
+	void InitializeRenderedInstanceGroup(InstanceGroup& instanceGroup, Manager* manager) override;
 
-	void InitializeRenderedInstance(Instance& instance, Manager* manager);
+	void InitializeRenderedInstance(Instance& instance, Manager* manager) override;
 
-	void UpdateRenderedInstance(Instance& instance, Manager* manager);
+	void UpdateRenderedInstance(Instance& instance, Manager* manager) override;
 
-	eEffectNodeType GetType() const { return EFFECT_NODE_TYPE_TRACK; }
+	eEffectNodeType GetType() const override { return EFFECT_NODE_TYPE_TRACK; }
 
 	void InitializeValues(InstanceGroupValues::Color& value, StandardColorParameter& param, InstanceGlobal* instanceGlobal);
 	void InitializeValues(InstanceGroupValues::Size& value, TrackSizeParameter& param, Manager* manager);
@@ -6881,6 +6944,7 @@ public:
 //
 //----------------------------------------------------------------------------------
 #endif	// __EFFEKSEER_ParameterNODE_TRACK_H__
+
 #ifndef	__EFFEKSEER_EFFECT_IMPLEMENTED_H__
 #define	__EFFEKSEER_EFFECT_IMPLEMENTED_H__
 
@@ -6995,7 +7059,7 @@ public:
 	virtual ~EffectImplemented();
 
 	// Rootの取得
-	EffectNode* GetRoot() const;
+	EffectNode* GetRoot() const override;
 
 	float GetMaginification() const override;
 
@@ -7024,12 +7088,12 @@ public:
 	/**
 	@brief	設定取得
 	*/
-	Setting* GetSetting() const;
+	Setting* GetSetting() const override;
 	
 	/**
 		@brief	エフェクトデータのバージョン取得
 	*/
-	int GetVersion() const;
+	int GetVersion() const override;
 
 	/**
 		@brief	格納されている画像のポインタを取得する。
@@ -7039,66 +7103,66 @@ public:
 	/**
 		@brief	格納されている画像のポインタの個数を取得する。
 	*/
-	int32_t GetColorImageCount() const;
+	int32_t GetColorImageCount() const override;
 
 	/**
 	@brief	格納されている画像のポインタを取得する。
 	*/
 	TextureData* GetNormalImage(int n) const override;
 
-	int32_t GetNormalImageCount() const;
+	int32_t GetNormalImageCount() const override;
 
 	TextureData* GetDistortionImage(int n) const override;
 
-	int32_t GetDistortionImageCount() const;
+	int32_t GetDistortionImageCount() const override;
 
 	/**
 		@brief	格納されている音波形のポインタを取得する。
 	*/
-	void* GetWave( int n ) const;
+	void* GetWave( int n ) const override;
 
-	int32_t GetWaveCount() const;
+	int32_t GetWaveCount() const override;
 
 	/**
 		@brief	格納されているモデルのポインタを取得する。
 	*/
-	void* GetModel( int n ) const;
+	void* GetModel( int n ) const override;
 
-	int32_t GetModelCount() const;
-
-	/**
-		@brief	エフェクトのリロードを行う。
-	*/
-	bool Reload( void* data, int32_t size, const EFK_CHAR* materialPath = NULL );
+	int32_t GetModelCount() const override;
 
 	/**
 		@brief	エフェクトのリロードを行う。
 	*/
-	bool Reload( const EFK_CHAR* path, const EFK_CHAR* materialPath = NULL );
+	bool Reload( void* data, int32_t size, const EFK_CHAR* materialPath = NULL ) override;
 
 	/**
 		@brief	エフェクトのリロードを行う。
 	*/
-	bool Reload( Manager* managers, int32_t managersCount, void* data, int32_t size, const EFK_CHAR* materialPath = NULL );
+	bool Reload( const EFK_CHAR* path, const EFK_CHAR* materialPath = NULL ) override;
 
 	/**
 		@brief	エフェクトのリロードを行う。
 	*/
-	bool Reload( Manager* managers, int32_t managersCount, const EFK_CHAR* path, const EFK_CHAR* materialPath = NULL );
+	bool Reload( Manager** managers, int32_t managersCount, void* data, int32_t size, const EFK_CHAR* materialPath = NULL ) override;
+
+	/**
+		@brief	エフェクトのリロードを行う。
+	*/
+	bool Reload( Manager** managers, int32_t managersCount, const EFK_CHAR* path, const EFK_CHAR* materialPath = NULL ) override;
 
 	/**
 		@brief	画像等リソースの再読み込みを行う。
 	*/
-	void ReloadResources( const EFK_CHAR* materialPath );
+	void ReloadResources( const EFK_CHAR* materialPath ) override;
 
 	/**
 		@brief	画像等リソースの破棄を行う。
 	*/
-	void UnloadResources();
+	void UnloadResources() override;
 
-	virtual int GetRef() { return ReferenceObject::GetRef(); }
-	virtual int AddRef() { return ReferenceObject::AddRef(); }
-	virtual int Release() { return ReferenceObject::Release(); }
+	virtual int GetRef() override { return ReferenceObject::GetRef(); }
+	virtual int AddRef() override { return ReferenceObject::AddRef(); }
+	virtual int Release() override { return ReferenceObject::Release(); }
 };
 //----------------------------------------------------------------------------------
 //
@@ -7347,7 +7411,7 @@ public:
 		@note
 		このマネージャーから生成されたエフェクトは全て強制的に破棄されます。
 	*/
-	void Destroy();
+	void Destroy() override;
 
 	/**
 		@brief	更新番号を取得する。
@@ -7357,216 +7421,216 @@ public:
 	/**
 		@brief	メモリ確保関数取得
 	*/
-	MallocFunc GetMallocFunc() const;
+	MallocFunc GetMallocFunc() const override;
 
 	/**
 		@brief	メモリ確保関数設定
 	*/
-	void SetMallocFunc( MallocFunc func );
+	void SetMallocFunc( MallocFunc func ) override;
 
 	/**
 		@brief	メモリ破棄関数取得
 	*/
-	FreeFunc GetFreeFunc() const;
+	FreeFunc GetFreeFunc() const override;
 
 	/**
 		@brief	メモリ破棄関数設定
 	*/
-	void SetFreeFunc( FreeFunc func );
+	void SetFreeFunc( FreeFunc func ) override;
 
 	/**
 		@brief	ランダム関数取得
 	*/
-	RandFunc GetRandFunc() const;
+	RandFunc GetRandFunc() const override;
 
 	/**
 		@brief	ランダム関数設定
 	*/
-	void SetRandFunc( RandFunc func );
+	void SetRandFunc( RandFunc func ) override;
 
 	/**
 		@brief	ランダム最大値取得
 	*/
-	int GetRandMax() const;
+	int GetRandMax() const override;
 
 	/**
 		@brief	ランダム関数設定
 	*/
-	void SetRandMax( int max_ );
+	void SetRandMax( int max_ ) override;
 
 	/**
 		@brief	座標系を取得する。
 	*/
-	CoordinateSystem GetCoordinateSystem() const;
+	CoordinateSystem GetCoordinateSystem() const override;
 
 	/**
 		@brief	座標系を設定する。
 	*/
-	void SetCoordinateSystem( CoordinateSystem coordinateSystem );
+	void SetCoordinateSystem( CoordinateSystem coordinateSystem ) override;
 
 	/**
 		@brief	スプライト描画機能取得
 	*/
-	SpriteRenderer* GetSpriteRenderer();
+	SpriteRenderer* GetSpriteRenderer() override;
 
 	/**
 		@brief	スプライト描画機能設定
 	*/
-	void SetSpriteRenderer( SpriteRenderer* renderer );
+	void SetSpriteRenderer( SpriteRenderer* renderer ) override;
 
 	/**
 		@brief	リボン描画機能取得
 	*/
-	RibbonRenderer* GetRibbonRenderer();
+	RibbonRenderer* GetRibbonRenderer() override;
 
 	/**
 		@brief	リボン描画機能設定
 	*/
-	void SetRibbonRenderer( RibbonRenderer* renderer );
+	void SetRibbonRenderer( RibbonRenderer* renderer ) override;
 
 	/**
 		@brief	リング描画機能取得
 	*/
-	RingRenderer* GetRingRenderer();
+	RingRenderer* GetRingRenderer() override;
 
 	/**
 		@brief	リング描画機能設定
 	*/
-	void SetRingRenderer( RingRenderer* renderer );
+	void SetRingRenderer( RingRenderer* renderer ) override;
 
 	/**
 		@brief	モデル描画機能取得
 	*/
-	ModelRenderer* GetModelRenderer();
+	ModelRenderer* GetModelRenderer() override;
 
 	/**
 		@brief	モデル描画機能設定
 	*/
-	void SetModelRenderer( ModelRenderer* renderer );
+	void SetModelRenderer( ModelRenderer* renderer ) override;
 
 	/**
 		@brief	軌跡描画機能取得
 	*/
-	TrackRenderer* GetTrackRenderer();
+	TrackRenderer* GetTrackRenderer() override;
 
 	/**
 		@brief	軌跡描画機能設定
 	*/
-	void SetTrackRenderer( TrackRenderer* renderer );
+	void SetTrackRenderer( TrackRenderer* renderer ) override;
 
 	/**
 		@brief	設定クラスを取得する。
 	*/
-	Setting* GetSetting();
+	Setting* GetSetting() override;
 
 	/**
 		@brief	設定クラスを設定する。
 		@param	setting	[in]	設定
 	*/
-	void SetSetting(Setting* setting);
+	void SetSetting(Setting* setting) override;
 
 	/**
 		@brief	エフェクト読込クラスを取得する。
 	*/
-	EffectLoader* GetEffectLoader();
+	EffectLoader* GetEffectLoader() override;
 
 	/**
 		@brief	エフェクト読込クラスを設定する。
 	*/
-	void SetEffectLoader( EffectLoader* effectLoader );
+	void SetEffectLoader( EffectLoader* effectLoader ) override;
 
 	/**
 		@brief	テクスチャ読込クラスを取得する。
 	*/
-	TextureLoader* GetTextureLoader();
+	TextureLoader* GetTextureLoader() override;
 
 	/**
 		@brief	テクスチャ読込クラスを設定する。
 	*/
-	void SetTextureLoader( TextureLoader* textureLoader );
+	void SetTextureLoader( TextureLoader* textureLoader ) override;
 	
 	/**
 		@brief	サウンド再生取得
 	*/
-	SoundPlayer* GetSoundPlayer();
+	SoundPlayer* GetSoundPlayer() override;
 
 	/**
 		@brief	サウンド再生機能設定
 	*/
-	void SetSoundPlayer( SoundPlayer* soundPlayer );
+	void SetSoundPlayer( SoundPlayer* soundPlayer ) override;
 	
 	/**
 		@brief	サウンド再生取得
 	*/
-	SoundLoader* GetSoundLoader();
+	SoundLoader* GetSoundLoader() override;
 
 	/**
 		@brief	サウンド再生機能設定
 	*/
-	void SetSoundLoader( SoundLoader* soundLoader );
+	void SetSoundLoader( SoundLoader* soundLoader ) override;
 
 	/**
 		@brief	モデル読込クラスを取得する。
 	*/
-	ModelLoader* GetModelLoader();
+	ModelLoader* GetModelLoader() override;
 
 	/**
 		@brief	モデル読込クラスを設定する。
 	*/
-	void SetModelLoader( ModelLoader* modelLoader );
+	void SetModelLoader( ModelLoader* modelLoader ) override;
 	
 	/**
 		@brief	エフェクト停止
 	*/
-	void StopEffect( Handle handle );
+	void StopEffect( Handle handle ) override;
 
 	/**
 		@brief	全てのエフェクト停止
 	*/
-	void StopAllEffects();
+	void StopAllEffects() override;
 
 	/**
 		@brief	エフェクト停止
 	*/
-	void StopRoot( Handle handle );
+	void StopRoot( Handle handle ) override;
 
 	/**
 		@brief	エフェクト停止
 	*/
-	void StopRoot( Effect* effect );
+	void StopRoot( Effect* effect ) override;
 
 	/**
 		@brief	エフェクトのインスタンスが存在しているか取得する。
 		@param	handle	[in]	インスタンスのハンドル
 		@return	存在してるか?
 	*/
-	bool Exists( Handle handle );
+	bool Exists( Handle handle ) override;
 
-	int32_t GetInstanceCount( Handle handle );
+	int32_t GetInstanceCount( Handle handle ) override;
 
 	/**
 		@brief	エフェクトのインスタンスに設定されている行列を取得する。
 		@param	handle	[in]	インスタンスのハンドル
 		@return	行列
 	*/
-	Matrix43 GetMatrix( Handle handle );
+	Matrix43 GetMatrix( Handle handle ) override;
 
 	/**
 		@brief	エフェクトのインスタンスに変換行列を設定する。
 		@param	handle	[in]	インスタンスのハンドル
 		@param	mat		[in]	変換行列
 	*/
-	void SetMatrix( Handle handle, const Matrix43& mat );
+	void SetMatrix( Handle handle, const Matrix43& mat ) override;
 
-	Vector3D GetLocation( Handle handle );
-	void SetLocation( Handle handle, float x, float y, float z );
-	void SetLocation( Handle handle, const Vector3D& location );
-	void AddLocation( Handle handle, const Vector3D& location );
+	Vector3D GetLocation( Handle handle ) override;
+	void SetLocation( Handle handle, float x, float y, float z ) override;
+	void SetLocation( Handle handle, const Vector3D& location ) override;
+	void AddLocation( Handle handle, const Vector3D& location ) override;
 
 	/**
 		@brief	エフェクトのインスタンスの回転角度を指定する。(ラジアン)
 	*/
-	void SetRotation( Handle handle, float x, float y, float z );
+	void SetRotation( Handle handle, float x, float y, float z ) override;
 
 	/**
 		@brief	エフェクトのインスタンスの任意軸周りの反時計周りの回転角度を指定する。
@@ -7574,7 +7638,7 @@ public:
 		@param	axis	[in]	軸
 		@param	angle	[in]	角度(ラジアン)
 	*/
-	void SetRotation( Handle handle, const Vector3D& axis, float angle );
+	void SetRotation( Handle handle, const Vector3D& axis, float angle ) override;
 
 	/**
 		@brief	エフェクトのインスタンスの拡大率を指定する。
@@ -7583,61 +7647,61 @@ public:
 		@param	y		[in]	Y方向拡大率
 		@param	z		[in]	Z方向拡大率
 	*/
-	void SetScale( Handle handle, float x, float y, float z );
+	void SetScale( Handle handle, float x, float y, float z ) override;
 
 	void SetAllColor(Handle handle, Color color) override;
 
 	// エフェクトのターゲット位置を指定する。
-	void SetTargetLocation( Handle handle, float x, float y, float z );
-	void SetTargetLocation( Handle handle, const Vector3D& location );
+	void SetTargetLocation( Handle handle, float x, float y, float z ) override;
+	void SetTargetLocation( Handle handle, const Vector3D& location ) override;
 
-	Matrix43 GetBaseMatrix( Handle handle );
+	Matrix43 GetBaseMatrix( Handle handle ) override;
 
-	void SetBaseMatrix( Handle handle, const Matrix43& mat );
+	void SetBaseMatrix( Handle handle, const Matrix43& mat ) override;
 
 	/**
 		@brief	エフェクトのインスタンスに廃棄時のコールバックを設定する。
 		@param	handle	[in]	インスタンスのハンドル
 		@param	callback	[in]	コールバック
 	*/
-	void SetRemovingCallback( Handle handle, EffectInstanceRemovingCallback callback );
+	void SetRemovingCallback( Handle handle, EffectInstanceRemovingCallback callback ) override;
 
-	bool GetShown(Handle handle);
+	bool GetShown(Handle handle) override;
 
-	void SetShown( Handle handle, bool shown );
+	void SetShown( Handle handle, bool shown ) override;
 	
-	bool GetPaused(Handle handle);
+	bool GetPaused(Handle handle) override;
 
-	void SetPaused( Handle handle, bool paused );
+	void SetPaused( Handle handle, bool paused ) override;
 
-	void SetPausedToAllEffects(bool paused);
+	void SetPausedToAllEffects(bool paused) override;
 
 	float GetSpeed(Handle handle) const override;
 
-	void SetSpeed( Handle handle, float speed );
+	void SetSpeed( Handle handle, float speed ) override;
 	
-	void SetAutoDrawing( Handle handle, bool autoDraw );
+	void SetAutoDrawing( Handle handle, bool autoDraw ) override;
 	
-	void Flip();
+	void Flip() override;
 
 	/**
 		@brief	更新処理
 	*/
-	void Update( float deltaFrame );
+	void Update( float deltaFrame ) override;
 
 	/**
 		@brief	更新処理を開始する。
 		@note
 		Updateを実行する際は、実行する必要はない。
 	*/
-	void BeginUpdate();
+	void BeginUpdate() override;
 
 	/**
 		@brief	更新処理を終了する。
 		@note
 		Updateを実行する際は、実行する必要はない。
 	*/
-	void EndUpdate();
+	void EndUpdate() override;
 
 	/**
 		@brief	ハンドル単位の更新を行う。
@@ -7646,7 +7710,7 @@ public:
 		@note
 		更新する前にBeginUpdate、更新し終わった後にEndUpdateを実行する必要がある。
 	*/
-	void UpdateHandle( Handle handle, float deltaFrame = 1.0f );
+	void UpdateHandle( Handle handle, float deltaFrame = 1.0f ) override;
 
 private:
 	void UpdateHandle( DrawSet& drawSet, float deltaFrame );
@@ -7669,24 +7733,24 @@ public:
 
 	void DrawHandleFront(Handle handle) override;
 
-	Handle Play( Effect* effect, float x, float y, float z );
+	Handle Play( Effect* effect, float x, float y, float z ) override;
 
 	Handle Play(Effect* effect, const Vector3D& position, int32_t startFrame) override;
 	
 	/**
 		@brief	Update処理時間を取得。
 	*/
-	int GetUpdateTime() const {return m_updateTime;};
+	int GetUpdateTime() const override {return m_updateTime;};
 	
 	/**
 		@brief	Draw処理時間を取得。
 	*/
-	int GetDrawTime() const {return m_drawTime;};
+	int GetDrawTime() const override {return m_drawTime;};
 
 	/**
 		@brief	残りの確保したインスタンス数を取得する。
 	*/
-	virtual int32_t GetRestInstancesCount() const { return m_reserved_instances.size(); }
+	virtual int32_t GetRestInstancesCount() const override { return (int32_t)m_reserved_instances.size(); }
 
 	/**
 		@brief	リロードを開始する。
@@ -7705,23 +7769,23 @@ public:
 		@param	zsize	Z方向幅
 		@param	layerCount	層数(大きいほどカリングの効率は上がるがメモリも大量に使用する)
 	*/
-	void CreateCullingWorld( float xsize, float ysize, float zsize, int32_t layerCount);
+	void CreateCullingWorld( float xsize, float ysize, float zsize, int32_t layerCount) override;
 
 	/**
 		@brief	カリングを行い、カリングされたオブジェクトのみを描画するようにする。
 		@param	cameraProjMat	カメラプロジェクション行列
 		@param	isOpenGL		OpenGLによる描画か?
 	*/
-	void CalcCulling(const Matrix44& cameraProjMat, bool isOpenGL);
+	void CalcCulling(const Matrix44& cameraProjMat, bool isOpenGL) override;
 
 	/**
 		@brief	現在存在するエフェクトのハンドルからカリングの空間を配置しなおす。
 	*/
 	void RessignCulling() override;
 
-	virtual int GetRef() { return ReferenceObject::GetRef(); }
-	virtual int AddRef() { return ReferenceObject::AddRef(); }
-	virtual int Release() { return ReferenceObject::Release(); }
+	virtual int GetRef() override { return ReferenceObject::GetRef(); }
+	virtual int AddRef() override { return ReferenceObject::AddRef(); }
+	virtual int Release() override { return ReferenceObject::Release(); }
 };
 //----------------------------------------------------------------------------------
 //
@@ -8294,7 +8358,7 @@ public:
 	// 音
 	union
 	{
-		int		delay;
+		int32_t		delay;
 	} soundValues;
 
 	// 状態
@@ -9747,8 +9811,6 @@ namespace Effekseer
 	assert( type == GetType() );
 	EffekseerPrintDebug("Renderer : Model\n");
 
-	int32_t size = 0;
-
 	AlphaBlend = RendererCommon.AlphaBlend;
 
 	if( m_effect->GetVersion() >= 7 )
@@ -9857,7 +9919,7 @@ void EffectNodeModel::Rendering(const Instance& instance, const Instance* next_i
 
 		ModelRenderer::InstanceParameter instanceParameter;
 		instanceParameter.SRTMatrix43 = instance.GetGlobalMatrix43();
-		instanceParameter.Time = instance.m_LivingTime;
+		instanceParameter.Time = (int32_t)instance.m_LivingTime;
 
 		instanceParameter.UV = instance.GetUV();
 		
@@ -10056,8 +10118,6 @@ void EffectNodeRibbon::LoadRendererParameter(unsigned char*& pos, Setting* setti
 	pos += sizeof(int);
 	assert(type == GetType());
 	EffekseerPrintDebug("Renderer : Ribbon\n");
-
-	int32_t size = 0;
 
 	if (m_effect->GetVersion() >= 3)
 	{
@@ -10395,6 +10455,7 @@ void EffectNodeRibbon::UpdateRenderedInstance(Instance& instance, Manager* manag
 //
 //----------------------------------------------------------------------------------
 
+
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
@@ -10419,8 +10480,6 @@ void EffectNodeRing::LoadRendererParameter(unsigned char*& pos, Setting* setting
 	pos += sizeof(int);
 	assert( type == GetType() );
 	EffekseerPrintDebug("Renderer : Ring\n");
-
-	int32_t size = 0;
 
 	memcpy( &RenderingOrder, pos, sizeof(int) );
 	pos += sizeof(int);
@@ -11037,7 +11096,6 @@ namespace Effekseer
 	EffekseerPrintDebug("Renderer : Sprite\n");
 
 	auto ef = (EffectImplemented*) m_effect;
-	int32_t size = 0;
 
 	memcpy(&RenderingOrder, pos, sizeof(int));
 	pos += sizeof(int);
@@ -11441,9 +11499,6 @@ void EffectNodeTrack::LoadRendererParameter(unsigned char*& pos, Setting* settin
 	assert(type == GetType());
 	EffekseerPrintDebug("Renderer : Track\n");
 
-	int32_t size = 0;
-
-
 	LoadValues(TrackSizeFor, pos);
 	LoadValues(TrackSizeMiddle, pos);
 	LoadValues(TrackSizeBack, pos);
@@ -11520,7 +11575,6 @@ void EffectNodeTrack::BeginRenderingGroup(InstanceGroup* group, Manager* manager
 	TrackRenderer* renderer = manager->GetTrackRenderer();
 	if (renderer != nullptr)
 	{
-		InstanceGroupValues& instValues = group->rendererValues.track;
 		m_currentGroupValues = group->rendererValues.track;
 
 		m_instanceParameter.InstanceCount = group->GetInstanceCount();
@@ -11559,14 +11613,12 @@ void EffectNodeTrack::EndRenderingGroup(InstanceGroup* group, Manager* manager)
 
 void EffectNodeTrack::Rendering(const Instance& instance, const Instance* next_instance, Manager* manager)
 {
-	const InstanceValues& instValues = instance.rendererValues.track;
-
 	TrackRenderer* renderer = manager->GetTrackRenderer();
 	if (renderer != NULL)
 	{
 		float t = (float)instance.m_LivingTime / (float)instance.m_LivedTime;
-		int32_t time = instance.m_LivingTime;
-		int32_t livedTime = instance.m_LivedTime;
+		int32_t time = (int32_t)instance.m_LivingTime;
+		int32_t livedTime = (int32_t)instance.m_LivedTime;
 
 		SetValues(m_instanceParameter.ColorLeft, instance, m_currentGroupValues.ColorLeft, TrackColorLeft, time, livedTime);
 		SetValues(m_instanceParameter.ColorCenter, instance, m_currentGroupValues.ColorCenter, TrackColorCenter, time, livedTime);
@@ -11625,12 +11677,9 @@ void EffectNodeTrack::InitializeRenderedInstanceGroup(InstanceGroup& instanceGro
 //----------------------------------------------------------------------------------
 void EffectNodeTrack::InitializeRenderedInstance(Instance& instance, Manager* manager)
 {
-	InstanceValues& instValues = instance.rendererValues.track;
-
 	// Calculate only center
-	float t = (float)instance.m_LivingTime / (float)instance.m_LivedTime;
-	int32_t time = instance.m_LivingTime;
-	int32_t livedTime = instance.m_LivedTime;
+	int32_t time = (int32_t)instance.m_LivingTime;
+	int32_t livedTime = (int32_t)instance.m_LivedTime;
 
 	Color c;
 	SetValues(c, instance, m_currentGroupValues.ColorCenterMiddle, TrackColorCenterMiddle, time, livedTime);
@@ -11648,12 +11697,9 @@ void EffectNodeTrack::InitializeRenderedInstance(Instance& instance, Manager* ma
 //----------------------------------------------------------------------------------
 void EffectNodeTrack::UpdateRenderedInstance(Instance& instance, Manager* manager)
 {
-	InstanceValues& instValues = instance.rendererValues.track;
-
 	// Calculate only center
-	float t = (float)instance.m_LivingTime / (float)instance.m_LivedTime;
-	int32_t time = instance.m_LivingTime;
-	int32_t livedTime = instance.m_LivedTime;
+	int32_t time = (int32_t)instance.m_LivingTime;
+	int32_t livedTime = (int32_t)instance.m_LivedTime;
 
 	Color c;
 	SetValues(c, instance, m_currentGroupValues.ColorCenterMiddle, TrackColorCenterMiddle, time, livedTime);
@@ -11782,9 +11828,11 @@ void EffectNodeTrack::LoadValues(TrackSizeParameter& param, unsigned char*& pos)
 //
 //----------------------------------------------------------------------------------
 
+
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
+
 
 
 //----------------------------------------------------------------------------------
@@ -12246,10 +12294,6 @@ void EffectImplemented::Reset()
 {
 	UnloadResources();
 
-	Setting* loader = GetSetting();
-
-	TextureLoader* textureLoader = loader->GetTextureLoader();
-
 	for( int i = 0; i < m_ImageCount; i++ )
 	{
 		if( m_ImagePaths[i] != NULL ) delete [] m_ImagePaths[i];
@@ -12412,7 +12456,10 @@ bool EffectImplemented::Reload( void* data, int32_t size, const EFK_CHAR* materi
 {
 	if(m_pManager == NULL ) return false;
 
-	return Reload( m_pManager, 1, data, size, materialPath );
+	std::array<Manager*, 1> managers;
+	managers[0] = m_pManager;
+
+	return Reload( managers.data(), managers.size(), data, size, materialPath );
 }
 
 //----------------------------------------------------------------------------------
@@ -12422,29 +12469,40 @@ bool EffectImplemented::Reload( const EFK_CHAR* path, const EFK_CHAR* materialPa
 {
 	if(m_pManager == NULL ) return false;
 
-	return Reload( m_pManager, 1, path, materialPath );
+	std::array<Manager*, 1> managers;
+	managers[0] = m_pManager;
+
+	return Reload(managers.data(), managers.size(), path, materialPath );
 }
 
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-bool EffectImplemented::Reload( Manager* managers, int32_t managersCount, void* data, int32_t size, const EFK_CHAR* materialPath )
+bool EffectImplemented::Reload( Manager** managers, int32_t managersCount, void* data, int32_t size, const EFK_CHAR* materialPath )
 {
-	if(m_pManager == NULL ) return false;
-
 	const EFK_CHAR* matPath = materialPath != NULL ? materialPath : m_materialPath.c_str();
 	
+	if (m_pManager != nullptr)
+	{
+		m_pManager->BeginReloadEffect(this);
+	}
+
 	for( int32_t i = 0; i < managersCount; i++)
 	{
-		((ManagerImplemented*)&(managers[i]))->BeginReloadEffect( this );
+		((ManagerImplemented*)managers[i])->BeginReloadEffect( this );
 	}
 
 	Reset();
 	Load( data, size, m_maginificationExternal, matPath );
 
+	if (m_pManager != nullptr)
+	{
+		m_pManager->EndReloadEffect(this);
+	}
+
 	for( int32_t i = 0; i < managersCount; i++)
 	{
-		((ManagerImplemented*)&(managers[i]))->EndReloadEffect( this );
+		((ManagerImplemented*)managers[i])->EndReloadEffect( this );
 	}
 
 	return false;
@@ -12453,10 +12511,8 @@ bool EffectImplemented::Reload( Manager* managers, int32_t managersCount, void* 
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-bool EffectImplemented::Reload( Manager* managers, int32_t managersCount, const EFK_CHAR* path, const EFK_CHAR* materialPath )
+bool EffectImplemented::Reload( Manager** managers, int32_t managersCount, const EFK_CHAR* path, const EFK_CHAR* materialPath )
 {
-	if(m_pManager == NULL ) return false;
-
 	Setting* loader = GetSetting();
 	
 	EffectLoader* eLoader = loader->GetEffectLoader();
@@ -12474,6 +12530,11 @@ bool EffectImplemented::Reload( Manager* managers, int32_t managersCount, const 
 		materialPath = parentDir;
 	}
 
+	if (m_pManager != nullptr)
+	{
+		m_pManager->BeginReloadEffect(this);
+	}
+
 	for( int32_t i = 0; i < managersCount; i++)
 	{
 		((ManagerImplemented*)&(managers[i]))->BeginReloadEffect( this );
@@ -12482,8 +12543,11 @@ bool EffectImplemented::Reload( Manager* managers, int32_t managersCount, const 
 	Reset();
 	Load( data, size, m_maginificationExternal, materialPath );
 
-	m_pManager->EndReloadEffect( this );
-
+	if (m_pManager != nullptr)
+	{
+		m_pManager->EndReloadEffect(this);
+	}
+	
 	for( int32_t i = 0; i < managersCount; i++)
 	{
 		((ManagerImplemented*)&(managers[i]))->EndReloadEffect( this );
@@ -12767,7 +12831,6 @@ void ManagerImplemented::GCDrawSet( bool isRemovingManager )
 		std::map<Handle,DrawSet>::iterator it = m_RemovingDrawSets[0].begin();
 		while( it != m_RemovingDrawSets[0].end() )
 		{
-			DrawSet& drawset = (*it).second;
 			m_RemovingDrawSets[1][ (*it).first ] = (*it).second;
 			m_RemovingDrawSets[0].erase( it++ );
 		}
@@ -14178,7 +14241,7 @@ void ManagerImplemented::DrawFront()
 				if (drawSet.GlobalPointer->RenderedInstanceContainers.size() > 0)
 				{
 					auto e = (EffectImplemented*)drawSet.ParameterPointer;
-					for (int32_t j = e->renderingNodesThreshold; j < drawSet.GlobalPointer->RenderedInstanceContainers.size(); j++)
+					for (size_t j = e->renderingNodesThreshold; j < drawSet.GlobalPointer->RenderedInstanceContainers.size(); j++)
 					{
 						drawSet.GlobalPointer->RenderedInstanceContainers[j]->Draw(false);
 					}
@@ -14201,7 +14264,7 @@ void ManagerImplemented::DrawFront()
 				if (drawSet.GlobalPointer->RenderedInstanceContainers.size() > 0)
 				{
 					auto e = (EffectImplemented*)drawSet.ParameterPointer;
-					for (int32_t j = e->renderingNodesThreshold; j < drawSet.GlobalPointer->RenderedInstanceContainers.size(); j++)
+					for (size_t j = e->renderingNodesThreshold; j < drawSet.GlobalPointer->RenderedInstanceContainers.size(); j++)
 					{
 						drawSet.GlobalPointer->RenderedInstanceContainers[j]->Draw(false);
 					}
@@ -14242,7 +14305,7 @@ Handle ManagerImplemented::Play(Effect* effect, const Vector3D& position, int32_
 	}
 
 	pGlobal->RenderedInstanceContainers.resize(e->renderingNodesCount);
-	for (auto i = 0; i < pGlobal->RenderedInstanceContainers.size(); i++)
+	for (size_t i = 0; i < pGlobal->RenderedInstanceContainers.size(); i++)
 	{
 		pGlobal->RenderedInstanceContainers[i] = nullptr;
 	}
@@ -14380,7 +14443,7 @@ void ManagerImplemented::DrawHandleFront(Handle handle)
 					if (drawSet.GlobalPointer->RenderedInstanceContainers.size() > 0)
 					{
 						auto e = (EffectImplemented*)drawSet.ParameterPointer;
-						for (int32_t i = e->renderingNodesThreshold; i < drawSet.GlobalPointer->RenderedInstanceContainers.size(); i++)
+						for (size_t i = e->renderingNodesThreshold; i < drawSet.GlobalPointer->RenderedInstanceContainers.size(); i++)
 						{
 							drawSet.GlobalPointer->RenderedInstanceContainers[i]->Draw(false);
 						}
@@ -14399,7 +14462,7 @@ void ManagerImplemented::DrawHandleFront(Handle handle)
 				if (drawSet.GlobalPointer->RenderedInstanceContainers.size() > 0)
 				{
 					auto e = (EffectImplemented*)drawSet.ParameterPointer;
-					for (int32_t i = e->renderingNodesThreshold; i < drawSet.GlobalPointer->RenderedInstanceContainers.size(); i++)
+					for (size_t i = e->renderingNodesThreshold; i < drawSet.GlobalPointer->RenderedInstanceContainers.size(); i++)
 					{
 						drawSet.GlobalPointer->RenderedInstanceContainers[i]->Draw(false);
 					}
@@ -14451,6 +14514,25 @@ void ManagerImplemented::EndReloadEffect( Effect* effect )
 	for(; it != it_end; ++it )
 	{
 		if( (*it).second.ParameterPointer != effect ) continue;
+
+		auto e = (EffectImplemented*)effect;
+		auto pGlobal = (*it).second.GlobalPointer;
+
+		// reallocate
+		if (e->m_defaultRandomSeed >= 0)
+		{
+			pGlobal->SetSeed(e->m_defaultRandomSeed);
+		}
+		else
+		{
+			pGlobal->SetSeed(GetRandFunc()());
+		}
+
+		pGlobal->RenderedInstanceContainers.resize(e->renderingNodesCount);
+		for (size_t i = 0; i < pGlobal->RenderedInstanceContainers.size(); i++)
+		{
+			pGlobal->RenderedInstanceContainers[i] = nullptr;
+		}
 
 		// Create an instance through a container
 		(*it).second.InstanceContainerPointer = CreateInstanceContainer( ((EffectImplemented*)effect)->GetRoot(), (*it).second.GlobalPointer, true, (*it).second.GlobalMatrix, NULL );
@@ -14562,7 +14644,7 @@ namespace Effekseer
 //----------------------------------------------------------------------------------
 void* InstanceContainer::operator new(size_t size, Manager* pManager)
 {
-	return pManager->GetMallocFunc()(size);
+	return pManager->GetMallocFunc()((uint32_t)size);
 }
 
 //----------------------------------------------------------------------------------
@@ -14908,6 +14990,7 @@ InstanceGlobal* InstanceContainer::GetRootInstance()
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
+
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
@@ -14993,7 +15076,6 @@ void Instance::GenerateChildrenInRequired(float currentTime)
 	for (int32_t i = 0; i < parameter->GetChildrenCount(); i++, group = group->NextUsedByInstance)
 	{
 		auto node = (EffectNodeImplemented*)parameter->GetChild(i);
-		auto container = m_pContainer->GetChild(i);
 		assert(group != NULL);
 
 		while (true)
@@ -15010,7 +15092,7 @@ void Instance::GenerateChildrenInRequired(float currentTime)
 					Matrix43 rootMatrix;
 					rootMatrix.Indentity();
 
-					newInstance->Initialize(this, m_generatedChildrenCount[i], std::max(0.0f, this->m_LivingTime), rootMatrix);
+					newInstance->Initialize(this, m_generatedChildrenCount[i], (int32_t)std::max(0.0f, this->m_LivingTime), rootMatrix);
 				}
 
 				m_generatedChildrenCount[i]++;
@@ -15523,13 +15605,13 @@ void Instance::Initialize( Instance* parent, int32_t instanceNumber, int32_t par
 
 	if( m_pEffectNode->SoundType == ParameterSoundType_Use )
 	{
-		soundValues.delay = m_pEffectNode->Sound.Delay.getValue( *instanceGlobal );
+		soundValues.delay = (int32_t)m_pEffectNode->Sound.Delay.getValue( *instanceGlobal );
 	}
 
 	// UV
 	if (m_pEffectNode->RendererCommon.UVType == ParameterRendererCommon::UV_ANIMATION)
 	{
-		uvTimeOffset = m_pEffectNode->RendererCommon.UV.Animation.StartFrame.getValue(*instanceGlobal);
+		uvTimeOffset = (int32_t)m_pEffectNode->RendererCommon.UV.Animation.StartFrame.getValue(*instanceGlobal);
 		uvTimeOffset *= m_pEffectNode->RendererCommon.UV.Animation.FrameLength;
 	}
 	
@@ -15570,8 +15652,6 @@ void Instance::Update( float deltaFrame, bool shown )
 	// Invalidate matrix
 	m_GlobalMatrix43Calculated = false;
 	m_ParentMatrix43Calculated = false;
-
-	auto instanceGlobal = this->m_pContainer->GetRootInstance();
 
 	if (m_stepTime && m_pEffectNode->GetType() != EFFECT_NODE_TYPE_ROOT)
 	{
@@ -16247,7 +16327,7 @@ RectF Instance::GetUV() const
 	}
 	else if( m_pEffectNode->RendererCommon.UVType == ParameterRendererCommon::UV_SCROLL )
 	{
-		auto time = m_LivingTime + uvTimeOffset;
+		auto time = (int32_t)m_LivingTime + uvTimeOffset;
 
 		return RectF(
 			uvAreaOffset.X + uvScrollSpeed.X * time,
@@ -16257,7 +16337,7 @@ RectF Instance::GetUV() const
 	}
 	else if (m_pEffectNode->RendererCommon.UVType == ParameterRendererCommon::UV_FCURVE)
 	{
-		auto time = m_LivingTime + uvTimeOffset;
+		auto time = (int32_t)m_LivingTime + uvTimeOffset;
 
 		return RectF(
 			uvAreaOffset.X + m_pEffectNode->RendererCommon.UV.FCurve.Position->X.GetValue(time),
@@ -16278,6 +16358,7 @@ RectF Instance::GetUV() const
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
+
 
 //----------------------------------------------------------------------------------
 //
@@ -16758,18 +16839,16 @@ void Setting::SetSoundLoader(SoundLoader* loader)
 #ifndef	__EFFEKSEER_SOCKET_H__
 #define	__EFFEKSEER_SOCKET_H__
 
+#if !( defined(_PSVITA) || defined(_XBOXONE) )
+
 //----------------------------------------------------------------------------------
 // Include
 //----------------------------------------------------------------------------------
 
-#if defined(_WIN32) && !defined(_PS4)
-#define _WINSOCK
-#endif
-
-#if defined(_WINSOCK)
+#if defined(_WIN32) && !defined(_PS4) 
 #else
 
-#if !defined(_PS4)
+#if !defined(_PS4) 
 #endif
 
 #endif
@@ -16782,7 +16861,7 @@ namespace Effekseer {
 //
 //----------------------------------------------------------------------------------
 
-#if defined(_WINSOCK)
+#if defined(_WIN32) && !defined(_PS4) 
 
 typedef SOCKET	EfkSocket;
 typedef int		SOCKLEN;
@@ -16805,7 +16884,7 @@ typedef struct sockaddr SOCKADDR;
 
 #endif
 
-#if defined(_WINSOCK)
+#if defined(_WIN32) && !defined(_PS4) 
 static void Sleep_(int32_t ms)
 {
 	Sleep(ms);
@@ -16842,10 +16921,16 @@ public:
 //
 //----------------------------------------------------------------------------------
 
+#endif	// #if !( defined(_PSVITA) || defined(_XBOXONE) )
+
 #endif	// __EFFEKSEER_SOCKET_H__
 
+#if !( defined(_PSVITA) || defined(_XBOXONE) )
 
-#if defined(_WIN32) && !defined(_PS4)
+//----------------------------------------------------------------------------------
+// Include
+//----------------------------------------------------------------------------------
+#if defined(_WIN32) && !defined(_PS4) 
 #pragma comment( lib, "ws2_32.lib" )
 #else
 #endif
@@ -16860,8 +16945,8 @@ namespace Effekseer {
 //----------------------------------------------------------------------------------
 void Socket::Initialize()
 {
-#if defined(_WINSOCK)
-	// Initialize winsock
+#if defined(_WIN32) && !defined(_PS4) 
+	// Initialize  Winsock
 	WSADATA m_WsaData;
 	::WSAStartup( MAKEWORD(2,0), &m_WsaData );
 #endif
@@ -16872,8 +16957,8 @@ void Socket::Initialize()
 //----------------------------------------------------------------------------------
 void Socket::Finalize()
 {
-#if defined(_WINSOCK)
-	// Release winsock
+#if defined(_WIN32) && !defined(_PS4) 
+	// Dispose winsock or decrease a counter
 	WSACleanup();
 #endif
 }
@@ -16891,7 +16976,7 @@ EfkSocket Socket::GenSocket()
 //----------------------------------------------------------------------------------
 void Socket::Close( EfkSocket s )
 {
-#if defined(_WINSOCK)
+#if defined(_WIN32) && !defined(_PS4) 
 	::closesocket( s );
 #else
 	::close( s );
@@ -16903,7 +16988,7 @@ void Socket::Close( EfkSocket s )
 //----------------------------------------------------------------------------------
 void Socket::Shutsown( EfkSocket s )
 {
-#if defined(_WINSOCK)
+#if defined(_WIN32) && !defined(_PS4) 
 	::shutdown( s, SD_BOTH );
 #else
 	::shutdown( s, SHUT_RDWR );
@@ -16915,7 +17000,7 @@ void Socket::Shutsown( EfkSocket s )
 //----------------------------------------------------------------------------------
 bool Socket::Listen( EfkSocket s, int32_t backlog )
 {
-#if defined(_WINSOCK)
+#if defined(_WIN32) && !defined(_PS4) 
 	return ::listen( s, backlog ) != SocketError;
 #else
 	return listen( s, backlog ) >= 0;
@@ -16930,9 +17015,13 @@ bool Socket::Listen( EfkSocket s, int32_t backlog )
 //
 //----------------------------------------------------------------------------------
 
+#endif	// #if !( defined(_PSVITA) || defined(_XBOXONE) )
+
 
 #ifndef	__EFFEKSEER_SERVER_IMPLEMENTED_H__
 #define	__EFFEKSEER_SERVER_IMPLEMENTED_H__
+
+#if !( defined(_PSVITA) || defined(_SWITCH) || defined(_XBOXONE) )
 
 //----------------------------------------------------------------------------------
 // Include
@@ -16999,22 +17088,22 @@ public:
 	ServerImplemented();
 	virtual ~ServerImplemented();
 
-	/**
-	@brief
-	\~Japanese	サーバーを開始する。
-	\~English	Start a server
-	*/
-	bool Start( uint16_t port );
+	bool Start( uint16_t port ) override;
 
-	void Stop();
+	void Stop() override;
 
-	void Register( const EFK_CHAR* key, Effect* effect );
+	void Register(const EFK_CHAR* key, Effect* effect) override;
 
-	void Unregister( Effect* effect );
+	void Unregister(Effect* effect) override;
 
-	void Update();
+	void Update(Manager** managers, int32_t managerCount) override;
 
-	void SetMaterialPath( const EFK_CHAR* materialPath );
+	void SetMaterialPath( const EFK_CHAR* materialPath ) override;
+
+	void Regist(const EFK_CHAR* key, Effect* effect) override;
+
+	void Unregist(Effect* effect) override;
+
 };
 
 //----------------------------------------------------------------------------------
@@ -17025,16 +17114,20 @@ public:
 //
 //----------------------------------------------------------------------------------
 
-#endif
+#endif	// #if !( defined(_PSVITA) || defined(_SWITCH) || defined(_XBOXONE) )
+
+#endif	// __EFFEKSEER_SERVER_IMPLEMENTED_H__
+
+#if !( defined(_PSVITA) || defined(_XBOXONE) )
 
 //----------------------------------------------------------------------------------
 // Include
 //----------------------------------------------------------------------------------
 
-#ifdef _WIN32
+
+#if defined(_WIN32) && !defined(_PS4) 
 #else
 #endif
-
 
 //----------------------------------------------------------------------------------
 //
@@ -17057,7 +17150,7 @@ void ServerImplemented::InternalClient::RecvAsync( void* data )
 		restSize = 4;
 		while(restSize > 0)
 		{
-			int32_t recvSize = ::recv( client->m_socket, (char*)(&size), restSize, 0 );
+			auto recvSize = ::recv( client->m_socket, (char*)(&size), restSize, 0 );
 			restSize -= recvSize;
 
 			if( recvSize == 0 || recvSize == -1 )
@@ -17074,7 +17167,7 @@ void ServerImplemented::InternalClient::RecvAsync( void* data )
 		{
 			uint8_t buf[256];
 
-			int32_t recvSize = ::recv( client->m_socket, (char*)(buf), Min(restSize,256), 0 );
+			auto recvSize = ::recv( client->m_socket, (char*)(buf), Min(restSize,256), 0 );
 			restSize -= recvSize;
 
 			if( recvSize == 0 || recvSize == -1 )
@@ -17301,12 +17394,12 @@ void ServerImplemented::Stop()
 	while(true)
 	{
 		m_ctrlClients.lock();
-		int32_t size = m_clients.size();
+		int32_t size = (int32_t)m_clients.size();
 		m_ctrlClients.unlock();
 	
 		if( size == 0 ) break;
 
-		Sleep_(1);
+		std::this_thread::sleep_for(std::chrono::milliseconds(1));
 	}
 
 	// Delete clients
@@ -17314,7 +17407,7 @@ void ServerImplemented::Stop()
 	{
 		while( (*it)->m_active )
 		{
-			Sleep_(1);
+			std::this_thread::sleep_for(std::chrono::milliseconds(1));
 		}
 		delete (*it);
 	}
@@ -17341,11 +17434,11 @@ void ServerImplemented::Register( const EFK_CHAR* key, Effect* effect )
 	{
 		if( m_materialPath.size() > 1 )
 		{
-			m_effects[key_]->Reload( &(m_data[key_][0]), m_data.size(), &(m_materialPath[0]) );
+			m_effects[key_]->Reload( &(m_data[key_][0]), (int32_t)m_data.size(), &(m_materialPath[0]) );
 		}
 		else
 		{
-			m_effects[key_]->Reload( &(m_data[key_][0]), m_data.size() );
+			m_effects[key_]->Reload( &(m_data[key_][0]), (int32_t)m_data.size() );
 		}
 	}
 }
@@ -17376,7 +17469,7 @@ void ServerImplemented::Unregister( Effect* effect )
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-void ServerImplemented::Update()
+void ServerImplemented::Update(Manager** managers, int32_t managerCount)
 {
 	m_ctrlClients.lock();
 
@@ -17384,7 +17477,7 @@ void ServerImplemented::Update()
 	{
 		while( (*it)->m_active )
 		{
-			Sleep_(1);
+			std::this_thread::sleep_for(std::chrono::milliseconds(1));
 		}
 		delete (*it);
 	}
@@ -17412,7 +17505,7 @@ void ServerImplemented::Update()
 			}
 
 			uint8_t* data = p;
-			int32_t datasize = buf.size() - (p-&(buf[0]));
+			auto datasize = (int32_t)buf.size() - (p-&(buf[0]));
 		
 			if( m_data.count( key ) > 0 )
 			{
@@ -17426,14 +17519,29 @@ void ServerImplemented::Update()
 
 			if( m_effects.count( key ) > 0 )
 			{
-				if( m_materialPath.size() > 1 )
+				if (managers != nullptr)
 				{
-					m_effects[key]->Reload( &(m_data[key][0]), m_data.size(), &(m_materialPath[0]) );
+					if (m_materialPath.size() > 1)
+					{
+						m_effects[key]->Reload(managers, managerCount, m_data[key].data(), (int32_t)m_data.size(), &(m_materialPath[0]));
+					}
+					else
+					{
+						m_effects[key]->Reload(managers, managerCount, m_data[key].data(), (int32_t)m_data.size());
+					}
 				}
 				else
 				{
-					m_effects[key]->Reload( &(m_data[key][0]), m_data.size() );
+					if (m_materialPath.size() > 1)
+					{
+						m_effects[key]->Reload(m_data[key].data(), (int32_t)m_data.size(), &(m_materialPath[0]));
+					}
+					else
+					{
+						m_effects[key]->Reload(m_data[key].data(), (int32_t)m_data.size());
+					}
 				}
+				
 			}
 		}
 
@@ -17461,8 +17569,25 @@ void ServerImplemented::SetMaterialPath( const EFK_CHAR* materialPath )
 	m_materialPath.push_back(0);
 }
 
-} 
+void ServerImplemented::Regist(const EFK_CHAR* key, Effect* effect)
+{
+	Register(key, effect);
+}
 
+void ServerImplemented::Unregist(Effect* effect)
+{
+	Unregister(effect);
+}
+
+//----------------------------------------------------------------------------------
+//
+//----------------------------------------------------------------------------------
+} 
+//----------------------------------------------------------------------------------
+//
+//----------------------------------------------------------------------------------
+
+#endif	// #if !( defined(_PSVITA) || defined(_XBOXONE) )
 #ifndef	__EFFEKSEER_CLIENT_IMPLEMENTED_H__
 #define	__EFFEKSEER_CLIENT_IMPLEMENTED_H__
 
@@ -17547,7 +17672,7 @@ void ClientImplemented::RecvAsync( void* data )
 		restSize = 4;
 		while(restSize > 0)
 		{
-			int32_t recvSize = ::recv( client->m_socket, (char*)(&size), restSize, 0 );
+			auto recvSize = ::recv( client->m_socket, (char*)(&size), restSize, 0 );
 			restSize -= recvSize;
 
 			if( recvSize == 0 || recvSize == -1 )
@@ -17705,10 +17830,10 @@ bool ClientImplemented::Send( void* data, int32_t datasize )
 		m_sendBuffer.push_back( ((uint8_t*)(data))[i] );
 	}
 
-	int32_t size = m_sendBuffer.size();
+	int32_t size = (int32_t)m_sendBuffer.size();
 	while( size > 0 )
 	{
-		int32_t ret = ::send( m_socket, (const char*)(&(m_sendBuffer[m_sendBuffer.size()-size])), size, 0 );
+		auto ret = ::send( m_socket, (const char*)(&(m_sendBuffer[m_sendBuffer.size()-size])), size, 0 );
 		if( ret == 0 || ret < 0 )
 		{
 			Stop();
@@ -17748,7 +17873,7 @@ void ClientImplemented::Reload( const EFK_CHAR* key, void* data, int32_t size )
 		buf.push_back( ((uint8_t*)(data))[i] );
 	}
 
-	Send( &(buf[0]), buf.size() );
+	Send( &(buf[0]), (int32_t)buf.size() );
 }
 
 //----------------------------------------------------------------------------------

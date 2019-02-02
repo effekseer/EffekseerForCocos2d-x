@@ -382,6 +382,23 @@ namespace efk
 
 		void setCameraMatrix(const cocos2d::Mat4& mat);
 		void setProjectionMatrix(const cocos2d::Mat4& mat);
+	};
 
+	class NetworkServer
+	{
+	public:
+		/**
+		@brief
+		\~English	make network server enabled to edit effects from remote.
+		\~Japanese	リモートからエフェクトを編集するためにサーバーを有効にする。
+		*/
+		static bool makeNetworkServerEnabled(uint16_t port);
+
+		/**
+		@brief
+		\~English	Update the manager every frame.
+		\~Japanese	毎フレーム実行する。
+		*/
+		static void update();
 	};
 }

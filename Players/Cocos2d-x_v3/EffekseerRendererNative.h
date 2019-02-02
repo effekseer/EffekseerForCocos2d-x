@@ -553,26 +553,26 @@ public:
 	{
 		if (m_isDistortionMode)
 		{
-			if (count * sizeof(VERTEX_DISTORTION) + vertexCaches.size() > renderVertexMaxSize)
+			if (count * (int32_t)sizeof(VERTEX_DISTORTION) + (int32_t)vertexCaches.size() > renderVertexMaxSize)
 			{
 				Rendering();
 			}
 
 			auto old = vertexCaches.size();
 			vertexCaches.resize(count * sizeof(VERTEX_DISTORTION) + vertexCaches.size());
-			offset = old;
+			offset = (int32_t)old;
 			data = (vertexCaches.data() + old);
 		}
 		else
 		{
-			if (count * sizeof(VERTEX) + vertexCaches.size() > renderVertexMaxSize)
+			if (count * (int32_t)sizeof(VERTEX) + (int32_t)vertexCaches.size() > renderVertexMaxSize)
 			{
 				Rendering();
 			}
 
 			auto old = vertexCaches.size();
 			vertexCaches.resize(count * sizeof(VERTEX) + vertexCaches.size());
-			offset = old;
+			offset = (int32_t)old;
 			data = (vertexCaches.data() + old);
 		}
 	}
@@ -604,14 +604,12 @@ public:
 
 		while (true)
 		{
-			auto renderBufferSize = 0;
-	
 			// only sprite
-			renderBufferSize = vertexCaches.size() - offset;
+			int32_t renderBufferSize = (int32_t)vertexCaches.size() - offset;
 
 			if (renderBufferSize > renderVertexMaxSize)
 			{
-				renderBufferSize = (int32_t)(Effekseer::Min(renderVertexMaxSize, vertexCaches.size() - offset) / (vsize * 4)) * (vsize * 4);
+				renderBufferSize = (Effekseer::Min(renderVertexMaxSize, (int32_t)vertexCaches.size() - offset) / (vsize * 4)) * (vsize * 4);
 			}
 
 			Rendering_(mCamera, mProj, offset, renderBufferSize);
@@ -764,6 +762,7 @@ public:
 //
 //----------------------------------------------------------------------------------
 #endif	// __EFFEKSEERRENDERER_STANDARD_RENDERER_H__
+
 #ifndef	__EFFEKSEERRENDERER_MODEL_RENDERER_BASE_H__
 #define	__EFFEKSEERRENDERER_MODEL_RENDERER_BASE_H__
 
@@ -855,7 +854,6 @@ public:
 	template<typename RENDERER>
 	void Rendering_(RENDERER* renderer, const efkModelNodeParam& parameter, const efkModelInstanceParam& instanceParameter, void* userData)
 	{
-		auto camera = renderer->GetCameraMatrix();
 		::Effekseer::BillboardType btype = parameter.Billboard;
 		Effekseer::Matrix44 mat44;
 
@@ -1006,8 +1004,6 @@ public:
 	{
 		if (m_matrixes.size() == 0) return;
 		if (param.ModelIndex < 0) return;
-
-		auto camera = renderer->GetCameraMatrix();
 
 		MODEL* model = (MODEL*) param.EffectPointer->GetModel(param.ModelIndex);
 		if (model == NULL) return;
@@ -1248,6 +1244,7 @@ public:
 //
 //----------------------------------------------------------------------------------
 #endif	// __EFFEKSEERRENDERER_MODEL_RENDERER_H__
+
 #ifndef	__EFFEKSEERRENDERER_SHADER_BASE_H__
 #define	__EFFEKSEERRENDERER_SHADER_BASE_H__
 
@@ -1350,24 +1347,24 @@ namespace EffekseerRenderer
 				d.resize(a.size());
 				w.resize(a.size());
 
-				for (auto i = 1; i < a.size() - 1; i++)
+				for (size_t i = 1; i < a.size() - 1; i++)
 				{
 					c[i] = (a[i - 1] + a[i] * (-2.0) + a[i + 1]) * 3.0;
 				}
 
-				for (auto i = 1; i < a.size() - 1; i++)
+				for (size_t i = 1; i < a.size() - 1; i++)
 				{
 					auto tmp = efkVector3D(4.0, 4.0, 4.0) - w[i - 1];
 					c[i] = (c[i] - c[i - 1]) / tmp;
 					w[i] = efkVector3D(1.0, 1.0, 1.0) / tmp;
 				}
 
-				for (auto i = (a.size() - 1) - 1; i > 0; i--)
+				for (size_t i = (a.size() - 1) - 1; i > 0; i--)
 				{
 					c[i] = c[i] - c[i + 1] * w[i];
 				}
 
-				for (auto i = 0; i < a.size() - 1; i++)
+				for (size_t i = 0; i < a.size() - 1; i++)
 				{
 					d[i] = (c[i + 1] - c[i]) / 3.0;
 					b[i] = a[i + 1] - a[i] - c[i] - d[i];
@@ -1386,21 +1383,21 @@ namespace EffekseerRenderer
 
 			efkVector3D GetValue(float t)
 			{
-				auto j = floorf(t);
+				int32_t j = (int32_t)floorf(t);
 
 				if (j < 0)
 				{
 					j = 0;
 				}
 
-				if (j > a.size())
+				if (j > (int32_t)a.size())
 				{
-					j = a.size() - 1;
+					j = (int32_t)a.size() - 1;
 				}
 
 				auto dt = t - j;
 
-				if (j < isSame.size() && isSame[j]) return a[j];
+				if (j < (int32_t)isSame.size() && isSame[j]) return a[j];
 
 				return a[j] + (b[j] + (c[j] + d[j] * dt) * dt) * dt;
 			}
@@ -1431,7 +1428,7 @@ namespace EffekseerRenderer
 				spline_left.Reset();
 				spline_right.Reset();
 
-				for (auto loop = 0; loop < instances.size(); loop++)
+				for (size_t loop = 0; loop < instances.size(); loop++)
 				{
 					auto pl = efkVector3D();
 					auto pr = efkVector3D();
@@ -1520,7 +1517,7 @@ namespace EffekseerRenderer
 			}
 
 
-			for (auto loop = 0; loop < instances.size(); loop++)
+			for (size_t loop = 0; loop < instances.size(); loop++)
 			{
 				auto& param = instances[loop];
 
@@ -1661,7 +1658,7 @@ namespace EffekseerRenderer
 
 				Effekseer::Vector3D axisBefore;
 
-				for (int32_t i = 0; i < (instances.size() - 1) * parameter.SplineDivision + 1; i++)
+				for (size_t i = 0; i < (instances.size() - 1) * parameter.SplineDivision + 1; i++)
 				{
 					bool isFirst_ = (i == 0);
 					bool isLast_ = (i == ((instances.size() - 1) * parameter.SplineDivision));
@@ -2757,7 +2754,6 @@ protected:
 	{
 		if (param.ZSort != Effekseer::ZSortType::None)
 		{
-			auto mat = m_renderer->GetCameraMatrix();
 			for (auto& kv : instances)
 			{
 				efkVector3D t;
@@ -2887,24 +2883,24 @@ namespace EffekseerRenderer
 				d.resize(a.size());
 				w.resize(a.size());
 
-				for (auto i = 1; i < a.size() - 1; i++)
+				for (size_t i = 1; i < a.size() - 1; i++)
 				{
 					c[i] = (a[i - 1] + a[i] * (-2.0) + a[i + 1]) * 3.0;
 				}
 
-				for (auto i = 1; i < a.size() - 1; i++)
+				for (size_t i = 1; i < a.size() - 1; i++)
 				{
 					auto tmp = efkVector3D(4.0, 4.0, 4.0) - w[i - 1];
 					c[i] = (c[i] - c[i - 1]) / tmp;
 					w[i] = efkVector3D(1.0, 1.0, 1.0) / tmp;
 				}
 
-				for (auto i = (a.size() - 1) - 1; i > 0; i--)
+				for (size_t i = (a.size() - 1) - 1; i > 0; i--)
 				{
 					c[i] = c[i] - c[i + 1] * w[i];
 				}
 
-				for (auto i = 0; i < a.size() - 1; i++)
+				for (size_t i = 0; i < a.size() - 1; i++)
 				{
 					d[i] = (c[i + 1] - c[i]) / 3.0;
 					b[i] = a[i + 1] - a[i] - c[i] - d[i];
@@ -2923,21 +2919,21 @@ namespace EffekseerRenderer
 
 			efkVector3D GetValue(float t)
 			{
-				auto j = floorf(t);
+				int32_t j = (int32_t)floorf(t);
 
 				if (j < 0)
 				{
 					j = 0;
 				}
 
-				if (j > a.size())
+				if (j > (int32_t)a.size())
 				{
-					j = a.size() - 1;
+					j = (int32_t)a.size() - 1;
 				}
 
 				auto dt = t - j;
 
-				if (j < isSame.size() && isSame[j]) return a[j];
+				if (j < (int32_t)isSame.size() && isSame[j]) return a[j];
 
 				return a[j] + (b[j] + (c[j] + d[j] * dt) * dt) * dt;
 			}
@@ -2966,7 +2962,7 @@ namespace EffekseerRenderer
 			{
 				spline.Reset();
 
-				for (auto loop = 0; loop < instances.size(); loop++)
+				for (size_t loop = 0; loop < instances.size(); loop++)
 				{
 					auto p = efkVector3D();
 					auto& param = instances[loop];
@@ -2981,11 +2977,11 @@ namespace EffekseerRenderer
 				spline.Calculate();
 			}
 
-			for (auto loop = 0; loop < instances.size(); loop++)
+			for (size_t loop = 0; loop < instances.size(); loop++)
 			{
 				auto& param = instances[loop];
 
-				for (auto sploop = 0; sploop < parameter.SplineDivision; sploop++)
+				for (int32_t sploop = 0; sploop < parameter.SplineDivision; sploop++)
 				{
 					bool isFirst = param.InstanceIndex == 0 && sploop == 0;
 					bool isLast = param.InstanceIndex == (param.InstanceCount - 1);
@@ -3132,7 +3128,7 @@ namespace EffekseerRenderer
 
 				Effekseer::Vector3D axisBefore;
 
-				for (int32_t i = 0; i < (instances.size() - 1) * parameter.SplineDivision + 1; i++)
+				for (size_t i = 0; i < (instances.size() - 1) * parameter.SplineDivision + 1; i++)
 				{
 					bool isFirst_ = (i == 0);
 					bool isLast_ = (i == ((instances.size() - 1) * parameter.SplineDivision));

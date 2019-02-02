@@ -808,6 +808,8 @@ namespace Effekseer {
 //
 //----------------------------------------------------------------------------------
 
+struct Matrix44;
+
 /**
 	@brief	4x3行列
 	@note
@@ -932,6 +934,11 @@ public:
 		@param	t	[in]	位置
 	*/
 	void SetSRT( const Vector3D& s, const Matrix43& r, const Vector3D& t );
+
+	/**
+		@brief	convert into matrix44
+	*/
+	void ToMatrix44(Matrix44& dst);
 
 	/**
 		@brief	行列同士の乗算を行う。
@@ -1430,7 +1437,7 @@ public:
 		@note
 		Settingを用いてエフェクトを生成したときに、Managerを指定することで対象のManager内のエフェクトのリロードを行う。
 	*/
-	virtual bool Reload( Manager* managers, int32_t managersCount, void* data, int32_t size, const EFK_CHAR* materialPath = NULL ) = 0;
+	virtual bool Reload( Manager** managers, int32_t managersCount, void* data, int32_t size, const EFK_CHAR* materialPath = NULL ) = 0;
 
 	/**
 	@brief	エフェクトのリロードを行う。
@@ -1442,7 +1449,7 @@ public:
 	@note
 	Settingを用いてエフェクトを生成したときに、Managerを指定することで対象のManager内のエフェクトのリロードを行う。
 	*/
-	virtual bool Reload( Manager* managers, int32_t managersCount,const EFK_CHAR* path, const EFK_CHAR* materialPath = NULL ) = 0;
+	virtual bool Reload( Manager** managers, int32_t managersCount,const EFK_CHAR* path, const EFK_CHAR* materialPath = NULL ) = 0;
 
 	/**
 		@brief	画像等リソースの再読み込みを行う。
@@ -3279,6 +3286,8 @@ namespace Effekseer {
 #ifndef	__EFFEKSEER_SERVER_H__
 #define	__EFFEKSEER_SERVER_H__
 
+#if !( defined(_PSVITA) || defined(_XBOXONE) )
+
 //----------------------------------------------------------------------------------
 // Include
 //----------------------------------------------------------------------------------
@@ -3290,6 +3299,11 @@ namespace Effekseer {
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
+/**
+	@brief
+	\~English	A server to edit effect from client such an editor
+	\~Japanese	エディタといったクライアントからエフェクトを編集するためのサーバー
+*/
 class Server
 {
 public:
@@ -3297,37 +3311,84 @@ public:
 	Server() {}
 	virtual ~Server() {}
 
+	/**
+		@brief
+		\~English	create a server instance
+		\~Japanese	サーバーのインスタンスを生成する。
+	*/
 	static Server* Create();
 
 	/**
-		@brief	サーバーを開始する。
+		@brief
+		\~English	start a server
+		\~Japanese	サーバーを開始する。
 	*/
 	virtual bool Start( uint16_t port ) = 0;
 
+	/**
+		@brief
+		\~English	stop a server
+		\~Japanese	サーバーを終了する。
+	*/
 	virtual void Stop() = 0;
 
 	/**
-		@brief	エフェクトをリロードの対象として登録する。
-		@param	key	[in]	検索用キー
-		@param	effect	[in]	リロードする対象のエフェクト
+		@brief
+		\~English	register an effect as a target to edit.
+		\~Japanese	エフェクトを編集の対象として登録する。
+		@param	key	
+		\~English	a key to search an effect
+		\~Japanese	検索用キー
+		@param	effect
+		\~English	an effect to be edit
+		\~Japanese	編集される対象のエフェクト
 	*/
-	virtual void Register( const EFK_CHAR* key, Effect* effect ) = 0;
+	virtual void Register(const EFK_CHAR* key, Effect* effect) = 0;
 
 	/**
-		@brief	エフェクトをリロードの対象から外す。
-		@param	effect	[in]	リロードから外すエフェクト
+		@brief
+		\~English	unregister an effect
+		\~Japanese	エフェクトを対象から外す。
+		@param	effect
+		\~English	an effect registered
+		\~Japanese	登録されているエフェクト
 	*/
-	virtual void Unregister( Effect* effect ) = 0;
+	virtual void Unregister(Effect* effect) = 0;
 
 	/**
-		@brief	サーバーを更新し、エフェクトのリロードを行う。
+		@brief	
+		\~English	update a server and reload effects
+		\~Japanese	サーバーを更新し、エフェクトのリロードを行う。
+		@brief	managers
+		\~English	all managers which is playing effects.
+		\~Japanese	エフェクトを再生している全てのマネージャー
+		@brief	managerCount
+		\~English	the number of manager
+		\~Japanese	マネージャーの個数
+
 	*/
-	virtual void Update() = 0;
+	virtual void Update(Manager** managers = nullptr, int32_t managerCount = 0) = 0;
 
 	/**
-		@brief	素材パスを設定する。
+		@brief
+		\~English	Specify root path to load materials
+		\~Japanese	素材のルートパスを設定する。
 	*/
 	virtual void SetMaterialPath( const EFK_CHAR* materialPath ) = 0;
+
+	/**
+		@brief
+		\~English	deprecated
+		\~Japanese	非推奨
+	*/
+	virtual void Regist(const EFK_CHAR* key, Effect* effect) = 0;
+
+	/**
+		@brief
+		\~English	deprecated
+		\~Japanese	非推奨
+	*/
+	virtual void Unregist(Effect* effect) = 0;
 };
 
 //----------------------------------------------------------------------------------
@@ -3337,6 +3398,8 @@ public:
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
+
+#endif	// #if !( defined(_PSVITA) || defined(_XBOXONE) )
 
 #endif	// __EFFEKSEER_SERVER_H__
 
