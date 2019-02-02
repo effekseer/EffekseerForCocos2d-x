@@ -197,6 +197,31 @@ HelloWorld::~HelloWorld()
 }
 </pre>
 
+<h3>3D</h3>
+
+<p>请阅读 <b>Samples/3D/</b> 中的示例. </p>
+
+<p>你需要在cocos2d-x的Scene中添加一个摄像头</p>
+
+<pre>
+auto s = Director::getInstance()->getWinSize();
+camera = Camera::createPerspective(60, (GLfloat)s.width / s.height, 1, 1000);
+camera->setPosition3D(Vec3(0, 100, 100));
+camera->lookAt(Vec3(0, 0, 0), Vec3(0, 1, 0));
+camera->setCameraFlag(cocos2d::CameraFlag::USER1);
+</pre>
+
+
+<p>
+除了更新manager之外，还需要将摄像机参数设置到manager中。
+</p>
+		
+<pre>
+manager->update();
+manager->setCameraMatrix(camera->getViewMatrix());
+manager->setProjectionMatrix(camera->getProjectionMatrix());
+</pre>
+
 		<h2>授权</h2>
 
 <p>
