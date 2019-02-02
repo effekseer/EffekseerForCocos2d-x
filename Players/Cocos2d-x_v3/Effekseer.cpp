@@ -388,7 +388,10 @@ namespace efk
 		int counter = 0;
 	};
 
+	static  InternalManager* g_internalManager = nullptr;
+
 	class InternalManager
+		: public Effekseer::ReferenceObject
 	{
 		std::map<std::u16string, EffectResource> path2effect;
 		std::map <Effekseer::Effect*, std::u16string > effect2path;
@@ -411,6 +414,8 @@ namespace efk
 				server->Stop();
 				ES_SAFE_DELETE(server);
 			}
+
+			g_internalManager = nullptr;
 		}
 
 		Effekseer::Effect* loadEffect(const EFK_CHAR* path)
@@ -517,7 +522,19 @@ namespace efk
 		}
 	};
 
-	static  InternalManager g_internalManager;
+	InternalManager* getGlobalInternalManager()
+	{
+		if (g_internalManager == nullptr)
+		{
+			g_internalManager = new InternalManager();
+		}
+		else
+		{
+			g_internalManager->AddRef();
+		}
+
+		return g_internalManager;
+	}
 
 #pragma region Effect
 	Effect* Effect::create(const std::string& filename)
@@ -525,27 +542,37 @@ namespace efk
 		EFK_CHAR path_[300];
 		::Effekseer::ConvertUtf8ToUtf16((int16_t*)path_, 300, (const int8_t*)filename.c_str());
 
-		auto effect = g_internalManager.loadEffect(path_);
+		auto internalManager = getGlobalInternalManager();
+
+		auto effect = internalManager->loadEffect(path_);
 
 		if (effect != nullptr)
 		{
-			auto e = new Effect();
+			auto e = new Effect(internalManager);
 			e->effect = effect;
 			e->autorelease();
+			ES_SAFE_RELEASE(internalManager);
 			return e;
 		}
 
+		ES_SAFE_RELEASE(internalManager);
 		return nullptr;
 	}
 
-	Effect::Effect()
+	Effect::Effect(InternalManager* internalManager)
 	{
-
+		internalManager_ = internalManager;
+		ES_SAFE_ADDREF(internalManager_);
 	}
 
 	Effect::~Effect()
 	{
-		g_internalManager.unloadEffect(effect);
+		if (internalManager_ != nullptr)
+		{
+			internalManager_->unloadEffect(effect);
+		}
+
+		ES_SAFE_RELEASE(internalManager_);
 	}
 
 #pragma endregion
@@ -870,7 +897,8 @@ namespace efk
 		manager2d->SetModelRenderer(renderer2d->CreateModelRenderer());
 		manager2d->SetTrackRenderer(renderer2d->CreateTrackRenderer());
 
-		g_internalManager.registerManager(manager2d);
+		internalManager_ = getGlobalInternalManager();
+		internalManager_->registerManager(manager2d);
 
 		return true;
 	}
@@ -903,7 +931,7 @@ namespace efk
 
 		if (manager2d != nullptr)
 		{
-			g_internalManager.unregisterManager(manager2d);
+			internalManager_->unregisterManager(manager2d);
 			manager2d->Destroy();
 			manager2d = nullptr;
 		}
@@ -913,6 +941,8 @@ namespace efk
 			renderer2d->Destroy();
 			renderer2d = nullptr;
 		}
+
+		ES_SAFE_RELEASE(internalManager_);
 	}
 
 	void EffectManager::setIsDistortionEnabled(bool value)
@@ -987,13 +1017,28 @@ namespace efk
 
 #pragma endregion
 
+	NetworkServer* NetworkServer::create()
+	{
+		return new NetworkServer();
+	}
+
+	NetworkServer::NetworkServer()
+	{
+		internalManager_ = getGlobalInternalManager();
+	}
+
+	NetworkServer::~NetworkServer()
+	{
+		ES_SAFE_RELEASE(internalManager_);
+	}
+
 	bool NetworkServer::makeNetworkServerEnabled(uint16_t port)
 	{
-		return g_internalManager.makeNetworkServerEnabled(port);
+		return internalManager_->makeNetworkServerEnabled(port);
 	}
 
 	void NetworkServer::update()
 	{
-		g_internalManager.update();
+		internalManager_->update();
 	}
 }

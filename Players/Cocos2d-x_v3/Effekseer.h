@@ -9,6 +9,7 @@
 namespace efk
 {
 	class EffectManager;
+	class InternalManager;
 
 	/**
 		@brief	
@@ -26,11 +27,12 @@ namespace efk
 	{
 	private:
 		::Effekseer::Effect*	effect = nullptr;
+		InternalManager*	internalManager_ = nullptr;
 
 	public:
 		static Effect* create(const std::string& filename);
 
-		Effect();
+		Effect(InternalManager* internalManager = nullptr);
 
 		virtual ~Effect();
 
@@ -288,6 +290,8 @@ namespace efk
 
 		bool										isDistorted = false;
 
+		InternalManager*	internalManager_ = nullptr;
+
 		cocos2d::CustomCommand					distortionCommand;
 		cocos2d::CustomCommand					beginCommand;
 		cocos2d::CustomCommand					endCommand;
@@ -385,20 +389,40 @@ namespace efk
 	};
 
 	class NetworkServer
+		: public cocos2d::Ref
 	{
+	private:
+		InternalManager*	internalManager_ = nullptr;
+
 	public:
+
+		NetworkServer();
+
+		virtual~NetworkServer();
+
+		/**
+			@brief
+			\~English	Create the instance of network server class.
+			\~Japanese	ネットワークサーバークラスのインスタンスを生成する。
+		
+			@return
+			\~English	Instance
+			\~Japanese	インスタンス
+		*/
+		static NetworkServer* create();
+
 		/**
 		@brief
 		\~English	make network server enabled to edit effects from remote.
 		\~Japanese	リモートからエフェクトを編集するためにサーバーを有効にする。
 		*/
-		static bool makeNetworkServerEnabled(uint16_t port);
+		bool makeNetworkServerEnabled(uint16_t port);
 
 		/**
 		@brief
 		\~English	Update the manager every frame.
 		\~Japanese	毎フレーム実行する。
 		*/
-		static void update();
+		void update();
 	};
 }
