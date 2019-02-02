@@ -29,7 +29,7 @@ bool HelloWorld::init()
 	// 3D
 	auto s = Director::getInstance()->getWinSize();
 	camera = Camera::createPerspective(60, (GLfloat)s.width / s.height, 1, 1000);
-	camera->setPosition3D(Vec3(0, 100, 100));
+	camera->setPosition3D(Vec3(100, 100, 100));
 	camera->lookAt(Vec3(0, 0, 0), Vec3(0, 1, 0));
 	camera->setCameraFlag(cocos2d::CameraFlag::USER1);
 
