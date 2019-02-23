@@ -224,6 +224,29 @@ manager->setCameraMatrix(camera->getViewMatrix());
 manager->setProjectionMatrix(camera->getProjectionMatrix());
 </pre>
 
+<h3>ネットワーク機能</h3>
+
+<p>ネットワーク経由でアプリケーション(ゲーム等)で再生しているエフェクトを外部からアプリケーションの起動中に編集することができます。</p>
+
+<img src="img/network.png" width="800">
+
+<p>サーバーのインスタンスを作成します。そして、makeNetworkServerEnabledの引数にEffekseerから接続するためのポートを指定して、makeNetworkServerEnabledを実行します。</p>
+	
+
+<pre>
+networkSever = efk::NetworkServer::create();
+networkSever->makeNetworkServerEnabled(10000);
+</pre>
+
+<p>
+マネージャーの更新に加えて、サーバーを更新する必要があります。そうすると、Effekseerからエフェクトを編集できるようになります。他のコンピューターからエフェクトを編集するためにはファイヤーウォールの設定でポート開放する必要があります。
+</p>
+
+<pre>
+manager->update();
+networkSever->update();
+</pre>
+
 		<h2>ライセンス</h2>
 
 <p>

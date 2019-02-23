@@ -221,6 +221,27 @@ manager->setCameraMatrix(camera->getViewMatrix());
 manager->setProjectionMatrix(camera->getProjectionMatrix());
 </pre>
 
+<h3>網絡</h3>
+
+<p>當應用程序運行時，您可以從外部通過網絡編輯應用程序（遊戲等）中的播放效果。</p>
+
+<img src="img/network.png" width="800">
+
+<p>創建服務器實例並使用要從Effekseer連接的端口執行makeNetworkServerEnabled作為此函數的參數。 </p>
+
+<pre>
+networkSever = efk::NetworkServer::create();
+networkSever->makeNetworkServerEnabled(10000);
+</pre>
+
+<p>
+除了更新manager之外，還需要更新服務器。然後你可以編輯Effekseer的效果。要從另一台計算機編輯效果，必須使用防火牆的設置打開端口。
+</p>
+
+<pre>
+manager->update();
+networkSever->update();
+</pre>
 
 		<h2>授權</h2>
 

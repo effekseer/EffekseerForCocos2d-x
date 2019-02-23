@@ -221,6 +221,28 @@ manager->setCameraMatrix(camera->getViewMatrix());
 manager->setProjectionMatrix(camera->getProjectionMatrix());
 </pre>
 
+<h3>Network</h3>
+
+<p>You can edit the playing effect in an application (game etc.) via the network from the outside when application is running.</p>
+
+<img src="img/network.png" width="800">
+
+<p>Create an instance of server and execute makeNetworkServerEnabled with the port to be connected from Effekseer as the argument of this function. </p>
+
+<pre>
+networkSever = efk::NetworkServer::create();
+networkSever->makeNetworkServerEnabled(10000);
+</pre>
+
+<p>
+In addition to update the manager, you need to update the server. Then you can edit the effect from Effekseer. In order to edit the effect from another computer, it is necessary to open the port with the setting of the firewall.
+</p>
+
+<pre>
+manager->update();
+networkSever->update();
+</pre>
+
 		<h2>License</h2>
 
 <p>
