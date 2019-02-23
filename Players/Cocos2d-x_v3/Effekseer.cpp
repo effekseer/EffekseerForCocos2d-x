@@ -12,7 +12,7 @@ namespace efk
 		{
 			if (path[i] == u'/' || path[i] == u'\\')
 			{
-				start = i;
+				start = i + 1;
 			}
 		}
 
