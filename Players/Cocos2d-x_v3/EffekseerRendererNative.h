@@ -198,10 +198,10 @@ struct HasDistortion
 {
 private:
 	template <typename U>
-	static auto check(U v) -> decltype(v.Normal, std::true_type{});
-	static std::false_type check(...);
+	static auto check_has_dist(U v) -> decltype(v.Normal, std::true_type{});
+	static std::false_type check_has_dist(...);
 public:
-	static bool const value = decltype(check(std::declval<T>()))::value;
+	static bool const value = decltype(check_has_dist(std::declval<T>()))::value;
 };
 
 template <typename Vertex, 
@@ -251,12 +251,27 @@ public:
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
+
+/**
+	@brief	
+	\~english A status of UV when particles are rendered.
+	\~japanese パーティクルを描画する時のUVの状態
+*/
+enum class UVStyle
+{
+	Normal,
+	VerticalFlipped,
+};
+
 class Renderer
 	: ::Effekseer::IReference
 {
 protected:
-	Renderer() {}
-	virtual ~Renderer() {}
+	Renderer();
+	virtual ~Renderer();
+
+	class Impl;
+	Impl* impl = nullptr;
 
 public:
 	/**
@@ -454,6 +469,34 @@ public:
 	@brief	描画モードを取得する。
 	*/
 	virtual Effekseer::RenderMode GetRenderMode() = 0;
+
+	/**
+	@brief
+	\~english Get an UV Style of texture when particles are rendered.
+	\~japanese パーティクルを描画するときのUVの状態を取得する。
+	*/
+	UVStyle GetTextureUVStyle() const;
+
+	/**
+	@brief
+	\~english Set an UV Style of texture when particles are rendered.
+	\~japanese パーティクルを描画するときのUVの状態を設定する。
+	*/
+	void SetTextureUVStyle(UVStyle style);
+
+	/**
+	@brief
+	\~english Get an UV Style of background when particles are rendered.
+	\~japanese パーティクルを描画するときの背景のUVの状態を取得する。
+	*/
+	UVStyle GetBackgroundTextureUVStyle() const;
+
+	/**
+	@brief
+	\~english Set an UV Style of background when particles are rendered.
+	\~japanese パーティクルを描画するときの背景のUVの状態を設定する。
+	*/
+	void SetBackgroundTextureUVStyle(UVStyle style);
 };
 
 //----------------------------------------------------------------------------------
@@ -464,6 +507,36 @@ public:
 //
 //----------------------------------------------------------------------------------
 #endif	// __EFFEKSEERRENDERER_RENDERER_H__
+#ifndef	__EFFEKSEERRENDERER_RENDERER_IMPL_H__
+#define	__EFFEKSEERRENDERER_RENDERER_IMPL_H__
+
+#include "EffekseerNative.h"
+
+
+namespace EffekseerRenderer
+{
+
+class Renderer::Impl
+{
+private:
+	UVStyle textureUVStyle = UVStyle::Normal;
+	UVStyle backgroundTextureUVStyle = UVStyle::Normal;
+
+public:
+
+	UVStyle GetTextureUVStyle() const;
+
+	void SetTextureUVStyle(UVStyle style);
+
+	UVStyle GetBackgroundTextureUVStyle() const;
+
+	void SetBackgroundTextureUVStyle(UVStyle style);
+
+};
+
+}
+
+#endif
 #ifndef	__EFFEKSEERRENDERER_RENDERSTATE_BASE_H__
 #define	__EFFEKSEERRENDERER_RENDERSTATE_BASE_H__
 
@@ -710,6 +783,19 @@ private:
 	int32_t						renderVertexMaxSize;
 
 	bool						m_isDistortionMode;
+
+	struct VertexConstantBuffer
+	{
+		Effekseer::Matrix44 constantVSBuffer[2];
+		float uvInversed[4];
+	};
+
+	struct DistortionPixelConstantBuffer
+	{
+		float scale[4];
+		float uvInversed[4];
+	};
+
 public:
 
 	StandardRenderer(RENDERER* renderer, SHADER* shader, SHADER* shader_no_texture, SHADER* shader_distortion, SHADER* shader_no_texture_distortion)
@@ -896,23 +982,52 @@ public:
 			m_renderer->SetTextures(shader_, textures, 1);
 		}
 
-		Effekseer::Matrix44 constantVSBuffer[2];
-		constantVSBuffer[0] = mCamera;
-		constantVSBuffer[1] = mProj;
-		m_renderer->SetVertexBufferToShader(constantVSBuffer, sizeof(Effekseer::Matrix44) * 2);
+		VertexConstantBuffer vcb;
+		vcb.constantVSBuffer[0] = mCamera;
+		vcb.constantVSBuffer[1] = mProj;
+
+		if (m_renderer->GetTextureUVStyle() == UVStyle::VerticalFlipped)
+		{
+			vcb.uvInversed[0] = 1;
+			vcb.uvInversed[1] = -1;
+		}
+		else
+		{
+			vcb.uvInversed[0] = 0;
+			vcb.uvInversed[1] = 1;
+		}
+
+		m_renderer->SetVertexBufferToShader(&vcb, sizeof(VertexConstantBuffer));
 
 		if (distortion)
 		{
-			float constantPSBuffer[1];
-			constantPSBuffer[0] = m_state.DistortionIntensity;
+			DistortionPixelConstantBuffer pcb;
+			pcb.scale[0] = m_state.DistortionIntensity;
 
-			m_renderer->SetPixelBufferToShader(constantPSBuffer, sizeof(float));
+			if (m_renderer->GetBackgroundTextureUVStyle() == UVStyle::VerticalFlipped)
+			{
+				pcb.uvInversed[0] = 1.0f;
+				pcb.uvInversed[1] = -1.0f;
+			}
+			else
+			{
+				pcb.uvInversed[0] = 0.0f;
+				pcb.uvInversed[1] = 1.0f;
+			}
+	
+			m_renderer->SetPixelBufferToShader(&pcb, sizeof(DistortionPixelConstantBuffer));
 		}
 
 		shader_->SetConstantBuffer();
 
 		state.TextureFilterTypes[0] = m_state.TextureFilterType;
 		state.TextureWrapTypes[0] = m_state.TextureWrapType;
+
+		if (distortion)
+		{
+			state.TextureFilterTypes[1] = Effekseer::TextureFilterType::Nearest;
+			state.TextureWrapTypes[1] = Effekseer::TextureWrapType::Clamp;
+		}
 
 		m_renderer->GetRenderState()->Update(distortion);
 
@@ -987,6 +1102,7 @@ struct ModelRendererVertexConstantBuffer
 	float	LightDirection[4];
 	float	LightColor[4];
 	float	LightAmbientColor[4];
+	float	UVInversed[4];
 };
 
 struct ModelRendererPixelConstantBuffer
@@ -1302,17 +1418,48 @@ public:
 
 		state.TextureFilterTypes[0] = param.TextureFilter;
 		state.TextureWrapTypes[0] = param.TextureWrap;
-		state.TextureFilterTypes[1] = param.TextureFilter;
-		state.TextureWrapTypes[1] = param.TextureWrap;
+
+		if (distortion)
+		{
+			state.TextureFilterTypes[1] = Effekseer::TextureFilterType::Nearest;
+			state.TextureWrapTypes[1] = Effekseer::TextureWrapType::Clamp;
+		}
+		else
+		{
+			state.TextureFilterTypes[1] = param.TextureFilter;
+			state.TextureWrapTypes[1] = param.TextureWrap;
+		}
 
 		renderer->GetRenderState()->Update(distortion);
 
 		ModelRendererVertexConstantBuffer<InstanceCount>* vcb = (ModelRendererVertexConstantBuffer<InstanceCount>*)shader_->GetVertexConstantBuffer();
 
+		if (renderer->GetTextureUVStyle() == UVStyle::VerticalFlipped)
+		{
+			vcb->UVInversed[0] = 1;
+			vcb->UVInversed[1] = -1;
+		}
+		else
+		{
+			vcb->UVInversed[0] = 0;
+			vcb->UVInversed[1] = 1;
+		}
+
 		if (distortion)
 		{
 			float* pcb = (float*) shader_->GetPixelConstantBuffer();
-			pcb[0] = param.DistortionIntensity;
+			pcb[4 * 0 + 0] = param.DistortionIntensity;
+
+			if (renderer->GetBackgroundTextureUVStyle() == UVStyle::VerticalFlipped)
+			{
+				pcb[4 * 1 + 0] = 1;
+				pcb[4 * 1 + 1] = -1;
+			}
+			else
+			{
+				pcb[4 * 1 + 0] = 0;
+				pcb[4 * 1 + 1] = 1;
+			}
 		}
 		else
 		{

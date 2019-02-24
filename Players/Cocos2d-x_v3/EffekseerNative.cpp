@@ -6957,9 +6957,77 @@ public:
 //----------------------------------------------------------------------------------
 namespace Effekseer
 {
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
+
+/**
+	@brief	A class to backup resorces when effect is reloaded
+*/
+class EffectReloadingBackup
+{
+public:
+	template<class T> 
+	class Holder
+	{
+	public:
+		T value;
+		int counter = 0;
+	};
+
+	template<class T>
+	class HolderCollection
+	{
+		std::map<std::u16string, Holder<T>> collection;
+
+	public:
+		void Push(const char16_t* key, T value)
+		{
+			auto key_ = std::u16string(key);
+			auto it = collection.find(key_);
+			
+			if (it == collection.end())
+			{
+				collection[key_].value = value;
+				collection[key_].counter = 1;
+			}
+			else
+			{
+				assert(it->second.value == value);
+				it->second.counter++;
+			}
+		}
+
+		bool Pop(const char16_t* key, T& value)
+		{
+			auto key_ = std::u16string(key);
+			auto it = collection.find(key_);
+
+			if (it == collection.end())
+			{
+				return false;
+			}
+			else
+			{
+				it->second.counter--;
+				value = it->second.value;
+				if (it->second.counter == 0)
+				{
+					collection.erase(it);
+				}
+				return true;
+			}
+		}
+
+		std::map<std::u16string, Holder<T>>& GetCollection()
+		{
+			return collection;
+		}
+	};
+
+	HolderCollection<TextureData*> images;
+	HolderCollection<TextureData*> normalImages;
+	HolderCollection<TextureData*> distortionImages;
+	HolderCollection<void*> sounds;
+	HolderCollection<void*> models;
+};
 
 /**
 	@brief	エフェクトパラメーター
@@ -7002,6 +7070,7 @@ private:
 	EFK_CHAR**		m_modelPaths;
 	void**			m_pModels;
 
+	std::u16string name_;
 	std::basic_string<EFK_CHAR>		m_materialPath;
 
 	int32_t			renderingNodesCount = 0;
@@ -7038,6 +7107,14 @@ private:
 
 	} Culling;
 
+	//! a flag to reload
+	bool isReloadingOnRenderingThread = false;
+
+	//! backup to reload on rendering thread
+	std::unique_ptr<EffectReloadingBackup> reloadingBackup;
+
+	void ResetReloadingBackup();
+
 public:
 	/**
 		@brief	生成
@@ -7063,10 +7140,7 @@ public:
 
 	float GetMaginification() const override;
 
-	/**
-		@brief	読み込む。
-	*/
-	bool Load( void* pData, int size, float mag, const EFK_CHAR* materialPath );
+	bool Load( void* pData, int size, float mag, const EFK_CHAR* materialPath, ReloadingThreadType reloadingThreadType);
 
 	/**
 		@breif	何も読み込まれていない状態に戻す
@@ -7085,6 +7159,10 @@ private:
 	Manager* GetManager() const;
 
 public:
+	const char16_t* GetName() const override;
+
+	void SetName(const char16_t* name) override;
+
 	/**
 	@brief	設定取得
 	*/
@@ -7133,31 +7211,30 @@ public:
 	/**
 		@brief	エフェクトのリロードを行う。
 	*/
-	bool Reload( void* data, int32_t size, const EFK_CHAR* materialPath = NULL ) override;
+	bool Reload( void* data, int32_t size, const EFK_CHAR* materialPath, ReloadingThreadType reloadingThreadType) override;
 
 	/**
 		@brief	エフェクトのリロードを行う。
 	*/
-	bool Reload( const EFK_CHAR* path, const EFK_CHAR* materialPath = NULL ) override;
+	bool Reload( const EFK_CHAR* path, const EFK_CHAR* materialPath, ReloadingThreadType reloadingThreadType) override;
 
 	/**
 		@brief	エフェクトのリロードを行う。
 	*/
-	bool Reload( Manager** managers, int32_t managersCount, void* data, int32_t size, const EFK_CHAR* materialPath = NULL ) override;
+	bool Reload( Manager** managers, int32_t managersCount, void* data, int32_t size, const EFK_CHAR* materialPath, ReloadingThreadType reloadingThreadType) override;
 
 	/**
 		@brief	エフェクトのリロードを行う。
 	*/
-	bool Reload( Manager** managers, int32_t managersCount, const EFK_CHAR* path, const EFK_CHAR* materialPath = NULL ) override;
+	bool Reload( Manager** managers, int32_t managersCount, const EFK_CHAR* path, const EFK_CHAR* materialPath, ReloadingThreadType reloadingThreadType) override;
 
 	/**
 		@brief	画像等リソースの再読み込みを行う。
 	*/
 	void ReloadResources( const EFK_CHAR* materialPath ) override;
 
-	/**
-		@brief	画像等リソースの破棄を行う。
-	*/
+	void UnloadResources(const EFK_CHAR* materialPath);
+
 	void UnloadResources() override;
 
 	virtual int GetRef() override { return ReferenceObject::GetRef(); }
@@ -7753,14 +7830,14 @@ public:
 	virtual int32_t GetRestInstancesCount() const override { return (int32_t)m_reserved_instances.size(); }
 
 	/**
-		@brief	リロードを開始する。
+		@brief	start reload
 	*/
-	void BeginReloadEffect( Effect* effect );
+	void BeginReloadEffect( Effect* effect, bool doLockThread );
 
 	/**
-		@brief	リロードを停止する。
+		@brief	end reload
 	*/
-	void EndReloadEffect( Effect* effect );
+	void EndReloadEffect( Effect* effect, bool doLockThread);
 
 	/**
 		@brief	エフェクトをカリングし描画負荷を減らすための空間を生成する。
@@ -11880,6 +11957,38 @@ static void GetParentDir(EFK_CHAR* dst, const EFK_CHAR* src)
 	}
 }
 
+static std::u16string getFilenameWithoutExt(const char16_t* path)
+{
+	int start = 0;
+	int end = 0;
+
+	for (int i = 0; path[i] != 0; i++)
+	{
+		if (path[i] == u'/' || path[i] == u'\\')
+		{
+			start = i;
+		}
+	}
+
+	for (int i = start; path[i] != 0; i++)
+	{
+		if (path[i] == u'.')
+		{
+			end = i;
+		}
+	}
+
+	std::vector<char16_t> ret;
+
+	for (int i = start; i < end; i++)
+	{
+		ret.push_back(path[i]);
+	}
+	ret.push_back(0);
+
+	return std::u16string(ret.data());
+}
+
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
@@ -11915,15 +12024,66 @@ Effect* Effect::Create(Manager* manager, const EFK_CHAR* path, float magnificati
 
 	eLoader->Unload(data, size);
 
+	effect->SetName(getFilenameWithoutExt(path).c_str());
+
 	return effect;
 }
+
+void EffectImplemented::ResetReloadingBackup()
+{
+	if(reloadingBackup == nullptr) return;
+
+	Setting* loader = GetSetting();
+
+	TextureLoader* textureLoader = loader->GetTextureLoader();
+	if (textureLoader != NULL)
+	{
+		for (auto it: reloadingBackup->images.GetCollection())
+		{
+			textureLoader->Unload(it.second.value);
+		}
+	
+		for (auto it : reloadingBackup->normalImages.GetCollection())
+		{
+			textureLoader->Unload(it.second.value);
+		}
+
+		for (auto it : reloadingBackup->distortionImages.GetCollection())
+		{
+			textureLoader->Unload(it.second.value);
+		}
+	}
+
+	SoundLoader* soundLoader = loader->GetSoundLoader();
+	if (soundLoader != NULL)
+	{
+		for (auto it : reloadingBackup->sounds.GetCollection())
+		{
+			soundLoader->Unload(it.second.value);
+		}
+	}
+
+	{
+		ModelLoader* modelLoader = loader->GetModelLoader();
+		if (modelLoader != NULL)
+		{
+			for (auto it : reloadingBackup->models.GetCollection())
+			{
+				modelLoader->Unload(it.second.value);
+			}
+		}
+	}
+
+	reloadingBackup.reset();
+}
+
 
 Effect* EffectImplemented::Create( Manager* pManager, void* pData, int size, float magnification, const EFK_CHAR* materialPath )
 {
 	if( pData == NULL || size == 0 ) return NULL;
 
 	EffectImplemented* effect = new EffectImplemented( pManager, pData, size );
-	if ( !effect->Load( pData, size, magnification, materialPath ) )
+	if ( !effect->Load( pData, size, magnification, materialPath, ReloadingThreadType::Main) )
 	{
 		effect->Release();
 		effect = NULL;
@@ -11965,6 +12125,8 @@ Effect* Effect::Create( Setting* setting, const EFK_CHAR* path, float magnificat
 
 	eLoader->Unload(data, size);
 
+	effect->SetName(getFilenameWithoutExt(path).c_str());
+
 	return effect;
 }
 
@@ -11976,7 +12138,7 @@ Effect* EffectImplemented::Create( Setting* setting, void* pData, int size, floa
 	if( pData == NULL || size == 0 ) return NULL;
 
 	EffectImplemented* effect = new EffectImplemented( setting, pData, size );
-	if ( !effect->Load( pData, size, magnification, materialPath ) )
+	if ( !effect->Load( pData, size, magnification, materialPath, ReloadingThreadType::Main) )
 	{
 		effect->Release();
 		effect = NULL;
@@ -12065,6 +12227,7 @@ EffectImplemented::EffectImplemented( Setting* setting, void* pData, int size )
 //----------------------------------------------------------------------------------
 EffectImplemented::~EffectImplemented()
 {
+	ResetReloadingBackup();
 	Reset();
 
 	ES_SAFE_RELEASE( m_setting );
@@ -12090,8 +12253,10 @@ float EffectImplemented::GetMaginification() const
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-bool EffectImplemented::Load( void* pData, int size, float mag, const EFK_CHAR* materialPath )
+bool EffectImplemented::Load( void* pData, int size, float mag, const EFK_CHAR* materialPath, ReloadingThreadType reloadingThreadType)
 {
+	// if reladingThreadType == ReloadingThreadType::Main, this function was regarded as loading function actually
+
 	EffekseerPrintDebug("** Create : Effect\n");
 
 	uint8_t* pos = (uint8_t*)pData;
@@ -12362,9 +12527,16 @@ Manager* EffectImplemented::GetManager() const
 	return m_pManager;	
 }
 
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
+const char16_t* EffectImplemented::GetName() const
+{
+	return name_.c_str();
+}
+
+void EffectImplemented::SetName(const char16_t* name)
+{
+	name_ = name;
+}
+
 Setting* EffectImplemented::GetSetting() const
 {
 	if(m_setting != NULL) return m_setting;
@@ -12452,57 +12624,53 @@ int32_t EffectImplemented::GetModelCount() const
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-bool EffectImplemented::Reload( void* data, int32_t size, const EFK_CHAR* materialPath )
+bool EffectImplemented::Reload( void* data, int32_t size, const EFK_CHAR* materialPath, ReloadingThreadType reloadingThreadType)
 {
 	if(m_pManager == NULL ) return false;
 
 	std::array<Manager*, 1> managers;
 	managers[0] = m_pManager;
 
-	return Reload( managers.data(), managers.size(), data, size, materialPath );
+	return Reload( managers.data(), managers.size(), data, size, materialPath, reloadingThreadType);
 }
 
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-bool EffectImplemented::Reload( const EFK_CHAR* path, const EFK_CHAR* materialPath )
+bool EffectImplemented::Reload( const EFK_CHAR* path, const EFK_CHAR* materialPath, ReloadingThreadType reloadingThreadType)
 {
 	if(m_pManager == NULL ) return false;
 
 	std::array<Manager*, 1> managers;
 	managers[0] = m_pManager;
 
-	return Reload(managers.data(), managers.size(), path, materialPath );
+	return Reload(managers.data(), managers.size(), path, materialPath, reloadingThreadType);
 }
 
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-bool EffectImplemented::Reload( Manager** managers, int32_t managersCount, void* data, int32_t size, const EFK_CHAR* materialPath )
+bool EffectImplemented::Reload( Manager** managers, int32_t managersCount, void* data, int32_t size, const EFK_CHAR* materialPath, ReloadingThreadType reloadingThreadType)
 {
 	const EFK_CHAR* matPath = materialPath != NULL ? materialPath : m_materialPath.c_str();
 	
-	if (m_pManager != nullptr)
-	{
-		m_pManager->BeginReloadEffect(this);
-	}
+	int lockCount = 0;
 
 	for( int32_t i = 0; i < managersCount; i++)
 	{
-		((ManagerImplemented*)managers[i])->BeginReloadEffect( this );
+		((ManagerImplemented*)managers[i])->BeginReloadEffect( this, lockCount == 0);
+		lockCount++;
 	}
 
+	isReloadingOnRenderingThread = true;
 	Reset();
-	Load( data, size, m_maginificationExternal, matPath );
-
-	if (m_pManager != nullptr)
-	{
-		m_pManager->EndReloadEffect(this);
-	}
+	Load( data, size, m_maginificationExternal, matPath, reloadingThreadType);
+	isReloadingOnRenderingThread = false;
 
 	for( int32_t i = 0; i < managersCount; i++)
 	{
-		((ManagerImplemented*)managers[i])->EndReloadEffect( this );
+		lockCount--;
+		((ManagerImplemented*)managers[i])->EndReloadEffect( this, lockCount == 0);
 	}
 
 	return false;
@@ -12511,7 +12679,7 @@ bool EffectImplemented::Reload( Manager** managers, int32_t managersCount, void*
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-bool EffectImplemented::Reload( Manager** managers, int32_t managersCount, const EFK_CHAR* path, const EFK_CHAR* materialPath )
+bool EffectImplemented::Reload( Manager** managers, int32_t managersCount, const EFK_CHAR* path, const EFK_CHAR* materialPath, ReloadingThreadType reloadingThreadType)
 {
 	Setting* loader = GetSetting();
 	
@@ -12530,27 +12698,23 @@ bool EffectImplemented::Reload( Manager** managers, int32_t managersCount, const
 		materialPath = parentDir;
 	}
 
-	if (m_pManager != nullptr)
-	{
-		m_pManager->BeginReloadEffect(this);
-	}
+	int lockCount = 0;
 
 	for( int32_t i = 0; i < managersCount; i++)
 	{
-		((ManagerImplemented*)&(managers[i]))->BeginReloadEffect( this );
+		((ManagerImplemented*)&(managers[i]))->BeginReloadEffect( this, lockCount == 0);
+		lockCount++;
 	}
 
+	isReloadingOnRenderingThread = true;
 	Reset();
-	Load( data, size, m_maginificationExternal, materialPath );
+	Load( data, size, m_maginificationExternal, materialPath, reloadingThreadType);
+	isReloadingOnRenderingThread = false;
 
-	if (m_pManager != nullptr)
-	{
-		m_pManager->EndReloadEffect(this);
-	}
-	
 	for( int32_t i = 0; i < managersCount; i++)
 	{
-		((ManagerImplemented*)&(managers[i]))->EndReloadEffect( this );
+		lockCount--;
+		((ManagerImplemented*)&(managers[i]))->EndReloadEffect( this, lockCount == 0);
 	}
 
 	return false;
@@ -12566,6 +12730,76 @@ void EffectImplemented::ReloadResources( const EFK_CHAR* materialPath )
 	const EFK_CHAR* matPath = materialPath != NULL ? materialPath : m_materialPath.c_str();
 	
 	Setting* loader = GetSetting();
+
+	// reloading on render thread
+	if (isReloadingOnRenderingThread)
+	{
+		assert(reloadingBackup != nullptr);
+
+		for (int32_t ind = 0; ind < m_ImageCount; ind++)
+		{
+			EFK_CHAR fullPath[512];
+			PathCombine(fullPath, matPath, m_ImagePaths[ind]);
+
+			TextureData* value = nullptr;
+			if (reloadingBackup->images.Pop(fullPath, value))
+			{
+				m_pImages[ind] = value;
+			}
+		}
+	
+		for (int32_t ind = 0; ind < m_normalImageCount; ind++)
+		{
+			EFK_CHAR fullPath[512];
+			PathCombine(fullPath, matPath, m_normalImagePaths[ind]);
+			
+			TextureData* value = nullptr;
+			if (reloadingBackup->normalImages.Pop(fullPath, value))
+			{
+				m_normalImages[ind] = value;
+			}
+		}
+				
+		for (int32_t ind = 0; ind < m_distortionImageCount; ind++)
+		{
+			EFK_CHAR fullPath[512];
+			PathCombine(fullPath, matPath, m_distortionImagePaths[ind]);
+			
+			TextureData* value = nullptr;
+			if (reloadingBackup->distortionImages.Pop(fullPath, value))
+			{
+				m_distortionImages[ind] = value;
+			}
+		}
+				
+		for (int32_t ind = 0; ind < m_WaveCount; ind++)
+		{
+			EFK_CHAR fullPath[512];
+			PathCombine(fullPath, matPath, m_WavePaths[ind]);
+
+			void* value = nullptr;
+			if (reloadingBackup->sounds.Pop(fullPath, value))
+			{
+				m_pWaves[ind] = value;
+			}
+		}
+		
+		
+		
+		for (int32_t ind = 0; ind < m_modelCount; ind++)
+		{
+			EFK_CHAR fullPath[512];
+			PathCombine(fullPath, matPath, m_modelPaths[ind]);
+			
+			void* value = nullptr;
+			if (reloadingBackup->models.Pop(fullPath, value))
+			{
+				m_pModels[ind] = value;
+			}
+		}
+			
+		return;
+	}
 
 	{
 		TextureLoader* textureLoader = loader->GetTextureLoader();
@@ -12636,19 +12870,78 @@ void EffectImplemented::ReloadResources( const EFK_CHAR* materialPath )
 	}
 }
 
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-void EffectImplemented::UnloadResources()
+void EffectImplemented::UnloadResources(const EFK_CHAR* materialPath)
 {
 	Setting* loader = GetSetting();
-	
-	TextureLoader* textureLoader = loader->GetTextureLoader();
-	if( textureLoader != NULL )
+
+	// reloading on render thread
+	if (isReloadingOnRenderingThread)
 	{
-		for( int32_t ind = 0; ind < m_ImageCount; ind++ )
+		if (reloadingBackup == nullptr)
 		{
-			textureLoader->Unload( m_pImages[ind] );
+			reloadingBackup = std::unique_ptr<EffectReloadingBackup>(new EffectReloadingBackup());
+		}
+
+		const EFK_CHAR* matPath = materialPath != nullptr ? materialPath : m_materialPath.c_str();
+
+		for (int32_t ind = 0; ind < m_ImageCount; ind++)
+		{
+			if (m_pImages[ind] == nullptr) continue;
+
+			EFK_CHAR fullPath[512];
+			PathCombine(fullPath, matPath, m_ImagePaths[ind]);
+			reloadingBackup->images.Push(fullPath, m_pImages[ind]);
+		}
+
+		for (int32_t ind = 0; ind < m_normalImageCount; ind++)
+		{
+			if (m_normalImages[ind] == nullptr) continue;
+
+			EFK_CHAR fullPath[512];
+			PathCombine(fullPath, matPath, m_normalImagePaths[ind]);
+			reloadingBackup->normalImages.Push(fullPath, m_normalImages[ind]);
+		}
+
+		for (int32_t ind = 0; ind < m_distortionImageCount; ind++)
+		{
+			if (m_distortionImagePaths[ind] == nullptr) continue;
+
+			EFK_CHAR fullPath[512];
+			PathCombine(fullPath, matPath, m_distortionImagePaths[ind]);
+			reloadingBackup->distortionImages.Push(fullPath, m_distortionImages[ind]);
+		}
+
+		for (int32_t ind = 0; ind < m_WaveCount; ind++)
+		{
+			if (m_pWaves[ind] == nullptr) continue;
+
+			EFK_CHAR fullPath[512];
+			PathCombine(fullPath, matPath, m_WavePaths[ind]);
+			reloadingBackup->sounds.Push(fullPath, m_pWaves[ind]);
+		}
+
+		for (int32_t ind = 0; ind < m_modelCount; ind++)
+		{
+			if (m_pModels[ind] == nullptr) continue;
+
+			EFK_CHAR fullPath[512];
+			PathCombine(fullPath, matPath, m_modelPaths[ind]);
+			reloadingBackup->models.Push(fullPath, m_pModels[ind]);
+		}
+
+		return;
+	}
+	else
+	{
+		ResetReloadingBackup();
+	}
+
+	TextureLoader* textureLoader = loader->GetTextureLoader();
+	if (textureLoader != NULL)
+	{
+		for (int32_t ind = 0; ind < m_ImageCount; ind++)
+		{
+			textureLoader->Unload(m_pImages[ind]);
 			m_pImages[ind] = NULL;
 		}
 
@@ -12666,26 +12959,31 @@ void EffectImplemented::UnloadResources()
 	}
 
 	SoundLoader* soundLoader = loader->GetSoundLoader();
-	if( soundLoader != NULL )
+	if (soundLoader != NULL)
 	{
-		for( int32_t ind = 0; ind < m_WaveCount; ind++ )
+		for (int32_t ind = 0; ind < m_WaveCount; ind++)
 		{
-			soundLoader->Unload( m_pWaves[ind] );
+			soundLoader->Unload(m_pWaves[ind]);
 			m_pWaves[ind] = NULL;
 		}
 	}
 
 	{
 		ModelLoader* modelLoader = loader->GetModelLoader();
-		if( modelLoader != NULL )
+		if (modelLoader != NULL)
 		{
-			for( int32_t ind = 0; ind < m_modelCount; ind++ )
+			for (int32_t ind = 0; ind < m_modelCount; ind++)
 			{
-				modelLoader->Unload( m_pModels[ind] );
+				modelLoader->Unload(m_pModels[ind]);
 				m_pModels[ind] = NULL;
 			}
 		}
 	}
+}
+
+void EffectImplemented::UnloadResources()
+{
+	UnloadResources(nullptr);
 }
 
 //----------------------------------------------------------------------------------
@@ -14479,14 +14777,17 @@ void ManagerImplemented::DrawHandleFront(Handle handle)
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-void ManagerImplemented::BeginReloadEffect( Effect* effect )
+void ManagerImplemented::BeginReloadEffect( Effect* effect, bool doLockThread)
 {
-	if (m_isLockedWithRenderingMutex)
+	if (doLockThread)
 	{
-		ShowErrorAndExit("Rendering thread is locked.");
+		if (m_isLockedWithRenderingMutex)
+		{
+			ShowErrorAndExit("Rendering thread is locked.");
+		}
+		m_renderingMutex.lock();
+		m_isLockedWithRenderingMutex = true;
 	}
-	m_renderingMutex.lock();
-	m_isLockedWithRenderingMutex = true;
 
 	std::map<Handle,DrawSet>::iterator it = m_DrawSets.begin();
 	std::map<Handle,DrawSet>::iterator it_end = m_DrawSets.end();
@@ -14506,7 +14807,7 @@ void ManagerImplemented::BeginReloadEffect( Effect* effect )
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-void ManagerImplemented::EndReloadEffect( Effect* effect )
+void ManagerImplemented::EndReloadEffect( Effect* effect, bool doLockThread)
 {
 	std::map<Handle,DrawSet>::iterator it = m_DrawSets.begin();
 	std::map<Handle,DrawSet>::iterator it_end = m_DrawSets.end();
@@ -14546,8 +14847,11 @@ void ManagerImplemented::EndReloadEffect( Effect* effect )
 		(*it).second.InstanceContainerPointer->Update( true, 1.0f, (*it).second.IsShown );
 	}
 
-	m_renderingMutex.unlock();
-	m_isLockedWithRenderingMutex = false;
+	if (doLockThread)
+	{
+		m_renderingMutex.unlock();
+		m_isLockedWithRenderingMutex = false;
+	}
 }
 
 //----------------------------------------------------------------------------------
@@ -17096,7 +17400,7 @@ public:
 
 	void Unregister(Effect* effect) override;
 
-	void Update(Manager** managers, int32_t managerCount) override;
+	void Update(Manager** managers, int32_t managerCount, ReloadingThreadType reloadingThreadType) override;
 
 	void SetMaterialPath( const EFK_CHAR* materialPath ) override;
 
@@ -17469,7 +17773,7 @@ void ServerImplemented::Unregister( Effect* effect )
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-void ServerImplemented::Update(Manager** managers, int32_t managerCount)
+void ServerImplemented::Update(Manager** managers, int32_t managerCount, ReloadingThreadType reloadingThreadType)
 {
 	m_ctrlClients.lock();
 
@@ -17521,24 +17825,28 @@ void ServerImplemented::Update(Manager** managers, int32_t managerCount)
 			{
 				if (managers != nullptr)
 				{
+					auto& data = m_data[key];
+
 					if (m_materialPath.size() > 1)
 					{
-						m_effects[key]->Reload(managers, managerCount, m_data[key].data(), (int32_t)m_data.size(), &(m_materialPath[0]));
+						m_effects[key]->Reload(managers, managerCount, data.data(), (int32_t)data.size(), &(m_materialPath[0]), reloadingThreadType);
 					}
 					else
 					{
-						m_effects[key]->Reload(managers, managerCount, m_data[key].data(), (int32_t)m_data.size());
+						m_effects[key]->Reload(managers, managerCount, data.data(), (int32_t)data.size(), nullptr, reloadingThreadType);
 					}
 				}
 				else
 				{
+					auto& data = m_data[key];
+
 					if (m_materialPath.size() > 1)
 					{
-						m_effects[key]->Reload(m_data[key].data(), (int32_t)m_data.size(), &(m_materialPath[0]));
+						m_effects[key]->Reload(data.data(), (int32_t)data.size(), &(m_materialPath[0]), reloadingThreadType);
 					}
 					else
 					{
-						m_effects[key]->Reload(m_data[key].data(), (int32_t)m_data.size());
+						m_effects[key]->Reload(data.data(), (int32_t)data.size(), nullptr, reloadingThreadType);
 					}
 				}
 				
@@ -17608,6 +17916,7 @@ namespace Effekseer {
 class ClientImplemented : public Client
 {
 private:
+	bool isThreadRunning = false;
 	std::thread	m_threadRecv;
 
 	EfkSocket	m_socket;
@@ -17615,10 +17924,12 @@ private:
 	std::vector<uint8_t>	m_sendBuffer;
 
 	bool		m_running;
+	std::mutex	mutexStop;
 
-	HOSTENT* GetHostEntry( const char* host );
+	bool GetAddr( const char* host, IN_ADDR* addr);
 
 	static void RecvAsync( void* data );
+	void StopInternal();
 public:
 	ClientImplemented();
 	~ClientImplemented();
@@ -17648,21 +17959,13 @@ public:
 
 #if !( defined(_PSVITA) || defined(_PS4) || defined(_SWITCH) || defined(_XBOXONE) )
 
-//----------------------------------------------------------------------------------
-// Include
-//----------------------------------------------------------------------------------
 
 
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
 namespace Effekseer {
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
+
 void ClientImplemented::RecvAsync( void* data )
 {
-	ClientImplemented* client = (ClientImplemented*)data;
+	auto client = (ClientImplemented*)data;
 
 	while(true)
 	{
@@ -17677,25 +17980,32 @@ void ClientImplemented::RecvAsync( void* data )
 
 			if( recvSize == 0 || recvSize == -1 )
 			{
-				/* 失敗 */
-				client->Stop();
+				client->StopInternal();
 				return;
 			}
 		}
 	}
 }
 
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
+void ClientImplemented::StopInternal()
+{
+	std::lock_guard<std::mutex> lock(mutexStop);
+
+	if (!m_running) return;
+	m_running = false;
+
+	Socket::Shutsown(m_socket);
+	Socket::Close(m_socket);
+
+	EffekseerPrintDebug("Client : Stop(Internal)\n");
+}
+
 ClientImplemented::ClientImplemented()
 	: m_running		( false )
 {
 	Socket::Initialize();
 }
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
+
 ClientImplemented::~ClientImplemented()
 {
 	Stop();
@@ -17703,78 +18013,94 @@ ClientImplemented::~ClientImplemented()
 	Socket::Finalize();
 }
 
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
 Client* Client::Create()
 {
 	return new ClientImplemented();
 }
 
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
+/*
 HOSTENT* ClientImplemented::GetHostEntry( const char* host )
 {
-	HOSTENT* hostEntry = NULL;
+	HOSTENT* hostEntry = nullptr;
 	IN_ADDR InAddrHost;
 
-	/* IPアドレスかDNSか調べる */
+	// check ip adress or DNS
 	InAddrHost.s_addr = ::inet_addr( host );
 	if ( InAddrHost.s_addr == InaddrNone )
 	{
-		/* DNS */
+		// DNS
 		hostEntry = ::gethostbyname( host );
-		if ( hostEntry == NULL )
+		if ( hostEntry == nullptr)
 		{
-			return NULL;
+			return nullptr;
 		}
 	}
 	else
 	{
-		/* IPアドレス */
+		// Ip address
 		hostEntry = ::gethostbyaddr( (const char*)(&InAddrHost), sizeof(IN_ADDR), AF_INET );
-		if ( hostEntry == NULL )
+		if ( hostEntry == nullptr)
 		{
-			return NULL;
+			return nullptr;
 		}
 	}
 
 	return hostEntry;
 }
+*/
 
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
+bool ClientImplemented::GetAddr(const char* host, IN_ADDR* addr)
+{
+	HOSTENT* hostEntry = nullptr;
+
+	// check ip adress or DNS
+	addr->s_addr = ::inet_addr(host);
+	if (addr->s_addr == InaddrNone)
+	{
+		// DNS
+		hostEntry = ::gethostbyname(host);
+		if (hostEntry == nullptr)
+		{
+			return nullptr;
+		}
+
+		addr->s_addr = *(unsigned int *)hostEntry->h_addr_list[0];
+	}
+
+	return true;
+}
+
 bool ClientImplemented::Start( char* host, uint16_t port )
 {
 	if( m_running ) return false;
 
+	// to stop thread
+	Stop();
+
 	SOCKADDR_IN sockAddr;
-	HOSTENT* hostEntry= NULL;
-	
-	// Create a socket
+
+	// create a socket
 	EfkSocket socket_ = Socket::GenSocket();
 	if ( socket_ == InvalidSocket )
 	{
 		return false;
 	}
 
-	/* ホスト情報取得 */
-	hostEntry = GetHostEntry( host );
-	if ( hostEntry == NULL )
+	// get adder
+	IN_ADDR addr;
+	if (!GetAddr(host, &addr))
 	{
-		if ( socket_ != InvalidSocket ) Socket::Close( socket_ );
+		if (socket_ != InvalidSocket) Socket::Close(socket_);
 		return false;
 	}
 
-	/* 接続用データ生成 */
+	// generate data to connect
 	memset( &sockAddr, 0, sizeof(SOCKADDR_IN) );
 	sockAddr.sin_family	= AF_INET;
 	sockAddr.sin_port	= htons( port );
-	sockAddr.sin_addr	= *(IN_ADDR*)(hostEntry->h_addr_list[0]);
+	sockAddr.sin_addr	= addr;
 
-	/* 接続 */
+	// connect
 	int32_t ret = ::connect( socket_, (SOCKADDR*)(&sockAddr), sizeof(SOCKADDR_IN) );
 	if ( ret == SocketError )
 	{
@@ -17787,6 +18113,7 @@ bool ClientImplemented::Start( char* host, uint16_t port )
 
 	m_running = true;
 
+	isThreadRunning = true;
 	m_threadRecv = std::thread(
 		[this](){
 		RecvAsync(this);
@@ -17797,24 +18124,19 @@ bool ClientImplemented::Start( char* host, uint16_t port )
 	return true;
 }
 
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
 void ClientImplemented::Stop()
 {
-	if( !m_running ) return;
+	StopInternal();
 
-	Socket::Shutsown( m_socket );
-	Socket::Close( m_socket );
-	m_running = false;
-	m_threadRecv.join();
+	if (isThreadRunning)
+	{
+		m_threadRecv.join();
+		isThreadRunning = false;
+	}
 
 	EffekseerPrintDebug("Client : Stop\n");
 }
 
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
 bool ClientImplemented::Send( void* data, int32_t datasize )
 {
 	if( !m_running ) return false;
@@ -17845,9 +18167,6 @@ bool ClientImplemented::Send( void* data, int32_t datasize )
 	return true;
 }
 
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
 void ClientImplemented::Reload( const EFK_CHAR* key, void* data, int32_t size )
 {
 	int32_t keylen = 0;
