@@ -47,15 +47,15 @@ void HelloWorld::update(float delta)
 	if (count % 300 == 0)
 	{
 		/**
-			エフェクトファイルを読み込みます。
+			拡大率を指定してエフェクトファイルを読み込みます。
 
-			You read an effect file.
+			You read an effect file with specifying scale.
 
-			您讀取效果文件。
+			您通過指定比例讀取效果文件。
 
-			您读取效果文件。
+			您通过指定比例读取效果文件。
 		*/
-		auto effect = efk::Effect::create("Laser01.efk");
+		auto effect = efk::Effect::create("Laser01.efk", 13.0f);
 		if (effect != nullptr)
 		{
 			/**
@@ -75,7 +75,7 @@ void HelloWorld::update(float delta)
 			emitter->setRotation3D(cocos2d::Vec3(0, 90, 0));
 			emitter->setPosition(Vec2(320, 150));
 			
-			emitter->setScale(13);
+			// emitter->setScale(13);
 			this->addChild(emitter, 0);
 
 			// No need (because it uses autorelease after 1.41)

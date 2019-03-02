@@ -418,14 +418,14 @@ namespace efk
 			g_internalManager = nullptr;
 		}
 
-		Effekseer::Effect* loadEffect(const EFK_CHAR* path)
+		Effekseer::Effect* loadEffect(const EFK_CHAR* path, float maginification)
 		{
 			auto it_effect = path2effect.find(path);
 
 			if (it_effect == path2effect.end())
 			{
 				EffectResource resource;
-				resource.effect = Effekseer::Effect::Create(EffekseerSetting::create(), path);
+				resource.effect = Effekseer::Effect::Create(EffekseerSetting::create(), path, maginification);
 				resource.counter = 1;
 
 				if (resource.effect != nullptr)
@@ -537,14 +537,14 @@ namespace efk
 	}
 
 #pragma region Effect
-	Effect* Effect::create(const std::string& filename)
+	Effect* Effect::create(const std::string& filename, float maginification)
 	{
 		EFK_CHAR path_[300];
 		::Effekseer::ConvertUtf8ToUtf16((int16_t*)path_, 300, (const int8_t*)filename.c_str());
 
 		auto internalManager = getGlobalInternalManager();
 
-		auto effect = internalManager->loadEffect(path_);
+		auto effect = internalManager->loadEffect(path_, maginification);
 
 		if (effect != nullptr)
 		{
@@ -583,10 +583,10 @@ namespace efk
 		return new EffectEmitter(manager);
 	}
 
-	EffectEmitter* EffectEmitter::create(EffectManager* manager, const std::string& filename)
+	EffectEmitter* EffectEmitter::create(EffectManager* manager, const std::string& filename, float maginification)
 	{
 		auto effectEmitter = new EffectEmitter(manager);
-		auto effect = Effect::create(filename);
+		auto effect = Effect::create(filename, maginification);
 		effectEmitter->setEffect(effect);
 		effectEmitter->playOnEnter = true;
 		effect->release();

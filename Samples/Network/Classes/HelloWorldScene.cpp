@@ -42,7 +42,12 @@ bool HelloWorld::init()
 
 	networkSever->makeNetworkServerEnabled(60000);
 
-	effect_retain = efk::Effect::create("Laser01.efk");
+	/**
+		リモートから編集するエフェクトを読み込み、解放されないようにします。
+
+		You load the effect to be edited remotely so that it will not be released.
+	*/
+	effect_retain = efk::Effect::create("Laser01.efk", 13.0f);
 	effect_retain->retain();
 
 	return true;
@@ -62,7 +67,7 @@ void HelloWorld::update(float delta)
 
 			您读取效果文件。
 		*/
-		auto effect = efk::Effect::create("Laser01.efk");
+		auto effect = efk::Effect::create("Laser01.efk", 13.0f);
 		if (effect != nullptr)
 		{
 			/**
@@ -82,7 +87,7 @@ void HelloWorld::update(float delta)
 			emitter->setRotation3D(cocos2d::Vec3(0, 90, 0));
 			emitter->setPosition(Vec2(320, 150));
 			
-			emitter->setScale(13);
+			//emitter->setScale(13);
 			this->addChild(emitter, 0);
 
 			// No need (because it uses autorelease after 1.41)

@@ -30,7 +30,7 @@ namespace efk
 		InternalManager*	internalManager_ = nullptr;
 
 	public:
-		static Effect* create(const std::string& filename);
+		static Effect* create(const std::string& filename, float maginification = 1.0f);
 
 		Effect(InternalManager* internalManager = nullptr);
 
@@ -98,11 +98,15 @@ namespace efk
 		\~English	An effect files's path
 		\~Japanese	エフェクトファイルのパス
 
+		@param	magnification
+		\~English	A maginification rate. Effects are loaded by enlarge with specified value
+		\~Japanese	拡大率、指定された値でエフェクトが拡大されて読み込まれる
+
 		@return
 		\~English	Instance
 		\~Japanese	インスタンス
 		*/
-		static EffectEmitter* create(EffectManager* manager, const std::string& filename);
+		static EffectEmitter* create(EffectManager* manager, const std::string& filename, float maginification = 1.0f);
 
 		/**
 			@brief
