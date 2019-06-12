@@ -67,6 +67,7 @@ rootGDir = rootDir + 'EffekseerRendererGL/EffekseerRenderer/'
 
 effekseerHeader = CreateHeader()
 effekseerHeader.readLines(rootEDir + 'Effekseer.Base.Pre.h')
+effekseerHeader.readLines(rootEDir + 'Effekseer.BinaryReader.h')
 effekseerHeader.readLines(rootEDir + 'Effekseer.Vector2D.h')
 effekseerHeader.readLines(rootEDir + 'Effekseer.Vector3D.h')
 effekseerHeader.readLines(rootEDir + 'Effekseer.Color.h')
@@ -87,6 +88,7 @@ effekseerHeader.readLines(rootEDir + 'Renderer/Effekseer.TrackRenderer.h')
 effekseerHeader.readLines(rootEDir + 'Effekseer.EffectLoader.h')
 effekseerHeader.readLines(rootEDir + 'Effekseer.TextureLoader.h')
 effekseerHeader.readLines(rootEDir + 'Effekseer.ModelLoader.h')
+effekseerHeader.readLines(rootEDir + 'Effekseer.MaterialLoader.h')
 
 effekseerHeader.readLines(rootEDir + 'Effekseer.Model.h')
 
@@ -175,6 +177,7 @@ effekseerCPP.readLines(rootEDir + 'Effekseer.Matrix43.cpp')
 effekseerCPP.readLines(rootEDir + 'Effekseer.Matrix44.cpp')
 
 effekseerCPP.readLines(rootEDir + 'Effekseer.InternalStruct.h')
+effekseerCPP.readLines(rootEDir + 'Effekseer.InternalScript.h')
 
 effekseerCPP.readLines(rootEDir + 'Effekseer.DefaultEffectLoader.h')
 effekseerCPP.readLines(rootEDir + 'Effekseer.DefaultEffectLoader.cpp')
@@ -215,7 +218,7 @@ effekseerCPP.readLines(rootEDir + 'Effekseer.InstanceContainer.cpp')
 effekseerCPP.readLines(rootEDir + 'Effekseer.Instance.cpp')
 effekseerCPP.readLines(rootEDir + 'Effekseer.InstanceGlobal.cpp')
 effekseerCPP.readLines(rootEDir + 'Effekseer.InstanceGroup.cpp')
-
+effekseerCPP.readLines(rootEDir + 'Effekseer.InternalScript.cpp')
 
 effekseerCPP.readLines(rootEDir + 'Effekseer.Setting.cpp')
 
@@ -227,6 +230,7 @@ effekseerCPP.readLines(rootEDir + 'Effekseer.Server.cpp')
 
 effekseerCPP.readLines(rootEDir + 'Effekseer.ClientImplemented.h')
 effekseerCPP.readLines(rootEDir + 'Effekseer.Client.cpp')
+
 
 effekseerCPP.replace('#pragma once','')
 
@@ -262,10 +266,12 @@ rendererHeader.readLines(rootRDir + 'EffekseerRenderer.RingRendererBase.h')
 rendererHeader.readLines(rootRDir + 'EffekseerRenderer.SpriteRendererBase.h')
 rendererHeader.readLines(rootRDir + 'EffekseerRenderer.TrackRendererBase.h')
 rendererHeader.readLines(rootRDir + 'EffekseerRenderer.VertexBufferBase.h')
+rendererHeader.readLines(rootRDir + 'EffekseerRenderer.ShaderLoader.h')
 
 rendererHeader.readLines(rootGDir+'EffekseerRendererGL.Base.Pre.h')
 rendererHeader.readLines(rootGDir+'EffekseerRendererGL.Renderer.h')
 rendererHeader.readLines(rootGDir+'EffekseerRendererGL.ModelLoader.h')
+rendererHeader.readLines(rootGDir+'EffekseerRendererGL.MaterialLoader.h')
 
 rendererHeader.replace('#include <Effekseer.h>','#include "EffekseerNative.h"')
 
@@ -326,12 +332,12 @@ rendererCPP.readLines(rootGDir+'EffekseerRendererGL.TextureLoader.h')
 #rendererCPP.readLines(rootGDir+'EffekseerRendererGL.TrackRenderer.h')
 rendererCPP.readLines(rootGDir+'EffekseerRendererGL.VertexArray.h')
 rendererCPP.readLines(rootGDir+'EffekseerRendererGL.VertexBuffer.h')
-
 rendererCPP.readLines(rootGDir+'EffekseerRendererGL.DeviceObject.cpp')
 rendererCPP.readLines(rootGDir+'EffekseerRendererGL.GLExtension.cpp')
 rendererCPP.readLines(rootGDir+'EffekseerRendererGL.IndexBuffer.cpp')
 rendererCPP.readLines(rootGDir+'EffekseerRendererGL.ModelLoader.cpp')
 rendererCPP.readLines(rootGDir+'EffekseerRendererGL.ModelRenderer.cpp')
+rendererCPP.readLines(rootGDir+'EffekseerRendererGL.MaterialLoader.cpp')
 rendererCPP.readLines(rootGDir+'EffekseerRendererGL.Renderer.cpp')
 rendererCPP.readLines(rootGDir+'EffekseerRendererGL.RenderState.cpp')
 #rendererCPP.readLines(rootGDir+'EffekseerRendererGL.RibbonRenderer.cpp')

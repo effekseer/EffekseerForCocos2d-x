@@ -327,6 +327,14 @@ Renderer::~Renderer()
 	ES_SAFE_DELETE(impl);
 }
 
+int32_t Renderer::GetDrawCallCount() const { return impl->GetDrawCallCount(); }
+
+int32_t Renderer::GetDrawVertexCount() const { return impl->GetDrawVertexCount(); }
+
+void Renderer::ResetDrawCallCount() { impl->ResetDrawCallCount(); }
+
+void Renderer::ResetDrawVertexCount() { impl->ResetDrawVertexCount(); }
+
 UVStyle Renderer::GetTextureUVStyle() const
 {
 	return impl->GetTextureUVStyle();
@@ -370,6 +378,14 @@ void Renderer::Impl::SetBackgroundTextureUVStyle(UVStyle style)
 {
 	backgroundTextureUVStyle = style;
 }
+
+int32_t Renderer::Impl::GetDrawCallCount() const { return drawcallCount; }
+
+int32_t Renderer::Impl::GetDrawVertexCount() const { return drawvertexCount; }
+
+void Renderer::Impl::ResetDrawCallCount() { drawcallCount = 0; }
+
+void Renderer::Impl::ResetDrawVertexCount() { drawvertexCount = 0; }
 
 }
 //----------------------------------------------------------------------------------
@@ -820,6 +836,7 @@ typedef ptrdiff_t GLintptr;
 typedef char GLchar;
 #endif
 
+OpenGLDeviceType GetDeviceType();
 bool Initialize(OpenGLDeviceType deviceType);
 bool IsSupportedVertexArray();
 bool IsSupportedBufferRange();
@@ -1126,9 +1143,6 @@ private:
 	IndexBuffer*		m_indexBuffer = nullptr;
 	IndexBuffer*		m_indexBufferForWireframe = nullptr;
 	int32_t				m_squareMaxCount;
-	
-	int32_t				drawcallCount = 0;
-	int32_t				drawvertexCount = 0;
 
 	Shader*							m_shader;
 	Shader*							m_shader_no_texture;
@@ -1329,6 +1343,8 @@ public:
 	*/
 	::Effekseer::ModelLoader* CreateModelLoader( ::Effekseer::FileInterface* fileInterface = NULL )override;
 
+	::Effekseer::MaterialLoader* CreateMaterialLoader(::Effekseer::FileInterface* fileInterface = nullptr) override;
+
 	/**
 	@brief	背景を取得する。
 	*/
@@ -1375,25 +1391,17 @@ public:
 	void BeginShader(Shader* shader);
 	void EndShader(Shader* shader);
 
-	void SetVertexBufferToShader(const void* data, int32_t size);
+	void SetVertexBufferToShader(const void* data, int32_t size, int32_t dstOffset);
 
-	void SetPixelBufferToShader(const void* data, int32_t size);
+	void SetPixelBufferToShader(const void* data, int32_t size, int32_t dstOffset);
 
 	void SetTextures(Shader* shader, Effekseer::TextureData** textures, int32_t count);
 
 	void ResetRenderState() override;
 
-	int32_t GetDrawCallCount() const override;
-
-	int32_t GetDrawVertexCount() const override;
-
-	void ResetDrawCallCount() override;
-
-	void ResetDrawVertexCount() override;
-
 	std::vector<GLuint>& GetCurrentTextures() { return m_currentTextures; }
 
-	OpenGLDeviceType GetDeviceType() { return m_deviceType; }
+	OpenGLDeviceType GetDeviceType() const override { return m_deviceType; }
 
 	virtual int GetRef() override { return ::Effekseer::ReferenceObject::GetRef(); }
 	virtual int AddRef() override { return ::Effekseer::ReferenceObject::AddRef(); }
@@ -1560,7 +1568,7 @@ private:
 	std::vector<ShaderUniformInfoInternal>	uniforms;
 
 	static bool CompileShader(
-		RendererImplemented* renderer,
+		Renderer* renderer,
 		GLuint& program,
 		const char* vs_src,
 		size_t vertexShaderSize,
@@ -1569,7 +1577,7 @@ private:
 		const char* name);
 
 	Shader(
-		RendererImplemented* renderer, 
+		Renderer* renderer, 
 		GLuint program,
 		const char* vs_src,
 		size_t vertexShaderSize,
@@ -1586,7 +1594,7 @@ public:
 	virtual ~Shader();
 
 	static Shader* Create(
-		RendererImplemented* renderer,
+		Renderer* renderer,
 		const char* vs_src,
 		size_t vertexShaderSize,
 		const char* fs_src,
@@ -1678,6 +1686,8 @@ public:
 
 public:
 	Effekseer::TextureData* Load(const EFK_CHAR* path, ::Effekseer::TextureType textureType) override;
+
+	Effekseer::TextureData* Load(const void* data, int32_t size, Effekseer::TextureType textureType) override;
 
 	void Unload(Effekseer::TextureData* data) override;
 };
@@ -1994,6 +2004,7 @@ static bool g_isInitialized = false;
 static bool g_isSupportedVertexArray = false;
 static bool g_isSurrpotedBufferRange = false;
 static bool g_isSurrpotedMapBuffer = false;
+static OpenGLDeviceType g_deviceType = OpenGLDeviceType::OpenGL2;
 
 #if _WIN32
 #define GET_PROC(name)	g_##name = (FP_##name)wglGetProcAddress( #name ); if(g_##name==NULL) return false;
@@ -2001,10 +2012,16 @@ static bool g_isSurrpotedMapBuffer = false;
 #define GET_PROC(name)	g_##name = (FP_##name)eglGetProcAddress( #name ); if(g_##name==NULL) return false;
 #endif
 
+OpenGLDeviceType GetDeviceType()
+{
+    return g_deviceType;
+}
+    
 bool Initialize(OpenGLDeviceType deviceType)
 {
 	if(g_isInitialized) return true;
-
+    g_deviceType = deviceType;
+    
 #if _WIN32
 	GET_PROC(glDeleteBuffers);
 	GET_PROC(glCreateShader);
@@ -2666,9 +2683,6 @@ ModelLoader::~ModelLoader()
 
 }
 
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
 void* ModelLoader::Load( const EFK_CHAR* path )
 {
 	std::unique_ptr<Effekseer::FileReader> 
@@ -2680,7 +2694,7 @@ void* ModelLoader::Load( const EFK_CHAR* path )
 		char* data_model = new char[size_model];
 		reader->Read( data_model, size_model );
 
-		Model* model = new Model(data_model, (int32_t)size_model);
+		Model* model = (Model*)Load(data_model, (int32_t)size_model);
 
 		delete [] data_model;
 
@@ -2690,9 +2704,12 @@ void* ModelLoader::Load( const EFK_CHAR* path )
 	return NULL;
 }
 
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
+void* ModelLoader::Load(const void* data, int32_t size)
+{ 
+	Model* model = new Model((uint8_t*)data, size);
+	return model;
+}
+
 void ModelLoader::Unload( void* data )
 {
 	if( data != NULL )
@@ -3719,6 +3736,161 @@ void ModelRenderer::EndRendering( const efkModelNodeParam& parameter, void* user
 //
 //----------------------------------------------------------------------------------
 
+#ifdef _DEBUG
+#endif
+
+namespace EffekseerRendererGL
+{
+
+static const char g_material_sprite_vs_src[] =
+	R"(
+IN vec4 atPosition;
+IN vec4 atColor;
+IN vec4 atTexCoord;
+)"
+
+	R"(
+OUT vec4 vaColor;
+OUT vec4 vaTexCoord;
+OUT vec4 vaPos;
+OUT vec4 vaPosR;
+OUT vec4 vaPosU;
+)"
+
+	R"(
+uniform mat4 uMatCamera;
+uniform mat4 uMatProjection;
+uniform vec4 mUVInversed;
+
+void main() {
+	vec4 cameraPos = uMatCamera * atPosition;
+	cameraPos = cameraPos / cameraPos.w;
+
+	gl_Position = uMatProjection * cameraPos;
+
+	vaPos = gl_Position;
+
+	vec4 cameraPosU = cameraPos + vec4(0.0, 1.0, 0.0, 0.0);
+	vec4 cameraPosR = cameraPos + vec4(1.0, 0.0, 0.0, 0.0);
+
+	vaPosR = uMatProjection * cameraPosR;
+	vaPosU = uMatProjection * cameraPosU;
+	
+	vaPos = vaPos / vaPos.w;
+	vaPosR = vaPosR / vaPosR.w;
+	vaPosU = vaPosU / vaPosU.w;
+
+	vaColor = atColor;
+	vaTexCoord = atTexCoord;
+
+	vaTexCoord.y = mUVInversed.x + mUVInversed.y * vaTexCoord.y;
+}
+
+)";
+
+MaterialLoader::MaterialLoader(Renderer* renderer, ::Effekseer::FileInterface* fileInterface) : fileInterface_(fileInterface)
+{
+	if (fileInterface == nullptr)
+	{
+		fileInterface_ = &defaultFileInterface_;
+	}
+
+	renderer_ = renderer;
+	ES_SAFE_ADDREF(renderer_);
+}
+
+MaterialLoader ::~MaterialLoader() { ES_SAFE_RELEASE(renderer_); }
+
+::Effekseer::MaterialData* MaterialLoader::Load(const EFK_CHAR* path)
+{
+	std::unique_ptr<Effekseer::FileReader> reader(fileInterface_->OpenRead(path));
+
+	if (reader.get() != nullptr)
+	{
+		size_t size = reader->GetLength();
+		char* data = new char[size];
+		reader->Read(data, size);
+
+		auto material = Load(data, (int32_t)size);
+
+		delete[] data;
+
+		return material;
+	}
+
+	return nullptr;
+}
+
+::Effekseer::MaterialData* MaterialLoader::Load(const void* data, int32_t size)
+{
+	EffekseerRenderer::ShaderLoader loader;
+	if (!loader.Load((const uint8_t*)data, size))
+	{
+		return nullptr;
+	}
+
+	auto shaderCode = loader.GenerateShader();
+#ifdef _DEBUG
+	//std::cout << shaderCode << std::endl;
+#endif
+
+	auto materialData = new ::Effekseer::MaterialData();
+
+	auto shader = Shader::Create(
+		renderer_, g_material_sprite_vs_src, sizeof(g_material_sprite_vs_src), shaderCode.c_str(), shaderCode.size(), "CustomMaterial");
+
+	if (shader == nullptr)
+		return nullptr;
+
+	EffekseerRendererGL::ShaderAttribInfo sprite_attribs[3] = {
+		{"atPosition", GL_FLOAT, 3, 0, false}, {"atColor", GL_UNSIGNED_BYTE, 4, 12, true}, {"atTexCoord", GL_FLOAT, 2, 16, false}};
+	shader->GetAttribIdList(3, sprite_attribs);
+	shader->SetVertexSize(sizeof(EffekseerRendererGL::Vertex));
+
+	int32_t vertexUniformSize = sizeof(Effekseer::Matrix44) * 2 + sizeof(float) * 4;
+
+	int32_t pixelUniformSize = sizeof(Effekseer::Matrix44) * 2 + sizeof(float) * 4;
+
+	pixelUniformSize += loader.Uniforms.size() * 4 * sizeof(float);
+
+	shader->SetVertexConstantBufferSize(vertexUniformSize);
+
+	shader->AddVertexConstantLayout(CONSTANT_TYPE_MATRIX44, shader->GetUniformId("uMatCamera"), 0);
+
+	shader->AddVertexConstantLayout(CONSTANT_TYPE_MATRIX44, shader->GetUniformId("uMatProjection"), sizeof(Effekseer::Matrix44));
+
+	shader->AddVertexConstantLayout(CONSTANT_TYPE_VECTOR4, shader->GetUniformId("mUVInversed"), sizeof(Effekseer::Matrix44) * 2);
+
+	shader->SetPixelConstantBufferSize(pixelUniformSize);
+
+	int32_t index = 0;
+	for (auto uniform : loader.Uniforms)
+	{
+		shader->AddVertexConstantLayout(CONSTANT_TYPE_VECTOR4, shader->GetUniformId(uniform.Name.c_str()), sizeof(float) * 4 * index);	
+		index++;
+	}
+
+	for (auto texture : loader.Textures)
+	{
+		shader->SetTextureSlot(texture.Index, shader->GetUniformId(texture.Name.c_str()));
+	
+	}
+
+	materialData->UserPtr = shader;
+	return materialData;
+}
+
+void MaterialLoader::Unload(::Effekseer::MaterialData* data)
+{
+
+	if (data == nullptr)
+		return;
+	auto shader = reinterpret_cast<Shader*>(data->UserPtr);
+	ES_SAFE_DELETE(shader);
+	ES_SAFE_DELETE(data);
+}
+
+} // namespace EffekseerRendererGL
 //----------------------------------------------------------------------------------
 // Include
 //----------------------------------------------------------------------------------
@@ -4708,6 +4880,14 @@ void RendererImplemented::SetCameraParameter(const ::Effekseer::Vector3D& front,
 #endif
 }
 
+::Effekseer::MaterialLoader* RendererImplemented::CreateMaterialLoader(::Effekseer::FileInterface* fileInterface) {
+#ifdef __EFFEKSEER_RENDERER_INTERNAL_LOADER__
+	return new MaterialLoader(this, fileInterface);
+#else
+	return nullptr;
+#endif
+}
+
 void RendererImplemented::SetBackground(GLuint background)
 {
 	m_background.UserID = background;
@@ -4800,8 +4980,8 @@ void RendererImplemented::DrawSprites( int32_t spriteCount, int32_t vertexOffset
 {
 	GLCheckError();
 
-	drawcallCount++;
-	drawvertexCount += spriteCount * 4;
+	impl->drawcallCount++;
+	impl->drawvertexCount += spriteCount * 4;
 
 	if( m_renderMode == ::Effekseer::RenderMode::Normal )
 	{
@@ -4822,8 +5002,8 @@ void RendererImplemented::DrawPolygon( int32_t vertexCount, int32_t indexCount)
 {
 	GLCheckError();
 
-	drawcallCount++;
-	drawvertexCount += vertexCount;
+	impl->drawcallCount++;
+	impl->drawvertexCount += vertexCount;
 
 	glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, NULL);
 
@@ -4945,16 +5125,18 @@ void RendererImplemented::EndShader(Shader* shader)
 	GLCheckError();
 }
 
-void RendererImplemented::SetVertexBufferToShader(const void* data, int32_t size)
+void RendererImplemented::SetVertexBufferToShader(const void* data, int32_t size, int32_t dstOffset)
 {
 	assert(currentShader != nullptr);
-	memcpy(currentShader->GetVertexConstantBuffer(), data, size);
+	auto p = static_cast<uint8_t*>(currentShader->GetVertexConstantBuffer()) + dstOffset;
+	memcpy(p, data, size);
 }
 
-void RendererImplemented::SetPixelBufferToShader(const void* data, int32_t size)
+void RendererImplemented::SetPixelBufferToShader(const void* data, int32_t size, int32_t dstOffset)
 {
 	assert(currentShader != nullptr);
-	memcpy(currentShader->GetPixelConstantBuffer(), data, size);
+	auto p = static_cast<uint8_t*>(currentShader->GetPixelConstantBuffer()) + dstOffset;
+	memcpy(p, data, size);
 }
 
 void RendererImplemented::SetTextures(Shader* shader, Effekseer::TextureData** textures, int32_t count)
@@ -4994,26 +5176,6 @@ void RendererImplemented::ResetRenderState()
 {
 	m_renderState->GetActiveState().Reset();
 	m_renderState->Update( true );
-}
-
-int32_t RendererImplemented::GetDrawCallCount() const
-{
-	return drawcallCount;
-}
-
-int32_t RendererImplemented::GetDrawVertexCount() const
-{
-	return drawvertexCount;
-}
-
-void RendererImplemented::ResetDrawCallCount()
-{
-	drawcallCount = 0;
-}
-
-void RendererImplemented::ResetDrawVertexCount()
-{
-	drawvertexCount = 0;
 }
 
 //----------------------------------------------------------------------------------
@@ -5426,7 +5588,7 @@ static const char g_header_fs_gl2_src [] =
 //
 //-----------------------------------------------------------------------------------
 bool Shader::CompileShader(
-	RendererImplemented* renderer,
+	Renderer* renderer,
 	GLuint& program,
 	const char* vs_src,
 	size_t vertexShaderSize,
@@ -5522,14 +5684,14 @@ bool Shader::CompileShader(
 //
 //-----------------------------------------------------------------------------------
 Shader::Shader( 
-	RendererImplemented* renderer,
+	Renderer* renderer,
 	GLuint program,
 	const char* vs_src,
 	size_t vertexShaderSize,
 	const char* fs_src,
 	size_t pixelShaderSize,
 	const char* name)
-	: DeviceObject		( renderer )
+	: DeviceObject(static_cast<RendererImplemented*>(renderer))
 	, m_program			( program )
 	, m_vertexSize		( 0 )
 	, m_vertexConstantBuffer	( NULL )
@@ -5582,7 +5744,7 @@ Shader::~Shader()
 //
 //-----------------------------------------------------------------------------------
 Shader* Shader::Create(
-	RendererImplemented* renderer,
+	Renderer* renderer,
 		const char* vs_src,
 		size_t vertexShaderSize,
 		const char* fs_src,
@@ -6030,134 +6192,131 @@ Effekseer::TextureData* TextureLoader::Load(const EFK_CHAR* path, ::Effekseer::T
 		char* data_texture = new char[size_texture];
 		reader->Read(data_texture, size_texture);
 
-		if (size_texture < 4)
+		auto textureData = Load(data_texture, size_texture, textureType);
+
+		delete[] data_texture;
+
+		return textureData;
+	}
+
+	return nullptr;
+}
+
+Effekseer::TextureData* TextureLoader::Load(const void* data, int32_t size, Effekseer::TextureType textureType)
+{
+	auto size_texture = size;
+	auto data_texture = (uint8_t*)data;
+
+	if (size_texture < 4)
+	{
+	}
+	else if (data_texture[1] == 'P' && data_texture[2] == 'N' && data_texture[3] == 'G')
+	{
+		pngTextureLoader.Load(data_texture, size_texture, false);
+
+		GLuint texture = 0;
+		glGenTextures(1, &texture);
+		glBindTexture(GL_TEXTURE_2D, texture);
+		glTexImage2D(GL_TEXTURE_2D,
+					 0,
+					 GL_RGBA,
+					 pngTextureLoader.GetWidth(),
+					 pngTextureLoader.GetHeight(),
+					 0,
+					 GL_RGBA,
+					 GL_UNSIGNED_BYTE,
+					 pngTextureLoader.GetData().data());
+
+		// Generate mipmap
+		GLExt::glGenerateMipmap(GL_TEXTURE_2D);
+
+		glBindTexture(GL_TEXTURE_2D, 0);
+		pngTextureLoader.Unload();
+
+		auto textureData = new Effekseer::TextureData();
+		textureData->UserPtr = nullptr;
+		textureData->UserID = texture;
+		textureData->TextureFormat = Effekseer::TextureFormatType::ABGR8;
+		textureData->Width = pngTextureLoader.GetWidth();
+		textureData->Height = pngTextureLoader.GetHeight();
+		return textureData;
+	}
+	else if (data_texture[0] == 'D' && data_texture[1] == 'D' && data_texture[2] == 'S' && data_texture[3] == ' ')
+	{
+		if (ddsTextureLoader.Load(data_texture, size_texture))
 		{
-		}
-		else if (data_texture[1] == 'P' &&
-			data_texture[2] == 'N' &&
-			data_texture[3] == 'G')
-		{
-			pngTextureLoader.Load(data_texture, size_texture, false);
-			delete [] data_texture;
-
-			GLuint texture = 0;
-			glGenTextures(1, &texture);
-			glBindTexture(GL_TEXTURE_2D, texture);
-			glTexImage2D(
-				GL_TEXTURE_2D,
-				0,
-				GL_RGBA,
-				pngTextureLoader.GetWidth(),
-				pngTextureLoader.GetHeight(),
-				0,
-				GL_RGBA,
-				GL_UNSIGNED_BYTE,
-				pngTextureLoader.GetData().data());
-
-			// Generate mipmap
-			GLExt::glGenerateMipmap(GL_TEXTURE_2D);
-
-			glBindTexture(GL_TEXTURE_2D, 0);
-			pngTextureLoader.Unload();
-
-			auto textureData = new Effekseer::TextureData();
-			textureData->UserPtr = nullptr;
-			textureData->UserID = texture;
-			textureData->TextureFormat = Effekseer::TextureFormatType::ABGR8;
-			textureData->Width = pngTextureLoader.GetWidth();
-			textureData->Height = pngTextureLoader.GetHeight();
-			return textureData;
-		}
-		else if (data_texture[0] == 'D' &&
-			data_texture[1] == 'D' &&
-			data_texture[2] == 'S' &&
-			data_texture[3] == ' ')
-		{
-			if (ddsTextureLoader.Load(data_texture, size_texture))
+			if (ddsTextureLoader.GetTextureFormat() == Effekseer::TextureFormatType::ABGR8)
 			{
-				delete[] data_texture;
+				GLuint texture = 0;
 
-				if (ddsTextureLoader.GetTextureFormat() == Effekseer::TextureFormatType::ABGR8)
-				{
-					GLuint texture = 0;
+				glGenTextures(1, &texture);
+				glBindTexture(GL_TEXTURE_2D, texture);
 
-					glGenTextures(1, &texture);
-					glBindTexture(GL_TEXTURE_2D, texture);
+				glTexImage2D(GL_TEXTURE_2D,
+							 0,
+							 GL_RGBA,
+							 ddsTextureLoader.GetWidth(),
+							 ddsTextureLoader.GetHeight(),
+							 0,
+							 GL_RGBA,
+							 GL_UNSIGNED_BYTE,
+							 ddsTextureLoader.GetData().data());
 
-					glTexImage2D(
-						GL_TEXTURE_2D,
-						0,
-						GL_RGBA,
-						ddsTextureLoader.GetWidth(),
-						ddsTextureLoader.GetHeight(),
-						0,
-						GL_RGBA,
-						GL_UNSIGNED_BYTE,
-						ddsTextureLoader.GetData().data());
+				// Generate mipmap
+				GLExt::glGenerateMipmap(GL_TEXTURE_2D);
 
-					// Generate mipmap
-					GLExt::glGenerateMipmap(GL_TEXTURE_2D);
+				glBindTexture(GL_TEXTURE_2D, 0);
 
-					glBindTexture(GL_TEXTURE_2D, 0);
-
-					delete[] data_texture;
-
-					auto textureData = new Effekseer::TextureData();
-					textureData->UserPtr = nullptr;
-					textureData->UserID = texture;
-					textureData->TextureFormat = ddsTextureLoader.GetTextureFormat();
-					textureData->Width = ddsTextureLoader.GetWidth();
-					textureData->Height = ddsTextureLoader.GetHeight();
-					return textureData;
-				}
-				else
-				{
-					uint32_t format = 0;
-
-					if (ddsTextureLoader.GetTextureFormat() == Effekseer::TextureFormatType::BC1)
-					{
-						format = GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
-					}
-					else if (ddsTextureLoader.GetTextureFormat() == Effekseer::TextureFormatType::BC2)
-					{
-						format = GL_COMPRESSED_RGBA_S3TC_DXT3_EXT;
-					}
-					else if (ddsTextureLoader.GetTextureFormat() == Effekseer::TextureFormatType::BC3)
-					{
-						format = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
-					}
-
-					GLuint texture = 0;
-					glGenTextures(1, &texture);
-					glBindTexture(GL_TEXTURE_2D, texture);
-
-					GLExt::glCompressedTexImage2D(
-						GL_TEXTURE_2D,
-						0,
-						format,
-						ddsTextureLoader.GetWidth(),
-						ddsTextureLoader.GetHeight(),
-						0,
-						ddsTextureLoader.GetData().size(),
-						ddsTextureLoader.GetData().data());
-
-					// Generate mipmap
-					GLExt::glGenerateMipmap(GL_TEXTURE_2D);
-
-					glBindTexture(GL_TEXTURE_2D, 0);
-
-					auto textureData = new Effekseer::TextureData();
-					textureData->UserPtr = nullptr;
-					textureData->UserID = texture;
-					textureData->TextureFormat = ddsTextureLoader.GetTextureFormat();
-					textureData->Width = ddsTextureLoader.GetWidth();
-					textureData->Height = ddsTextureLoader.GetHeight();
-					return textureData;
-				}
+				auto textureData = new Effekseer::TextureData();
+				textureData->UserPtr = nullptr;
+				textureData->UserID = texture;
+				textureData->TextureFormat = ddsTextureLoader.GetTextureFormat();
+				textureData->Width = ddsTextureLoader.GetWidth();
+				textureData->Height = ddsTextureLoader.GetHeight();
+				return textureData;
 			}
 			else
 			{
-				delete[] data_texture;
+				uint32_t format = 0;
+
+				if (ddsTextureLoader.GetTextureFormat() == Effekseer::TextureFormatType::BC1)
+				{
+					format = GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
+				}
+				else if (ddsTextureLoader.GetTextureFormat() == Effekseer::TextureFormatType::BC2)
+				{
+					format = GL_COMPRESSED_RGBA_S3TC_DXT3_EXT;
+				}
+				else if (ddsTextureLoader.GetTextureFormat() == Effekseer::TextureFormatType::BC3)
+				{
+					format = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
+				}
+
+				GLuint texture = 0;
+				glGenTextures(1, &texture);
+				glBindTexture(GL_TEXTURE_2D, texture);
+
+				GLExt::glCompressedTexImage2D(GL_TEXTURE_2D,
+											  0,
+											  format,
+											  ddsTextureLoader.GetWidth(),
+											  ddsTextureLoader.GetHeight(),
+											  0,
+											  ddsTextureLoader.GetData().size(),
+											  ddsTextureLoader.GetData().data());
+
+				// Generate mipmap
+				GLExt::glGenerateMipmap(GL_TEXTURE_2D);
+
+				glBindTexture(GL_TEXTURE_2D, 0);
+
+				auto textureData = new Effekseer::TextureData();
+				textureData->UserPtr = nullptr;
+				textureData->UserID = texture;
+				textureData->TextureFormat = ddsTextureLoader.GetTextureFormat();
+				textureData->Width = ddsTextureLoader.GetWidth();
+				textureData->Height = ddsTextureLoader.GetHeight();
+				return textureData;
 			}
 		}
 	}
@@ -6165,9 +6324,6 @@ Effekseer::TextureData* TextureLoader::Load(const EFK_CHAR* path, ::Effekseer::T
 	return nullptr;
 }
 
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
 void TextureLoader::Unload(Effekseer::TextureData* data )
 {
 	if( data != NULL )
@@ -6477,7 +6633,16 @@ void VertexBuffer::Unlock()
 	}
 	else
 	{
-		if (GLExt::IsSupportedMapBuffer())
+        // giMapBuffer is invalid with OpenGLES3 after iOS12.2?
+        bool avoidIOS122 = false;
+#if defined(__APPLE__)
+        if(GLExt::GetDeviceType() == OpenGLDeviceType::OpenGLES3)
+        {
+            avoidIOS122 = true;
+        }
+#endif
+
+		if (GLExt::IsSupportedMapBuffer() && !avoidIOS122)
 		{
 #ifdef __ANDROID__
 			GLExt::glBufferData(GL_ARRAY_BUFFER, m_offset, nullptr, GL_STREAM_DRAW);

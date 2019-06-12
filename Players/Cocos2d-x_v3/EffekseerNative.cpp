@@ -105,8 +105,10 @@ class EffectLoader;
 class TextureLoader;
 class SoundLoader;
 class ModelLoader;
+class MaterialLoader;
 
 class Model;
+class InternalScript;
 
 //----------------------------------------------------------------------------------
 //
@@ -4570,6 +4572,63 @@ struct easing_color
 //
 //----------------------------------------------------------------------------------
 #endif	// __EFFEKSEER_INTERNAL_STRUCT_H__
+#ifndef __EFFEKSEER_INTERNAL_SCRIPT_H__
+#define __EFFEKSEER_INTERNAL_SCRIPT_H__
+
+
+namespace Effekseer
+{
+
+class InternalScript
+{
+public:
+	enum class RunningPhaseType : int32_t
+	{
+		Global,
+		Local,
+	};
+
+private:
+	enum class OperatorType : int32_t
+	{
+		Constant = 0,
+		Add = 1,
+		Sub = 2,
+		Mul = 3,
+		Div = 4,
+
+		UnaryAdd = 11,
+		UnarySub = 12,
+	};
+
+private:
+	RunningPhaseType runningPhase = RunningPhaseType::Local;
+	std::vector<float> registers;
+	std::vector<uint8_t> operators;
+	int32_t version_ = 0;
+	int32_t operatorCount_ = 0;
+	int32_t outputRegister_ = 0;
+	bool isValid_ = false;
+
+	bool IsValidOperator(int value) const;
+	bool IsValidRegister(int index) const;
+	float GetRegisterValue(int index,
+						   const std::array<float, 4>& externals,
+						   const std::array<float, 1>& globals,
+						   const std::array<float, 5>& locals) const;
+
+public:
+	InternalScript();
+	virtual ~InternalScript();
+	bool Load(uint8_t* data, int size);
+	float Execute(const std::array<float, 4>& externals, const std::array<float, 1>& globals, const std::array<float, 5>& locals);
+	RunningPhaseType GetRunningPhase() const { return runningPhase; }
+};
+
+} // namespace Effekseer
+
+#endif
+
 #ifndef	__EFFEKSEER_DEFAULTEFFECTLOADER_H__
 #define	__EFFEKSEER_DEFAULTEFFECTLOADER_H__
 
@@ -5152,16 +5211,26 @@ struct ParameterCommonValues_8
 
 struct ParameterCommonValues
 {
-	int MaxGeneration;
-	BindType TranslationBindType;
-	BindType RotationBindType;
-	BindType ScalingBindType;
-	int		RemoveWhenLifeIsExtinct;
-	int		RemoveWhenParentIsRemoved;
-	int		RemoveWhenChildrenIsExtinct;
+	int MaxGeneration = 1;
+	BindType TranslationBindType = BindType::Always;
+	BindType RotationBindType = BindType::Always;
+	BindType ScalingBindType = BindType::Always;
+	int RemoveWhenLifeIsExtinct = 1;
+	int RemoveWhenParentIsRemoved = 0;
+	int RemoveWhenChildrenIsExtinct = 0;
 	random_int	life;
 	random_float GenerationTime;
 	random_float GenerationTimeOffset;
+
+	ParameterCommonValues()
+	{
+		life.max = 1;
+		life.min = 1;
+		GenerationTime.max = 1;
+		GenerationTime.min = 1;
+		GenerationTimeOffset.max = 0;
+		GenerationTimeOffset.min = 0;
+	}
 };
 
 struct ParameterDepthValues
@@ -5204,6 +5273,8 @@ enum ParameterTranslationType
 //----------------------------------------------------------------------------------
 struct ParameterTranslationFixed
 {
+	int32_t ReferencedDynamicParameter = -1;
+
 	Vector3D Position;
 };
 
@@ -5212,9 +5283,24 @@ struct ParameterTranslationFixed
 //----------------------------------------------------------------------------------
 struct ParameterTranslationPVA
 {
+	int32_t ReferencedDynamicParameterPMax = -1;
+	int32_t ReferencedDynamicParameterPMin = -1;
+	int32_t ReferencedDynamicParameterVMax = -1;
+	int32_t ReferencedDynamicParameterVMin = -1;
+	int32_t ReferencedDynamicParameterAMax = -1;
+	int32_t ReferencedDynamicParameterAMin = -1;
 	random_vector3d	location;
 	random_vector3d	velocity;
 	random_vector3d	acceleration;
+};
+
+struct ParameterTranslationEasing
+{
+	int32_t ReferencedDynamicParameterSMax = -1;
+	int32_t ReferencedDynamicParameterSMin = -1;
+	int32_t ReferencedDynamicParameterEMax = -1;
+	int32_t ReferencedDynamicParameterEMin = -1;
+	easing_vector3d location;
 };
 
 //----------------------------------------------------------------------------------
@@ -5489,22 +5575,40 @@ struct ParameterGenerationLocation
 
 struct ParameterRendererCommon
 {
-	int32_t				ColorTextureIndex;
-	AlphaBlendType		AlphaBlend;
+	/**
+		@brief	material type
+	*/
+	enum class RendererMaterialType : int32_t
+	{
+		Default,
+		File,
+	};
 
-	TextureFilterType	FilterType;
+	RendererMaterialType MaterialType = RendererMaterialType::File;
 
-	TextureWrapType		WrapType;
+	/**
+		@brief	texture index in MaterialType::Default
+	*/
+	int32_t				ColorTextureIndex = 0;
 
-	bool				ZWrite;
+	//! material index in MaterialType::File
+	MaterialParameter Material;
 
-	bool				ZTest;
+	AlphaBlendType AlphaBlend = AlphaBlendType::Opacity;
 
-	bool				Distortion;
+	TextureFilterType FilterType = TextureFilterType::Nearest;
 
-	float				DistortionIntensity;
+	TextureWrapType WrapType = TextureWrapType::Repeat;
 
-	BindType			ColorBindType;
+	bool				ZWrite = false;
+
+	bool				ZTest = false;
+
+	bool				Distortion = false;
+
+	float				DistortionIntensity = 0;
+
+	BindType ColorBindType = BindType::NotBind;
 
 	enum
 	{
@@ -5603,18 +5707,63 @@ struct ParameterRendererCommon
 
 	} UV;
 
+	ParameterRendererCommon()
+	{
+		FadeInType = FADEIN_OFF;
+		FadeOutType = FADEOUT_OFF;
+		UVType = UV_DEFAULT;
+	}
+
 	void reset()
 	{
-		memset(this, 0, sizeof(ParameterRendererCommon));
+		// with constructor
+		//memset(this, 0, sizeof(ParameterRendererCommon));
 	}
 
 	void load(uint8_t*& pos, int32_t version)
 	{
-		memset(this, 0, sizeof(ParameterRendererCommon));
+		//memset(this, 0, sizeof(ParameterRendererCommon));
 
-		memcpy(&ColorTextureIndex, pos, sizeof(int));
-		pos += sizeof(int);
+		if (version >= 15)
+		{
+			memcpy(&MaterialType, pos, sizeof(int));
+			pos += sizeof(int);
 
+			if (MaterialType == RendererMaterialType::Default)
+			{
+				memcpy(&ColorTextureIndex, pos, sizeof(int));
+				pos += sizeof(int);
+			}
+			else
+			{
+				memcpy(&Material.MaterialIndex, pos, sizeof(int));
+				pos += sizeof(int);
+
+				int32_t textures = 0;
+				int32_t uniforms = 0;
+
+				memcpy(&textures, pos, sizeof(int));
+				pos += sizeof(int);
+
+				
+				Material.MaterialTextures.resize(textures);
+				memcpy(Material.MaterialTextures.data(), pos, sizeof(MaterialTextureParameter) * textures);
+				pos += (sizeof(MaterialTextureParameter) * textures);
+
+				memcpy(&uniforms, pos, sizeof(int));
+				pos += sizeof(int);
+
+				Material.MaterialUniforms.resize(uniforms);
+				memcpy(Material.MaterialUniforms.data(), pos, sizeof(int32_t) * uniforms);
+				pos += (sizeof(int32_t) * uniforms);
+			}
+		}
+		else
+		{
+			memcpy(&ColorTextureIndex, pos, sizeof(int));
+			pos += sizeof(int);
+		}
+		
 		memcpy(&AlphaBlend, pos, sizeof(int));
 		pos += sizeof(int);
 
@@ -5805,9 +5954,6 @@ enum eRenderingOrder
 	RenderingOrder_DWORD = 0x7fffffff,
 };
 
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
 
 /**
 @brief	ノードインスタンス生成クラス
@@ -5860,7 +6006,7 @@ public:
 	ParameterTranslationType	TranslationType;
 	ParameterTranslationFixed	TranslationFixed;
 	ParameterTranslationPVA		TranslationPVA;
-	easing_vector3d				TranslationEasing;
+	ParameterTranslationEasing TranslationEasing;
 	FCurveVector3D*				TranslationFCurve;
 
 	LocationAbsParameter		LocationAbs;
@@ -5958,6 +6104,8 @@ public:
 	@brief	サウンド再生
 	*/
 	virtual void PlaySound_(Instance& instance, SoundTag tag, Manager* manager);
+
+	EffectInstanceTerm CalculateInstanceTerm(EffectInstanceTerm& parentTerm) const override;
 
 	/**
 	@brief	エフェクトノード生成
@@ -6945,8 +7093,8 @@ public:
 //----------------------------------------------------------------------------------
 #endif	// __EFFEKSEER_ParameterNODE_TRACK_H__
 
-#ifndef	__EFFEKSEER_EFFECT_IMPLEMENTED_H__
-#define	__EFFEKSEER_EFFECT_IMPLEMENTED_H__
+#ifndef __EFFEKSEER_EFFECT_IMPLEMENTED_H__
+#define __EFFEKSEER_EFFECT_IMPLEMENTED_H__
 
 //----------------------------------------------------------------------------------
 // Include
@@ -6964,16 +7112,14 @@ namespace Effekseer
 class EffectReloadingBackup
 {
 public:
-	template<class T> 
-	class Holder
+	template <class T> class Holder
 	{
 	public:
 		T value;
 		int counter = 0;
 	};
 
-	template<class T>
-	class HolderCollection
+	template <class T> class HolderCollection
 	{
 		std::map<std::u16string, Holder<T>> collection;
 
@@ -6982,7 +7128,7 @@ public:
 		{
 			auto key_ = std::u16string(key);
 			auto it = collection.find(key_);
-			
+
 			if (it == collection.end())
 			{
 				collection[key_].value = value;
@@ -7016,10 +7162,7 @@ public:
 			}
 		}
 
-		std::map<std::u16string, Holder<T>>& GetCollection()
-		{
-			return collection;
-		}
+		std::map<std::u16string, Holder<T>>& GetCollection() { return collection; }
 	};
 
 	HolderCollection<TextureData*> images;
@@ -7027,74 +7170,87 @@ public:
 	HolderCollection<TextureData*> distortionImages;
 	HolderCollection<void*> sounds;
 	HolderCollection<void*> models;
+	HolderCollection<MaterialData*> materials;
+};
+
+class DynamicParameter
+{
+public:
+	std::array<InternalScript, 4> Elements;
 };
 
 /**
-	@brief	エフェクトパラメーター
-	@note
-	エフェクトに設定されたパラメーター。
+	@brief	Effect parameter
 */
-
-class EffectImplemented
-	: public Effect
-	, public ReferenceObject
+class EffectImplemented : public Effect, public ReferenceObject
 {
 	friend class ManagerImplemented;
 	friend class EffectNodeImplemented;
-private:
+	friend class EffectFactory;
+	friend class Instance;
+
+protected:
 	ManagerImplemented* m_pManager;
 
-	Setting*	m_setting;
+	Setting* m_setting;
 
 	mutable std::atomic<int32_t> m_reference;
 
-	int	m_version;
+	EffectFactory* factory = nullptr;
 
-	int	m_ImageCount;
-	EFK_CHAR**		m_ImagePaths;
-	TextureData**	m_pImages;
+	int m_version;
 
-	int	m_normalImageCount;
-	EFK_CHAR**		m_normalImagePaths;
-	TextureData**	m_normalImages;
-	
-	int	m_distortionImageCount;
-	EFK_CHAR**		m_distortionImagePaths;
-	TextureData**	m_distortionImages;
+	int m_ImageCount;
+	EFK_CHAR** m_ImagePaths;
+	TextureData** m_pImages;
 
-	int	m_WaveCount;
-	EFK_CHAR**		m_WavePaths;
-	void**			m_pWaves;
+	int m_normalImageCount;
+	EFK_CHAR** m_normalImagePaths;
+	TextureData** m_normalImages;
 
-	int32_t	m_modelCount;
-	EFK_CHAR**		m_modelPaths;
-	void**			m_pModels;
+	int m_distortionImageCount;
+	EFK_CHAR** m_distortionImagePaths;
+	TextureData** m_distortionImages;
+
+	int m_WaveCount = 0;
+	EFK_CHAR** m_WavePaths = nullptr;
+	void** m_pWaves = nullptr;
+
+	int32_t modelCount_ = 0;
+	EFK_CHAR** modelPaths_ = nullptr;
+	void** models_ = nullptr;
+
+	int32_t materialCount_ = 0;
+	EFK_CHAR** materialPaths_ = nullptr;
+	MaterialData** materials_ = nullptr;
 
 	std::u16string name_;
-	std::basic_string<EFK_CHAR>		m_materialPath;
+	std::basic_string<EFK_CHAR> m_materialPath;
 
-	int32_t			renderingNodesCount = 0;
-	int32_t			renderingNodesThreshold = 0;
+	//! dynamic parameters
+	std::vector<DynamicParameter> dynamicParameters;
 
-	/* 拡大率 */
-	float	m_maginification;
+	int32_t renderingNodesCount = 0;
+	int32_t renderingNodesThreshold = 0;
 
-	float	m_maginificationExternal;
+	//! scaling of this effect
+	float m_maginification = 1.0f;
+
+	float m_maginificationExternal = 1.0f;
 
 	// default random seed
-	int32_t	m_defaultRandomSeed;
+	int32_t m_defaultRandomSeed;
 
-	// 子ノード
-	EffectNode* m_pRoot;
+	//! child root node
+	EffectNode* m_pRoot = nullptr;
 
-	/* カリング */
+	// culling
 	struct
 	{
-		CullingShape	Shape;
-		Vector3D		Location;
+		CullingShape Shape;
+		Vector3D Location;
 
-		union
-		{
+		union {
 			struct
 			{
 			} None;
@@ -7113,24 +7269,26 @@ private:
 	//! backup to reload on rendering thread
 	std::unique_ptr<EffectReloadingBackup> reloadingBackup;
 
+	bool LoadBody(uint8_t* data, int32_t size, float mag);
+
 	void ResetReloadingBackup();
 
 public:
 	/**
 		@brief	生成
 	*/
-	static Effect* Create( Manager* pManager, void* pData, int size, float magnification, const EFK_CHAR* materialPath = NULL );
+	static Effect* Create(Manager* pManager, void* pData, int size, float magnification, const EFK_CHAR* materialPath = NULL);
 
 	/**
 		@brief	生成
 	*/
-	static Effect* Create( Setting* setting, void* pData, int size, float magnification, const EFK_CHAR* materialPath = NULL );
+	static Effect* Create(Setting* setting, void* pData, int size, float magnification, const EFK_CHAR* materialPath = NULL);
 
 	// コンストラクタ
-	EffectImplemented( Manager* pManager, void* pData, int size );
+	EffectImplemented(Manager* pManager, void* pData, int size);
 
 	// コンストラクタ
-	EffectImplemented( Setting* setting, void* pData, int size );
+	EffectImplemented(Setting* setting, void* pData, int size);
 
 	// デストラクタ
 	virtual ~EffectImplemented();
@@ -7140,7 +7298,7 @@ public:
 
 	float GetMaginification() const override;
 
-	bool Load( void* pData, int size, float mag, const EFK_CHAR* materialPath, ReloadingThreadType reloadingThreadType);
+	bool Load(void* pData, int size, float mag, const EFK_CHAR* materialPath, ReloadingThreadType reloadingThreadType);
 
 	/**
 		@breif	何も読み込まれていない状態に戻す
@@ -7167,7 +7325,7 @@ public:
 	@brief	設定取得
 	*/
 	Setting* GetSetting() const override;
-	
+
 	/**
 		@brief	エフェクトデータのバージョン取得
 	*/
@@ -7178,10 +7336,9 @@ public:
 	*/
 	TextureData* GetColorImage(int n) const override;
 
-	/**
-		@brief	格納されている画像のポインタの個数を取得する。
-	*/
 	int32_t GetColorImageCount() const override;
+
+	const EFK_CHAR* GetColorImagePath(int n) const override;
 
 	/**
 	@brief	格納されている画像のポインタを取得する。
@@ -7190,52 +7347,71 @@ public:
 
 	int32_t GetNormalImageCount() const override;
 
+	const EFK_CHAR* GetNormalImagePath(int n) const override;
+
 	TextureData* GetDistortionImage(int n) const override;
 
 	int32_t GetDistortionImageCount() const override;
 
-	/**
-		@brief	格納されている音波形のポインタを取得する。
-	*/
-	void* GetWave( int n ) const override;
+	const EFK_CHAR* GetDistortionImagePath(int n) const override;
+
+	void* GetWave(int n) const override;
 
 	int32_t GetWaveCount() const override;
 
-	/**
-		@brief	格納されているモデルのポインタを取得する。
-	*/
-	void* GetModel( int n ) const override;
+	const EFK_CHAR* GetWavePath(int n) const override;
+
+	void* GetModel(int n) const override;
 
 	int32_t GetModelCount() const override;
 
-	/**
-		@brief	エフェクトのリロードを行う。
-	*/
-	bool Reload( void* data, int32_t size, const EFK_CHAR* materialPath, ReloadingThreadType reloadingThreadType) override;
+	const EFK_CHAR* GetModelPath(int n) const override;
+
+	MaterialData* GetMaterial(int n) const override;
+
+	int32_t GetMaterialCount() const override;
+
+	const EFK_CHAR* GetMaterialPath(int n) const override;
 
 	/**
 		@brief	エフェクトのリロードを行う。
 	*/
-	bool Reload( const EFK_CHAR* path, const EFK_CHAR* materialPath, ReloadingThreadType reloadingThreadType) override;
+	bool Reload(void* data, int32_t size, const EFK_CHAR* materialPath, ReloadingThreadType reloadingThreadType) override;
 
 	/**
 		@brief	エフェクトのリロードを行う。
 	*/
-	bool Reload( Manager** managers, int32_t managersCount, void* data, int32_t size, const EFK_CHAR* materialPath, ReloadingThreadType reloadingThreadType) override;
+	bool Reload(const EFK_CHAR* path, const EFK_CHAR* materialPath, ReloadingThreadType reloadingThreadType) override;
 
 	/**
 		@brief	エフェクトのリロードを行う。
 	*/
-	bool Reload( Manager** managers, int32_t managersCount, const EFK_CHAR* path, const EFK_CHAR* materialPath, ReloadingThreadType reloadingThreadType) override;
+	bool Reload(Manager** managers,
+				int32_t managersCount,
+				void* data,
+				int32_t size,
+				const EFK_CHAR* materialPath,
+				ReloadingThreadType reloadingThreadType) override;
+
+	/**
+		@brief	エフェクトのリロードを行う。
+	*/
+	bool Reload(Manager** managers,
+				int32_t managersCount,
+				const EFK_CHAR* path,
+				const EFK_CHAR* materialPath,
+				ReloadingThreadType reloadingThreadType) override;
 
 	/**
 		@brief	画像等リソースの再読み込みを行う。
 	*/
-	void ReloadResources( const EFK_CHAR* materialPath ) override;
+	void ReloadResources(const void* data, int32_t size, const EFK_CHAR* materialPath) override;
 
 	void UnloadResources(const EFK_CHAR* materialPath);
 
 	void UnloadResources() override;
+
+	EffectTerm CalculateTerm() const override;
 
 	virtual int GetRef() override { return ReferenceObject::GetRef(); }
 	virtual int AddRef() override { return ReferenceObject::AddRef(); }
@@ -7244,11 +7420,11 @@ public:
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-}
+} // namespace Effekseer
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-#endif	// __EFFEKSEER_EFFECT_IMPLEMENTED_H__
+#endif // __EFFEKSEER_EFFECT_IMPLEMENTED_H__
 
 #ifndef	__EFFEKSEER_MANAGER_IMPLEMENTED_H__
 #define	__EFFEKSEER_MANAGER_IMPLEMENTED_H__
@@ -7467,8 +7643,6 @@ private:
 
 	// 破棄等のイベントを実際に実行
 	void ExecuteEvents();
-
-	void ShowErrorAndExit(const char* message);
 public:
 
 	// コンストラクタ
@@ -7656,6 +7830,10 @@ public:
 	*/
 	void SetModelLoader( ModelLoader* modelLoader ) override;
 	
+	MaterialLoader* GetMaterialLoader() override;
+
+	void SetMaterialLoader(MaterialLoader* loader) override;
+
 	/**
 		@brief	エフェクト停止
 	*/
@@ -7731,6 +7909,8 @@ public:
 	// エフェクトのターゲット位置を指定する。
 	void SetTargetLocation( Handle handle, float x, float y, float z ) override;
 	void SetTargetLocation( Handle handle, const Vector3D& location ) override;
+
+	void SetDynamicParameter(Handle handle, int32_t index, float value) override;
 
 	Matrix43 GetBaseMatrix( Handle handle ) override;
 
@@ -8489,11 +8669,15 @@ public:
 	// 親の変換用行列が計算済かどうか
 	bool			m_ParentMatrix43Calculated;
 
-	/* 時間を進めるかどうか? */
-	bool			m_stepTime;
+	//! whether a time is allowed to pass
+	bool			is_time_step_allowed;
 
 	/* 更新番号 */
 	uint32_t		m_sequenceNumber;
+
+	//! calculate dynamic param and assign a result
+	template <typename T, typename U>
+	void ApplyDynamicParameter(T& dstParam, Effect* e, InstanceGlobal* instg, int dpInd, const U& originalParam);
 
 	// コンストラクタ
 	Instance( Manager* pManager, EffectNode* pEffectNode, InstanceContainer* pContainer );
@@ -8591,6 +8775,8 @@ class InstanceGlobal
 	: public IRandObject
 {
 	friend class ManagerImplemented;
+	friend class Instance;
+
 
 private:
 	/* このエフェクトで使用しているインスタンス数 */
@@ -8602,7 +8788,9 @@ private:
 	InstanceContainer*	m_rootContainer;
 	Vector3D			m_targetLocation;
 
-	int32_t				m_seed = 0;
+	int64_t				m_seed = 0;
+
+	std::array<float, 4> dynamicInputParameters;
 
 	InstanceGlobal();
 
@@ -8613,9 +8801,12 @@ public:
 	bool		IsGlobalColorSet = false;
 	Color		GlobalColor = Color(255, 255, 255, 255);
 
+	std::array<std::array<float, 4>, 16> dynamicParameters;
+
 	std::vector<InstanceContainer*>	RenderedInstanceContainers;
 
-	void SetSeed(int32_t seed);
+	std::array<float, 4> GetDynamicParameter(int32_t index);
+	void SetSeed(int64_t seed);
 
 	virtual float GetRand() override;
 
@@ -9142,38 +9333,67 @@ void EffectNodeImplemented::LoadParameter(unsigned char*& pos, EffectNode* paren
 		memcpy(&TranslationType, pos, sizeof(int));
 		pos += sizeof(int);
 
+		
 		if (TranslationType == ParameterTranslationType_Fixed)
 		{
-			memcpy(&size, pos, sizeof(int));
+			int32_t translationSize = 0;
+			memcpy(&translationSize, pos, sizeof(int));
 			pos += sizeof(int);
-			assert(size == sizeof(ParameterTranslationFixed));
-			memcpy(&TranslationFixed, pos, size);
-			pos += size;
 
-			// 無効化
-			if (TranslationFixed.Position.X == 0.0f &&
-				TranslationFixed.Position.Y == 0.0f &&
-				TranslationFixed.Position.Z == 0.0f)
+			if (ef->GetVersion() >= 14)
 			{
-				TranslationType = ParameterTranslationType_None;
-				EffekseerPrintDebug("LocationType Change None\n");
+				memcpy(&TranslationFixed, pos, sizeof(ParameterTranslationFixed));
 			}
+			else
+			{
+				memcpy(&(TranslationFixed.Position), pos, sizeof(float) * 3);
+
+				// make invalid
+				if (TranslationFixed.Position.X == 0.0f && TranslationFixed.Position.Y == 0.0f && TranslationFixed.Position.Z == 0.0f)
+				{
+					TranslationType = ParameterTranslationType_None;
+					EffekseerPrintDebug("LocationType Change None\n");
+				}
+			}
+
+			pos += translationSize;
+
 		}
 		else if (TranslationType == ParameterTranslationType_PVA)
 		{
-			memcpy(&size, pos, sizeof(int));
-			pos += sizeof(int);
-			assert(size == sizeof(ParameterTranslationPVA));
-			memcpy(&TranslationPVA, pos, size);
-			pos += size;
+			if (ef->GetVersion() >= 14)
+			{
+				memcpy(&size, pos, sizeof(int));
+				pos += sizeof(int);
+				assert(size == sizeof(ParameterTranslationPVA));
+				memcpy(&TranslationPVA, pos, size);
+				pos += size;
+			}
+			else
+			{
+				memcpy(&size, pos, sizeof(int));
+				pos += sizeof(int);
+				memcpy(&TranslationPVA.location, pos, size);
+				pos += size;
+			}
 		}
 		else if (TranslationType == ParameterTranslationType_Easing)
 		{
 			memcpy(&size, pos, sizeof(int));
 			pos += sizeof(int);
-			assert(size == sizeof(easing_vector3d));
-			memcpy(&TranslationEasing, pos, size);
-			pos += size;
+
+			if (ef->GetVersion() >= 14)
+			{
+				assert(size == sizeof(ParameterTranslationEasing));
+				memcpy(&TranslationEasing, pos, size);
+				pos += size;
+			}
+			else
+			{
+				assert(size == sizeof(easing_vector3d));
+				memcpy(&TranslationEasing.location, pos, size);
+				pos += size;
+			}
 		}
 		else if (TranslationType == ParameterTranslationType_FCurve)
 		{
@@ -9202,10 +9422,10 @@ void EffectNodeImplemented::LoadParameter(unsigned char*& pos, EffectNode* paren
 			}
 			else if (TranslationType == ParameterTranslationType_Easing)
 			{
-				TranslationEasing.start.min *= m_effect->GetMaginification();
-				TranslationEasing.start.max *= m_effect->GetMaginification();
-				TranslationEasing.end.min *= m_effect->GetMaginification();
-				TranslationEasing.end.max *= m_effect->GetMaginification();
+				TranslationEasing.location.start.min *= m_effect->GetMaginification();
+				TranslationEasing.location.start.max *= m_effect->GetMaginification();
+				TranslationEasing.location.end.min *= m_effect->GetMaginification();
+				TranslationEasing.location.end.max *= m_effect->GetMaginification();
 			}
 			else if (TranslationType == ParameterTranslationType_FCurve)
 			{
@@ -9275,9 +9495,7 @@ void EffectNodeImplemented::LoadParameter(unsigned char*& pos, EffectNode* paren
 			pos += size;
 
 			// 無効化
-			if (RotationFixed.Position.X == 0.0f &&
-				RotationFixed.Position.Y == 0.0f &&
-				RotationFixed.Position.Z == 0.0f)
+			if (RotationFixed.Position.X == 0.0f && RotationFixed.Position.Y == 0.0f && RotationFixed.Position.Z == 0.0f)
 			{
 				RotationType = ParameterRotationType_None;
 				EffekseerPrintDebug("RotationType Change None\n");
@@ -9336,9 +9554,7 @@ void EffectNodeImplemented::LoadParameter(unsigned char*& pos, EffectNode* paren
 			pos += size;
 
 			// 無効化
-			if (ScalingFixed.Position.X == 1.0f &&
-				ScalingFixed.Position.Y == 1.0f &&
-				ScalingFixed.Position.Z == 1.0f)
+			if (ScalingFixed.Position.X == 1.0f && ScalingFixed.Position.Y == 1.0f && ScalingFixed.Position.Z == 1.0f)
 			{
 				ScalingType = ParameterScalingType_None;
 				EffekseerPrintDebug("ScalingType Change None\n");
@@ -9473,10 +9689,10 @@ void EffectNodeImplemented::LoadParameter(unsigned char*& pos, EffectNode* paren
 			}
 			else if (TranslationType == ParameterTranslationType_Easing)
 			{
-				TranslationEasing.start.max.z *= -1.0f;
-				TranslationEasing.start.min.z *= -1.0f;
-				TranslationEasing.end.max.z *= -1.0f;
-				TranslationEasing.end.min.z *= -1.0f;
+				TranslationEasing.location.start.max.z *= -1.0f;
+				TranslationEasing.location.start.min.z *= -1.0f;
+				TranslationEasing.location.end.max.z *= -1.0f;
+				TranslationEasing.location.end.min.z *= -1.0f;
 			}
 
 			// Rotation
@@ -9530,7 +9746,6 @@ void EffectNodeImplemented::LoadParameter(unsigned char*& pos, EffectNode* paren
 			// GenerationLocation
 			if (GenerationLocation.type == ParameterGenerationLocation::TYPE_POINT)
 			{
-
 			}
 			else if (GenerationLocation.type == ParameterGenerationLocation::TYPE_SPHERE)
 			{
@@ -9607,28 +9822,22 @@ EffectNodeImplemented::~EffectNodeImplemented()
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-Effect* EffectNodeImplemented::GetEffect() const
-{
-	return m_effect;
-}
+Effect* EffectNodeImplemented::GetEffect() const { return m_effect; }
 
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-int EffectNodeImplemented::GetChildrenCount() const
-{
-	return (int)m_Nodes.size();
-}
+int EffectNodeImplemented::GetChildrenCount() const { return (int)m_Nodes.size(); }
 
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
 EffectNode* EffectNodeImplemented::GetChild(int index) const
 {
-	if (index >= GetChildrenCount()) return NULL;
+	if (index >= GetChildrenCount())
+		return NULL;
 	return m_Nodes[index];
 }
-
 
 EffectBasicRenderParameter EffectNodeImplemented::GetBasicRenderParameter()
 {
@@ -9685,55 +9894,39 @@ void EffectNodeImplemented::LoadRendererParameter(unsigned char*& pos, Setting* 
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-void EffectNodeImplemented::BeginRendering(int32_t count, Manager* manager)
-{
-}
+void EffectNodeImplemented::BeginRendering(int32_t count, Manager* manager) {}
 
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-void EffectNodeImplemented::BeginRenderingGroup(InstanceGroup* group, Manager* manager)
-{
-}
+void EffectNodeImplemented::BeginRenderingGroup(InstanceGroup* group, Manager* manager) {}
 
-void EffectNodeImplemented::EndRenderingGroup(InstanceGroup* group, Manager* manager)
-{
-}
+void EffectNodeImplemented::EndRenderingGroup(InstanceGroup* group, Manager* manager) {}
 
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-void EffectNodeImplemented::Rendering(const Instance& instance, const Instance* next_instance, Manager* manager)
-{
-}
+void EffectNodeImplemented::Rendering(const Instance& instance, const Instance* next_instance, Manager* manager) {}
 
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-void EffectNodeImplemented::EndRendering(Manager* manager)
-{
-}
+void EffectNodeImplemented::EndRendering(Manager* manager) {}
 
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-void EffectNodeImplemented::InitializeRenderedInstanceGroup(InstanceGroup& instanceGroup, Manager* manager)
-{
-}
+void EffectNodeImplemented::InitializeRenderedInstanceGroup(InstanceGroup& instanceGroup, Manager* manager) {}
 
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-void EffectNodeImplemented::InitializeRenderedInstance(Instance& instance, Manager* manager)
-{
-}
+void EffectNodeImplemented::InitializeRenderedInstance(Instance& instance, Manager* manager) {}
 
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-void EffectNodeImplemented::UpdateRenderedInstance(Instance& instance, Manager* manager)
-{
-}
+void EffectNodeImplemented::UpdateRenderedInstance(Instance& instance, Manager* manager) {}
 
 //----------------------------------------------------------------------------------
 //
@@ -9745,23 +9938,20 @@ float EffectNodeImplemented::GetFadeAlpha(const Instance& instance)
 	if (RendererCommon.FadeInType == ParameterRendererCommon::FADEIN_ON && instance.m_LivingTime < RendererCommon.FadeIn.Frame)
 	{
 		float v = 1.0f;
-		RendererCommon.FadeIn.Value.setValueToArg(
-			v,
-			0.0f,
-			1.0f,
-			(float)instance.m_LivingTime / (float)RendererCommon.FadeIn.Frame);
+		RendererCommon.FadeIn.Value.setValueToArg(v, 0.0f, 1.0f, (float)instance.m_LivingTime / (float)RendererCommon.FadeIn.Frame);
 
 		alpha *= v;
 	}
 
-	if (RendererCommon.FadeOutType == ParameterRendererCommon::FADEOUT_ON && instance.m_LivingTime + RendererCommon.FadeOut.Frame > instance.m_LivedTime)
+	if (RendererCommon.FadeOutType == ParameterRendererCommon::FADEOUT_ON &&
+		instance.m_LivingTime + RendererCommon.FadeOut.Frame > instance.m_LivedTime)
 	{
 		float v = 1.0f;
-		RendererCommon.FadeOut.Value.setValueToArg(
-			v,
-			1.0f,
-			0.0f,
-			(float)(instance.m_LivingTime + RendererCommon.FadeOut.Frame - instance.m_LivedTime) / (float)RendererCommon.FadeOut.Frame);
+		RendererCommon.FadeOut.Value.setValueToArg(v,
+												   1.0f,
+												   0.0f,
+												   (float)(instance.m_LivingTime + RendererCommon.FadeOut.Frame - instance.m_LivedTime) /
+													   (float)RendererCommon.FadeOut.Frame);
 
 		alpha *= v;
 	}
@@ -9791,17 +9981,138 @@ void EffectNodeImplemented::PlaySound_(Instance& instance, SoundTag tag, Manager
 		parameter.Pan = Sound.Pan.getValue(*instanceGlobal);
 
 		parameter.Mode3D = (Sound.PanType == ParameterSoundPanType_3D);
-		Vector3D::Transform(parameter.Position,
-			Vector3D(0.0f, 0.0f, 0.0f), instance.GetGlobalMatrix43());
+		Vector3D::Transform(parameter.Position, Vector3D(0.0f, 0.0f, 0.0f), instance.GetGlobalMatrix43());
 		parameter.Distance = Sound.Distance;
 
 		player->Play(tag, parameter);
 	}
 }
 
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
+EffectInstanceTerm EffectNodeImplemented::CalculateInstanceTerm(EffectInstanceTerm& parentTerm) const
+{
+	EffectInstanceTerm ret;
+
+	auto addWithClip = [](int v1, int v2) -> int {
+		v1 = Max(v1, 0);
+		v2 = Max(v2, 0);
+
+		if (v1 >= INT_MAX / 2)
+			return INT_MAX;
+
+		if (v2 >= INT_MAX / 2)
+			return INT_MAX;
+
+		return v1 + v2;
+	};
+
+	int lifeMin = CommonValues.life.min;
+	int lifeMax = CommonValues.life.max;
+
+	if (CommonValues.RemoveWhenLifeIsExtinct <= 0)
+	{
+		lifeMin = INT_MAX;
+		lifeMax = INT_MAX;
+	}
+
+	auto firstBeginMin = CommonValues.GenerationTimeOffset.min;
+	auto firstBeginMax = CommonValues.GenerationTimeOffset.max;
+	auto firstEndMin = addWithClip(firstBeginMin, lifeMin);
+	auto firstEndMax = addWithClip(firstBeginMax, lifeMax);
+
+	auto lastBeginMin = 0;
+	auto lastBeginMax = 0;
+	if (CommonValues.MaxGeneration > INT_MAX / 2)
+	{
+		lastBeginMin = INT_MAX / 2;
+	}
+	else
+	{
+		lastBeginMin = CommonValues.GenerationTimeOffset.min + (CommonValues.MaxGeneration - 1) * (CommonValues.GenerationTime.min);
+	}
+
+	if (CommonValues.MaxGeneration > INT_MAX / 2)
+	{
+		lastBeginMax = INT_MAX / 2;
+	}
+	else
+	{
+		lastBeginMax = CommonValues.GenerationTimeOffset.max + (CommonValues.MaxGeneration - 1) * (CommonValues.GenerationTime.max);
+	}
+
+	auto lastEndMin = addWithClip(lastBeginMin, lifeMin);
+	auto lastEndMax = addWithClip(lastBeginMax, lifeMax);
+
+	auto parentFirstTermMin = parentTerm.FirstInstanceEndMin - parentTerm.FirstInstanceStartMin;
+	auto parentFirstTermMax = parentTerm.FirstInstanceEndMax - parentTerm.FirstInstanceStartMax;
+	auto parentLastTermMin = parentTerm.LastInstanceEndMin - parentTerm.LastInstanceStartMin;
+	auto parentLastTermMax = parentTerm.LastInstanceEndMax - parentTerm.LastInstanceStartMax;
+
+	if (CommonValues.RemoveWhenParentIsRemoved > 0)
+	{
+		if (firstEndMin - firstBeginMin > parentFirstTermMin)
+			firstEndMin = firstBeginMin + parentFirstTermMin;
+
+		if (firstEndMax - firstBeginMax > parentFirstTermMax)
+			firstEndMax = firstBeginMax + parentFirstTermMax;
+
+		if (lastEndMin > INT_MAX / 2)
+		{
+			lastBeginMin = parentLastTermMin;
+			lastEndMin = parentLastTermMin;
+		}
+		else if (lastEndMin - lastBeginMin > parentLastTermMin)
+		{
+			lastEndMin = lastBeginMin + parentLastTermMin;
+		}
+
+		if (lastEndMax > INT_MAX / 2)
+		{
+			lastBeginMax = parentLastTermMax;
+			lastEndMax = parentLastTermMax;
+		}
+		else if (lastEndMax - lastBeginMax > parentLastTermMax)
+		{
+			lastEndMax = lastBeginMax + parentLastTermMax;
+		}
+	}
+
+	ret.FirstInstanceStartMin = addWithClip(parentTerm.FirstInstanceStartMin, firstBeginMin);
+	ret.FirstInstanceStartMax = addWithClip(parentTerm.FirstInstanceStartMax, firstBeginMax);
+	ret.FirstInstanceEndMin = addWithClip(parentTerm.FirstInstanceStartMin, firstEndMin);
+	ret.FirstInstanceEndMax = addWithClip(parentTerm.FirstInstanceStartMax, firstEndMax);
+
+	ret.LastInstanceStartMin = addWithClip(parentTerm.LastInstanceStartMin, lastBeginMin);
+	ret.LastInstanceStartMax = addWithClip(parentTerm.LastInstanceStartMax, lastBeginMax);
+	ret.LastInstanceEndMin = addWithClip(parentTerm.LastInstanceStartMin, lastEndMin);
+	ret.LastInstanceEndMax = addWithClip(parentTerm.LastInstanceStartMax, lastEndMax);
+
+	// check children
+	if (CommonValues.RemoveWhenChildrenIsExtinct > 0)
+	{
+		int childFirstEndMin = 0;
+		int childFirstEndMax = 0;
+		int childLastEndMin = 0;
+		int childLastEndMax = 0;
+
+		for (int32_t i = 0; i < GetChildrenCount(); i++)
+		{
+			auto child = static_cast<EffectNodeImplemented*>(GetChild(i));
+			auto childTerm = child->CalculateInstanceTerm(ret);
+			childFirstEndMin = Max(childTerm.FirstInstanceEndMin, childFirstEndMin);
+			childFirstEndMax = Max(childTerm.FirstInstanceEndMax, childFirstEndMax);
+			childLastEndMin = Max(childTerm.LastInstanceEndMin, childLastEndMin);
+			childLastEndMax = Max(childTerm.LastInstanceEndMax, childLastEndMax);
+		}
+
+		ret.FirstInstanceEndMin = Min(ret.FirstInstanceEndMin, childFirstEndMin);
+		ret.FirstInstanceEndMax = Min(ret.FirstInstanceEndMax, childFirstEndMax);
+		ret.LastInstanceEndMin = Min(ret.LastInstanceEndMin, childLastEndMin);
+		ret.LastInstanceEndMax = Min(ret.LastInstanceEndMax, childLastEndMax);
+	}
+
+	return ret;
+}
+
 EffectNodeImplemented* EffectNodeImplemented::Create(Effect* effect, EffectNode* parent, unsigned char*& pos)
 {
 	EffectNodeImplemented* effectnode = NULL;
@@ -9858,7 +10169,7 @@ EffectNodeImplemented* EffectNodeImplemented::Create(Effect* effect, EffectNode*
 //
 //----------------------------------------------------------------------------------
 
-}
+} // namespace Effekseer
 
 //----------------------------------------------------------------------------------
 //
@@ -11299,6 +11610,15 @@ void EffectNodeSprite::BeginRendering(int32_t count, Manager* manager)
 
 		nodeParameter.ZSort = DepthValues.ZSort;
 
+		if (RendererCommon.MaterialType == ParameterRendererCommon::RendererMaterialType::Default)
+		{
+			nodeParameter.MaterialParameterPtr = nullptr;
+		}
+		else
+		{
+			nodeParameter.MaterialParameterPtr = &(RendererCommon.Material);
+		}
+
 		renderer->BeginRendering( nodeParameter, count, m_userData );
 	}
 }
@@ -11332,6 +11652,15 @@ void EffectNodeSprite::Rendering(const Instance& instance, const Instance* next_
 		nodeParameter.IsDepthOffsetScaledWithParticleScale = DepthValues.IsDepthOffsetScaledWithParticleScale;
 
 		nodeParameter.ZSort = DepthValues.ZSort;
+
+		if (RendererCommon.MaterialType == ParameterRendererCommon::RendererMaterialType::Default)
+		{
+			nodeParameter.MaterialParameterPtr = nullptr;
+		}
+		else
+		{
+			nodeParameter.MaterialParameterPtr = &(RendererCommon.Material);
+		}
 
 		SpriteRenderer::InstanceParameter instanceParameter;
 		instanceParameter.AllColor = instValues._color;
@@ -11431,6 +11760,15 @@ void EffectNodeSprite::EndRendering(Manager* manager)
 		nodeParameter.IsDepthOffsetScaledWithParticleScale = DepthValues.IsDepthOffsetScaledWithParticleScale;
 
 		nodeParameter.ZSort = DepthValues.ZSort;
+
+		if (RendererCommon.MaterialType == ParameterRendererCommon::RendererMaterialType::Default)
+		{
+			nodeParameter.MaterialParameterPtr = nullptr;
+		}
+		else
+		{
+			nodeParameter.MaterialParameterPtr = &(RendererCommon.Material);
+		}
 
 		renderer->EndRendering( nodeParameter, m_userData );
 	}
@@ -11989,17 +12327,216 @@ static std::u16string getFilenameWithoutExt(const char16_t* path)
 	return std::u16string(ret.data());
 }
 
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-Effect* Effect::Create( Manager* manager, void* data, int32_t size, float magnification, const EFK_CHAR* materialPath )
+bool EffectFactory::LoadBody(Effect* effect, const void* data, int32_t size, float magnification, const EFK_CHAR* materialPath)
+{
+	auto effect_ = static_cast<EffectImplemented*>(effect);
+	return effect_->LoadBody((uint8_t*)data, size, magnification);
+}
+
+void EffectFactory::SetTexture(Effect* effect, int32_t index, TextureType type, TextureData* data)
+{
+	auto effect_ = static_cast<EffectImplemented*>(effect);
+
+	if (type == TextureType::Color)
+	{
+		assert(0 <= index && index < effect_->m_ImageCount);
+		effect_->m_pImages[index] = data;
+	}
+
+	if (type == TextureType::Normal)
+	{
+		assert(0 <= index && index < effect_->m_normalImageCount);
+		effect_->m_normalImages[index] = data;
+	}
+
+	if (type == TextureType::Distortion)
+	{
+		assert(0 <= index && index < effect_->m_distortionImageCount);
+		effect_->m_distortionImages[index] = data;
+	}
+}
+
+void EffectFactory::SetSound(Effect* effect, int32_t index, void* data)
+{ 
+	auto effect_ = static_cast<EffectImplemented*>(effect); 
+
+	assert(0 <= index && index < effect_->m_WaveCount);
+	effect_->m_pWaves[index] = data;
+	
+}
+
+void EffectFactory::SetModel(Effect* effect, int32_t index, void* data)
+{ 
+	auto effect_ = static_cast<EffectImplemented*>(effect);
+	assert(0 <= index && index < effect_->modelCount_);
+	effect_->models_[index] = data;
+}
+
+void EffectFactory::SetMaterial(Effect* effect, int32_t index, MaterialData* data)
+{
+	auto effect_ = static_cast<EffectImplemented*>(effect);
+	assert(0 <= index && index < effect_->materialCount_);
+	effect_->materials_[index] = data;
+}
+
+bool EffectFactory::OnCheckIsBinarySupported(const void* data, int32_t size)
+{ 
+	// EFKS
+	int head = 0;
+	memcpy(&head, data, sizeof(int));
+	if (memcmp(&head, "SKFE", 4) != 0)
+		return false;
+	return true; 
+}
+
+bool EffectFactory::OnCheckIsReloadSupported() { return true; }
+
+bool EffectFactory::OnLoading(Effect* effect, const void* data, int32_t size, float magnification, const EFK_CHAR* materialPath)
+{ 
+	return this->LoadBody(effect, data, size, magnification, materialPath);
+}
+
+void EffectFactory::OnLoadingResource(Effect* effect, const void* data, int32_t size, const EFK_CHAR* materialPath)
+{
+	auto textureLoader = effect->GetSetting()->GetTextureLoader();
+	auto soundLoader = effect->GetSetting()->GetSoundLoader();
+	auto modelLoader = effect->GetSetting()->GetModelLoader();
+	auto materialLoader = effect->GetSetting()->GetMaterialLoader();
+
+	if (textureLoader != nullptr)
+	{
+		for (auto i = 0; i < effect->GetColorImageCount(); i++)
+		{
+			EFK_CHAR fullPath[512];
+			PathCombine(fullPath, materialPath, effect->GetColorImagePath(i));
+
+			auto resource = textureLoader->Load(fullPath, TextureType::Color);
+			SetTexture(effect, i, TextureType::Color, resource);
+		}
+
+		for (auto i = 0; i < effect->GetNormalImageCount(); i++)
+		{
+			EFK_CHAR fullPath[512];
+			PathCombine(fullPath, materialPath, effect->GetNormalImagePath(i));
+
+			auto resource = textureLoader->Load(fullPath, TextureType::Normal);
+			SetTexture(effect, i, TextureType::Normal, resource);
+		}
+
+		for (auto i = 0; i < effect->GetDistortionImageCount(); i++)
+		{
+			EFK_CHAR fullPath[512];
+			PathCombine(fullPath, materialPath, effect->GetDistortionImagePath(i));
+
+			auto resource = textureLoader->Load(fullPath, TextureType::Distortion);
+			SetTexture(effect, i, TextureType::Distortion, resource);
+		}
+	}
+
+	if (soundLoader != nullptr)
+	{
+		for (auto i = 0; i < effect->GetWaveCount(); i++)
+		{
+			EFK_CHAR fullPath[512];
+			PathCombine(fullPath, materialPath, effect->GetWavePath(i));
+
+			auto resource = soundLoader->Load(fullPath);
+			SetSound(effect, i, resource);
+		}
+	}
+
+	if (modelLoader != nullptr)
+	{
+		for (auto i = 0; i < effect->GetModelCount(); i++)
+		{
+			EFK_CHAR fullPath[512];
+			PathCombine(fullPath, materialPath, effect->GetModelPath(i));
+
+			auto resource = modelLoader->Load(fullPath);
+			SetModel(effect, i, resource);
+		}
+	}
+
+	if (materialLoader != nullptr)
+	{
+		for (auto i = 0; i < effect->GetMaterialCount(); i++)
+		{
+			EFK_CHAR fullPath[512];
+			PathCombine(fullPath, materialPath, effect->GetMaterialPath(i));
+
+			auto resource = materialLoader->Load(fullPath);
+			SetMaterial(effect, i, resource);
+		}
+	}
+}
+
+void EffectFactory::OnUnloadingResource(Effect* effect) { 
+	auto textureLoader = effect->GetSetting()->GetTextureLoader(); 
+	auto soundLoader = effect->GetSetting()->GetSoundLoader();
+	auto modelLoader = effect->GetSetting()->GetModelLoader();
+	auto materialLoader = effect->GetSetting()->GetMaterialLoader();
+
+	if (textureLoader != nullptr)
+	{
+		for (auto i = 0; i < effect->GetColorImageCount(); i++)
+		{
+			textureLoader->Unload(effect->GetColorImage(i));
+			SetTexture(effect, i, TextureType::Color, nullptr);
+		}
+
+		for (auto i = 0; i < effect->GetNormalImageCount(); i++)
+		{
+			textureLoader->Unload(effect->GetNormalImage(i));
+			SetTexture(effect, i, TextureType::Normal, nullptr);
+		}
+
+		for (auto i = 0; i < effect->GetDistortionImageCount(); i++)
+		{
+			textureLoader->Unload(effect->GetDistortionImage(i));
+			SetTexture(effect, i, TextureType::Distortion, nullptr);
+		}
+	}
+
+	if (soundLoader != nullptr)
+	{
+		for (auto i = 0; i < effect->GetWaveCount(); i++)
+		{
+			soundLoader->Unload(effect->GetWave(i));
+			SetSound(effect, i, nullptr);
+		}
+	}
+
+	if (modelLoader != nullptr)
+	{
+		for (auto i = 0; i < effect->GetModelCount(); i++)
+		{
+			modelLoader->Unload(effect->GetModel(i));
+			SetModel(effect, i, nullptr);
+		}
+	}
+	
+	if (materialLoader != nullptr)
+	{
+		for (auto i = 0; i < effect->GetMaterialCount(); i++)
+		{
+			materialLoader->Unload(effect->GetMaterial(i));
+			SetMaterial(effect, i, nullptr);
+		}
+	}
+}
+
+EffectFactory::EffectFactory() {
+}
+
+EffectFactory::~EffectFactory()
+{
+}
+
+Effect* Effect::Create(Manager * manager, void* data, int32_t size, float magnification, const EFK_CHAR* materialPath)
 {
 	return EffectImplemented::Create( manager, data, size, magnification, materialPath );
 }
 
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
 Effect* Effect::Create(Manager* manager, const EFK_CHAR* path, float magnification, const EFK_CHAR* materialPath)
 {
 	Setting* setting = manager->GetSetting();
@@ -12027,6 +12564,252 @@ Effect* Effect::Create(Manager* manager, const EFK_CHAR* path, float magnificati
 	effect->SetName(getFilenameWithoutExt(path).c_str());
 
 	return effect;
+}
+
+bool EffectImplemented::LoadBody(uint8_t* data, int32_t size, float mag)
+{
+	uint8_t* pos = (uint8_t*)data;
+
+	// EFKS
+	int head = 0;
+	memcpy(&head, pos, sizeof(int));
+	if (memcmp(&head, "SKFE", 4) != 0)
+		return false;
+	pos += sizeof(int);
+
+	memcpy(&m_version, pos, sizeof(int));
+	pos += sizeof(int);
+
+	// Image
+	memcpy(&m_ImageCount, pos, sizeof(int));
+	pos += sizeof(int);
+
+	if (m_ImageCount > 0)
+	{
+		m_ImagePaths = new EFK_CHAR*[m_ImageCount];
+		m_pImages = new TextureData*[m_ImageCount];
+
+		for (int i = 0; i < m_ImageCount; i++)
+		{
+			int length = 0;
+			memcpy(&length, pos, sizeof(int));
+			pos += sizeof(int);
+
+			m_ImagePaths[i] = new EFK_CHAR[length];
+			memcpy(m_ImagePaths[i], pos, length * sizeof(EFK_CHAR));
+			pos += length * sizeof(EFK_CHAR);
+
+			m_pImages[i] = NULL;
+		}
+	}
+
+	if (m_version >= 9)
+	{
+		// Image
+		memcpy(&m_normalImageCount, pos, sizeof(int));
+		pos += sizeof(int);
+
+		if (m_normalImageCount > 0)
+		{
+			m_normalImagePaths = new EFK_CHAR*[m_normalImageCount];
+			m_normalImages = new TextureData*[m_normalImageCount];
+
+			for (int i = 0; i < m_normalImageCount; i++)
+			{
+				int length = 0;
+				memcpy(&length, pos, sizeof(int));
+				pos += sizeof(int);
+
+				m_normalImagePaths[i] = new EFK_CHAR[length];
+				memcpy(m_normalImagePaths[i], pos, length * sizeof(EFK_CHAR));
+				pos += length * sizeof(EFK_CHAR);
+
+				m_normalImages[i] = NULL;
+			}
+		}
+
+		// Image
+		memcpy(&m_distortionImageCount, pos, sizeof(int));
+		pos += sizeof(int);
+
+		if (m_distortionImageCount > 0)
+		{
+			m_distortionImagePaths = new EFK_CHAR*[m_distortionImageCount];
+			m_distortionImages = new TextureData*[m_distortionImageCount];
+
+			for (int i = 0; i < m_distortionImageCount; i++)
+			{
+				int length = 0;
+				memcpy(&length, pos, sizeof(int));
+				pos += sizeof(int);
+
+				m_distortionImagePaths[i] = new EFK_CHAR[length];
+				memcpy(m_distortionImagePaths[i], pos, length * sizeof(EFK_CHAR));
+				pos += length * sizeof(EFK_CHAR);
+
+				m_distortionImages[i] = NULL;
+			}
+		}
+	}
+
+	if (m_version >= 1)
+	{
+		// Sound
+		memcpy(&m_WaveCount, pos, sizeof(int));
+		pos += sizeof(int);
+
+		if (m_WaveCount > 0)
+		{
+			m_WavePaths = new EFK_CHAR*[m_WaveCount];
+			m_pWaves = new void*[m_WaveCount];
+
+			for (int i = 0; i < m_WaveCount; i++)
+			{
+				int length = 0;
+				memcpy(&length, pos, sizeof(int));
+				pos += sizeof(int);
+
+				m_WavePaths[i] = new EFK_CHAR[length];
+				memcpy(m_WavePaths[i], pos, length * sizeof(EFK_CHAR));
+				pos += length * sizeof(EFK_CHAR);
+
+				m_pWaves[i] = NULL;
+			}
+		}
+	}
+
+	if (m_version >= 6)
+	{
+		// Model
+		memcpy(&modelCount_, pos, sizeof(int));
+		pos += sizeof(int);
+
+		if (modelCount_ > 0)
+		{
+			modelPaths_ = new EFK_CHAR*[modelCount_];
+			models_ = new void*[modelCount_];
+
+			for (int i = 0; i < modelCount_; i++)
+			{
+				int length = 0;
+				memcpy(&length, pos, sizeof(int));
+				pos += sizeof(int);
+
+				modelPaths_[i] = new EFK_CHAR[length];
+				memcpy(modelPaths_[i], pos, length * sizeof(EFK_CHAR));
+				pos += length * sizeof(EFK_CHAR);
+
+				models_[i] = NULL;
+			}
+		}
+	}
+
+	if (m_version >= 15)
+	{
+		// material
+		memcpy(&materialCount_, pos, sizeof(int));
+		pos += sizeof(int);
+
+		if (materialCount_ > 0)
+		{
+			materialPaths_ = new EFK_CHAR*[materialCount_];
+			materials_ = new MaterialData*[materialCount_];
+
+			for (int i = 0; i < materialCount_; i++)
+			{
+				int length = 0;
+				memcpy(&length, pos, sizeof(int));
+				pos += sizeof(int);
+
+				materialPaths_[i] = new EFK_CHAR[length];
+				memcpy(materialPaths_[i], pos, length * sizeof(EFK_CHAR));
+				pos += length * sizeof(EFK_CHAR);
+
+				materials_[i] = NULL;
+			}
+		}
+	}
+
+	if (m_version >= 14)
+	{
+		// dynamic parameter
+		int32_t dynamicParameterCount = 0;
+
+		memcpy(&dynamicParameterCount, pos, sizeof(int));
+		pos += sizeof(int);
+
+		if (dynamicParameterCount > 0)
+		{
+			dynamicParameters.resize(dynamicParameterCount);
+
+			for (int dp = 0; dp < dynamicParameters.size(); dp++)
+			{
+				for (int i = 0; i < 4; i++)
+				{
+					int size_ = 0;
+					memcpy(&size_, pos, sizeof(int));
+					pos += sizeof(int);
+
+					dynamicParameters[dp].Elements[i].Load(pos, size_);
+
+					pos += size_;
+				}
+			}
+		}
+	}
+
+	if (m_version >= 13)
+	{
+		memcpy(&renderingNodesCount, pos, sizeof(int32_t));
+		pos += sizeof(int32_t);
+
+		memcpy(&renderingNodesThreshold, pos, sizeof(int32_t));
+		pos += sizeof(int32_t);
+	}
+
+	// magnification
+	if (m_version >= 2)
+	{
+		memcpy(&m_maginification, pos, sizeof(float));
+		pos += sizeof(float);
+	}
+
+	m_maginification *= mag;
+	m_maginificationExternal = mag;
+
+	if (m_version >= 11)
+	{
+		memcpy(&m_defaultRandomSeed, pos, sizeof(int32_t));
+		pos += sizeof(int32_t);
+	}
+	else
+	{
+		m_defaultRandomSeed = -1;
+	}
+
+	// Culling
+	if (m_version >= 9)
+	{
+		memcpy(&(Culling.Shape), pos, sizeof(int32_t));
+		pos += sizeof(int32_t);
+		if (Culling.Shape == CullingShape::Sphere)
+		{
+			memcpy(&(Culling.Sphere.Radius), pos, sizeof(float));
+			pos += sizeof(float);
+
+			memcpy(&(Culling.Location.X), pos, sizeof(float));
+			pos += sizeof(float);
+			memcpy(&(Culling.Location.Y), pos, sizeof(float));
+			pos += sizeof(float);
+			memcpy(&(Culling.Location.Z), pos, sizeof(float));
+			pos += sizeof(float);
+		}
+	}
+
+	// Nodes
+	m_pRoot = EffectNodeImplemented::Create(this, NULL, pos);
+
+	return true;
 }
 
 void EffectImplemented::ResetReloadingBackup()
@@ -12171,16 +12954,7 @@ EffectImplemented::EffectImplemented( Manager* pManager, void* pData, int size )
 	, m_distortionImageCount(0)
 	, m_distortionImagePaths(nullptr)
 	, m_distortionImages(nullptr)
-	, m_WaveCount		( 0 )
-	, m_WavePaths		( NULL )
-	, m_pWaves			( NULL )
-	, m_modelCount		( 0 )
-	, m_modelPaths		( NULL )
-	, m_pModels			( NULL )
-	, m_maginification	( 1.0f )
-	, m_maginificationExternal	( 1.0f )
 	, m_defaultRandomSeed	(-1)
-	, m_pRoot			( NULL )
 
 {
 	ES_SAFE_ADDREF( m_pManager );
@@ -12199,20 +12973,9 @@ EffectImplemented::EffectImplemented( Setting* setting, void* pData, int size )
 	, m_ImageCount		( 0 )
 	, m_ImagePaths		( NULL )
 	, m_pImages			( NULL )
-	, m_WaveCount		( 0 )
-	, m_WavePaths		( NULL )
-	, m_pWaves			( NULL )
-	, m_modelCount		( 0 )
-	, m_modelPaths		( NULL )
-	, m_pModels			( NULL )
-	, m_maginification	( 1.0f )
-	, m_maginificationExternal	( 1.0f )
-	, m_pRoot			( NULL )
-
 	, m_normalImageCount(0)
 	, m_normalImagePaths(nullptr)
 	, m_normalImages(nullptr)
-
 	, m_distortionImageCount(0)
 	, m_distortionImagePaths(nullptr)
 	, m_distortionImages(nullptr)
@@ -12232,6 +12995,8 @@ EffectImplemented::~EffectImplemented()
 
 	ES_SAFE_RELEASE( m_setting );
 	ES_SAFE_RELEASE( m_pManager );
+
+	ES_SAFE_RELEASE(factory);
 }
 
 //----------------------------------------------------------------------------------
@@ -12255,200 +13020,57 @@ float EffectImplemented::GetMaginification() const
 //----------------------------------------------------------------------------------
 bool EffectImplemented::Load( void* pData, int size, float mag, const EFK_CHAR* materialPath, ReloadingThreadType reloadingThreadType)
 {
+	if(m_setting != nullptr)
+	{
+		for (int i = 0; i < m_setting->GetEffectFactoryCount(); i++)
+		{
+			auto f = m_setting->GetEffectFactory(i);
+
+			if(f->OnCheckIsBinarySupported(pData, size))
+			{
+				ES_SAFE_ADDREF(f);
+				factory = f;
+				break;
+			}
+		}
+	}
+
+	if (m_pManager != nullptr)
+	{
+		for (int i = 0; i < m_pManager->GetSetting()->GetEffectFactoryCount(); i++)
+		{
+			auto f = m_pManager->GetSetting()->GetEffectFactory(i);
+
+			if (f->OnCheckIsBinarySupported(pData, size))
+			{
+				ES_SAFE_ADDREF(f);
+				factory = f;
+				break;
+			}
+		}
+	}
+
+	if (factory == nullptr)
+		return false;
+
 	// if reladingThreadType == ReloadingThreadType::Main, this function was regarded as loading function actually
+
+	if (!factory->OnCheckIsBinarySupported(pData, size))
+	{
+		return false;
+	}
 
 	EffekseerPrintDebug("** Create : Effect\n");
 
-	uint8_t* pos = (uint8_t*)pData;
-
-	// EFKS
-	int head = 0;
-	memcpy( &head, pos, sizeof(int) );
-	if( memcmp( &head, "SKFE", 4 ) != 0 ) return false;
-	pos += sizeof( int );
-
-	memcpy( &m_version, pos, sizeof(int) );
-	pos += sizeof(int);
-
-	// 画像
-	memcpy( &m_ImageCount, pos, sizeof(int) );
-	pos += sizeof(int);
-
-	if( m_ImageCount > 0 )
+	if(!factory->OnLoading(this, pData, size, mag, materialPath))
 	{
-		m_ImagePaths = new EFK_CHAR*[ m_ImageCount ];
-		m_pImages = new TextureData*[ m_ImageCount ];
-
-		for( int i = 0; i < m_ImageCount; i++ )
-		{
-			int length = 0;
-			memcpy( &length, pos, sizeof(int) );
-			pos += sizeof(int);
-
-			m_ImagePaths[i] = new EFK_CHAR[ length ];
-			memcpy( m_ImagePaths[i], pos, length * sizeof(EFK_CHAR) );
-			pos += length * sizeof(EFK_CHAR);
-
-			m_pImages[i] = NULL;
-		}
+		return false;
 	}
 
-	if (m_version >= 9)
-	{
-		// 画像
-		memcpy(&m_normalImageCount, pos, sizeof(int));
-		pos += sizeof(int);
+	// save materialPath for reloading
+    if (materialPath != nullptr) m_materialPath = materialPath;
 
-		if (m_normalImageCount > 0)
-		{
-			m_normalImagePaths = new EFK_CHAR*[m_normalImageCount];
-			m_normalImages = new TextureData*[m_normalImageCount];
-
-			for (int i = 0; i < m_normalImageCount; i++)
-			{
-				int length = 0;
-				memcpy(&length, pos, sizeof(int));
-				pos += sizeof(int);
-
-				m_normalImagePaths[i] = new EFK_CHAR[length];
-				memcpy(m_normalImagePaths[i], pos, length * sizeof(EFK_CHAR));
-				pos += length * sizeof(EFK_CHAR);
-
-				m_normalImages[i] = NULL;
-			}
-		}
-
-		// 画像
-		memcpy(&m_distortionImageCount, pos, sizeof(int));
-		pos += sizeof(int);
-
-		if (m_distortionImageCount > 0)
-		{
-			m_distortionImagePaths = new EFK_CHAR*[m_distortionImageCount];
-			m_distortionImages = new TextureData*[m_distortionImageCount];
-
-			for (int i = 0; i < m_distortionImageCount; i++)
-			{
-				int length = 0;
-				memcpy(&length, pos, sizeof(int));
-				pos += sizeof(int);
-
-				m_distortionImagePaths[i] = new EFK_CHAR[length];
-				memcpy(m_distortionImagePaths[i], pos, length * sizeof(EFK_CHAR));
-				pos += length * sizeof(EFK_CHAR);
-
-				m_distortionImages[i] = NULL;
-			}
-		}
-	}
-
-	if( m_version >= 1 )
-	{
-		// ウェーブ
-		memcpy( &m_WaveCount, pos, sizeof(int) );
-		pos += sizeof(int);
-
-		if( m_WaveCount > 0 )
-		{
-			m_WavePaths = new EFK_CHAR*[ m_WaveCount ];
-			m_pWaves = new void*[ m_WaveCount ];
-
-			for( int i = 0; i < m_WaveCount; i++ )
-			{
-				int length = 0;
-				memcpy( &length, pos, sizeof(int) );
-				pos += sizeof(int);
-
-				m_WavePaths[i] = new EFK_CHAR[ length ];
-				memcpy( m_WavePaths[i], pos, length * sizeof(EFK_CHAR) );
-				pos += length * sizeof(EFK_CHAR);
-
-				m_pWaves[i] = NULL;
-			}
-		}
-	}
-
-	if( m_version >= 6 )
-	{
-		/* モデル */
-		memcpy( &m_modelCount, pos, sizeof(int) );
-		pos += sizeof(int);
-
-		if( m_modelCount > 0 )
-		{
-			m_modelPaths = new EFK_CHAR*[ m_modelCount ];
-			m_pModels = new void*[ m_modelCount ];
-
-			for( int i = 0; i < m_modelCount; i++ )
-			{
-				int length = 0;
-				memcpy( &length, pos, sizeof(int) );
-				pos += sizeof(int);
-
-				m_modelPaths[i] = new EFK_CHAR[ length ];
-				memcpy( m_modelPaths[i], pos, length * sizeof(EFK_CHAR) );
-				pos += length * sizeof(EFK_CHAR);
-
-				m_pModels[i] = NULL;
-			}
-		}
-	}
-
-	if (m_version >= 13)
-	{
-		memcpy(&renderingNodesCount, pos, sizeof(int32_t));
-		pos += sizeof(int32_t);
-
-		memcpy(&renderingNodesThreshold, pos, sizeof(int32_t));
-		pos += sizeof(int32_t);	
-	}
-
-	// 拡大率
-	if( m_version >= 2 )
-	{
-		memcpy( &m_maginification, pos, sizeof(float) );
-		pos += sizeof(float);
-	}
-
-	m_maginification *= mag;
-	m_maginificationExternal = mag;
-
-	if (m_version >= 11)
-	{
-		memcpy(&m_defaultRandomSeed, pos, sizeof(int32_t));
-		pos += sizeof(int32_t);
-	}
-	else
-	{
-		m_defaultRandomSeed = -1;
-	}
-
-	// カリング
-	if( m_version >= 9 )
-	{
-		memcpy( &(Culling.Shape), pos, sizeof(int32_t) );
-		pos += sizeof(int32_t);
-		if(Culling.Shape ==	CullingShape::Sphere)
-		{
-			memcpy( &(Culling.Sphere.Radius), pos, sizeof(float) );
-			pos += sizeof(float);
-		
-			memcpy( &(Culling.Location.X), pos, sizeof(float) );
-			pos += sizeof(float);
-			memcpy( &(Culling.Location.Y), pos, sizeof(float) );
-			pos += sizeof(float);
-			memcpy( &(Culling.Location.Z), pos, sizeof(float) );
-			pos += sizeof(float);
-		}
-	}
-
-	// ノード
-	m_pRoot = EffectNodeImplemented::Create( this, NULL, pos );
-
-	// リロード用にmaterialPathを記録しておく
-    if (materialPath) m_materialPath = materialPath;
-
-	ReloadResources( materialPath );
+	ReloadResources( pData, size, materialPath);
 	return true;
 }
 
@@ -12502,14 +13124,24 @@ void EffectImplemented::Reset()
 	ES_SAFE_DELETE_ARRAY( m_WavePaths );
 	ES_SAFE_DELETE_ARRAY( m_pWaves );
 
-	for( int i = 0; i < m_modelCount; i++ )
+	for( int i = 0; i < modelCount_; i++ )
 	{
-		if( m_modelPaths[i] != NULL ) delete [] m_modelPaths[i];
+		if( modelPaths_[i] != NULL ) delete [] modelPaths_[i];
 	}
-	m_modelCount = 0;
+	modelCount_ = 0;
 
-	ES_SAFE_DELETE_ARRAY( m_modelPaths );
-	ES_SAFE_DELETE_ARRAY( m_pModels );
+	ES_SAFE_DELETE_ARRAY( modelPaths_ );
+	ES_SAFE_DELETE_ARRAY( models_ );
+
+	for (int i = 0; i < materialCount_; i++)
+	{
+		if (materialPaths_[i] != NULL)
+			delete[] materialPaths_[i];
+	}
+	materialCount_ = 0;
+
+	ES_SAFE_DELETE_ARRAY(materialPaths_);
+	ES_SAFE_DELETE_ARRAY(materials_);
 
 	ES_SAFE_DELETE( m_pRoot );
 }
@@ -12564,6 +13196,8 @@ int32_t EffectImplemented::GetColorImageCount() const
 	return m_ImageCount;
 }
 
+const EFK_CHAR* EffectImplemented::GetColorImagePath(int n) const { return m_ImagePaths[n]; }
+
 TextureData* EffectImplemented::GetNormalImage(int n) const
 {
 	/* 強制的に互換をとる */
@@ -12579,6 +13213,8 @@ int32_t EffectImplemented::GetNormalImageCount() const
 {
 	return m_normalImageCount;
 }
+
+const EFK_CHAR* EffectImplemented::GetNormalImagePath(int n) const { return m_normalImagePaths[n]; }
 
 TextureData* EffectImplemented::GetDistortionImage(int n) const
 {
@@ -12596,9 +13232,8 @@ int32_t EffectImplemented::GetDistortionImageCount() const
 	return m_distortionImageCount;
 }
 
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
+const EFK_CHAR* EffectImplemented::GetDistortionImagePath(int n) const { return m_distortionImagePaths[n]; }
+
 void* EffectImplemented::GetWave( int n ) const
 {
 	return m_pWaves[ n ];
@@ -12609,21 +13244,27 @@ int32_t EffectImplemented::GetWaveCount() const
 	return m_WaveCount;
 }
 
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
+const EFK_CHAR* EffectImplemented::GetWavePath(int n) const { return m_WavePaths[n]; }
+
 void* EffectImplemented::GetModel( int n ) const
 {
-	return m_pModels[ n ];
+	return models_[ n ];
 }
 
 int32_t EffectImplemented::GetModelCount() const
 {
-	return m_modelCount;
+	return modelCount_;
 }
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
+
+const EFK_CHAR* EffectImplemented::GetModelPath(int n) const { return modelPaths_[n]; }
+
+MaterialData* EffectImplemented::GetMaterial(int n) const { return materials_[n]; }
+
+int32_t EffectImplemented::GetMaterialCount() const { return materialCount_; }
+
+const EFK_CHAR* EffectImplemented::GetMaterialPath(int n) const { return materialPaths_[n]; }
+
+
 bool EffectImplemented::Reload( void* data, int32_t size, const EFK_CHAR* materialPath, ReloadingThreadType reloadingThreadType)
 {
 	if(m_pManager == NULL ) return false;
@@ -12652,6 +13293,9 @@ bool EffectImplemented::Reload( const EFK_CHAR* path, const EFK_CHAR* materialPa
 //----------------------------------------------------------------------------------
 bool EffectImplemented::Reload( Manager** managers, int32_t managersCount, void* data, int32_t size, const EFK_CHAR* materialPath, ReloadingThreadType reloadingThreadType)
 {
+	if (!factory->OnCheckIsReloadSupported())
+		return false;
+
 	const EFK_CHAR* matPath = materialPath != NULL ? materialPath : m_materialPath.c_str();
 	
 	int lockCount = 0;
@@ -12662,9 +13306,18 @@ bool EffectImplemented::Reload( Manager** managers, int32_t managersCount, void*
 		lockCount++;
 	}
 
+	// HACK for scale
+	auto originalMag = this->GetMaginification() / this->m_maginificationExternal;
+	auto originalMagExt = this->m_maginificationExternal;
+
 	isReloadingOnRenderingThread = true;
 	Reset();
-	Load( data, size, m_maginificationExternal, matPath, reloadingThreadType);
+	Load( data, size, originalMag * originalMagExt, matPath, reloadingThreadType);
+
+	// HACK for scale
+	m_maginification = originalMag * originalMagExt;
+	m_maginificationExternal = originalMagExt;
+
 	isReloadingOnRenderingThread = false;
 
 	for( int32_t i = 0; i < managersCount; i++)
@@ -12681,6 +13334,9 @@ bool EffectImplemented::Reload( Manager** managers, int32_t managersCount, void*
 //----------------------------------------------------------------------------------
 bool EffectImplemented::Reload( Manager** managers, int32_t managersCount, const EFK_CHAR* path, const EFK_CHAR* materialPath, ReloadingThreadType reloadingThreadType)
 {
+	if (!factory->OnCheckIsReloadSupported())
+		return false;
+
 	Setting* loader = GetSetting();
 	
 	EffectLoader* eLoader = loader->GetEffectLoader();
@@ -12723,7 +13379,7 @@ bool EffectImplemented::Reload( Manager** managers, int32_t managersCount, const
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-void EffectImplemented::ReloadResources( const EFK_CHAR* materialPath )
+void EffectImplemented::ReloadResources(const void* data, int32_t size, const EFK_CHAR* materialPath)
 {
 	UnloadResources();
 
@@ -12786,88 +13442,34 @@ void EffectImplemented::ReloadResources( const EFK_CHAR* materialPath )
 		
 		
 		
-		for (int32_t ind = 0; ind < m_modelCount; ind++)
+		for (int32_t ind = 0; ind < modelCount_; ind++)
 		{
 			EFK_CHAR fullPath[512];
-			PathCombine(fullPath, matPath, m_modelPaths[ind]);
+			PathCombine(fullPath, matPath, modelPaths_[ind]);
 			
 			void* value = nullptr;
 			if (reloadingBackup->models.Pop(fullPath, value))
 			{
-				m_pModels[ind] = value;
+				models_[ind] = value;
+			}
+		}
+
+		for (int32_t ind = 0; ind < materialCount_; ind++)
+		{
+			EFK_CHAR fullPath[512];
+			PathCombine(fullPath, matPath, materialPaths_[ind]);
+
+			MaterialData* value = nullptr;
+			if (reloadingBackup->materials.Pop(fullPath, value))
+			{
+				materials_[ind] = value;
 			}
 		}
 			
 		return;
 	}
 
-	{
-		TextureLoader* textureLoader = loader->GetTextureLoader();
-		if( textureLoader != NULL )
-		{
-			for( int32_t ind = 0; ind < m_ImageCount; ind++ )
-			{
-				EFK_CHAR fullPath[512];
-				PathCombine( fullPath, matPath, m_ImagePaths[ ind ] );
-				m_pImages[ind] = textureLoader->Load( fullPath, TextureType::Color );
-			}
-		}
-	}
-
-	{
-		TextureLoader* textureLoader = loader->GetTextureLoader();
-		if (textureLoader != NULL)
-		{
-			for (int32_t ind = 0; ind < m_normalImageCount; ind++)
-			{
-				EFK_CHAR fullPath[512];
-				PathCombine(fullPath, matPath, m_normalImagePaths[ind]);
-				m_normalImages[ind] = textureLoader->Load(fullPath, TextureType::Normal);
-			}
-		}
-
-	}
-		{
-			TextureLoader* textureLoader = loader->GetTextureLoader();
-			if (textureLoader != NULL)
-			{
-				for (int32_t ind = 0; ind < m_distortionImageCount; ind++)
-				{
-					EFK_CHAR fullPath[512];
-					PathCombine(fullPath, matPath, m_distortionImagePaths[ind]);
-					m_distortionImages[ind] = textureLoader->Load(fullPath, TextureType::Distortion);
-				}
-			}
-		}
-
-	
-
-	{
-		SoundLoader* soundLoader = loader->GetSoundLoader();
-		if( soundLoader != NULL )
-		{
-			for( int32_t ind = 0; ind < m_WaveCount; ind++ )
-			{
-				EFK_CHAR fullPath[512];
-				PathCombine( fullPath, matPath, m_WavePaths[ ind ] );
-				m_pWaves[ind] = soundLoader->Load( fullPath );
-			}
-		}
-	}
-
-	{
-		ModelLoader* modelLoader = loader->GetModelLoader();
-		
-		if( modelLoader != NULL )
-		{
-			for( int32_t ind = 0; ind < m_modelCount; ind++ )
-			{
-				EFK_CHAR fullPath[512];
-				PathCombine( fullPath, matPath, m_modelPaths[ ind ] );
-				m_pModels[ind] = modelLoader->Load( fullPath );
-			}
-		}
-	}
+	factory->OnLoadingResource(this, data, size, matPath);
 }
 
 void EffectImplemented::UnloadResources(const EFK_CHAR* materialPath)
@@ -12920,13 +13522,23 @@ void EffectImplemented::UnloadResources(const EFK_CHAR* materialPath)
 			reloadingBackup->sounds.Push(fullPath, m_pWaves[ind]);
 		}
 
-		for (int32_t ind = 0; ind < m_modelCount; ind++)
+		for (int32_t ind = 0; ind < modelCount_; ind++)
 		{
-			if (m_pModels[ind] == nullptr) continue;
+			if (models_[ind] == nullptr) continue;
 
 			EFK_CHAR fullPath[512];
-			PathCombine(fullPath, matPath, m_modelPaths[ind]);
-			reloadingBackup->models.Push(fullPath, m_pModels[ind]);
+			PathCombine(fullPath, matPath, modelPaths_[ind]);
+			reloadingBackup->models.Push(fullPath, models_[ind]);
+		}
+
+		for (int32_t ind = 0; ind < materialCount_; ind++)
+		{
+			if (materials_[ind] == nullptr)
+				continue;
+
+			EFK_CHAR fullPath[512];
+			PathCombine(fullPath, matPath, materialPaths_[ind]);
+			reloadingBackup->materials.Push(fullPath, materials_[ind]);
 		}
 
 		return;
@@ -12936,49 +13548,7 @@ void EffectImplemented::UnloadResources(const EFK_CHAR* materialPath)
 		ResetReloadingBackup();
 	}
 
-	TextureLoader* textureLoader = loader->GetTextureLoader();
-	if (textureLoader != NULL)
-	{
-		for (int32_t ind = 0; ind < m_ImageCount; ind++)
-		{
-			textureLoader->Unload(m_pImages[ind]);
-			m_pImages[ind] = NULL;
-		}
-
-		for (int32_t ind = 0; ind < m_normalImageCount; ind++)
-		{
-			textureLoader->Unload(m_normalImages[ind]);
-			m_normalImages[ind] = NULL;
-		}
-
-		for (int32_t ind = 0; ind < m_distortionImageCount; ind++)
-		{
-			textureLoader->Unload(m_distortionImages[ind]);
-			m_distortionImages[ind] = NULL;
-		}
-	}
-
-	SoundLoader* soundLoader = loader->GetSoundLoader();
-	if (soundLoader != NULL)
-	{
-		for (int32_t ind = 0; ind < m_WaveCount; ind++)
-		{
-			soundLoader->Unload(m_pWaves[ind]);
-			m_pWaves[ind] = NULL;
-		}
-	}
-
-	{
-		ModelLoader* modelLoader = loader->GetModelLoader();
-		if (modelLoader != NULL)
-		{
-			for (int32_t ind = 0; ind < m_modelCount; ind++)
-			{
-				modelLoader->Unload(m_pModels[ind]);
-				m_pModels[ind] = NULL;
-			}
-		}
-	}
+	factory->OnUnloadingResource(this);
 }
 
 void EffectImplemented::UnloadResources()
@@ -12986,14 +13556,39 @@ void EffectImplemented::UnloadResources()
 	UnloadResources(nullptr);
 }
 
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
+EffectTerm EffectImplemented::CalculateTerm() const
+{ 
+	
+	EffectTerm effectTerm;
+	effectTerm.TermMin = 0;
+	effectTerm.TermMax = 0;
+
+	auto root = GetRoot(); 
+	EffectInstanceTerm rootTerm;
+
+	std::function<void(EffectNode*, EffectInstanceTerm&)> recurse;
+	recurse = [&effectTerm, &recurse](EffectNode* node, EffectInstanceTerm& term) -> void
+	{
+		for (int i = 0; i < node->GetChildrenCount(); i++)
+		{
+			auto cterm = node->GetChild(i)->CalculateInstanceTerm(term);
+			effectTerm.TermMin = Max(effectTerm.TermMin, cterm.LastInstanceEndMin);
+			effectTerm.TermMax = Max(effectTerm.TermMax, cterm.LastInstanceEndMax);
+
+			recurse(node->GetChild(i), cterm);
+		}
+	};
+
+	recurse(root, rootTerm);
+
+	return effectTerm;
 }
 
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
+}
+
 
 
 //----------------------------------------------------------------------------------
@@ -13307,15 +13902,6 @@ void ManagerImplemented::ExecuteEvents()
 	}
 }
 
-void ManagerImplemented::ShowErrorAndExit(const char* message)
-{
-	std::cerr << "EffekseerError : " << message << std::endl;
-	abort();
-}
-
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
 ManagerImplemented::ManagerImplemented( int instance_max, bool autoFlip )
 	: m_autoFlip	( autoFlip )
 	, m_NextHandle	( 0 )
@@ -13703,6 +14289,10 @@ void ManagerImplemented::SetModelLoader( ModelLoader* modelLoader )
 	m_setting->SetModelLoader(modelLoader);
 }
 
+MaterialLoader* ManagerImplemented::GetMaterialLoader() { return m_setting->GetMaterialLoader(); }
+
+void ManagerImplemented::SetMaterialLoader(MaterialLoader* loader) { m_setting->SetMaterialLoader(loader); }
+
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
@@ -14030,6 +14620,22 @@ void ManagerImplemented::SetTargetLocation( Handle handle, const Vector3D& locat
 	}
 }
 
+void ManagerImplemented::SetDynamicParameter(Handle handle, int32_t index, float value) {
+	if (m_DrawSets.count(handle) > 0)
+	{
+		DrawSet& drawSet = m_DrawSets[handle];
+
+		InstanceGlobal* instanceGlobal = drawSet.GlobalPointer;
+
+		if (index < 0 || instanceGlobal->dynamicInputParameters.size() <= index)
+			return;
+
+		instanceGlobal->dynamicInputParameters[index] = value;
+
+		drawSet.IsParameterChanged = true;
+	}
+}
+
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
@@ -14151,11 +14757,6 @@ void ManagerImplemented::Flip()
 {
 	if( !m_autoFlip )
 	{
-		if (m_isLockedWithRenderingMutex)
-		{
-			ShowErrorAndExit("Rendering thread is locked.");
-		}
-
 		m_renderingMutex.lock();
 	}
 
@@ -14327,11 +14928,6 @@ void ManagerImplemented::Update( float deltaFrame )
 //----------------------------------------------------------------------------------
 void ManagerImplemented::BeginUpdate()
 {
-	if (m_isLockedWithRenderingMutex)
-	{
-		ShowErrorAndExit("Rendering thread is locked.");
-	}
-
 	m_renderingMutex.lock();
 	m_isLockedWithRenderingMutex = true;
 
@@ -14371,6 +14967,26 @@ void ManagerImplemented::UpdateHandle( Handle handle, float deltaFrame )
 //----------------------------------------------------------------------------------
 void ManagerImplemented::UpdateHandle( DrawSet& drawSet, float deltaFrame )
 {
+	// calculate dynamic parameters
+	auto e = static_cast<EffectImplemented*>(drawSet.ParameterPointer);
+	assert(e != nullptr);
+	assert(drawSet.GlobalPointer->dynamicParameters.size() >= e->dynamicParameters.size());
+
+	std::array<float, 1> globals;
+	globals[0] = drawSet.GlobalPointer->GetUpdatedFrame() / 60.0f;
+
+	for (size_t i = 0; i < e->dynamicParameters.size(); i++)
+	{
+		for (size_t j = 0; j < 4; j++)
+		{
+			if (e->dynamicParameters[i].Elements[j].GetRunningPhase() != InternalScript::RunningPhaseType::Global)
+				continue;
+
+			drawSet.GlobalPointer->dynamicParameters[i][j] =
+				e->dynamicParameters[i].Elements[j].Execute(drawSet.GlobalPointer->dynamicInputParameters, globals, std::array<float, 5>());
+		}
+	}
+
 	if (!drawSet.IsPreupdated)
 	{
 		Preupdate(drawSet);
@@ -14411,10 +15027,6 @@ void ManagerImplemented::Preupdate(DrawSet& drawSet)
 //----------------------------------------------------------------------------------
 void ManagerImplemented::Draw()
 {
-	if (m_isLockedWithRenderingMutex)
-	{
-		ShowErrorAndExit("Rendering thread is locked.");
-	}
 	std::lock_guard<std::mutex> lock(m_renderingMutex);
 
 	// 開始時間を記録
@@ -14471,10 +15083,6 @@ void ManagerImplemented::Draw()
 
 void ManagerImplemented::DrawBack()
 {
-	if (m_isLockedWithRenderingMutex)
-	{
-		ShowErrorAndExit("Rendering thread is locked.");
-	}
 	std::lock_guard<std::mutex> lock(m_renderingMutex);
 	
 	// 開始時間を記録
@@ -14519,10 +15127,6 @@ void ManagerImplemented::DrawBack()
 
 void ManagerImplemented::DrawFront()
 {
-	if (m_isLockedWithRenderingMutex)
-	{
-		ShowErrorAndExit("Rendering thread is locked.");
-	}
 	std::lock_guard<std::mutex> lock(m_renderingMutex);
 
 	// 開始時間を記録
@@ -14627,10 +15231,6 @@ Handle ManagerImplemented::Play(Effect* effect, const Vector3D& position, int32_
 
 void ManagerImplemented::DrawHandle( Handle handle )
 {
-	if (m_isLockedWithRenderingMutex)
-	{
-		ShowErrorAndExit("Rendering thread is locked.");
-	}
 	std::lock_guard<std::mutex> lock(m_renderingMutex);
 
 	std::map<Handle,DrawSet>::iterator it = m_renderingDrawSetMaps.find( handle );
@@ -14680,10 +15280,6 @@ void ManagerImplemented::DrawHandle( Handle handle )
 
 void ManagerImplemented::DrawHandleBack(Handle handle)
 {
-	if (m_isLockedWithRenderingMutex)
-	{
-		ShowErrorAndExit("Rendering thread is locked.");
-	}
 	std::lock_guard<std::mutex> lock(m_renderingMutex);
 
 	std::map<Handle, DrawSet>::iterator it = m_renderingDrawSetMaps.find(handle);
@@ -14721,10 +15317,6 @@ void ManagerImplemented::DrawHandleBack(Handle handle)
 
 void ManagerImplemented::DrawHandleFront(Handle handle)
 {
-	if (m_isLockedWithRenderingMutex)
-	{
-		ShowErrorAndExit("Rendering thread is locked.");
-	}
 	std::lock_guard<std::mutex> lock(m_renderingMutex);
 
 	std::map<Handle, DrawSet>::iterator it = m_renderingDrawSetMaps.find(handle);
@@ -14781,10 +15373,6 @@ void ManagerImplemented::BeginReloadEffect( Effect* effect, bool doLockThread)
 {
 	if (doLockThread)
 	{
-		if (m_isLockedWithRenderingMutex)
-		{
-			ShowErrorAndExit("Rendering thread is locked.");
-		}
 		m_renderingMutex.lock();
 		m_isLockedWithRenderingMutex = true;
 	}
@@ -15304,6 +15892,47 @@ InstanceGlobal* InstanceContainer::GetRootInstance()
 //----------------------------------------------------------------------------------
 namespace Effekseer
 {
+
+template<typename T, typename U>
+void Instance::ApplyDynamicParameter(T& dstParam, Effect* e, InstanceGlobal* instg, int dpInd, const U& originalParam)
+{
+	static_assert(sizeof(T) == 12, "size is not mismatched");
+	static_assert(sizeof(U) == 12, "size is not mismatched");
+
+	EFK_ASSERT(e != nullptr);
+	EFK_ASSERT(0 <= dpInd && dpInd < static_cast<int>(instg->dynamicParameters.size()));
+
+	auto dst = reinterpret_cast<float*>(&(dstParam));
+	auto src = reinterpret_cast<const float*>(&(originalParam));
+
+	auto dparam = instg->dynamicParameters[dpInd];
+	std::array<float, 1> globals;
+	globals[0] = instg->GetUpdatedFrame() / 60.0f;
+
+	std::array<float, 5> locals;
+	locals[0] = src[0];
+	locals[1] = src[1];
+	locals[2] = src[2];
+	locals[3] = 0.0f;
+	locals[4] = m_pParent != nullptr ? m_pParent->m_LivingTime / 60.0f : 0.0f;
+
+	auto e_ = static_cast<EffectImplemented*>(e);
+	auto& dp = e_->dynamicParameters[dpInd];
+
+	for (int i = 0; i < 3; i++)
+	{
+		if (dp.Elements[i].GetRunningPhase() == InternalScript::RunningPhaseType::Local)
+		{
+			auto v = dp.Elements[i].Execute(instg->dynamicInputParameters, globals, locals);
+			dst[i] = v;
+		}
+		else
+		{
+			dst[i] = dparam[i];
+		}
+	}
+}
+
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
@@ -15317,11 +15946,11 @@ Instance::Instance(Manager* pManager, EffectNode* pEffectNode, InstanceContainer
 	, m_LivedTime(0)
 	, m_LivingTime(0)
 	, uvTimeOffset(0)
-	, m_GlobalMatrix43Calculated(false)
-	, m_ParentMatrix43Calculated(false)
 	, m_flexibleGeneratedChildrenCount(nullptr)
 	, m_flexibleNextGenerationTime(nullptr)
-	, m_stepTime(false)
+	, m_GlobalMatrix43Calculated(false)
+	, m_ParentMatrix43Calculated(false)
+	, is_time_step_allowed(false)
 	, m_sequenceNumber(0)
 {
 	m_generatedChildrenCount = m_fixedGeneratedChildrenCount;
@@ -15581,20 +16210,123 @@ void Instance::Initialize( Instance* parent, int32_t instanceNumber, int32_t par
 		ColorParent = m_pParent->ColorInheritance;
 	}
 
-	/* 位置 */
+	// Translation
 	if( m_pEffectNode->TranslationType == ParameterTranslationType_Fixed )
 	{
 	}
 	else if( m_pEffectNode->TranslationType == ParameterTranslationType_PVA )
 	{
-		translation_values.random.location = m_pEffectNode->TranslationPVA.location.getValue( *this->m_pContainer->GetRootInstance() );
-		translation_values.random.velocity = m_pEffectNode->TranslationPVA.velocity.getValue(*this->m_pContainer->GetRootInstance());
-		translation_values.random.acceleration = m_pEffectNode->TranslationPVA.acceleration.getValue(*this->m_pContainer->GetRootInstance());
+		random_vector3d rvl = m_pEffectNode->TranslationPVA.location;
+
+		if (m_pEffectNode->TranslationPVA.ReferencedDynamicParameterPMax >= 0)
+		{
+			ApplyDynamicParameter(rvl.max,
+								  this->m_pEffectNode->m_effect,
+								  this->m_pContainer->GetRootInstance(),
+								  m_pEffectNode->TranslationPVA.ReferencedDynamicParameterPMax,
+								  m_pEffectNode->TranslationPVA.location.max);
+		}
+
+		if (m_pEffectNode->TranslationPVA.ReferencedDynamicParameterPMin >= 0)
+		{
+			ApplyDynamicParameter(rvl.min,
+								  this->m_pEffectNode->m_effect,
+								  this->m_pContainer->GetRootInstance(),
+								  m_pEffectNode->TranslationPVA.ReferencedDynamicParameterPMin,
+								  m_pEffectNode->TranslationPVA.location.min);
+		}
+
+		translation_values.random.location = rvl.getValue(*this->m_pContainer->GetRootInstance());
+
+		random_vector3d rvv = m_pEffectNode->TranslationPVA.velocity;
+
+		if (m_pEffectNode->TranslationPVA.ReferencedDynamicParameterVMax >= 0)
+		{
+			ApplyDynamicParameter(rvv.max,
+								  this->m_pEffectNode->m_effect,
+								  this->m_pContainer->GetRootInstance(),
+								  m_pEffectNode->TranslationPVA.ReferencedDynamicParameterVMax,
+								  m_pEffectNode->TranslationPVA.velocity.max);
+		}
+
+		if (m_pEffectNode->TranslationPVA.ReferencedDynamicParameterVMin >= 0)
+		{
+			ApplyDynamicParameter(rvv.min,
+								  this->m_pEffectNode->m_effect,
+								  this->m_pContainer->GetRootInstance(),
+								  m_pEffectNode->TranslationPVA.ReferencedDynamicParameterVMin,
+								  m_pEffectNode->TranslationPVA.velocity.min);
+		}
+
+		translation_values.random.velocity = rvv.getValue(*this->m_pContainer->GetRootInstance());
+
+		random_vector3d rva = m_pEffectNode->TranslationPVA.acceleration;
+
+		if (m_pEffectNode->TranslationPVA.ReferencedDynamicParameterAMax >= 0)
+		{
+			ApplyDynamicParameter(rva.max,
+								  this->m_pEffectNode->m_effect,
+								  this->m_pContainer->GetRootInstance(),
+								  m_pEffectNode->TranslationPVA.ReferencedDynamicParameterAMax,
+								  m_pEffectNode->TranslationPVA.acceleration.max);
+		}
+
+		if (m_pEffectNode->TranslationPVA.ReferencedDynamicParameterAMin >= 0)
+		{
+			ApplyDynamicParameter(rva.min,
+								  this->m_pEffectNode->m_effect,
+								  this->m_pContainer->GetRootInstance(),
+								  m_pEffectNode->TranslationPVA.ReferencedDynamicParameterAMin,
+								  m_pEffectNode->TranslationPVA.acceleration.min);
+		}
+
+		translation_values.random.acceleration = rva.getValue(*this->m_pContainer->GetRootInstance());
+
 	}
 	else if( m_pEffectNode->TranslationType == ParameterTranslationType_Easing )
 	{
-		translation_values.easing.start = m_pEffectNode->TranslationEasing.start.getValue(*this->m_pContainer->GetRootInstance());
-		translation_values.easing.end = m_pEffectNode->TranslationEasing.end.getValue(*this->m_pContainer->GetRootInstance());
+		random_vector3d rvs = m_pEffectNode->TranslationEasing.location.start;
+
+		if (m_pEffectNode->TranslationEasing.ReferencedDynamicParameterSMax >= 0)
+		{
+			ApplyDynamicParameter(rvs.max,
+								  this->m_pEffectNode->m_effect,
+								  this->m_pContainer->GetRootInstance(),
+								  m_pEffectNode->TranslationEasing.ReferencedDynamicParameterSMax,
+								  m_pEffectNode->TranslationEasing.location.start.max);
+		}
+
+		if (m_pEffectNode->TranslationEasing.ReferencedDynamicParameterSMin >= 0)
+		{
+			ApplyDynamicParameter(rvs.min,
+								  this->m_pEffectNode->m_effect,
+								  this->m_pContainer->GetRootInstance(),
+								  m_pEffectNode->TranslationEasing.ReferencedDynamicParameterSMin,
+								  m_pEffectNode->TranslationEasing.location.start.min);
+		}
+
+		random_vector3d rve = m_pEffectNode->TranslationEasing.location.end;
+
+		if (m_pEffectNode->TranslationEasing.ReferencedDynamicParameterEMax >= 0)
+		{
+			ApplyDynamicParameter(rve.max,
+								  this->m_pEffectNode->m_effect,
+								  this->m_pContainer->GetRootInstance(),
+								  m_pEffectNode->TranslationEasing.ReferencedDynamicParameterEMax,
+								  m_pEffectNode->TranslationEasing.location.end.max);
+		}
+
+		if (m_pEffectNode->TranslationEasing.ReferencedDynamicParameterEMin >= 0)
+		{
+			ApplyDynamicParameter(rve.min,
+								  this->m_pEffectNode->m_effect,
+								  this->m_pContainer->GetRootInstance(),
+								  m_pEffectNode->TranslationEasing.ReferencedDynamicParameterEMin,
+								  m_pEffectNode->TranslationEasing.location.end.min);
+		}
+
+		translation_values.easing.start = rvs.getValue(*this->m_pContainer->GetRootInstance());
+		translation_values.easing.end = rve.getValue(*this->m_pContainer->GetRootInstance());
 	}
 	else if( m_pEffectNode->TranslationType == ParameterTranslationType_FCurve )
 	{
@@ -15957,7 +16689,7 @@ void Instance::Update( float deltaFrame, bool shown )
 	m_GlobalMatrix43Calculated = false;
 	m_ParentMatrix43Calculated = false;
 
-	if (m_stepTime && m_pEffectNode->GetType() != EFFECT_NODE_TYPE_ROOT)
+	if (is_time_step_allowed && m_pEffectNode->GetType() != EFFECT_NODE_TYPE_ROOT)
 	{
 		/* 音の更新(現状放置) */
 		if (m_pEffectNode->SoundType == ParameterSoundType_Use)
@@ -15973,6 +16705,14 @@ void Instance::Update( float deltaFrame, bool shown )
 	}
 
 	float originalTime = m_LivingTime;
+
+	// step time
+	// frame 0 - generated time
+	// frame 1- now
+	if (is_time_step_allowed)
+	{
+		m_LivingTime += deltaFrame;
+	}
 
 	if(shown)
 	{
@@ -16000,14 +16740,8 @@ void Instance::Update( float deltaFrame, bool shown )
 		m_pParent = nullptr;
 	}
 
-	/* 時間の進行 */
-	if(  m_stepTime )
-	{
-		m_LivingTime += deltaFrame;
-	}
-
 	// Create child particles
-	if( m_stepTime && (originalTime <= m_LivedTime || !m_pEffectNode->CommonValues.RemoveWhenLifeIsExtinct) )
+	if( is_time_step_allowed && (originalTime <= m_LivedTime || !m_pEffectNode->CommonValues.RemoveWhenLifeIsExtinct) )
 	{
 		GenerateChildrenInRequired(originalTime + deltaFrame);
 
@@ -16050,11 +16784,11 @@ void Instance::Update( float deltaFrame, bool shown )
 		*/
 	}
 	
-	// 死亡判定
+	// check whether killed?
 	bool killed = false;
 	if( m_pEffectNode->GetType() != EFFECT_NODE_TYPE_ROOT )
 	{
-		// 時間経過
+		// if pass time
 		if( m_pEffectNode->CommonValues.RemoveWhenLifeIsExtinct )
 		{
 			if( m_LivingTime > m_LivedTime )
@@ -16063,7 +16797,7 @@ void Instance::Update( float deltaFrame, bool shown )
 			}
 		}
 
-		// 親が消えた場合
+		// if remove parent
 		if( m_pEffectNode->CommonValues.RemoveWhenParentIsRemoved )
 		{
 			if( m_pParent == nullptr || m_pParent->GetState() != INSTANCE_STATE_ACTIVE )
@@ -16073,7 +16807,7 @@ void Instance::Update( float deltaFrame, bool shown )
 			}
 		}
 
-		// 子が全て消えた場合
+		// if children are removed and going not to generate a child
 		if( !killed && m_pEffectNode->CommonValues.RemoveWhenChildrenIsExtinct )
 		{
 			int maxcreate_count = 0;
@@ -16108,11 +16842,11 @@ void Instance::Update( float deltaFrame, bool shown )
 
 	if(killed)
 	{
-		/* 死亡確定時、計算が必要な場合は計算をする。*/
+		// if it need to calculate a matrix
 		if( m_pEffectNode->GetChildrenCount() > 0)
 		{
 			// Get parent color.
-			if (m_pParent != NULL)
+			if (m_pParent != nullptr)
 			{
 				if (m_pEffectNode->RendererCommon.ColorBindType == BindType::Always)
 				{
@@ -16126,8 +16860,8 @@ void Instance::Update( float deltaFrame, bool shown )
 		return;
 	}
 
-	// 時間の進行許可
-	m_stepTime = true;
+	// allow to pass time
+	is_time_step_allowed = true;
 }
 
 //----------------------------------------------------------------------------------
@@ -16166,9 +16900,20 @@ void Instance::CalculateMatrix( float deltaFrame )
 		}
 		else if( m_pEffectNode->TranslationType == ParameterTranslationType_Fixed )
 		{
-			localPosition.X = m_pEffectNode->TranslationFixed.Position.X;
-			localPosition.Y = m_pEffectNode->TranslationFixed.Position.Y;
-			localPosition.Z = m_pEffectNode->TranslationFixed.Position.Z;
+			if (m_pEffectNode->TranslationFixed.ReferencedDynamicParameter >= 0)
+			{
+				ApplyDynamicParameter(localPosition,
+									  this->m_pEffectNode->m_effect,
+									  this->m_pContainer->GetRootInstance(),
+									  m_pEffectNode->TranslationFixed.ReferencedDynamicParameter,
+									  m_pEffectNode->TranslationFixed.Position);
+			}
+			else
+			{
+				localPosition.X = m_pEffectNode->TranslationFixed.Position.X;
+				localPosition.Y = m_pEffectNode->TranslationFixed.Position.Y;
+				localPosition.Z = m_pEffectNode->TranslationFixed.Position.Z;
+			}
 		}
 		else if( m_pEffectNode->TranslationType == ParameterTranslationType_PVA )
 		{
@@ -16188,7 +16933,7 @@ void Instance::CalculateMatrix( float deltaFrame )
 		}
 		else if( m_pEffectNode->TranslationType == ParameterTranslationType_Easing )
 		{
-			m_pEffectNode->TranslationEasing.setValueToArg(
+			m_pEffectNode->TranslationEasing.location.setValueToArg(
 				localPosition,
 				translation_values.easing.start,
 				translation_values.easing.end,
@@ -16527,8 +17272,9 @@ void Instance::ModifyMatrixFromLocationAbs( float deltaFrame )
 
 			if (deltaFrame > 0)
 			{
+				float eps = 0.0001f;
 				m_GlobalRevisionVelocity += targetDirection * force * deltaFrame;
-				float currentVelocity = Vector3D::Length(m_GlobalRevisionVelocity);
+				float currentVelocity = Vector3D::Length(m_GlobalRevisionVelocity) + eps;
 				Vector3D currentDirection = m_GlobalRevisionVelocity / currentVelocity;
 
 				m_GlobalRevisionVelocity = (targetDirection * control + currentDirection * (1.0f - control)) * currentVelocity;
@@ -16680,8 +17426,8 @@ InstanceGlobal::InstanceGlobal()
 	: m_instanceCount	( 0 )
 	, m_updatedFrame	( 0 )
 	, m_rootContainer	( NULL )
-{
-	
+{ 
+	dynamicInputParameters.fill(0);
 }
 
 //----------------------------------------------------------------------------------
@@ -16692,7 +17438,12 @@ InstanceGlobal::~InstanceGlobal()
 	
 }
 
-void InstanceGlobal::SetSeed(int32_t seed)
+std::array<float, 4> InstanceGlobal::GetDynamicParameter(int32_t index) {
+	assert(0 <= index && index < dynamicParameters.size());
+	return dynamicParameters[index];
+}
+
+void InstanceGlobal::SetSeed(int64_t seed)
 {
 	m_seed = seed;
 }
@@ -17002,9 +17753,238 @@ void InstanceGroup::KillAllInstances()
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
+namespace Effekseer
+{
+
+bool InternalScript::IsValidOperator(int value) const
+{
+	if (0 <= value && value <= 4)
+		return true;
+	if (11 <= value && value <= 12)
+		return true;
+
+	return false;
+}
+
+bool InternalScript::IsValidRegister(int index) const
+{
+	if (index < 0)
+		return false;
+
+	if (static_cast<uint32_t>(index) < registers.size())
+		return true;
+
+	if (0x1000 + 0 <= index && index <= 0x1000 + 3)
+		return true;
+
+	if (0x1000 + 0x100 + 0 <= index && index <= 0x1000 + 0x100 + 0)
+		return true;
+
+	if (0x1000 + 0x200 + 0 <= index && index <= 0x1000 + 0x200 + 4)
+		return true;
+
+	return false;
+}
+
+float InternalScript::GetRegisterValue(int index,
+									   const std::array<float, 4>& externals,
+									   const std::array<float, 1>& globals,
+									   const std::array<float, 5>& locals) const
+{
+	auto ind = static_cast<uint32_t>(index);
+	if (ind < registers.size())
+	{
+		return registers[ind];
+	}
+	else if (0x1000 + 0 <= ind && ind <= 0x1000 + 3)
+	{
+		return externals[ind - 0x1000];
+	}
+	else if (0x1000 + 0x100 + 0 <= ind && ind <= 0x1000 + 0x100 + 0)
+	{
+		return globals[ind - 0x1000 - 0x100];
+	}
+	else if (0x1000 + 0x200 + 0 <= ind && ind <= 0x1000 + 0x200 + 4)
+	{
+		return locals[ind - 0x1000 - 0x200];
+	}
+
+	assert(false);
+	return 0.0f;
+}
+
+InternalScript::InternalScript() {}
+
+InternalScript ::~InternalScript() {}
+bool InternalScript::Load(uint8_t* data, int size)
+{
+	if (data == nullptr || size <= 0)
+		return false;
+	BinaryReader<true> reader(data, static_cast<size_t>(size));
+
+	int32_t registerCount = 0;
+
+	reader.Read(version_);
+	reader.Read(runningPhase);
+	reader.Read(registerCount);
+	reader.Read(operatorCount_);
+	reader.Read(outputRegister_);
+
+	if (registerCount < 0)
+		return false;
+
+	registers.resize(registerCount);
+
+	if (!IsValidRegister(outputRegister_))
+	{
+		return false;
+	}
+
+	reader.Read(operators, size - reader.GetOffset());
+
+	if (reader.GetStatus() == BinaryReaderStatus::Failed)
+		return false;
+
+	// check operators
+	auto operatorReader = BinaryReader<true>(operators.data(), operators.size());
+
+	for (int i = 0; i < operatorCount_; i++)
+	{
+		// type
+		OperatorType type;
+		operatorReader.Read(type);
+
+		if (reader.GetStatus() == BinaryReaderStatus::Failed)
+			return false;
+
+		if (!IsValidOperator((int)type))
+			return false;
+
+		int32_t inputCount = 0;
+		operatorReader.Read(inputCount);
+
+		int32_t outputCount = 0;
+		operatorReader.Read(outputCount);
+
+		int32_t attributeCount = 0;
+		operatorReader.Read(attributeCount);
+
+		// input
+		for (int j = 0; j < inputCount; j++)
+		{
+			int index = 0;
+			operatorReader.Read(index);
+			if (!IsValidRegister(index))
+			{
+				return false;
+			}
+		}
+
+		// output
+		for (int j = 0; j < outputCount; j++)
+		{
+			int index = 0;
+			operatorReader.Read(index);
+			if ((index < 0 || index >= static_cast<int32_t>(registers.size())))
+			{
+				return false;
+			}
+		}
+
+		// attribute
+		for (int j = 0; j < attributeCount; j++)
+		{
+			int index = 0;
+			operatorReader.Read(index);
+		}
+	}
+
+	if (operatorReader.GetStatus() != BinaryReaderStatus::Complete)
+		return false;
+
+	isValid_ = true;
+
+	return true;
+}
+
+float InternalScript::Execute(const std::array<float, 4>& externals,
+							  const std::array<float, 1>& globals,
+							  const std::array<float, 5>& locals)
+{
+	if (!isValid_)
+		return 0.0f;
+
+	int offset = 0;
+	for (int i = 0; i < operatorCount_; i++)
+	{
+		// type
+		OperatorType type;
+		memcpy(&type, operators.data() + offset, sizeof(OperatorType));
+		offset += sizeof(int);
+
+		int32_t inputCount = 0;
+		memcpy(&inputCount, operators.data() + offset, sizeof(int));
+		offset += sizeof(int);
+
+		int32_t outputCount = 0;
+		memcpy(&outputCount, operators.data() + offset, sizeof(int));
+		offset += sizeof(int);
+
+		int32_t attributeCount = 0;
+		memcpy(&attributeCount, operators.data() + offset, sizeof(int));
+		offset += sizeof(int);
+
+		auto inputOffset = offset;
+		auto outputOffset = inputOffset + inputCount * sizeof(int);
+		auto attributeOffset = outputOffset + outputCount * sizeof(int);
+		offset = attributeOffset + attributeCount * sizeof(int);
+
+		std::array<float, 4> tempInputs;
+
+		for (int j = 0; j < inputCount; j++)
+		{
+			int index = 0;
+			memcpy(&index, operators.data() + inputOffset, sizeof(int));
+			inputOffset += sizeof(int);
+
+			tempInputs[j] = GetRegisterValue(index, externals, globals, locals);
+		}
+
+		for (int j = 0; j < outputCount; j++)
+		{
+			int index = 0;
+			memcpy(&index, operators.data() + outputOffset, sizeof(int));
+			outputOffset += sizeof(int);
+
+			if (type == OperatorType::Add)
+				registers[index] = tempInputs[0] + tempInputs[1];
+			else if (type == OperatorType::Sub)
+				registers[index] = tempInputs[0] - tempInputs[1];
+			else if (type == OperatorType::Mul)
+				registers[index] = tempInputs[0] * tempInputs[1];
+			else if (type == OperatorType::Div)
+				registers[index] = tempInputs[0] / tempInputs[1];
+			else if (type == OperatorType::UnaryAdd)
+				registers[index] = tempInputs[0];
+			else if (type == OperatorType::UnarySub)
+				registers[index] = -tempInputs[0];
+			else if (type == OperatorType::Constant)
+			{
+				float att = 0;
+				memcpy(&att, operators.data() + attributeOffset, sizeof(int));
+				registers[index] = att;
+			}
+		}
+	}
+
+	return GetRegisterValue(outputRegister_, externals, globals, locals);
+}
+
+} // namespace Effekseer
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
+
 
 
 
@@ -17024,6 +18004,8 @@ Setting::Setting()
 	, m_soundLoader(NULL)
 	, m_modelLoader(NULL)
 {
+	auto effectFactory = new EffectFactory();
+	effectFactories.push_back(effectFactory);
 }
 
 //----------------------------------------------------------------------------------
@@ -17031,11 +18013,13 @@ Setting::Setting()
 //----------------------------------------------------------------------------------
 Setting::~Setting()
 {
+	ClearEffectFactory();
+
 	ES_SAFE_DELETE(m_effectLoader);
 	ES_SAFE_DELETE(m_textureLoader);
 	ES_SAFE_DELETE(m_soundLoader);
 	ES_SAFE_DELETE(m_modelLoader);
-
+	ES_SAFE_DELETE(m_materialLoader);
 }
 
 //----------------------------------------------------------------------------------
@@ -17130,12 +18114,42 @@ void Setting::SetSoundLoader(SoundLoader* loader)
 	m_soundLoader = loader;
 }
 
+MaterialLoader* Setting::GetMaterialLoader()
+{ return m_materialLoader;
+}
 
+void Setting::SetMaterialLoader(MaterialLoader* loader)
+{
+	ES_SAFE_DELETE(m_materialLoader);
+	m_materialLoader = loader;
+}
 
+void Setting::AddEffectFactory(EffectFactory* effectFactory) { 
+	
+	if (effectFactory == nullptr)
+		return;
+	ES_SAFE_ADDREF(effectFactory); 
+	effectFactories.push_back(effectFactory);
+}
 
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
+void Setting::ClearEffectFactory()
+{
+	for (auto& e : effectFactories)
+	{
+		ES_SAFE_RELEASE(e);
+	}
+	effectFactories.clear();
+}
+
+EffectFactory* Setting::GetEffectFactory(int32_t ind) const
+{
+	return effectFactories[ind]; 
+}
+
+int32_t Setting::GetEffectFactoryCount() const { 
+	return effectFactories.size();
+}
+
 }
 //----------------------------------------------------------------------------------
 //
@@ -18061,7 +19075,7 @@ bool ClientImplemented::GetAddr(const char* host, IN_ADDR* addr)
 		hostEntry = ::gethostbyname(host);
 		if (hostEntry == nullptr)
 		{
-			return nullptr;
+			return false;
 		}
 
 		addr->s_addr = *(unsigned int *)hostEntry->h_addr_list[0];
