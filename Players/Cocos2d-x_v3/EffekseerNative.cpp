@@ -5152,16 +5152,26 @@ struct ParameterCommonValues_8
 
 struct ParameterCommonValues
 {
-	int MaxGeneration;
-	BindType TranslationBindType;
-	BindType RotationBindType;
-	BindType ScalingBindType;
-	int		RemoveWhenLifeIsExtinct;
-	int		RemoveWhenParentIsRemoved;
-	int		RemoveWhenChildrenIsExtinct;
-	random_int	life;
+	int MaxGeneration = 1;
+	BindType TranslationBindType = BindType::Always;
+	BindType RotationBindType = BindType::Always;
+	BindType ScalingBindType = BindType::Always;
+	int RemoveWhenLifeIsExtinct = 1;
+	int RemoveWhenParentIsRemoved = 0;
+	int RemoveWhenChildrenIsExtinct = 0;
+	random_int life;
 	random_float GenerationTime;
 	random_float GenerationTimeOffset;
+
+	ParameterCommonValues()
+	{
+		life.max = 1;
+		life.min = 1;
+		GenerationTime.max = 1;
+		GenerationTime.min = 1;
+		GenerationTimeOffset.max = 0;
+		GenerationTimeOffset.min = 0;
+	}
 };
 
 struct ParameterDepthValues
@@ -7310,6 +7320,7 @@ private:
 
 		bool				IsPreupdated = false;
 		int32_t				StartFrame = 0;
+		int32_t Layer = 0;
 
 		DrawSet( Effect* effect, InstanceContainer* pContainer, InstanceGlobal* pGlobal )
 			: ParameterPointer			( effect )
@@ -7467,8 +7478,6 @@ private:
 
 	// 破棄等のイベントを実際に実行
 	void ExecuteEvents();
-
-	void ShowErrorAndExit(const char* message);
 public:
 
 	// コンストラクタ
@@ -7753,6 +7762,10 @@ public:
 
 	void SetPausedToAllEffects(bool paused) override;
 
+	int GetLayer(Handle handle) override;
+
+	void SetLayer(Handle handle, int32_t layer)  override;
+
 	float GetSpeed(Handle handle) const override;
 
 	void SetSpeed( Handle handle, float speed ) override;
@@ -7798,11 +7811,11 @@ public:
 	/**
 		@brief	描画処理
 	*/
-	void Draw() override;
+	void Draw(const Manager::DrawParameter& drawParameter = Manager::DrawParameter()) override;
 	
-	void DrawBack() override;
+	void DrawBack(const Manager::DrawParameter& drawParameter = Manager::DrawParameter()) override;
 
-	void DrawFront() override;
+	void DrawFront(const Manager::DrawParameter& drawParameter = Manager::DrawParameter()) override;
 
 	void DrawHandle( Handle handle ) override;
 
@@ -7814,6 +7827,8 @@ public:
 
 	Handle Play(Effect* effect, const Vector3D& position, int32_t startFrame) override;
 	
+	int GetCameraCullingMaskToShowAllEffects() override;
+
 	/**
 		@brief	Update処理時間を取得。
 	*/
@@ -12662,9 +12677,18 @@ bool EffectImplemented::Reload( Manager** managers, int32_t managersCount, void*
 		lockCount++;
 	}
 
+	// HACK for scale
+	auto originalMag = this->GetMaginification() / this->m_maginificationExternal;
+	auto originalMagExt = this->m_maginificationExternal;
+
 	isReloadingOnRenderingThread = true;
 	Reset();
-	Load( data, size, m_maginificationExternal, matPath, reloadingThreadType);
+	Load( data, size, originalMag * originalMagExt, matPath, reloadingThreadType);
+
+	// HACK for scale
+	m_maginification = originalMag * originalMagExt;
+	m_maginificationExternal = originalMagExt;
+
 	isReloadingOnRenderingThread = false;
 
 	for( int32_t i = 0; i < managersCount; i++)
@@ -13307,15 +13331,6 @@ void ManagerImplemented::ExecuteEvents()
 	}
 }
 
-void ManagerImplemented::ShowErrorAndExit(const char* message)
-{
-	std::cerr << "EffekseerError : " << message << std::endl;
-	abort();
-}
-
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
 ManagerImplemented::ManagerImplemented( int instance_max, bool autoFlip )
 	: m_autoFlip	( autoFlip )
 	, m_NextHandle	( 0 )
@@ -14113,6 +14128,23 @@ void ManagerImplemented::SetPausedToAllEffects(bool paused)
 	}
 }
 
+int ManagerImplemented::GetLayer(Handle handle)
+{
+	if (m_DrawSets.count(handle) > 0)
+	{
+		return m_DrawSets[handle].Layer;
+	}
+	return 0;
+}
+
+void ManagerImplemented::SetLayer(Handle handle, int32_t layer)
+{
+	if (m_DrawSets.count(handle) > 0)
+	{
+		m_DrawSets[handle].Layer = layer;
+	}
+}
+
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
@@ -14151,11 +14183,6 @@ void ManagerImplemented::Flip()
 {
 	if( !m_autoFlip )
 	{
-		if (m_isLockedWithRenderingMutex)
-		{
-			ShowErrorAndExit("Rendering thread is locked.");
-		}
-
 		m_renderingMutex.lock();
 	}
 
@@ -14327,11 +14354,6 @@ void ManagerImplemented::Update( float deltaFrame )
 //----------------------------------------------------------------------------------
 void ManagerImplemented::BeginUpdate()
 {
-	if (m_isLockedWithRenderingMutex)
-	{
-		ShowErrorAndExit("Rendering thread is locked.");
-	}
-
 	m_renderingMutex.lock();
 	m_isLockedWithRenderingMutex = true;
 
@@ -14409,12 +14431,8 @@ void ManagerImplemented::Preupdate(DrawSet& drawSet)
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-void ManagerImplemented::Draw()
+void ManagerImplemented::Draw(const Manager::DrawParameter& drawParameter)
 {
-	if (m_isLockedWithRenderingMutex)
-	{
-		ShowErrorAndExit("Rendering thread is locked.");
-	}
 	std::lock_guard<std::mutex> lock(m_renderingMutex);
 
 	// 開始時間を記録
@@ -14426,7 +14444,7 @@ void ManagerImplemented::Draw()
 		{
 			DrawSet& drawSet = *m_culledObjects[i];
 
-			if( drawSet.IsShown && drawSet.IsAutoDrawing )
+			if( drawSet.IsShown && drawSet.IsAutoDrawing && ((drawParameter.CameraCullingMask & (1 << drawSet.Layer)) != 0))
 			{
 				if (drawSet.GlobalPointer->RenderedInstanceContainers.size() > 0)
 				{
@@ -14448,7 +14466,7 @@ void ManagerImplemented::Draw()
 		{
 			DrawSet& drawSet = m_renderingDrawSets[i];
 
-			if( drawSet.IsShown && drawSet.IsAutoDrawing )
+			if( drawSet.IsShown && drawSet.IsAutoDrawing && ((drawParameter.CameraCullingMask & (1 << drawSet.Layer)) != 0))
 			{
 				if (drawSet.GlobalPointer->RenderedInstanceContainers.size() > 0)
 				{
@@ -14469,12 +14487,8 @@ void ManagerImplemented::Draw()
 	m_drawTime = (int)(Effekseer::GetTime() - beginTime);
 }
 
-void ManagerImplemented::DrawBack()
+void ManagerImplemented::DrawBack(const Manager::DrawParameter& drawParameter)
 {
-	if (m_isLockedWithRenderingMutex)
-	{
-		ShowErrorAndExit("Rendering thread is locked.");
-	}
 	std::lock_guard<std::mutex> lock(m_renderingMutex);
 	
 	// 開始時間を記録
@@ -14486,7 +14500,7 @@ void ManagerImplemented::DrawBack()
 		{
 			DrawSet& drawSet = *m_culledObjects[i];
 
-			if (drawSet.IsShown && drawSet.IsAutoDrawing)
+			if (drawSet.IsShown && drawSet.IsAutoDrawing && ((drawParameter.CameraCullingMask & (1 << drawSet.Layer)) != 0))
 			{
 				auto e = (EffectImplemented*)drawSet.ParameterPointer;
 				for (int32_t j = 0; j < e->renderingNodesThreshold; j++)
@@ -14502,7 +14516,7 @@ void ManagerImplemented::DrawBack()
 		{
 			DrawSet& drawSet = m_renderingDrawSets[i];
 
-			if (drawSet.IsShown && drawSet.IsAutoDrawing)
+			if (drawSet.IsShown && drawSet.IsAutoDrawing && ((drawParameter.CameraCullingMask & (1 << drawSet.Layer)) != 0))
 			{
 				auto e = (EffectImplemented*)drawSet.ParameterPointer;
 				for (int32_t j = 0; j < e->renderingNodesThreshold; j++)
@@ -14517,12 +14531,8 @@ void ManagerImplemented::DrawBack()
 	m_drawTime = (int)(Effekseer::GetTime() - beginTime);
 }
 
-void ManagerImplemented::DrawFront()
+void ManagerImplemented::DrawFront(const Manager::DrawParameter& drawParameter)
 {
-	if (m_isLockedWithRenderingMutex)
-	{
-		ShowErrorAndExit("Rendering thread is locked.");
-	}
 	std::lock_guard<std::mutex> lock(m_renderingMutex);
 
 	// 開始時間を記録
@@ -14534,7 +14544,7 @@ void ManagerImplemented::DrawFront()
 		{
 			DrawSet& drawSet = *m_culledObjects[i];
 
-			if (drawSet.IsShown && drawSet.IsAutoDrawing)
+			if (drawSet.IsShown && drawSet.IsAutoDrawing && ((drawParameter.CameraCullingMask & (1 << drawSet.Layer)) != 0))
 			{
 				if (drawSet.GlobalPointer->RenderedInstanceContainers.size() > 0)
 				{
@@ -14557,7 +14567,7 @@ void ManagerImplemented::DrawFront()
 		{
 			DrawSet& drawSet = m_renderingDrawSets[i];
 
-			if (drawSet.IsShown && drawSet.IsAutoDrawing)
+			if (drawSet.IsShown && drawSet.IsAutoDrawing && ((drawParameter.CameraCullingMask & (1 << drawSet.Layer)) != 0))
 			{
 				if (drawSet.GlobalPointer->RenderedInstanceContainers.size() > 0)
 				{
@@ -14625,12 +14635,21 @@ Handle ManagerImplemented::Play(Effect* effect, const Vector3D& position, int32_
 	return handle;
 }
 
+int ManagerImplemented::GetCameraCullingMaskToShowAllEffects()
+{
+	int mask = 0;
+
+	for (auto& ds : m_DrawSets)
+	{
+		auto layer = 1 << ds.second.Layer;
+		mask |= layer;
+	}
+
+	return mask;
+}
+
 void ManagerImplemented::DrawHandle( Handle handle )
 {
-	if (m_isLockedWithRenderingMutex)
-	{
-		ShowErrorAndExit("Rendering thread is locked.");
-	}
 	std::lock_guard<std::mutex> lock(m_renderingMutex);
 
 	std::map<Handle,DrawSet>::iterator it = m_renderingDrawSetMaps.find( handle );
@@ -14680,10 +14699,6 @@ void ManagerImplemented::DrawHandle( Handle handle )
 
 void ManagerImplemented::DrawHandleBack(Handle handle)
 {
-	if (m_isLockedWithRenderingMutex)
-	{
-		ShowErrorAndExit("Rendering thread is locked.");
-	}
 	std::lock_guard<std::mutex> lock(m_renderingMutex);
 
 	std::map<Handle, DrawSet>::iterator it = m_renderingDrawSetMaps.find(handle);
@@ -14721,10 +14736,6 @@ void ManagerImplemented::DrawHandleBack(Handle handle)
 
 void ManagerImplemented::DrawHandleFront(Handle handle)
 {
-	if (m_isLockedWithRenderingMutex)
-	{
-		ShowErrorAndExit("Rendering thread is locked.");
-	}
 	std::lock_guard<std::mutex> lock(m_renderingMutex);
 
 	std::map<Handle, DrawSet>::iterator it = m_renderingDrawSetMaps.find(handle);
@@ -14781,10 +14792,6 @@ void ManagerImplemented::BeginReloadEffect( Effect* effect, bool doLockThread)
 {
 	if (doLockThread)
 	{
-		if (m_isLockedWithRenderingMutex)
-		{
-			ShowErrorAndExit("Rendering thread is locked.");
-		}
 		m_renderingMutex.lock();
 		m_isLockedWithRenderingMutex = true;
 	}
@@ -16527,8 +16534,9 @@ void Instance::ModifyMatrixFromLocationAbs( float deltaFrame )
 
 			if (deltaFrame > 0)
 			{
+				float eps = 0.0001f;
 				m_GlobalRevisionVelocity += targetDirection * force * deltaFrame;
-				float currentVelocity = Vector3D::Length(m_GlobalRevisionVelocity);
+				float currentVelocity = Vector3D::Length(m_GlobalRevisionVelocity) + eps;
 				Vector3D currentDirection = m_GlobalRevisionVelocity / currentVelocity;
 
 				m_GlobalRevisionVelocity = (targetDirection * control + currentDirection * (1.0f - control)) * currentVelocity;
@@ -18061,7 +18069,7 @@ bool ClientImplemented::GetAddr(const char* host, IN_ADDR* addr)
 		hostEntry = ::gethostbyname(host);
 		if (hostEntry == nullptr)
 		{
-			return nullptr;
+			return false;
 		}
 
 		addr->s_addr = *(unsigned int *)hostEntry->h_addr_list[0];

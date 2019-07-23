@@ -820,6 +820,7 @@ typedef ptrdiff_t GLintptr;
 typedef char GLchar;
 #endif
 
+OpenGLDeviceType GetDeviceType();
 bool Initialize(OpenGLDeviceType deviceType);
 bool IsSupportedVertexArray();
 bool IsSupportedBufferRange();
@@ -1994,6 +1995,7 @@ static bool g_isInitialized = false;
 static bool g_isSupportedVertexArray = false;
 static bool g_isSurrpotedBufferRange = false;
 static bool g_isSurrpotedMapBuffer = false;
+static OpenGLDeviceType g_deviceType = OpenGLDeviceType::OpenGL2;
 
 #if _WIN32
 #define GET_PROC(name)	g_##name = (FP_##name)wglGetProcAddress( #name ); if(g_##name==NULL) return false;
@@ -2001,10 +2003,16 @@ static bool g_isSurrpotedMapBuffer = false;
 #define GET_PROC(name)	g_##name = (FP_##name)eglGetProcAddress( #name ); if(g_##name==NULL) return false;
 #endif
 
+OpenGLDeviceType GetDeviceType()
+{
+    return g_deviceType;
+}
+    
 bool Initialize(OpenGLDeviceType deviceType)
 {
 	if(g_isInitialized) return true;
-
+    g_deviceType = deviceType;
+    
 #if _WIN32
 	GET_PROC(glDeleteBuffers);
 	GET_PROC(glCreateShader);
@@ -4040,6 +4048,7 @@ RendererImplemented::~RendererImplemented()
 	ES_SAFE_DELETE(m_vao_no_texture);
 	ES_SAFE_DELETE(m_vao_distortion);
 	ES_SAFE_DELETE(m_vao_no_texture_distortion);
+	ES_SAFE_DELETE(m_vao_wire_frame);
 
 	ES_SAFE_DELETE( m_renderState );
 	ES_SAFE_DELETE( m_vertexBuffer );
@@ -4048,7 +4057,7 @@ RendererImplemented::~RendererImplemented()
 
 	if (isVaoEnabled)
 	{
-		assert(GetRef() == -11);
+		assert(GetRef() == -12);
 	}
 	else
 	{
@@ -5299,10 +5308,11 @@ void RenderState::Update( bool forced )
 		GLCheckError();
 		for (int32_t i = 0; i < (int32_t)m_renderer->GetCurrentTextures().size(); i++)
 		{
-			/* テクスチャが設定されていない場合はスキップ */
+			// If a texture is not assigned, skip it.
 			if (m_renderer->GetCurrentTextures()[i] == 0) continue;
 
-			if (m_active.TextureFilterTypes[i] != m_next.TextureFilterTypes[i] || forced)
+			// always changes because a flag is assigned into a texture
+			// if (m_active.TextureFilterTypes[i] != m_next.TextureFilterTypes[i] || forced)
 			{
 				GLExt::glActiveTexture(GL_TEXTURE0 + i);
 				GLCheckError();
@@ -5316,7 +5326,8 @@ void RenderState::Update( bool forced )
 				GLCheckError();
 			}
 
-			if (m_active.TextureWrapTypes[i] != m_next.TextureWrapTypes[i] || forced)
+			// always changes because a flag is assigned into a texture
+			// if (m_active.TextureWrapTypes[i] != m_next.TextureWrapTypes[i] || forced)
 			{
 				GLExt::glActiveTexture(GL_TEXTURE0 + i);
 				GLCheckError();
@@ -6477,7 +6488,16 @@ void VertexBuffer::Unlock()
 	}
 	else
 	{
-		if (GLExt::IsSupportedMapBuffer())
+        // giMapBuffer is invalid with OpenGLES3 after iOS12.2?
+        bool avoidIOS122 = false;
+#if defined(__APPLE__)
+        if(GLExt::GetDeviceType() == OpenGLDeviceType::OpenGLES3)
+        {
+            avoidIOS122 = true;
+        }
+#endif
+
+		if (GLExt::IsSupportedMapBuffer() && !avoidIOS122)
 		{
 #ifdef __ANDROID__
 			GLExt::glBufferData(GL_ARRAY_BUFFER, m_offset, nullptr, GL_STREAM_DRAW);
