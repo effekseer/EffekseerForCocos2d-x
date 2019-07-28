@@ -2838,6 +2838,8 @@ public:
 		, m_ringBufferOffset(0)
 		, m_ringBufferData(NULL)
 	{
+		// reserve buffers
+		instances.reserve(m_renderer->GetSquareMaxCount());
 	}
 
 	virtual ~SpriteRendererBase()
