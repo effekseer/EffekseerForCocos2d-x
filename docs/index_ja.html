@@ -117,11 +117,11 @@ Effekseer.hをインクルードします。
 <br>
 
 <p>
-cocos2d::Sceneを継承したクラスのメンバ変数にefk::EffectManager*を加えます。
+cocos2d::Scene、もしくはcocos2d::Layerを継承したクラスのメンバ変数にefk::EffectManager*を加えます。
 </p>
 
 <pre>
-class HelloWorld : public cocos2d::Layer {
+class HelloWorld : public cocos2d::Scene /*(Layer)*/ {
 efk::EffectManager* manager = nullptr;
 ...
 </pre>
@@ -277,6 +277,10 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 </pre>
 
 <h2>更新履歴</h2>
+
+<h3>1.43b (19/08/03)</h3>
+<p>OpenGLのステートの不具合を修正</p>
+<p>サンプルの修正</p>
 
 <h3>1.43 (19/03/02)</h3>
 <p>ネットワーク機能の追加</p>

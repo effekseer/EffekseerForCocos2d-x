@@ -114,12 +114,12 @@
 <br>
 
 <p>
-  在cocos2d::Scene的衍生类别内加入成员变量efk::EffectManager*。
+  在cocos2d::Scene或Layer的衍生类别内加入成员变量efk::EffectManager*。
 
 </p>
 
 <pre>
-class HelloWorld : public cocos2d::Scene {
+class HelloWorld : public cocos2d::Scene /* Layer */ {
 efk::EffectManager* manager = nullptr;
 ...
 </pre>
@@ -274,6 +274,10 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 </pre>
 
 <h2>更新</h2>
+
+<h3>1.43b (19/08/03)</h3>
+<p>Fixed OpenGL blend bug</p>
+<p>Fixed Samples</p>
 
 <h3>1.43 (19/03/02)</h3>
 <p>Added network functions</p>

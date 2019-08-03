@@ -5,10 +5,7 @@ USING_NS_CC;
 
 Scene* HelloWorld::createScene()
 {
-	auto scene = Scene::create();
-	auto layer = HelloWorld::create();
-	scene->addChild(layer);
-	return scene;
+	return HelloWorld::create();
 }
 
 bool HelloWorld::init()
