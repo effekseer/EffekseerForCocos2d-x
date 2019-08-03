@@ -114,11 +114,11 @@ Include Effekseer.h.
 <br>
 
 <p>
-Add efk::EffectManager* to the member variable of the class that inherits cocos2d::Scene.
+Add efk::EffectManager* to the member variable of the class that inherits cocos2d::Scene or cocos2d::Layer.
 </p>
 
 <pre>
-class HelloWorld : public cocos2d::Scene {
+class HelloWorld : public cocos2d::Scene /* Layer */ {
 efk::EffectManager* manager = nullptr;
 ...
 </pre>
@@ -179,7 +179,7 @@ void HelloWorld::visit(
 	uint32_t parentFlags)
 {
 	manager->begin(renderer, _globalZOrder);
-	cocos2d::Scene::visit(renderer, parentTransform, parentFlags);
+	cocos2d::Layer::visit(renderer, parentTransform, parentFlags);
 	manager->end(renderer, _globalZOrder);
 }
 </pre>
@@ -273,6 +273,10 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 </pre>
 
 <h2>Change log</h2>
+
+<h3>1.43b (19/08/03)</h3>
+<p>Fixed OpenGL blend bug</p>
+<p>Fixed Samples</p>
 
 <h3>1.43 (19/03/02)</h3>
 <p>Added network functions</p>
