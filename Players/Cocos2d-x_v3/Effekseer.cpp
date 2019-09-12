@@ -286,8 +286,8 @@ namespace efk
 			char* data_texture = new char[size_texture];
 			reader->Read(data_texture, size_texture);
 
-			cocos2d::CCImage* image = new cocos2d::CCImage();
-			cocos2d::CCTexture2D* texture = new cocos2d::CCTexture2D();
+			cocos2d::Image* image = new cocos2d::Image();
+			cocos2d::Texture2D* texture = new cocos2d::Texture2D();
 			if (image != nullptr &&
 				texture != nullptr &&
 				image->initWithImageData((const uint8_t*)data_texture, size_texture))
@@ -639,12 +639,7 @@ namespace efk
 
 	void EffectEmitter::play()
 	{
-		if (effect == nullptr) return;
-		if (manager == nullptr) return;
-
-		handle = manager->play(effect, 0, 0, 0);
-		auto transform = this->getNodeToWorldTransform();
-		manager->setMatrix(handle, transform);
+		play(0);
 	}
 
 	void EffectEmitter::play(int32_t startTime)
@@ -652,9 +647,22 @@ namespace efk
 		if (effect == nullptr) return;
 		if (manager == nullptr) return;
 
-		handle = manager->play(effect, 0, 0, 0, startTime);
+		if (startTime == 0)
+		{
+			handle = manager->play(effect, 0, 0, 0, 0);
+		}
+		else
+		{
+			handle = manager->play(effect, 0, 0, 0, startTime);
+		}
+
 		auto transform = this->getNodeToWorldTransform();
 		manager->setMatrix(handle, transform);
+		isPlayedAtLeastOnce = true;
+
+		setTargetPosition(targetPosition_);
+		setColor(color_);
+		setSpeed(speed_);
 	}
 
 	bool EffectEmitter::getPlayOnEnter()
@@ -689,6 +697,7 @@ namespace efk
 
 	void EffectEmitter::setColor(cocos2d::Color4B color)
 	{
+		color_ = color;
 		Effekseer::Color col;
 		col.R = color.r;
 		col.G = color.g;
@@ -699,16 +708,19 @@ namespace efk
 
 	float EffectEmitter::getSpeed()
 	{
-		return manager->getInternalManager()->GetSpeed(handle);
+		return speed_;
+		// return manager->getInternalManager()->GetSpeed(handle);
 	}
 
 	void EffectEmitter::setSpeed(float speed)
 	{
+		speed_ = speed;
 		manager->getInternalManager()->SetSpeed(handle, speed);
 	}
 
 	void EffectEmitter::setTargetPosition(cocos2d::Vec3 position)
 	{
+		targetPosition_ = position;
 		manager->getInternalManager()->SetTargetLocation(handle, position.x, position.y, position.z);
 	}
 
@@ -759,7 +771,7 @@ namespace efk
 			{
 				play();
 			}
-			else if(removeOnStop)
+			else if(removeOnStop && isPlayedAtLeastOnce)
 			{
 				auto transform = this->getNodeToWorldTransform();
 				manager->setMatrix(handle, transform);
