@@ -70,6 +70,13 @@ namespace efk
 		bool playOnEnter = false;
 		bool removeOnStop = true;
 		bool isLooping = false;
+		
+		//! whether this effect is played once at least
+		bool isPlayedAtLeastOnce = false;
+
+		cocos2d::Vec3 targetPosition_;
+		float speed_ = 1.0f;
+		cocos2d::Color4B color_ = cocos2d::Color4B(255, 255, 255, 255);
 
 		EffectManager* manager = nullptr;
 		Effect* effect = nullptr;
