@@ -22,6 +22,7 @@ class CreateHeader:
 			if re.search('include \"', line) == None:
  	 			self.lines.append(line)
 			line = f.readline()
+		self.lines.append('\r\n')
 		f.close()
 
 	def output(self,path):
@@ -51,6 +52,7 @@ class CreateCPP:
 			if re.search('include \"', line) == None and re.search('include <', line) == None:
  	 			self.lines.append(line)
 			line = f.readline()
+		self.lines.append('\r\n')
 		f.close()
 
 	def output(self,path):
@@ -64,10 +66,18 @@ rootDir = '../Effekseer/Dev/Cpp/'
 rootEDir = rootDir + 'Effekseer/Effekseer/'
 rootRDir = rootDir + 'EffekseerRendererCommon/'
 rootGDir = rootDir + 'EffekseerRendererGL/EffekseerRenderer/'
+rootCGDir = rootDir + 'EffekseerMaterialCompiler/OpenGL/'
 
 effekseerHeader = CreateHeader()
 effekseerHeader.readLines(rootEDir + 'Effekseer.Base.Pre.h')
-effekseerHeader.readLines(rootEDir + 'Effekseer.BinaryReader.h')
+effekseerHeader.readLines(rootEDir + 'Effekseer.Base.h')
+
+#param
+effekseerHeader.readLines(rootEDir + 'Parameter/Effekseer.Parameters.h')
+
+effekseerHeader.readLines(rootEDir + 'Effekseer.CustomAllocator.h')
+effekseerHeader.readLines(rootEDir + 'Utils/Effekseer.BinaryReader.h')
+
 effekseerHeader.readLines(rootEDir + 'Effekseer.Vector2D.h')
 effekseerHeader.readLines(rootEDir + 'Effekseer.Vector3D.h')
 effekseerHeader.readLines(rootEDir + 'Effekseer.Color.h')
@@ -78,6 +88,13 @@ effekseerHeader.readLines(rootEDir + 'Effekseer.File.h')
 effekseerHeader.readLines(rootEDir + 'Effekseer.DefaultFile.h')
 effekseerHeader.readLines(rootEDir + 'Effekseer.Effect.h')
 effekseerHeader.readLines(rootEDir + 'Effekseer.Manager.h')
+
+effekseerHeader.readLines(rootEDir + 'IO/Effekseer.EfkEfcFactory.h')
+
+#material
+effekseerHeader.readLines(rootEDir + 'Material/Effekseer.Material.h')
+effekseerHeader.readLines(rootEDir + 'Material/Effekseer.MaterialCompiler.h')
+effekseerHeader.readLines(rootEDir + 'Material/Effekseer.CompiledMaterial.h')
 
 effekseerHeader.readLines(rootEDir + 'Renderer/Effekseer.SpriteRenderer.h')
 effekseerHeader.readLines(rootEDir + 'Renderer/Effekseer.RibbonRenderer.h')
@@ -150,7 +167,18 @@ effekseerCPP.addLine('#define EFK_NEON')
 effekseerCPP.addLine('#include <arm_neon.h>')
 effekseerCPP.addLine('#endif')
 
-effekseerCPP.readLines(rootEDir + 'Effekseer.Base.h')
+# param
+effekseerCPP.readLines(rootEDir + 'Parameter/Effekseer.Parameters.cpp')
+
+effekseerCPP.readLines(rootEDir + 'Effekseer.CustomAllocator.cpp')
+
+#material
+effekseerCPP.readLines(rootEDir + 'Material/Effekseer.Material.cpp')
+effekseerCPP.readLines(rootEDir + 'Material/Effekseer.MaterialCompiler.cpp')
+effekseerCPP.readLines(rootEDir + 'Material/Effekseer.CompiledMaterial.cpp')
+
+# IO
+effekseerCPP.readLines(rootEDir + 'IO/Effekseer.EfkEfcFactory.cpp')
 
 # Culling
 effekseerCPP.readLines(rootEDir + 'Culling/Culling3D.h')
@@ -231,7 +259,6 @@ effekseerCPP.readLines(rootEDir + 'Effekseer.Server.cpp')
 effekseerCPP.readLines(rootEDir + 'Effekseer.ClientImplemented.h')
 effekseerCPP.readLines(rootEDir + 'Effekseer.Client.cpp')
 
-
 effekseerCPP.replace('#pragma once','')
 
 effekseerCPP.output('Players/Cocos2d-x_v3/EffekseerNative.cpp')
@@ -266,14 +293,16 @@ rendererHeader.readLines(rootRDir + 'EffekseerRenderer.RingRendererBase.h')
 rendererHeader.readLines(rootRDir + 'EffekseerRenderer.SpriteRendererBase.h')
 rendererHeader.readLines(rootRDir + 'EffekseerRenderer.TrackRendererBase.h')
 rendererHeader.readLines(rootRDir + 'EffekseerRenderer.VertexBufferBase.h')
-rendererHeader.readLines(rootRDir + 'EffekseerRenderer.ShaderLoader.h')
 
 rendererHeader.readLines(rootGDir+'EffekseerRendererGL.Base.Pre.h')
 rendererHeader.readLines(rootGDir+'EffekseerRendererGL.Renderer.h')
 rendererHeader.readLines(rootGDir+'EffekseerRendererGL.ModelLoader.h')
 rendererHeader.readLines(rootGDir+'EffekseerRendererGL.MaterialLoader.h')
 
+rendererHeader.readLines(rootCGDir+'EffekseerMaterialCompilerGL.h')
+
 rendererHeader.replace('#include <Effekseer.h>','#include "EffekseerNative.h"')
+rendererHeader.replace('#include <Effekseer.Internal.h>','')
 
 rendererHeader.output('Players/Cocos2d-x_v3/EffekseerRendererNative.h')
 
@@ -349,7 +378,11 @@ rendererCPP.readLines(rootGDir+'EffekseerRendererGL.TextureLoader.cpp')
 rendererCPP.readLines(rootGDir+'EffekseerRendererGL.VertexArray.cpp')
 rendererCPP.readLines(rootGDir+'EffekseerRendererGL.VertexBuffer.cpp')
 
+
+rendererCPP.readLines(rootCGDir+'EffekseerMaterialCompilerGL.cpp')
+
 rendererCPP.replace('#pragma once','')
+rendererCPP.replace('#include <Effekseer.Internal.h>','')
 
 rendererCPP.output('Players/Cocos2d-x_v3/EffekseerRendererNative.cpp')
 

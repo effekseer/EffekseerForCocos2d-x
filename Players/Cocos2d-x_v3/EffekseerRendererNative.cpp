@@ -22,9 +22,89 @@
 
 namespace EffekseerRenderer
 {
-	
-void ApplyDepthOffset(::Effekseer::Matrix43& mat, const ::Effekseer::Vector3D& cameraFront, const ::Effekseer::Vector3D& cameraPos, float depthOffset, bool isDepthOffsetScaledWithCamera, bool isDepthOffsetScaledWithEffect, bool isRightHand)
+
+void SplineGenerator::AddVertex(const Effekseer::Vector3D& v)
 {
+	a.push_back(v);
+	if (a.size() >= 2)
+	{
+		isSame.push_back(a[a.size() - 1] == a[a.size() - 2]);
+	}
+}
+
+void SplineGenerator::Calculate()
+{
+	b.resize(a.size());
+	c.resize(a.size());
+	d.resize(a.size());
+	w.resize(a.size());
+
+	for (size_t i = 1; i < a.size() - 1; i++)
+	{
+		c[i] = (a[i - 1] + a[i] * (-2.0) + a[i + 1]) * 3.0;
+	}
+
+	for (size_t i = 1; i < a.size() - 1; i++)
+	{
+		auto tmp = Effekseer::Vector3D(4.0, 4.0, 4.0) - w[i - 1];
+		c[i] = (c[i] - c[i - 1]) / tmp;
+		w[i] = Effekseer::Vector3D(1.0, 1.0, 1.0) / tmp;
+	}
+
+	for (size_t i = (a.size() - 1) - 1; i > 0; i--)
+	{
+		c[i] = c[i] - c[i + 1] * w[i];
+	}
+
+	for (size_t i = 0; i < a.size() - 1; i++)
+	{
+		d[i] = (c[i + 1] - c[i]) / 3.0;
+		b[i] = a[i + 1] - a[i] - c[i] - d[i];
+	}
+}
+
+void SplineGenerator::Reset()
+{
+	a.clear();
+	b.clear();
+	c.clear();
+	d.clear();
+	w.clear();
+	isSame.clear();
+}
+
+Effekseer::Vector3D SplineGenerator::GetValue(float t) const
+{
+	int32_t j = (int32_t)floorf(t);
+
+	if (j < 0)
+	{
+		j = 0;
+	}
+
+	if (j > (int32_t)a.size())
+	{
+		j = (int32_t)a.size() - 1;
+	}
+
+	auto dt = t - j;
+
+	if (j < (int32_t)isSame.size() && isSame[j])
+		return a[j];
+
+	return a[j] + (b[j] + (c[j] + d[j] * dt) * dt) * dt;
+}
+
+void ApplyDepthParameters(::Effekseer::Matrix43& mat,
+	const ::Effekseer::Vector3D& cameraFront,
+	const ::Effekseer::Vector3D& cameraPos,
+	::Effekseer::NodeRendererDepthParameter* depthParameter,
+	bool isRightHand)
+{
+	auto depthOffset = depthParameter->DepthOffset;
+	auto isDepthOffsetScaledWithCamera = depthParameter->IsDepthOffsetScaledWithCamera;
+	auto isDepthOffsetScaledWithEffect = depthParameter->IsDepthOffsetScaledWithParticleScale;
+
 	if (depthOffset != 0)
 	{
 		auto offset = depthOffset;
@@ -90,10 +170,42 @@ void ApplyDepthOffset(::Effekseer::Matrix43& mat, const ::Effekseer::Vector3D& c
 			mat.Value[3][2] += dir.Z * offset;
 		}
 	}
+
+	if (depthParameter->SuppressionOfScalingByDepth < 1.0f)
+	{
+		auto cx = mat.Value[3][0] - cameraPos.X;
+		auto cy = mat.Value[3][1] - cameraPos.Y;
+		auto cz = mat.Value[3][2] - cameraPos.Z;
+		auto cl = sqrt(cx * cx + cy * cy + cz * cz);
+		//auto cl = cameraFront.X * cx + cameraFront.Y * cy * cameraFront.Z * cz;
+
+
+		if (cl != 0.0)
+		{
+			auto scale = cl / 32.0f * (1.0f - depthParameter->SuppressionOfScalingByDepth) + depthParameter->SuppressionOfScalingByDepth;
+
+			for (auto r = 0; r < 3; r++)
+			{
+				for (auto c = 0; c < 3; c++)
+				{
+					mat.Value[c][r] *= scale;
+				}
+			}
+		}
+	}
 }
 
-void ApplyDepthOffset(::Effekseer::Matrix43& mat, const ::Effekseer::Vector3D& cameraFront, const ::Effekseer::Vector3D& cameraPos, ::Effekseer::Vector3D& scaleValues, float depthOffset, bool isDepthOffsetScaledWithCamera, bool isDepthOffsetScaledWithEffect, bool isRightHand)
+void ApplyDepthParameters(::Effekseer::Matrix43& mat,
+					  const ::Effekseer::Vector3D& cameraFront,
+					  const ::Effekseer::Vector3D& cameraPos,
+					  ::Effekseer::Vector3D& scaleValues,
+						  ::Effekseer::NodeRendererDepthParameter* depthParameter,
+						  bool isRightHand)
 {
+	auto depthOffset = depthParameter->DepthOffset;
+	auto isDepthOffsetScaledWithCamera = depthParameter->IsDepthOffsetScaledWithCamera;
+	auto isDepthOffsetScaledWithEffect = depthParameter->IsDepthOffsetScaledWithParticleScale;
+
 	if (depthOffset != 0)
 	{
 		auto offset = depthOffset;
@@ -143,10 +255,39 @@ void ApplyDepthOffset(::Effekseer::Matrix43& mat, const ::Effekseer::Vector3D& c
 			mat.Value[3][2] += dir.Z * offset;
 		}
 	}
+
+	if (depthParameter->SuppressionOfScalingByDepth < 1.0f)
+	{
+		auto cx = mat.Value[3][0] - cameraPos.X;
+		auto cy = mat.Value[3][1] - cameraPos.Y;
+		auto cz = mat.Value[3][2] - cameraPos.Z;
+		auto cl = sqrt(cx * cx + cy * cy + cz * cz);
+
+		if (cl != 0.0)
+		{
+			auto scale = cl / 32.0f * (1.0f - depthParameter->SuppressionOfScalingByDepth) + depthParameter->SuppressionOfScalingByDepth;
+
+			for (auto r = 0; r < 3; r++)
+			{
+				for (auto c = 0; c < 3; c++)
+				{
+					mat.Value[c][r] *= scale;
+				}
+			}
+		}
+	}
 }
 
-void ApplyDepthOffset(::Effekseer::Matrix44& mat, const ::Effekseer::Vector3D& cameraFront, const ::Effekseer::Vector3D& cameraPos, float depthOffset, bool isDepthOffsetScaledWithCamera, bool isDepthOffsetScaledWithEffect, bool isRightHand)
+void ApplyDepthParameters(::Effekseer::Matrix44& mat,
+						  const ::Effekseer::Vector3D& cameraFront,
+						  const ::Effekseer::Vector3D& cameraPos,
+						  ::Effekseer::NodeRendererDepthParameter* depthParameter,
+						  bool isRightHand)
 {
+	auto depthOffset = depthParameter->DepthOffset;
+	auto isDepthOffsetScaledWithCamera = depthParameter->IsDepthOffsetScaledWithCamera;
+	auto isDepthOffsetScaledWithEffect = depthParameter->IsDepthOffsetScaledWithParticleScale;
+
 	if (depthOffset != 0)
 	{
 		auto offset = depthOffset;
@@ -212,10 +353,31 @@ void ApplyDepthOffset(::Effekseer::Matrix44& mat, const ::Effekseer::Vector3D& c
 			mat.Values[3][2] += dir.Z * offset;
 		}
 	}
+
+	if (depthParameter->SuppressionOfScalingByDepth < 1.0f)
+	{
+		auto cx = mat.Values[3][0] - cameraPos.X;
+		auto cy = mat.Values[3][1] - cameraPos.Y;
+		auto cz = mat.Values[3][2] - cameraPos.Z;
+		auto cl = sqrt(cx * cx + cy * cy + cz * cz);
+
+		if (cl != 0.0)
+		{
+			auto scale = cl / 32.0f * (1.0f - depthParameter->SuppressionOfScalingByDepth) + depthParameter->SuppressionOfScalingByDepth;
+
+			for (auto r = 0; r < 3; r++)
+			{
+				for (auto c = 0; c < 3; c++)
+				{
+					mat.Values[c][r] *= scale;
+				}
+			}
+		}
+	}
 }
 
-
 }
+
 
 //-----------------------------------------------------------------------------------
 //
@@ -295,6 +457,7 @@ void* IndexBufferBase::GetBufferDirect( int count )
 //
 //-----------------------------------------------------------------------------------
 
+
 //----------------------------------------------------------------------------------
 // Include
 //----------------------------------------------------------------------------------
@@ -314,18 +477,15 @@ namespace EffekseerRenderer
 //----------------------------------------------------------------------------------
 
 
+
 namespace EffekseerRenderer
 {
 
-Renderer::Renderer()
-{
-	impl = new Impl();
-}
+Renderer::Renderer() { impl = new Impl(); }
 
-Renderer::~Renderer()
-{
-	ES_SAFE_DELETE(impl);
-}
+Renderer::~Renderer() { ES_SAFE_DELETE(impl); }
+
+Renderer::Impl* Renderer::GetImpl() { return impl; }
 
 int32_t Renderer::GetDrawCallCount() const { return impl->GetDrawCallCount(); }
 
@@ -335,49 +495,63 @@ void Renderer::ResetDrawCallCount() { impl->ResetDrawCallCount(); }
 
 void Renderer::ResetDrawVertexCount() { impl->ResetDrawVertexCount(); }
 
-UVStyle Renderer::GetTextureUVStyle() const
+Effekseer::RenderMode Renderer::GetRenderMode() const { return impl->GetRenderMode(); }
+
+void Renderer::SetRenderMode(Effekseer::RenderMode renderMode) { impl->SetRenderMode(renderMode); }
+
+UVStyle Renderer::GetTextureUVStyle() const { return impl->GetTextureUVStyle(); }
+
+void Renderer::SetTextureUVStyle(UVStyle style) { impl->SetTextureUVStyle(style); }
+
+UVStyle Renderer::GetBackgroundTextureUVStyle() const { return impl->GetBackgroundTextureUVStyle(); }
+
+void Renderer::SetBackgroundTextureUVStyle(UVStyle style) { impl->SetBackgroundTextureUVStyle(style); }
+
+float Renderer::GetTime() const { return impl->GetTime(); }
+
+void Renderer::SetTime(float time) { impl->SetTime(time); }
+
+void Renderer::SetBackgroundTexture(::Effekseer::TextureData* textureData)
 {
-	return impl->GetTextureUVStyle();
+	// not implemented
+	assert(0);
 }
 
-void Renderer::SetTextureUVStyle(UVStyle style)
-{
-	impl->SetTextureUVStyle(style);
-}
+} // namespace EffekseerRenderer
 
-UVStyle Renderer::GetBackgroundTextureUVStyle() const
-{
-	return impl->GetBackgroundTextureUVStyle();
-}
-
-void Renderer::SetBackgroundTextureUVStyle(UVStyle style)
-{
-	impl->SetBackgroundTextureUVStyle(style);
-}
-
-}
 namespace EffekseerRenderer
 {
 
-UVStyle Renderer::Impl::GetTextureUVStyle() const
+void Renderer::Impl::CreateProxyTextures(Renderer* renderer)
 {
-	return textureUVStyle;
+	whiteProxyTexture_ = renderer->CreateProxyTexture(::EffekseerRenderer::ProxyTextureType::White);
+	normalProxyTexture_ = renderer->CreateProxyTexture(::EffekseerRenderer::ProxyTextureType::Normal);
 }
 
-void Renderer::Impl::SetTextureUVStyle(UVStyle style)
+void Renderer::Impl::DeleteProxyTextures(Renderer* renderer)
 {
-	textureUVStyle = style;
+	renderer->DeleteProxyTexture(whiteProxyTexture_);
+	renderer->DeleteProxyTexture(normalProxyTexture_);
+	whiteProxyTexture_ = nullptr;
+	normalProxyTexture_ = nullptr;
 }
 
-UVStyle Renderer::Impl::GetBackgroundTextureUVStyle() const
+::Effekseer::TextureData* Renderer::Impl::GetProxyTexture(EffekseerRenderer::ProxyTextureType type)
 {
-	return backgroundTextureUVStyle;
+	if (type == EffekseerRenderer::ProxyTextureType::White)
+		return whiteProxyTexture_;
+	if (type == EffekseerRenderer::ProxyTextureType::Normal)
+		return normalProxyTexture_;
+	return nullptr;
 }
 
-void Renderer::Impl::SetBackgroundTextureUVStyle(UVStyle style)
-{
-	backgroundTextureUVStyle = style;
-}
+UVStyle Renderer::Impl::GetTextureUVStyle() const { return textureUVStyle; }
+
+void Renderer::Impl::SetTextureUVStyle(UVStyle style) { textureUVStyle = style; }
+
+UVStyle Renderer::Impl::GetBackgroundTextureUVStyle() const { return backgroundTextureUVStyle; }
+
+void Renderer::Impl::SetBackgroundTextureUVStyle(UVStyle style) { backgroundTextureUVStyle = style; }
 
 int32_t Renderer::Impl::GetDrawCallCount() const { return drawcallCount; }
 
@@ -387,7 +561,25 @@ void Renderer::Impl::ResetDrawCallCount() { drawcallCount = 0; }
 
 void Renderer::Impl::ResetDrawVertexCount() { drawvertexCount = 0; }
 
+float Renderer::Impl::GetTime() const { return time_; }
+
+void Renderer::Impl::SetTime(float time) { time_ = time; }
+
+Effekseer::RenderMode Renderer::Impl::GetRenderMode() const
+{
+	if (!isRenderModeValid)
+	{
+		printf("RenderMode is not implemented.\n");
+		return Effekseer::RenderMode::Normal;
+	}
+
+	return renderMode_;
 }
+
+void Renderer::Impl::SetRenderMode(Effekseer::RenderMode renderMode) { renderMode_ = renderMode; }
+
+} // namespace EffekseerRenderer
+
 //----------------------------------------------------------------------------------
 // Include
 //----------------------------------------------------------------------------------
@@ -501,6 +693,7 @@ RenderStateBase::State& RenderStateBase::GetActiveState()
 //
 //-----------------------------------------------------------------------------------
 
+
 //----------------------------------------------------------------------------------
 // Include
 //----------------------------------------------------------------------------------
@@ -519,26 +712,6 @@ namespace EffekseerRenderer
 //
 //----------------------------------------------------------------------------------
 
-//----------------------------------------------------------------------------------
-// Include
-//----------------------------------------------------------------------------------
-
-//-----------------------------------------------------------------------------------
-//
-//-----------------------------------------------------------------------------------
-namespace EffekseerRenderer
-{
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-}
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
 
 //----------------------------------------------------------------------------------
 // Include
@@ -561,6 +734,7 @@ namespace EffekseerRenderer
 //
 //----------------------------------------------------------------------------------
 
+
 //----------------------------------------------------------------------------------
 // Include
 //----------------------------------------------------------------------------------
@@ -581,6 +755,29 @@ namespace EffekseerRenderer
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
+
+
+//----------------------------------------------------------------------------------
+// Include
+//----------------------------------------------------------------------------------
+
+//-----------------------------------------------------------------------------------
+//
+//-----------------------------------------------------------------------------------
+namespace EffekseerRenderer
+{
+//----------------------------------------------------------------------------------
+//
+//----------------------------------------------------------------------------------
+
+//----------------------------------------------------------------------------------
+//
+//----------------------------------------------------------------------------------
+}
+//----------------------------------------------------------------------------------
+//
+//----------------------------------------------------------------------------------
+
 
 //-----------------------------------------------------------------------------------
 //
@@ -659,6 +856,7 @@ void* VertexBufferBase::GetBufferDirect( int size )
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
+
 #ifndef	__EFFEKSEERRENDERER_GL_BASE_H__
 #define	__EFFEKSEERRENDERER_GL_BASE_H__
 
@@ -725,6 +923,7 @@ class TextureLoader;
 //
 //----------------------------------------------------------------------------------
 #endif	// __EFFEKSEERRENDERER_GL_BASE_H__
+
 #ifndef	__EFFEKSEERRENDERER_GL_DEVICEOBJECT_H__
 #define	__EFFEKSEERRENDERER_GL_DEVICEOBJECT_H__
 
@@ -767,6 +966,7 @@ public:
 //
 //----------------------------------------------------------------------------------
 #endif	// __EFFEKSEERRENDERER_GL_DEVICEOBJECT_H__
+
 #ifndef	__EFFEKSEERRENDERER_GL_GLEXTENSION_H__
 #define	__EFFEKSEERRENDERER_GL_GLEXTENSION_H__
 
@@ -811,6 +1011,8 @@ namespace GLExt
 #define GL_LINK_STATUS 0x8B82
 
 #define GL_VERTEX_ARRAY_BINDING 0x85B5
+#define GL_ARRAY_BUFFER_BINDING 0x8894
+#define GL_ELEMENT_ARRAY_BUFFER_BINDING 0x8895
 
 #define GL_COMPRESSED_RGBA_S3TC_DXT1_EXT 0x83F1
 #define GL_COMPRESSED_RGBA_S3TC_DXT3_EXT 0x83F2
@@ -901,6 +1103,7 @@ void glCompressedTexImage2D(GLenum target, GLint level, GLenum internalformat, G
 
 
 
+
 //----------------------------------------------------------------------------------
 // Include
 //----------------------------------------------------------------------------------
@@ -947,6 +1150,7 @@ public:
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
+
 
 #ifndef	__EFFEKSEERRENDERER_GL_MODEL_RENDERER_H__
 #define	__EFFEKSEERRENDERER_GL_MODEL_RENDERER_H__
@@ -1017,16 +1221,8 @@ private:
 	RendererImplemented*				m_renderer;
 
 	Shader*								m_shader_lighting_texture_normal;
-	Shader*								m_shader_lighting_normal;
-
-	Shader*								m_shader_lighting_texture;
-	Shader*								m_shader_lighting;
-
 	Shader*								m_shader_texture;
-	Shader*								m_shader;
-
 	Shader*								m_shader_distortion_texture;
-	Shader*								m_shader_distortion;
 
 	GLint								m_uniformLoc[8][NumUniforms];
 
@@ -1035,13 +1231,8 @@ private:
 	ModelRenderer(
 		RendererImplemented* renderer,
 		Shader* shader_lighting_texture_normal,
-		Shader* shader_lighting_normal,
-		Shader* shader_lighting_texture,
-		Shader* shader_lighting,
 		Shader* shader_texture,
-		Shader* shader,
-		Shader* shader_distortion_texture,
-		Shader* shader_distortion);
+		Shader* shader_distortion_texture);
 public:
 
 	virtual ~ModelRenderer();
@@ -1063,6 +1254,7 @@ public:
 //
 //----------------------------------------------------------------------------------
 #endif	// __EFFEKSEERRENDERER_GL_MODEL_RENDERER_H__
+
 #ifndef	__EFFEKSEERRENDERER_GL_RENDERER_IMPLEMENTED_H__
 #define	__EFFEKSEERRENDERER_GL_RENDERER_IMPLEMENTED_H__
 
@@ -1070,48 +1262,12 @@ public:
 // Include
 //----------------------------------------------------------------------------------
 
-//----------------------------------------------------------------------------------
-// Lib
-//----------------------------------------------------------------------------------
-
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
 namespace EffekseerRendererGL
 {
 
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-struct Vertex
-{
-	::Effekseer::Vector3D	Pos;
-	::Effekseer::Color		Col;
-	float					UV[2];
+using Vertex = EffekseerRenderer::SimpleVertex;
+using VertexDistortion = EffekseerRenderer::VertexDistortion;
 
-	void SetColor( const ::Effekseer::Color& color )
-	{
-		Col = color;
-	}
-};
-
-struct VertexDistortion
-{
-	::Effekseer::Vector3D	Pos;
-	::Effekseer::Color		Col;
-	float					UV[2];
-	::Effekseer::Vector3D	Tangent;
-	::Effekseer::Vector3D	Binormal;
-
-	void SetColor(const ::Effekseer::Color& color)
-	{
-		Col = color;
-	}
-};
-
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
 struct RenderStateSet
 {
 	GLboolean	blend;
@@ -1144,23 +1300,17 @@ private:
 	IndexBuffer*		m_indexBufferForWireframe = nullptr;
 	int32_t				m_squareMaxCount;
 
-	Shader*							m_shader;
-	Shader*							m_shader_no_texture;
+	Shader* m_shader = nullptr;
+	Shader* m_shader_distortion = nullptr;
+	Shader* m_shader_lighting = nullptr;
+	Shader* currentShader = nullptr;
 
-	Shader*							m_shader_distortion;
-	Shader*							m_shader_no_texture_distortion;
+	EffekseerRenderer::StandardRenderer<RendererImplemented, Shader, Vertex, VertexDistortion>* m_standardRenderer;
 
-	Shader*		currentShader = nullptr;
-
-	EffekseerRenderer::StandardRenderer<RendererImplemented, Shader, Vertex, VertexDistortion>*	m_standardRenderer;
-
-	VertexArray*			m_vao;
-	VertexArray*			m_vao_no_texture;
-
-	VertexArray*			m_vao_distortion;
-	VertexArray*			m_vao_no_texture_distortion;
-
-	VertexArray*			m_vao_wire_frame;
+	VertexArray* m_vao = nullptr;
+	VertexArray* m_vao_distortion = nullptr;
+	VertexArray* m_vao_lighting = nullptr;
+	VertexArray* m_vao_wire_frame = nullptr;
 
 	::Effekseer::Vector3D	m_lightDirection;
 	::Effekseer::Color		m_lightColor;
@@ -1192,8 +1342,6 @@ private:
 	std::vector<GLuint>	m_currentTextures;
 
 	VertexArray*	m_currentVertexArray;
-
-	Effekseer::RenderMode m_renderMode = Effekseer::RenderMode::Normal;
 
 public:
 	/**
@@ -1363,19 +1511,11 @@ public:
 
 	void SetDistortingCallback(EffekseerRenderer::DistortingCallback* callback) override;
 
-	/**
-	@brief	描画モードを設定する。
-	*/
-	void SetRenderMode( Effekseer::RenderMode renderMode ) override
+	EffekseerRenderer::StandardRenderer<RendererImplemented, Shader, Vertex, VertexDistortion>*
+	GetStandardRenderer()
 	{
-		m_renderMode = renderMode;
+		return m_standardRenderer;
 	}
-	Effekseer::RenderMode GetRenderMode() override
-	{
-		return m_renderMode;
-	}
-
-	EffekseerRenderer::StandardRenderer<RendererImplemented, Shader, Vertex, VertexDistortion>* GetStandardRenderer() { return m_standardRenderer; }
 
 	void SetVertexBuffer( VertexBuffer* vertexBuffer, int32_t size );
 	void SetVertexBuffer(GLuint vertexBuffer, int32_t size);
@@ -1387,7 +1527,7 @@ public:
 	void DrawSprites( int32_t spriteCount, int32_t vertexOffset );
 	void DrawPolygon( int32_t vertexCount, int32_t indexCount);
 
-	Shader* GetShader(bool useTexture, bool useDistortion) const;
+	Shader* GetShader(bool useTexture, ::Effekseer::RendererMaterialType materialType) const;
 	void BeginShader(Shader* shader);
 	void EndShader(Shader* shader);
 
@@ -1399,9 +1539,15 @@ public:
 
 	void ResetRenderState() override;
 
+	Effekseer::TextureData* CreateProxyTexture(EffekseerRenderer::ProxyTextureType type) override;
+
+	void DeleteProxyTexture(Effekseer::TextureData* data) override;
+
 	std::vector<GLuint>& GetCurrentTextures() { return m_currentTextures; }
 
 	OpenGLDeviceType GetDeviceType() const override { return m_deviceType; }
+
+	bool IsVertexArrayObjectSupported() const override;
 
 	virtual int GetRef() override { return ::Effekseer::ReferenceObject::GetRef(); }
 	virtual int AddRef() override { return ::Effekseer::ReferenceObject::AddRef(); }
@@ -1419,6 +1565,7 @@ private:
 //
 //----------------------------------------------------------------------------------
 #endif	// __EFFEKSEERRENDERER_GL_RENDERER_IMPLEMENTED_H__
+
 
 #ifndef	__EFFEKSEERRENDERER_GL_RENDERSTATE_H__
 #define	__EFFEKSEERRENDERER_GL_RENDERSTATE_H__
@@ -1460,6 +1607,7 @@ public:
 //
 //-----------------------------------------------------------------------------------
 #endif	// __EFFEKSEERRENDERER_GL_RENDERSTATE_H__
+
 #ifndef	__EFFEKSEERRENDERER_GL_SHADER_H__
 #define	__EFFEKSEERRENDERER_GL_SHADER_H__
 
@@ -1484,7 +1632,7 @@ namespace EffekseerRendererGL
 //----------------------------------------------------------------------------------
 struct ShaderAttribInfo
 {
-	const char*	name;
+	char*	name;
 	GLenum		type;
 	uint16_t	count;
 	uint16_t	offset;
@@ -1648,6 +1796,7 @@ public:
 //----------------------------------------------------------------------------------
 #endif	// __EFFEKSEERRENDERER_GL_SHADER_H__
 
+
 #ifdef __EFFEKSEER_RENDERER_INTERNAL_LOADER__
 
 #ifndef	__EFFEKSEERRENDERER_GL_TEXTURELOADER_H__
@@ -1704,6 +1853,7 @@ public:
 #endif
 
 
+
 //----------------------------------------------------------------------------------
 // Include
 //----------------------------------------------------------------------------------
@@ -1757,6 +1907,7 @@ private:
 //-----------------------------------------------------------------------------------
 
 
+
 //----------------------------------------------------------------------------------
 // Include
 //----------------------------------------------------------------------------------
@@ -1794,8 +1945,8 @@ public:	// デバイス復旧用
 
 public:
 	void Lock();
-	bool RingBufferLock( int32_t size, int32_t& offset, void*& data );
-	bool TryRingBufferLock(int32_t size, int32_t& offset, void*& data);
+	bool RingBufferLock(int32_t size, int32_t& offset, void*& data, int32_t alignment) override;
+	bool TryRingBufferLock(int32_t size, int32_t& offset, void*& data, int32_t alignment) override;
 
 	void Unlock();
 
@@ -1809,6 +1960,7 @@ public:
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
+
 //----------------------------------------------------------------------------------
 // Include
 //----------------------------------------------------------------------------------
@@ -1852,6 +2004,7 @@ RendererImplemented* DeviceObject::GetRenderer() const
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
+
 
 //----------------------------------------------------------------------------------
 // Include
@@ -2107,11 +2260,17 @@ bool Initialize(OpenGLDeviceType deviceType)
 	// Some smartphone causes segmentation fault.
 	//GET_PROC(glMapBufferRangeEXT);
 
+#ifdef EMSCRIPTEN
+	g_isSurrpotedBufferRange = false;
+	g_isSurrpotedMapBuffer = false;
+#else
 	GET_PROC(glMapBufferOES);
 	GET_PROC(glUnmapBufferOES);
 	g_isSurrpotedBufferRange = (g_glMapBufferRangeEXT && g_glUnmapBufferOES);
 	g_isSurrpotedMapBuffer = (g_glMapBufferOES && g_glUnmapBufferOES 
 		&& ((glExtensions && strstr(glExtensions, "GL_OES_mapbuffer")) ? true : false));
+#endif
+
 #endif
 
 #else
@@ -2556,6 +2715,7 @@ void glCompressedTexImage2D(GLenum target, GLint level, GLenum internalformat, G
 }
 }
 
+
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
@@ -2654,6 +2814,7 @@ bool IndexBuffer::IsValid()
 //
 //-----------------------------------------------------------------------------------
 
+
 //----------------------------------------------------------------------------------
 // Include
 //----------------------------------------------------------------------------------
@@ -2727,10 +2888,10 @@ void ModelLoader::Unload( void* data )
 //
 //----------------------------------------------------------------------------------
 
+
 //----------------------------------------------------------------------------------
 // Include
 //----------------------------------------------------------------------------------
-
 
 
 //-----------------------------------------------------------------------------------
@@ -3049,22 +3210,12 @@ static ShaderUniformInfo g_model_uniforms[ModelRenderer::NumUniforms] = {
 ModelRenderer::ModelRenderer(
 	RendererImplemented* renderer,
 	Shader* shader_lighting_texture_normal,
-	Shader* shader_lighting_normal,
-	Shader* shader_lighting_texture,
-	Shader* shader_lighting,
 	Shader* shader_texture,
-	Shader* shader,
-	Shader* shader_distortion_texture,
-	Shader* shader_distortion)
+	Shader* shader_distortion_texture)
 	: m_renderer(renderer)
 	, m_shader_lighting_texture_normal(shader_lighting_texture_normal)
-	, m_shader_lighting_normal(shader_lighting_normal)
-	, m_shader_lighting_texture(shader_lighting_texture)
-	, m_shader_lighting(shader_lighting)
 	, m_shader_texture(shader_texture)
-	, m_shader(shader)
 	, m_shader_distortion_texture(shader_distortion_texture)
-	, m_shader_distortion(shader_distortion)
 {
 	for (size_t i = 0; i < 8; i++)
 	{
@@ -3076,45 +3227,20 @@ ModelRenderer::ModelRenderer(
 	shader_lighting_texture_normal->SetTextureSlot(0, shader_lighting_texture_normal->GetUniformId("ColorTexture"));
 	shader_lighting_texture_normal->SetTextureSlot(1, shader_lighting_texture_normal->GetUniformId("NormalTexture"));
 
-
-	shader_lighting_normal->GetAttribIdList(NumAttribs, g_model_attribs);
-	shader_lighting_normal->GetUniformIdList(NumUniforms, g_model_uniforms, m_uniformLoc[1]);
-	shader_lighting_normal->SetTextureSlot(1, shader_lighting_normal->GetUniformId("NormalTexture"));
-
-
-	shader_lighting_texture->GetAttribIdList(NumAttribs, g_model_attribs);
-	shader_lighting_texture->GetUniformIdList(NumUniforms, g_model_uniforms, m_uniformLoc[2]);
-	shader_lighting_texture->SetTextureSlot(0, shader_lighting_texture->GetUniformId("ColorTexture"));
-
-	shader_lighting->GetAttribIdList(NumAttribs, g_model_attribs);
-	shader_lighting->GetUniformIdList(NumUniforms, g_model_uniforms, m_uniformLoc[3]);
-
 	shader_texture->GetAttribIdList(NumAttribs, g_model_attribs);
 	shader_texture->GetUniformIdList(NumUniforms, g_model_uniforms, m_uniformLoc[4]);
 	shader_texture->SetTextureSlot(0, shader_texture->GetUniformId("ColorTexture"));
 	
-	shader->GetAttribIdList(NumAttribs, g_model_attribs);
-	shader->GetUniformIdList(NumUniforms, g_model_uniforms, m_uniformLoc[5]);
-
 	shader_distortion_texture->GetAttribIdList(NumAttribs, g_model_attribs);
 	shader_distortion_texture->GetUniformIdList(NumUniforms, g_model_uniforms, m_uniformLoc[6]);
 	shader_distortion_texture->SetTextureSlot(0, shader_distortion_texture->GetUniformId("uTexture0"));
 	shader_distortion_texture->SetTextureSlot(1, shader_distortion_texture->GetUniformId("uBackTexture0"));
 
-	shader_distortion->GetAttribIdList(NumAttribs, g_model_attribs);
-	shader_distortion->GetUniformIdList(NumUniforms, g_model_uniforms, m_uniformLoc[7]);
-	shader_distortion->SetTextureSlot(0, shader_distortion->GetUniformId("uTexture0"));
-	shader_distortion->SetTextureSlot(1, shader_distortion->GetUniformId("uBackTexture0"));
-
-	Shader* shaders[6];
+	Shader* shaders[2];
 	shaders[0] = m_shader_lighting_texture_normal;
-	shaders[1] = m_shader_lighting_normal;
-	shaders[2] = m_shader_lighting_texture;
-	shaders[3] = m_shader_lighting;
-	shaders[4] = m_shader_texture;
-	shaders[5] = m_shader;
+	shaders[1] = m_shader_texture;
 	
-	for( int32_t i = 0; i < 6; i++ )
+	for( int32_t i = 0; i < 2; i++ )
 	{
 		shaders[i]->SetVertexSize(sizeof(::Effekseer::Model::Vertex));
 
@@ -3182,11 +3308,10 @@ ModelRenderer::ModelRenderer(
 			);
 	}
 
-	Shader* shaders_d[2];
+	Shader* shaders_d[1];
 	shaders_d[0] = shader_distortion_texture;
-	shaders_d[1] = shader_distortion;
 
-	for (int32_t i = 0; i < 2; i++)
+	for (int32_t i = 0; i < 1; i++)
 	{
 		shaders_d[i]->SetVertexSize(sizeof(::Effekseer::Model::Vertex));
 
@@ -3255,18 +3380,21 @@ ModelRenderer::ModelRenderer(
 			);
 	}
 
+	GLint currentVAO = 0;
+
+	if (GLExt::IsSupportedVertexArray())
+	{
+		glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &currentVAO);
+	}
+
 	m_va[0] = VertexArray::Create(renderer, m_shader_lighting_texture_normal, nullptr, nullptr);
-	m_va[1] = VertexArray::Create(renderer, m_shader_lighting_normal, nullptr, nullptr);
-
-	m_va[2] = VertexArray::Create(renderer, m_shader_lighting_texture, nullptr, nullptr);
-	m_va[3] = VertexArray::Create(renderer, m_shader_lighting, nullptr, nullptr);
-
 	m_va[4] = VertexArray::Create(renderer, m_shader_texture, nullptr, nullptr);
-	m_va[5] = VertexArray::Create(renderer, m_shader, nullptr, nullptr);
-
 	m_va[6] = VertexArray::Create(renderer, m_shader_distortion_texture, nullptr, nullptr);
-	m_va[7] = VertexArray::Create(renderer, m_shader_distortion, nullptr, nullptr);
 
+	if (GLExt::IsSupportedVertexArray())
+	{
+		GLExt::glBindVertexArray(currentVAO);
+	}
 }
 
 //----------------------------------------------------------------------------------
@@ -3280,16 +3408,10 @@ ModelRenderer::~ModelRenderer()
 	}
 
 	ES_SAFE_DELETE(m_shader_lighting_texture_normal);
-	ES_SAFE_DELETE(m_shader_lighting_normal);
-
-	ES_SAFE_DELETE(m_shader_lighting_texture);
-	ES_SAFE_DELETE(m_shader_lighting);
 
 	ES_SAFE_DELETE(m_shader_texture);
-	ES_SAFE_DELETE(m_shader);
 
 	ES_SAFE_DELETE(m_shader_distortion_texture);
-	ES_SAFE_DELETE(m_shader_distortion);
 }
 
 //----------------------------------------------------------------------------------
@@ -3299,41 +3421,18 @@ ModelRenderer* ModelRenderer::Create( RendererImplemented* renderer )
 {
 	assert( renderer != NULL );
 
-	Shader* shader_lighting_texture_normal = NULL;
-	Shader* shader_lighting_normal = NULL;
-		    
-	Shader* shader_lighting_texture = NULL;
-	Shader* shader_lighting = NULL;
-		    
+	Shader* shader_lighting_texture_normal = NULL;		    
 	Shader* shader_texture = NULL;
-	Shader* shader = NULL;
-
 	Shader* shader_distortion_texture = NULL;
-	Shader* shader_distortion = NULL;
 
 	std::string vs_ltn_src = g_model_vs_src;
 	std::string fs_ltn_src = g_model_fs_src;
 
-	std::string vs_ln_src = g_model_vs_src;
-	std::string fs_ln_src = g_model_fs_src;
-
-	std::string vs_lt_src = g_model_vs_src;
-	std::string fs_lt_src = g_model_fs_src;
-
-	std::string vs_l_src = g_model_vs_src;
-	std::string fs_l_src = g_model_fs_src;
-
 	std::string vs_t_src = g_model_vs_src;
 	std::string fs_t_src = g_model_fs_src;
 
-	std::string vs_src = g_model_vs_src;
-	std::string fs_src = g_model_fs_src;
-
 	std::string vs_d_t_src = g_model_distortion_vs_src;
 	std::string fs_d_t_src = g_model_distortion_fs_src;
-
-	std::string vs_d_src = g_model_distortion_vs_src;
-	std::string fs_d_src = g_model_distortion_fs_src;
 
 	vs_ltn_src = Replace(vs_ltn_src, "TextureEnable", "true");
 	fs_ltn_src = Replace(fs_ltn_src, "TextureEnable", "true");
@@ -3342,27 +3441,6 @@ ModelRenderer* ModelRenderer::Create( RendererImplemented* renderer )
 	vs_ltn_src = Replace(vs_ltn_src, "NormalMapEnable", "true");
 	fs_ltn_src = Replace(fs_ltn_src, "NormalMapEnable", "true");
 
-	vs_ln_src = Replace(vs_ln_src, "TextureEnable", "false");
-	fs_ln_src = Replace(fs_ln_src, "TextureEnable", "false");
-	vs_ln_src = Replace(vs_ln_src, "LightingEnable", "true");
-	fs_ln_src = Replace(fs_ln_src, "LightingEnable", "true");
-	vs_ln_src = Replace(vs_ln_src, "NormalMapEnable", "true");
-	fs_ln_src = Replace(fs_ln_src, "NormalMapEnable", "true");
-
-	vs_lt_src = Replace(vs_lt_src, "TextureEnable", "true");
-	fs_lt_src = Replace(fs_lt_src, "TextureEnable", "true");
-	vs_lt_src = Replace(vs_lt_src, "LightingEnable", "true");
-	fs_lt_src = Replace(fs_lt_src, "LightingEnable", "true");
-	vs_lt_src = Replace(vs_lt_src, "NormalMapEnable", "false");
-	fs_lt_src = Replace(fs_lt_src, "NormalMapEnable", "false");
-
-	vs_l_src = Replace(vs_l_src, "TextureEnable", "false");
-	fs_l_src = Replace(fs_l_src, "TextureEnable", "false");
-	vs_l_src = Replace(vs_l_src, "LightingEnable", "true");
-	fs_l_src = Replace(fs_l_src, "LightingEnable", "true");
-	vs_l_src = Replace(vs_l_src, "NormalMapEnable", "false");
-	fs_l_src = Replace(fs_l_src, "NormalMapEnable", "false");
-
 	vs_t_src = Replace(vs_t_src, "TextureEnable", "true");
 	fs_t_src = Replace(fs_t_src, "TextureEnable", "true");
 	vs_t_src = Replace(vs_t_src, "LightingEnable", "false");
@@ -3370,76 +3448,32 @@ ModelRenderer* ModelRenderer::Create( RendererImplemented* renderer )
 	vs_t_src = Replace(vs_t_src, "NormalMapEnable", "false");
 	fs_t_src = Replace(fs_t_src, "NormalMapEnable", "false");
 
-	vs_src = Replace(vs_src, "TextureEnable", "false");
-	fs_src = Replace(fs_src, "TextureEnable", "false");
-	vs_src = Replace(vs_src, "LightingEnable", "false");
-	fs_src = Replace(fs_src, "LightingEnable", "false");
-	vs_src = Replace(vs_src, "NormalMapEnable", "false");
-	fs_src = Replace(fs_src, "NormalMapEnable", "false");
-
 	vs_d_t_src = Replace(vs_d_t_src, "TextureEnable", "true");
 	fs_d_t_src = Replace(fs_d_t_src, "TextureEnable", "true");
-
-	vs_d_src = Replace(vs_d_src, "TextureEnable", "false");
-	fs_d_src = Replace(fs_d_src, "TextureEnable", "false");
 
 	shader_lighting_texture_normal = Shader::Create(renderer,
 		vs_ltn_src.c_str(), vs_ltn_src.length(), fs_ltn_src.c_str(), fs_ltn_src.length(), "ModelRenderer1");
 	if (shader_lighting_texture_normal == NULL) goto End;
 
-	shader_lighting_normal = Shader::Create(renderer,
-		vs_ln_src.c_str(), vs_ln_src.length(), fs_ln_src.c_str(), fs_ln_src.length(), "ModelRenderer2");
-	if (shader_lighting_normal == NULL) goto End;
-
-	shader_lighting_texture = Shader::Create(renderer,
-		vs_lt_src.c_str(), vs_lt_src.length(), fs_lt_src.c_str(), fs_lt_src.length(), "ModelRenderer3");
-	if (shader_lighting_texture == NULL) goto End;
-
-	shader_lighting = Shader::Create(renderer,
-		vs_l_src.c_str(), vs_l_src.length(), fs_l_src.c_str(), fs_l_src.length(), "ModelRenderer4");
-	if (shader_lighting == NULL) goto End;
-
 	shader_texture = Shader::Create(renderer,
 		vs_t_src.c_str(), vs_t_src.length(), fs_t_src.c_str(), fs_t_src.length(), "ModelRenderer5");
 	if (shader_texture == NULL) goto End;
-
-	shader = Shader::Create( renderer, 
-		vs_src.c_str(), vs_src.length(), fs_src.c_str(), fs_src.length(), "ModelRenderer6");
-	if (shader == NULL) goto End;
 
 	shader_distortion_texture = Shader::Create(renderer,
 		vs_d_t_src.c_str(), vs_d_t_src.length(), fs_d_t_src.c_str(), fs_d_t_src.length(), "ModelRenderer7");
 	if (shader_distortion_texture == NULL) goto End;
 
-	shader_distortion = Shader::Create(renderer,
-		vs_d_src.c_str(), vs_d_src.length(), fs_d_src.c_str(), fs_d_src.length(), "ModelRenderer8");
-	if (shader_distortion == NULL) goto End;
-
 	return new ModelRenderer( 
 		renderer, 
 		shader_lighting_texture_normal,
-		shader_lighting_normal,
-		shader_lighting_texture,
-		shader_lighting,
 		shader_texture,
-		shader,
-		shader_distortion_texture,
-		shader_distortion);
+		shader_distortion_texture);
 End:;
 
 	ES_SAFE_DELETE(shader_lighting_texture_normal);
-	ES_SAFE_DELETE(shader_lighting_normal);
-
-	ES_SAFE_DELETE(shader_lighting_texture);
-	ES_SAFE_DELETE(shader_lighting);
-
 	ES_SAFE_DELETE(shader_texture);
-	ES_SAFE_DELETE(shader);
-
 	ES_SAFE_DELETE(shader_distortion_texture);
-	ES_SAFE_DELETE(shader_distortion);
-	return NULL;
-
+	return nullptr;
 }
 
 void ModelRenderer::BeginRendering(const efkModelNodeParam& parameter, int32_t count, void* userData)
@@ -3459,74 +3493,39 @@ void ModelRenderer::Rendering(const efkModelNodeParam& parameter, const Instance
 
 void ModelRenderer::EndRendering( const efkModelNodeParam& parameter, void* userData )
 {
-	if (parameter.Distortion)
+	if (parameter.BasicParameterPtr->MaterialType == Effekseer::RendererMaterialType::BackDistortion)
 	{
-		if (parameter.ColorTextureIndex >= 0)
-		{
-			m_renderer->SetVertexArray(m_va[6]);
-		}
-		else
-		{
-			m_renderer->SetVertexArray(m_va[7]);
-		}
+		m_renderer->SetVertexArray(m_va[6]);
 	}
-	else if (parameter.Lighting)
+	else if (parameter.BasicParameterPtr->MaterialType == Effekseer::RendererMaterialType::Lighting)
 	{
-		if (parameter.NormalTextureIndex >= 0)
-		{
-			if (parameter.ColorTextureIndex >= 0)
-			{
-				m_renderer->SetVertexArray(m_va[0]);
-			}
-			else
-			{
-				m_renderer->SetVertexArray(m_va[1]);
-			}
-			}
-		else
-		{
-			if (parameter.ColorTextureIndex >= 0)
-			{
-				m_renderer->SetVertexArray(m_va[2]);
-			}
-			else
-			{
-				m_renderer->SetVertexArray(m_va[3]);
-			}
-		}
+		m_renderer->SetVertexArray(m_va[0]);
 	}
 	else
 	{
-		if (parameter.ColorTextureIndex >= 0)
-		{
-			m_renderer->SetVertexArray(m_va[4]);
-		}
-		else
-		{
-			m_renderer->SetVertexArray(m_va[5]);
-		}
+		m_renderer->SetVertexArray(m_va[4]);
 	}
 
+    if(parameter.ModelIndex < 0)
+    {
+        return;
+    }
+    
 	auto model = (Model*) parameter.EffectPointer->GetModel(parameter.ModelIndex);
-	if(model != nullptr)
+	if(model == nullptr)
 	{
-		for(auto i = 0; i < model->GetFrameCount(); i++)
-		{
-			model->InternalModels[i].TryDelayLoad();
-		}
+        return;
+    }
+    
+    for(auto i = 0; i < model->GetFrameCount(); i++)
+    {
+        model->InternalModels[i].TryDelayLoad();
+    }
 	
-		m_shader_lighting_texture_normal->SetVertexSize(model->GetVertexSize());
-		m_shader_lighting_normal->SetVertexSize(model->GetVertexSize());
-		m_shader_lighting_texture->SetVertexSize(model->GetVertexSize());
-		m_shader_lighting->SetVertexSize(model->GetVertexSize());
-		m_shader_texture->SetVertexSize(model->GetVertexSize());
-		m_shader->SetVertexSize(model->GetVertexSize());
-		m_shader_distortion_texture->SetVertexSize(model->GetVertexSize());
-		m_shader_distortion->SetVertexSize(model->GetVertexSize());
-	}
-
-
-
+    m_shader_lighting_texture_normal->SetVertexSize(model->GetVertexSize());
+    m_shader_texture->SetVertexSize(model->GetVertexSize());
+    m_shader_distortion_texture->SetVertexSize(model->GetVertexSize());
+	
 #if defined(MODEL_SOFTWARE_INSTANCING)
 	EndRendering_<
 		RendererImplemented,
@@ -3537,13 +3536,8 @@ void ModelRenderer::EndRendering( const efkModelNodeParam& parameter, void* user
 		20>(
 		m_renderer,
 		m_shader_lighting_texture_normal,
-		m_shader_lighting_normal,
-		m_shader_lighting_texture,
-		m_shader_lighting,
 		m_shader_texture,
-		m_shader,
 		m_shader_distortion_texture,
-		m_shader_distortion,
 		parameter );
 #else
 	EndRendering_<
@@ -3554,178 +3548,11 @@ void ModelRenderer::EndRendering( const efkModelNodeParam& parameter, void* user
 		1>(
 		m_renderer,
 		m_shader_lighting_texture_normal,
-		m_shader_lighting_normal,
-		m_shader_lighting_texture,
-		m_shader_lighting,
 		m_shader_texture,
-		m_shader,
 		m_shader_distortion_texture,
-		m_shader_distortion,
 		parameter );
 #endif
 
-	
-	/*
-	return;
-	
-	if( m_matrixes.size() == 0 ) return;
-	if( parameter.ModelIndex < 0 ) return;
-	
-	Model* model = (Model*)parameter.EffectPointer->GetModel( parameter.ModelIndex );
-	if( model == NULL ) return;
-
-	RenderStateBase::State& state = m_renderer->GetRenderState()->Push();
-	state.DepthTest = parameter.ZTest;
-	state.DepthWrite = parameter.ZWrite;
-	state.AlphaBlend = parameter.AlphaBlend;
-	state.CullingType = parameter.Culling;
-
-	
-	Shader* shader_ = NULL;
-
-	if (parameter.Lighting)
-	{
-		if (parameter.NormalTextureIndex >= 0)
-		{
-			if (parameter.ColorTextureIndex >= 0)
-			{
-				shader_ = m_shader_lighting_texture_normal;
-			}
-			else
-			{
-				shader_ = m_shader_lighting_normal;
-			}
-		}
-		else
-		{
-			if (parameter.ColorTextureIndex >= 0)
-			{
-				shader_ = m_shader_lighting_texture;
-			}
-			else
-			{
-				shader_ = m_shader_lighting;
-			}
-		}
-	}
-	else
-	{
-		if (parameter.ColorTextureIndex >= 0)
-		{
-			shader_ = m_shader_texture;
-		}
-		else
-		{
-			shader_ = m_shader;
-		}
-	}
-
-	m_renderer->BeginShader(shader_);
-	
-
-	GLuint textures[2];
-	textures[0] = 0;
-	textures[1] = 0;
-
-	if( parameter.ColorTextureIndex >= 0 )
-	{
-		// テクスチャ有り
-		textures[0] = (GLuint) parameter.EffectPointer->GetImage(parameter.ColorTextureIndex);
-	}
-	
-	if( parameter.NormalTextureIndex >= 0 )
-	{
-		textures[1] = (GLuint) parameter.EffectPointer->GetImage(parameter.NormalTextureIndex);
-	}
-
-	m_renderer->SetTextures(shader_, textures, 2);
-
-	state.TextureFilterTypes[0] = parameter.TextureFilter;
-	state.TextureWrapTypes[0] = parameter.TextureWrap;
-	state.TextureFilterTypes[1] = parameter.TextureFilter;
-	state.TextureWrapTypes[1] = parameter.TextureWrap;
-
-	m_renderer->GetRenderState()->Update( false );
-	
-	// ここから
-	ModelRendererVertexConstantBuffer<1>* vcb = (ModelRendererVertexConstantBuffer<1>*)shader_->GetVertexConstantBuffer();
-	ModelRendererPixelConstantBuffer* pcb = (ModelRendererPixelConstantBuffer*)shader_->GetPixelConstantBuffer();
-	
-	if( parameter.Lighting )
-	{
-		{
-			::Effekseer::Vector3D lightDirection = m_renderer->GetLightDirection();
-			::Effekseer::Vector3D::Normal( lightDirection, lightDirection );
-			VectorToFloat4(lightDirection, vcb->LightDirection);
-			VectorToFloat4(lightDirection, pcb->LightDirection);
-		}
-
-		{
-			ColorToFloat4(m_renderer->GetLightColor(), vcb->LightColor);
-			ColorToFloat4(m_renderer->GetLightColor(), pcb->LightColor);
-		}
-
-		{
-			ColorToFloat4(m_renderer->GetLightAmbientColor(), vcb->LightAmbientColor);
-			ColorToFloat4(m_renderer->GetLightAmbientColor(), pcb->LightAmbientColor);
-		}
-	}
-	else
-	{
-	}
-
-	vcb->CameraMatrix = m_renderer->GetCameraProjectionMatrix();
-	
-	m_renderer->SetVertexBuffer(model->VertexBuffer, sizeof(Effekseer::Model::VertexWithIndex));
-	m_renderer->SetIndexBuffer(model->IndexBuffer);
-
-	m_renderer->SetLayout(shader_);
-	
-#if defined(MODEL_SOFTWARE_INSTANCING)
-	for( size_t loop = 0; loop < m_matrixes.size(); )
-	{
-		int32_t modelCount = Effekseer::Min( m_matrixes.size() - loop, MaxInstanced );
-		
-		glUniformMatrix4fv( m_uniformLoc[UniformModelMatrix],
-			modelCount, GL_FALSE, &m_matrixes[loop].Values[0][0] );
-		
-		for( int32_t num = 0; num < modelCount; num++ )
-		{
-			glVertexAttrib1f( m_attribLoc[AttribInstanceID], (float)num );
-			
-			float lc[4];
-			ColorToFloat4( m_colors[loop + num], lc );
-			glVertexAttrib4fv( m_attribLoc[AttribModelColor], lc );
-
-			glDrawElements( GL_TRIANGLES, model->IndexCount, GL_UNSIGNED_INT, NULL );
-		}
-
-		loop += modelCount;
-	}
-#else
-	for( size_t loop = 0; loop < m_matrixes.size(); )
-	{
-		vcb->ModelMatrix[0] = m_matrixes[loop];
-		vcb->ModelUV[0][0] = m_uv[loop].X;
-		vcb->ModelUV[0][1] = m_uv[loop].Y;
-		vcb->ModelUV[0][2] = m_uv[loop].Width;
-		vcb->ModelUV[0][3] = m_uv[loop].Height;
-		
-		ColorToFloat4( m_colors[loop], vcb->ModelColor[0] );
-		shader_->SetConstantBuffer();
-		
-		//glDrawElements( GL_TRIANGLES, model->IndexCount, GL_UNSIGNED_INT, NULL );
-		m_renderer->DrawPolygon( model->VertexCount, model->IndexCount );
-
-		loop += 1;
-	}
-#endif
-
-	m_renderer->EndShader(shader_);
-
-	m_renderer->GetRenderState()->Pop();
-
-	//*/
 }
 
 //----------------------------------------------------------------------------------
@@ -3736,57 +3563,306 @@ void ModelRenderer::EndRendering( const efkModelNodeParam& parameter, void* user
 //
 //----------------------------------------------------------------------------------
 
-#ifdef _DEBUG
-#endif
+
+
 
 namespace EffekseerRendererGL
 {
 
-static const char g_material_sprite_vs_src[] =
-	R"(
-IN vec4 atPosition;
-IN vec4 atColor;
-IN vec4 atTexCoord;
-)"
+::Effekseer::MaterialData* MaterialLoader::LoadAcutually(::Effekseer::Material& material, ::Effekseer::CompiledMaterialBinary* binary)
+{
+	auto materialData = new ::Effekseer::MaterialData();
+	materialData->IsSimpleVertex = material.GetIsSimpleVertex();
+	materialData->IsRefractionRequired = material.GetHasRefraction();
 
-	R"(
-OUT vec4 vaColor;
-OUT vec4 vaTexCoord;
-OUT vec4 vaPos;
-OUT vec4 vaPosR;
-OUT vec4 vaPosU;
-)"
+	std::array<Effekseer::MaterialShaderType, 2> shaderTypes;
+	std::array<Effekseer::MaterialShaderType, 2> shaderTypesModel;
 
-	R"(
-uniform mat4 uMatCamera;
-uniform mat4 uMatProjection;
-uniform vec4 mUVInversed;
+	shaderTypes[0] = Effekseer::MaterialShaderType::Standard;
+	shaderTypes[1] = Effekseer::MaterialShaderType::Refraction;
+	shaderTypesModel[0] = Effekseer::MaterialShaderType::Model;
+	shaderTypesModel[1] = Effekseer::MaterialShaderType::RefractionModel;
+	int32_t shaderTypeCount = 1;
 
-void main() {
-	vec4 cameraPos = uMatCamera * atPosition;
-	cameraPos = cameraPos / cameraPos.w;
+	if (material.GetHasRefraction())
+	{
+		shaderTypeCount = 2;
+	}
 
-	gl_Position = uMatProjection * cameraPos;
+	for (int32_t st = 0; st < shaderTypeCount; st++)
+	{
+		auto shader = Shader::Create(renderer_,
+									 (const char*)binary->GetVertexShaderData(shaderTypes[st]),
+									 binary->GetVertexShaderSize(shaderTypes[st]),
+									 (const char*)binary->GetPixelShaderData(shaderTypes[st]),
+									 binary->GetPixelShaderSize(shaderTypes[st]),
+									 "CustomMaterial");
 
-	vaPos = gl_Position;
+		if (materialData->IsSimpleVertex)
+		{
+			EffekseerRendererGL::ShaderAttribInfo sprite_attribs[3] = {
+				{"atPosition", GL_FLOAT, 3, 0, false}, {"atColor", GL_UNSIGNED_BYTE, 4, 12, true}, {"atTexCoord", GL_FLOAT, 2, 16, false}};
+			shader->GetAttribIdList(3, sprite_attribs);
+			shader->SetVertexSize(sizeof(EffekseerRendererGL::Vertex));
+		}
+		else
+		{
+			EffekseerRendererGL::ShaderAttribInfo sprite_attribs[8] = {
+				{"atPosition", GL_FLOAT, 3, 0, false},
+				{"atColor", GL_UNSIGNED_BYTE, 4, 12, true},
+				{"atNormal", GL_UNSIGNED_BYTE, 4, 16, true},
+				{"atTangent", GL_UNSIGNED_BYTE, 4, 20, true},
+				{"atTexCoord", GL_FLOAT, 2, 24, false},
+				{"atTexCoord2", GL_FLOAT, 2, 32, false},
+				{"", GL_FLOAT, 0, 0, false},
+				{"", GL_FLOAT, 0, 0, false},
+			};
 
-	vec4 cameraPosU = cameraPos + vec4(0.0, 1.0, 0.0, 0.0);
-	vec4 cameraPosR = cameraPos + vec4(1.0, 0.0, 0.0, 0.0);
+			int32_t offset = 40;
+			int count = 6;
+			char* customData1Name = "atCustomData1";
+			char* customData2Name = "atCustomData2";
 
-	vaPosR = uMatProjection * cameraPosR;
-	vaPosU = uMatProjection * cameraPosU;
-	
-	vaPos = vaPos / vaPos.w;
-	vaPosR = vaPosR / vaPosR.w;
-	vaPosU = vaPosU / vaPosU.w;
+			if (material.GetCustomData1Count() > 0)
+			{
+				sprite_attribs[count].name = customData1Name;
+				sprite_attribs[count].count = material.GetCustomData1Count();
+				sprite_attribs[count].offset = offset;
+				count++;
+				offset += sizeof(float) * material.GetCustomData1Count();
+			}
 
-	vaColor = atColor;
-	vaTexCoord = atTexCoord;
+			if (material.GetCustomData2Count() > 0)
+			{
+				sprite_attribs[count].name = customData2Name;
+				sprite_attribs[count].count = material.GetCustomData2Count();
+				sprite_attribs[count].offset = offset;
+				count++;
+				offset += sizeof(float) * material.GetCustomData2Count();
+			}
 
-	vaTexCoord.y = mUVInversed.x + mUVInversed.y * vaTexCoord.y;
+			shader->GetAttribIdList(count, sprite_attribs);
+			shader->SetVertexSize(sizeof(EffekseerRenderer::DynamicVertex) + sizeof(float) * (material.GetCustomData1Count() + material.GetCustomData2Count()));
+		}
+
+		int32_t vsOffset = 0;
+		shader->AddVertexConstantLayout(CONSTANT_TYPE_MATRIX44, shader->GetUniformId("uMatCamera"), vsOffset);
+		vsOffset += sizeof(Effekseer::Matrix44);
+
+		shader->AddVertexConstantLayout(CONSTANT_TYPE_MATRIX44, shader->GetUniformId("uMatProjection"), vsOffset);
+		vsOffset += sizeof(Effekseer::Matrix44);
+
+		shader->AddVertexConstantLayout(CONSTANT_TYPE_VECTOR4, shader->GetUniformId("mUVInversed"), vsOffset);
+		vsOffset += sizeof(float) * 4;
+
+		shader->AddVertexConstantLayout(CONSTANT_TYPE_VECTOR4, shader->GetUniformId("predefined_uniform"), vsOffset);
+		vsOffset += sizeof(float) * 4;
+
+		for (int32_t ui = 0; ui < material.GetUniformCount(); ui++)
+		{
+			shader->AddPixelConstantLayout(CONSTANT_TYPE_VECTOR4, shader->GetUniformId(material.GetUniformName(ui)), vsOffset);
+			vsOffset += sizeof(float) * 4;
+		}
+
+		shader->SetVertexConstantBufferSize(vsOffset);
+
+		int32_t psOffset = 0;
+
+		shader->AddPixelConstantLayout(CONSTANT_TYPE_VECTOR4, shader->GetUniformId("mUVInversedBack"), psOffset);
+		psOffset += sizeof(float) * 4;
+
+		shader->AddPixelConstantLayout(CONSTANT_TYPE_VECTOR4, shader->GetUniformId("predefined_uniform"), psOffset);
+		psOffset += sizeof(float) * 4;
+
+		// shiding model
+		if (material.GetShadingModel() == ::Effekseer::ShadingModelType::Lit)
+		{
+			shader->AddPixelConstantLayout(CONSTANT_TYPE_VECTOR4, shader->GetUniformId("cameraPosition"), psOffset);
+			psOffset += sizeof(float) * 4;
+			shader->AddPixelConstantLayout(CONSTANT_TYPE_VECTOR4, shader->GetUniformId("lightDirection"), psOffset);
+			psOffset += sizeof(float) * 4;
+			shader->AddPixelConstantLayout(CONSTANT_TYPE_VECTOR4, shader->GetUniformId("lightColor"), psOffset);
+			psOffset += sizeof(float) * 4;
+			shader->AddPixelConstantLayout(CONSTANT_TYPE_VECTOR4, shader->GetUniformId("lightAmbientColor"), psOffset);
+			psOffset += sizeof(float) * 4;
+		}
+		else if (material.GetShadingModel() == ::Effekseer::ShadingModelType::Unlit)
+		{
+		}
+
+		if (material.GetHasRefraction() && st == 1)
+		{
+			shader->AddPixelConstantLayout(CONSTANT_TYPE_MATRIX44, shader->GetUniformId("cameraMat"), psOffset);
+			psOffset += sizeof(float) * 16;
+		}
+
+		for (int32_t ui = 0; ui < material.GetUniformCount(); ui++)
+		{
+			shader->AddPixelConstantLayout(CONSTANT_TYPE_VECTOR4, shader->GetUniformId(material.GetUniformName(ui)), psOffset);
+			psOffset += sizeof(float) * 4;
+		}
+
+		shader->SetPixelConstantBufferSize(psOffset);
+
+		int32_t lastIndex = 0;
+		for (int32_t ti = 0; ti < material.GetTextureCount(); ti++)
+		{
+			shader->SetTextureSlot(material.GetTextureIndex(ti), shader->GetUniformId(material.GetTextureName(ti)));
+			lastIndex = Effekseer::Max(lastIndex, material.GetTextureIndex(ti));
+		}
+
+		lastIndex++;
+		shader->SetTextureSlot(lastIndex, shader->GetUniformId("background"));
+
+		materialData->TextureCount = material.GetTextureCount();
+		materialData->UniformCount = material.GetUniformCount();
+
+		if (st == 0)
+		{
+			materialData->UserPtr = shader;
+		}
+		else
+		{
+			materialData->RefractionUserPtr = shader;
+		}
+	}
+
+	for (int32_t st = 0; st < shaderTypeCount; st++)
+	{
+		auto shader = Shader::Create(renderer_,
+									 (const char*)binary->GetVertexShaderData(shaderTypesModel[st]),
+									 binary->GetVertexShaderSize(shaderTypesModel[st]),
+									 (const char*)binary->GetPixelShaderData(shaderTypesModel[st]),
+									 binary->GetPixelShaderSize(shaderTypesModel[st]),
+									 "CustomMaterial");
+
+		static ShaderAttribInfo g_model_attribs[ModelRenderer::NumAttribs] = {
+			{"a_Position", GL_FLOAT, 3, 0, false},
+			{"a_Normal", GL_FLOAT, 3, 12, false},
+			{"a_Binormal", GL_FLOAT, 3, 24, false},
+			{"a_Tangent", GL_FLOAT, 3, 36, false},
+			{"a_TexCoord", GL_FLOAT, 2, 48, false},
+			{"a_Color", GL_UNSIGNED_BYTE, 4, 56, true},
+#if defined(MODEL_SOFTWARE_INSTANCING)
+			{"a_InstanceID", GL_FLOAT, 1, 0, false},
+			{"a_UVOffset", GL_FLOAT, 4, 0, false},
+			{"a_ModelColor", GL_FLOAT, 4, 0, false},
+#endif
+		};
+
+		shader->GetAttribIdList(ModelRenderer::NumAttribs, g_model_attribs);
+		shader->SetVertexSize(sizeof(::Effekseer::Model::Vertex));
+
+		int32_t vsOffset = 0;
+		shader->AddVertexConstantLayout(CONSTANT_TYPE_MATRIX44, shader->GetUniformId("ProjectionMatrix"), 0);
+		vsOffset += sizeof(Effekseer::Matrix44);
+
+		shader->AddVertexConstantLayout(CONSTANT_TYPE_MATRIX44, shader->GetUniformId("ModelMatrix"), sizeof(Effekseer::Matrix44));
+		vsOffset += sizeof(Effekseer::Matrix44);
+
+		shader->AddVertexConstantLayout(CONSTANT_TYPE_VECTOR4, shader->GetUniformId("UVOffset"), sizeof(Effekseer::Matrix44) * 2);
+		vsOffset += sizeof(Effekseer::Matrix44);
+
+		shader->AddVertexConstantLayout(CONSTANT_TYPE_VECTOR4, shader->GetUniformId("ModelColor"), vsOffset);
+		vsOffset += sizeof(float) * 4;
+
+		shader->AddVertexConstantLayout(CONSTANT_TYPE_VECTOR4, shader->GetUniformId("mUVInversed"), vsOffset);
+		vsOffset += sizeof(float) * 4;
+
+		shader->AddVertexConstantLayout(CONSTANT_TYPE_VECTOR4, shader->GetUniformId("predefined_uniform"), vsOffset);
+		vsOffset += sizeof(float) * 4;
+
+		if (material.GetCustomData1Count() > 0)
+		{
+			shader->AddPixelConstantLayout(CONSTANT_TYPE_MATRIX44, shader->GetUniformId("customData1"), vsOffset);
+			vsOffset += sizeof(float) * 4;
+		}
+
+		if (material.GetCustomData1Count() > 0)
+		{
+			shader->AddPixelConstantLayout(CONSTANT_TYPE_MATRIX44, shader->GetUniformId("customData1"), vsOffset);
+			vsOffset += sizeof(float) * 4;
+		}
+
+		for (int32_t ui = 0; ui < material.GetUniformCount(); ui++)
+		{
+			shader->AddPixelConstantLayout(CONSTANT_TYPE_VECTOR4, shader->GetUniformId(material.GetUniformName(ui)), vsOffset);
+			vsOffset += sizeof(float) * 4;
+		}
+
+		shader->SetVertexConstantBufferSize(vsOffset);
+
+		int32_t psOffset = 0;
+
+		shader->AddPixelConstantLayout(CONSTANT_TYPE_VECTOR4, shader->GetUniformId("mUVInversedBack"), psOffset);
+		psOffset += sizeof(float) * 4;
+
+		shader->AddPixelConstantLayout(CONSTANT_TYPE_VECTOR4, shader->GetUniformId("predefined_uniform"), psOffset);
+		psOffset += sizeof(float) * 4;
+
+		// shiding model
+		if (material.GetShadingModel() == ::Effekseer::ShadingModelType::Lit)
+		{
+			shader->AddPixelConstantLayout(CONSTANT_TYPE_VECTOR4, shader->GetUniformId("cameraPosition"), psOffset);
+			psOffset += sizeof(float) * 4;
+			shader->AddPixelConstantLayout(CONSTANT_TYPE_VECTOR4, shader->GetUniformId("lightDirection"), psOffset);
+			psOffset += sizeof(float) * 4;
+			shader->AddPixelConstantLayout(CONSTANT_TYPE_VECTOR4, shader->GetUniformId("lightColor"), psOffset);
+			psOffset += sizeof(float) * 4;
+			shader->AddPixelConstantLayout(CONSTANT_TYPE_VECTOR4, shader->GetUniformId("lightAmbientColor"), psOffset);
+			psOffset += sizeof(float) * 4;
+		}
+		else if (material.GetShadingModel() == ::Effekseer::ShadingModelType::Unlit)
+		{
+		}
+
+		if (material.GetHasRefraction() && st == 1)
+		{
+			shader->AddPixelConstantLayout(CONSTANT_TYPE_MATRIX44, shader->GetUniformId("cameraMat"), psOffset);
+			psOffset += sizeof(float) * 16;
+		}
+
+		for (int32_t ui = 0; ui < material.GetUniformCount(); ui++)
+		{
+			shader->AddPixelConstantLayout(CONSTANT_TYPE_VECTOR4, shader->GetUniformId(material.GetUniformName(ui)), psOffset);
+			psOffset += sizeof(float) * 4;
+		}
+
+		shader->SetPixelConstantBufferSize(psOffset);
+
+		int32_t lastIndex = 0;
+		for (int32_t ti = 0; ti < material.GetTextureCount(); ti++)
+		{
+			shader->SetTextureSlot(material.GetTextureIndex(ti), shader->GetUniformId(material.GetTextureName(ti)));
+			lastIndex = Effekseer::Max(lastIndex, material.GetTextureIndex(ti));
+		}
+
+		lastIndex++;
+		shader->SetTextureSlot(lastIndex, shader->GetUniformId("background"));
+
+		if (st == 0)
+		{
+			materialData->ModelUserPtr = shader;
+		}
+		else
+		{
+			materialData->RefractionModelUserPtr = shader;
+		}
+	}
+
+	materialData->CustomData1 = material.GetCustomData1Count();
+	materialData->CustomData2 = material.GetCustomData2Count();
+	materialData->TextureCount = material.GetTextureCount();
+	materialData->UniformCount = material.GetUniformCount();
+	materialData->ShadingModel = material.GetShadingModel();
+
+	for (int32_t i = 0; i < materialData->TextureCount; i++)
+	{
+		materialData->TextureWrapTypes.at(i) = material.GetTextureWrap(i);
+	}
+
+	return materialData;
 }
-
-)";
 
 MaterialLoader::MaterialLoader(Renderer* renderer, ::Effekseer::FileInterface* fileInterface) : fileInterface_(fileInterface)
 {
@@ -3803,94 +3879,98 @@ MaterialLoader ::~MaterialLoader() { ES_SAFE_RELEASE(renderer_); }
 
 ::Effekseer::MaterialData* MaterialLoader::Load(const EFK_CHAR* path)
 {
-	std::unique_ptr<Effekseer::FileReader> reader(fileInterface_->OpenRead(path));
-
-	if (reader.get() != nullptr)
+	// code file
 	{
-		size_t size = reader->GetLength();
-		char* data = new char[size];
-		reader->Read(data, size);
+		auto binaryPath = std::u16string(path) + u"d";
+		std::unique_ptr<Effekseer::FileReader> reader(fileInterface_->OpenRead(binaryPath.c_str()));
 
-		auto material = Load(data, (int32_t)size);
+		if (reader.get() != nullptr)
+		{
+			size_t size = reader->GetLength();
+			std::vector<char> data;
+			data.resize(size);
+			reader->Read(data.data(), size);
 
-		delete[] data;
+			auto material = Load(data.data(), (int32_t)size, ::Effekseer::MaterialFileType::Compiled);
 
-		return material;
+			if (material != nullptr)
+			{
+				return material;
+			}
+		}
+	}
+
+	// code file
+	{
+		std::unique_ptr<Effekseer::FileReader> reader(fileInterface_->OpenRead(path));
+
+		if (reader.get() != nullptr)
+		{
+			size_t size = reader->GetLength();
+			std::vector<char> data;
+			data.resize(size);
+			reader->Read(data.data(), size);
+
+			auto material = Load(data.data(), (int32_t)size, ::Effekseer::MaterialFileType::Code);
+
+			return material;
+		}
 	}
 
 	return nullptr;
 }
 
-::Effekseer::MaterialData* MaterialLoader::Load(const void* data, int32_t size)
+::Effekseer::MaterialData* MaterialLoader::Load(const void* data, int32_t size, Effekseer::MaterialFileType fileType)
 {
-	EffekseerRenderer::ShaderLoader loader;
-	if (!loader.Load((const uint8_t*)data, size))
+	if (fileType == Effekseer::MaterialFileType::Compiled)
 	{
-		return nullptr;
+		auto compiled = Effekseer::CompiledMaterial();
+		if (!compiled.Load(static_cast<const uint8_t*>(data), size))
+		{
+			return nullptr;
+		}
+
+		if (!compiled.GetHasValue(::Effekseer::CompiledMaterialPlatformType::OpenGL))
+		{
+			return nullptr;
+		}
+
+		// compiled
+		Effekseer::Material material;
+		material.Load((const uint8_t*)compiled.GetOriginalData().data(), compiled.GetOriginalData().size());
+		auto binary = compiled.GetBinary(::Effekseer::CompiledMaterialPlatformType::OpenGL);
+
+		return LoadAcutually(material, binary);
 	}
-
-	auto shaderCode = loader.GenerateShader();
-#ifdef _DEBUG
-	//std::cout << shaderCode << std::endl;
-#endif
-
-	auto materialData = new ::Effekseer::MaterialData();
-
-	auto shader = Shader::Create(
-		renderer_, g_material_sprite_vs_src, sizeof(g_material_sprite_vs_src), shaderCode.c_str(), shaderCode.size(), "CustomMaterial");
-
-	if (shader == nullptr)
-		return nullptr;
-
-	EffekseerRendererGL::ShaderAttribInfo sprite_attribs[3] = {
-		{"atPosition", GL_FLOAT, 3, 0, false}, {"atColor", GL_UNSIGNED_BYTE, 4, 12, true}, {"atTexCoord", GL_FLOAT, 2, 16, false}};
-	shader->GetAttribIdList(3, sprite_attribs);
-	shader->SetVertexSize(sizeof(EffekseerRendererGL::Vertex));
-
-	int32_t vertexUniformSize = sizeof(Effekseer::Matrix44) * 2 + sizeof(float) * 4;
-
-	int32_t pixelUniformSize = sizeof(Effekseer::Matrix44) * 2 + sizeof(float) * 4;
-
-	pixelUniformSize += loader.Uniforms.size() * 4 * sizeof(float);
-
-	shader->SetVertexConstantBufferSize(vertexUniformSize);
-
-	shader->AddVertexConstantLayout(CONSTANT_TYPE_MATRIX44, shader->GetUniformId("uMatCamera"), 0);
-
-	shader->AddVertexConstantLayout(CONSTANT_TYPE_MATRIX44, shader->GetUniformId("uMatProjection"), sizeof(Effekseer::Matrix44));
-
-	shader->AddVertexConstantLayout(CONSTANT_TYPE_VECTOR4, shader->GetUniformId("mUVInversed"), sizeof(Effekseer::Matrix44) * 2);
-
-	shader->SetPixelConstantBufferSize(pixelUniformSize);
-
-	int32_t index = 0;
-	for (auto uniform : loader.Uniforms)
+	else
 	{
-		shader->AddVertexConstantLayout(CONSTANT_TYPE_VECTOR4, shader->GetUniformId(uniform.Name.c_str()), sizeof(float) * 4 * index);	
-		index++;
-	}
+		Effekseer::Material material;
+		material.Load((const uint8_t*)data, size);
+		auto compiler = ::Effekseer::CreateUniqueReference(new Effekseer::MaterialCompilerGL());
+		auto binary = ::Effekseer::CreateUniqueReference(compiler->Compile(&material));
 
-	for (auto texture : loader.Textures)
-	{
-		shader->SetTextureSlot(texture.Index, shader->GetUniformId(texture.Name.c_str()));
-	
+		return LoadAcutually(material, binary.get());
 	}
-
-	materialData->UserPtr = shader;
-	return materialData;
 }
 
 void MaterialLoader::Unload(::Effekseer::MaterialData* data)
 {
-
 	if (data == nullptr)
 		return;
 	auto shader = reinterpret_cast<Shader*>(data->UserPtr);
+	auto modelShader = reinterpret_cast<Shader*>(data->ModelUserPtr);
+	auto refractionShader = reinterpret_cast<Shader*>(data->RefractionUserPtr);
+	auto refractionModelShader = reinterpret_cast<Shader*>(data->RefractionModelUserPtr);
+
 	ES_SAFE_DELETE(shader);
+	ES_SAFE_DELETE(modelShader);
+	ES_SAFE_DELETE(refractionShader);
+	ES_SAFE_DELETE(refractionModelShader);
 	ES_SAFE_DELETE(data);
 }
 
 } // namespace EffekseerRendererGL
+
 //----------------------------------------------------------------------------------
 // Include
 //----------------------------------------------------------------------------------
@@ -4118,6 +4198,104 @@ void main() {
 }
 )";
 
+static const char g_sprite_vs_lighting_src[] =
+	R"(
+IN vec4 atPosition;
+IN vec4 atColor;
+IN vec3 atNormal;
+IN vec3 atTangent;
+IN vec2 atTexCoord;
+IN vec2 atTexCoord2;
+)"
+
+	R"(
+OUT lowp vec4 v_VColor;
+OUT mediump vec2 v_UV1;
+OUT mediump vec2 v_UV2;
+OUT mediump vec3 v_WorldP;
+OUT mediump vec3 v_WorldN;
+OUT mediump vec3 v_WorldT;
+OUT mediump vec3 v_WorldB;
+OUT mediump vec2 v_ScreenUV;
+)"
+
+	R"(
+uniform mat4 uMatCamera;
+uniform mat4 uMatProjection;
+uniform vec4 mUVInversed;
+
+)"
+
+	R"(
+void main() {
+	vec3 worldPos = atPosition.xyz;
+
+	// UV
+	vec2 uv1 = atTexCoord.xy;
+	uv1.y = mUVInversed.x + mUVInversed.y * uv1.y;
+	vec2 uv2 = atTexCoord2.xy;
+	uv2.y = mUVInversed.x + mUVInversed.y * uv2.y;
+
+	// NBT
+	vec3 worldNormal = (atNormal - vec3(0.5, 0.5, 0.5)) * 2.0;
+	vec3 worldTangent = (atTangent - vec3(0.5, 0.5, 0.5)) * 2.0;
+	vec3 worldBinormal = cross(worldNormal, worldTangent);
+
+	v_WorldN = worldNormal;
+	v_WorldB = worldBinormal;
+	v_WorldT = worldTangent;
+	vec3 pixelNormalDir = vec3(0.5, 0.5, 1.0);
+
+	vec4 cameraPos = uMatCamera * vec4(worldPos, 1.0);
+	cameraPos = cameraPos / cameraPos.w;
+
+	gl_Position = uMatProjection * cameraPos;
+
+	v_WorldP = worldPos;
+	v_VColor = atColor;
+
+	v_UV1 = uv1;
+	v_UV2 = uv2;
+	v_ScreenUV.xy = gl_Position.xy / gl_Position.w;
+	v_ScreenUV.xy = vec2(v_ScreenUV.x + 1.0, v_ScreenUV.y + 1.0) * 0.5;
+}
+
+)";
+
+static const char g_sprite_fs_lighting_src[] =
+	R"(
+
+IN lowp vec4 v_VColor;
+IN mediump vec2 v_UV1;
+IN mediump vec2 v_UV2;
+IN mediump vec3 v_WorldP;
+IN mediump vec3 v_WorldN;
+IN mediump vec3 v_WorldT;
+IN mediump vec3 v_WorldB;
+IN mediump vec2 v_ScreenUV;
+
+uniform sampler2D ColorTexture;
+uniform sampler2D NormalTexture;
+uniform vec4 LightDirection;
+uniform vec4 LightColor;
+uniform vec4 LightAmbient;
+
+void main()
+{
+	vec4 diffuse = vec4(1.0);
+	
+	vec3 texNormal = (TEX2D(NormalTexture, v_UV1.xy).xyz - 0.5) * 2.0;
+	mat3 normalMatrix = mat3(v_WorldT.xyz, v_WorldB.xyz, v_WorldN.xyz );
+	vec3 localNormal = normalize( normalMatrix * texNormal );
+	diffuse = vec4(max(0.0, dot(localNormal, LightDirection.xyz)));
+	
+	FRAGCOLOR = v_VColor * TEX2D(ColorTexture, v_UV1.xy);
+	FRAGCOLOR.xyz = FRAGCOLOR.xyz * (diffuse.xyz + LightAmbient.xyz);
+}
+
+
+)";
+
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
@@ -4168,15 +4346,12 @@ RendererImplemented::RendererImplemented(int32_t squareMaxCount, OpenGLDeviceTyp
 	, m_currentVertexArray( NULL )
 
 	, m_shader(nullptr)
-	, m_shader_no_texture(nullptr)
 	, m_shader_distortion(nullptr)
-	, m_shader_no_texture_distortion(nullptr)
 	, m_standardRenderer(nullptr)
 
 	, m_vao(nullptr)
-	, m_vao_no_texture(nullptr)
 	, m_vao_distortion(nullptr)
-	, m_vao_no_texture_distortion(nullptr)
+	, m_vao_wire_frame(nullptr)
 	, m_distortingCallback(nullptr)
 
 	, m_deviceType(deviceType)
@@ -4196,22 +4371,23 @@ RendererImplemented::RendererImplemented(int32_t squareMaxCount, OpenGLDeviceTyp
 //----------------------------------------------------------------------------------
 RendererImplemented::~RendererImplemented()
 {
+	GetImpl()->DeleteProxyTextures(this);
+
 	assert( GetRef() == 0 );
 
 	ES_SAFE_DELETE(m_distortingCallback);
 
 	ES_SAFE_DELETE(m_standardRenderer);
 	ES_SAFE_DELETE(m_shader);
-	ES_SAFE_DELETE(m_shader_no_texture);
 	ES_SAFE_DELETE(m_shader_distortion);
-	ES_SAFE_DELETE(m_shader_no_texture_distortion);
+	ES_SAFE_DELETE(m_shader_lighting);
 
 	auto isVaoEnabled = m_vao != nullptr;
 
 	ES_SAFE_DELETE(m_vao);
-	ES_SAFE_DELETE(m_vao_no_texture);
 	ES_SAFE_DELETE(m_vao_distortion);
-	ES_SAFE_DELETE(m_vao_no_texture_distortion);
+	ES_SAFE_DELETE(m_vao_wire_frame);
+	ES_SAFE_DELETE(m_vao_lighting);
 
 	ES_SAFE_DELETE( m_renderState );
 	ES_SAFE_DELETE( m_vertexBuffer );
@@ -4220,11 +4396,11 @@ RendererImplemented::~RendererImplemented()
 
 	if (isVaoEnabled)
 	{
-		assert(GetRef() == -11);
+		assert(GetRef() == -10);
 	}
 	else
 	{
-		assert(GetRef() == -7);
+		assert(GetRef() == -6);
 	}
 }
 
@@ -4305,6 +4481,18 @@ void RendererImplemented::GenerateIndexData()
 //----------------------------------------------------------------------------------
 bool RendererImplemented::Initialize()
 {
+	GLint currentVAO = 0;
+
+	if (GLExt::IsSupportedVertexArray())
+	{
+		glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &currentVAO);
+	}
+
+	int arrayBufferBinding = 0;
+	int elementArrayBufferBinding = 0;
+	glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &arrayBufferBinding);
+	glGetIntegerv(GL_ELEMENT_ARRAY_BUFFER_BINDING, &elementArrayBufferBinding);
+
 	SetSquareMaxCount( m_squareMaxCount );
 
 	m_renderState = new RenderState( this );
@@ -4318,35 +4506,11 @@ bool RendererImplemented::Initialize()
 	// 参照カウントの調整
 	Release();
 
-	m_shader_no_texture = Shader::Create(this,
-		g_sprite_vs_src, sizeof(g_sprite_vs_src), 
-		g_sprite_fs_no_texture_src, sizeof(g_sprite_fs_no_texture_src), 
-		"Standard NoTex");
-	if (m_shader_no_texture == nullptr)
-	{
-		return false;
-	}
-
-	// 参照カウントの調整
-	Release();
-
 	m_shader_distortion = Shader::Create(this,
 		g_sprite_distortion_vs_src, sizeof(g_sprite_distortion_vs_src), 
 		g_sprite_fs_texture_distortion_src, sizeof(g_sprite_fs_texture_distortion_src), 
 		"Standard Distortion Tex");
 	if (m_shader_distortion == nullptr) return false;
-
-	// 参照カウントの調整
-	Release();
-
-	m_shader_no_texture_distortion = Shader::Create(this,
-		g_sprite_distortion_vs_src, sizeof(g_sprite_distortion_vs_src), 
-		g_sprite_fs_no_texture_distortion_src, sizeof(g_sprite_fs_no_texture_distortion_src), 
-		"Standard Distortion NoTex");
-	if (m_shader_no_texture_distortion == nullptr)
-	{
-		return false;
-	}
 
 	// 参照カウントの調整
 	Release();
@@ -4390,35 +4554,9 @@ bool RendererImplemented::Initialize()
 
 	m_shader->SetTextureSlot(0, m_shader->GetUniformId("uTexture0"));
 
-	m_shader_no_texture->GetAttribIdList(3, sprite_attribs);
-	m_shader_no_texture->SetVertexSize(sizeof(Vertex));
-	m_shader_no_texture->SetVertexConstantBufferSize(sizeof(Effekseer::Matrix44) * 2 + sizeof(float) * 4);
-	
-	m_shader_no_texture->AddVertexConstantLayout(
-		CONSTANT_TYPE_MATRIX44,
-		m_shader_no_texture->GetUniformId("uMatCamera"),
-		0
-		);
-
-	m_shader_no_texture->AddVertexConstantLayout(
-		CONSTANT_TYPE_MATRIX44,
-		m_shader_no_texture->GetUniformId("uMatProjection"),
-		sizeof(Effekseer::Matrix44)
-		);
-
-	m_shader_no_texture->AddVertexConstantLayout(
-		CONSTANT_TYPE_VECTOR4,
-		m_shader_no_texture->GetUniformId("mUVInversed"),
-		sizeof(Effekseer::Matrix44) * 2
-	);
-
 	m_vao = VertexArray::Create(this, m_shader, GetVertexBuffer(), GetIndexBuffer());
 	// 参照カウントの調整
 	if (m_vao != nullptr) Release();
-
-	m_vao_no_texture = VertexArray::Create(this, m_shader_no_texture, GetVertexBuffer(), GetIndexBuffer());
-	// 参照カウントの調整
-	if (m_vao_no_texture != nullptr) Release();
 
 	// Distortion
 	m_shader_distortion->GetAttribIdList(5, sprite_attribs_distortion);
@@ -4460,58 +4598,70 @@ bool RendererImplemented::Initialize()
 	m_shader_distortion->SetTextureSlot(0, m_shader_distortion->GetUniformId("uTexture0"));
 	m_shader_distortion->SetTextureSlot(1, m_shader_distortion->GetUniformId("uBackTexture0"));
 
-	m_shader_no_texture_distortion->GetAttribIdList(5, sprite_attribs_distortion);
-	m_shader_no_texture_distortion->SetVertexSize(sizeof(VertexDistortion));
-	m_shader_no_texture_distortion->SetVertexConstantBufferSize(sizeof(Effekseer::Matrix44) * 2 + sizeof(float) * 4);
-	m_shader_no_texture_distortion->SetPixelConstantBufferSize(sizeof(float) * 4 + sizeof(float) * 4);
-
-	m_shader_no_texture_distortion->AddVertexConstantLayout(
-		CONSTANT_TYPE_MATRIX44,
-		m_shader_no_texture_distortion->GetUniformId("uMatCamera"),
-		0
-		);
-
-	m_shader_no_texture_distortion->AddVertexConstantLayout(
-		CONSTANT_TYPE_MATRIX44,
-		m_shader_no_texture_distortion->GetUniformId("uMatProjection"),
-		sizeof(Effekseer::Matrix44)
-		);
-
-	m_shader_no_texture_distortion->AddVertexConstantLayout(
-		CONSTANT_TYPE_VECTOR4,
-		m_shader_no_texture_distortion->GetUniformId("mUVInversed"),
-		sizeof(Effekseer::Matrix44) * 2
-	);
-
-	m_shader_no_texture_distortion->AddPixelConstantLayout(
-		CONSTANT_TYPE_VECTOR4,
-		m_shader_distortion->GetUniformId("g_scale"),
-		0
-		);
-
-	m_shader_no_texture_distortion->AddPixelConstantLayout(
-		CONSTANT_TYPE_VECTOR4,
-		m_shader_no_texture_distortion->GetUniformId("mUVInversedBack"),
-		sizeof(float) * 4
-	);
-
-	m_shader_no_texture_distortion->SetTextureSlot(1, m_shader_no_texture_distortion->GetUniformId("uBackTexture0"));
-
-
 	m_vao_distortion = VertexArray::Create(this, m_shader_distortion, GetVertexBuffer(), GetIndexBuffer());
-	
-	// 参照カウントの調整
 	if (m_vao_distortion != nullptr) Release();
 
-	m_vao_no_texture_distortion = VertexArray::Create(this, m_shader_no_texture_distortion, GetVertexBuffer(), GetIndexBuffer());
-	
-	// 参照カウントの調整
-	if (m_vao_no_texture_distortion != nullptr) Release();
 
-	m_vao_wire_frame = VertexArray::Create(this, m_shader_no_texture, GetVertexBuffer(), m_indexBufferForWireframe);
+	// Lighting
+	EffekseerRendererGL::ShaderAttribInfo sprite_attribs_lighting[6] = {
+		{"atPosition", GL_FLOAT, 3, 0, false},
+		{"atColor", GL_UNSIGNED_BYTE, 4, 12, true},
+		{"atNormal", GL_UNSIGNED_BYTE, 4, 16, true},
+		{"atTangent", GL_UNSIGNED_BYTE, 4, 20, true},
+		{"atTexCoord", GL_FLOAT, 2, 24, false},
+		{"atTexCoord2", GL_FLOAT, 2, 32, false},
+	};
+
+	m_shader_lighting = Shader::Create(this,
+										 g_sprite_vs_lighting_src,
+									   sizeof(g_sprite_vs_lighting_src),
+									   g_sprite_fs_lighting_src,
+									   sizeof(g_sprite_fs_lighting_src),
+										 "Standard Lighting Tex");
+	if (m_shader_lighting == nullptr)
+		return false;
+
+	Release();
+
+	m_shader_lighting->GetAttribIdList(5, sprite_attribs_lighting);
+	m_shader_lighting->SetVertexSize(sizeof(EffekseerRenderer::DynamicVertex));
+	m_shader_lighting->SetVertexConstantBufferSize(sizeof(Effekseer::Matrix44) * 2 + sizeof(float) * 4);
+	m_shader_lighting->SetPixelConstantBufferSize(sizeof(float) * 4 * 3);
+
+	m_shader_lighting->AddVertexConstantLayout(CONSTANT_TYPE_MATRIX44, m_shader_lighting->GetUniformId("uMatCamera"), 0);
+
+	m_shader_lighting->AddVertexConstantLayout(
+		CONSTANT_TYPE_MATRIX44, m_shader_lighting->GetUniformId("uMatProjection"), sizeof(Effekseer::Matrix44));
+
+	m_shader_lighting->AddVertexConstantLayout(
+		CONSTANT_TYPE_VECTOR4, m_shader_lighting->GetUniformId("mUVInversed"), sizeof(Effekseer::Matrix44) * 2);
+
+	m_shader_lighting->AddPixelConstantLayout(
+		CONSTANT_TYPE_VECTOR4, m_shader_lighting->GetUniformId("LightDirection"), sizeof(float[4]) * 0);
+	m_shader_lighting->AddPixelConstantLayout(CONSTANT_TYPE_VECTOR4, m_shader_lighting->GetUniformId("LightColor"), sizeof(float[4]) * 1);
+	m_shader_lighting->AddPixelConstantLayout(CONSTANT_TYPE_VECTOR4, m_shader_lighting->GetUniformId("LightAmbient"), sizeof(float[4]) * 2);
+
+	m_shader_lighting->SetTextureSlot(0, m_shader_lighting->GetUniformId("ColorTexture"));
+	m_shader_lighting->SetTextureSlot(1, m_shader_lighting->GetUniformId("NormalTexture"));
+
+	m_vao_lighting = VertexArray::Create(this, m_shader_lighting, GetVertexBuffer(), GetIndexBuffer());
+	if (m_vao_lighting != nullptr)
+		Release();
+
+	m_vao_wire_frame = VertexArray::Create(this, m_shader, GetVertexBuffer(), m_indexBufferForWireframe);
 	if (m_vao_wire_frame != nullptr) Release();
 
-	m_standardRenderer = new EffekseerRenderer::StandardRenderer<RendererImplemented, Shader, Vertex, VertexDistortion>(this, m_shader, m_shader_no_texture, m_shader_distortion, m_shader_no_texture_distortion);
+	m_standardRenderer = new EffekseerRenderer::StandardRenderer<RendererImplemented, Shader, Vertex, VertexDistortion>(this, m_shader, m_shader_distortion);
+
+	GLExt::glBindBuffer(GL_ARRAY_BUFFER, arrayBufferBinding);
+	GLExt::glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementArrayBufferBinding);
+
+	if (GLExt::IsSupportedVertexArray())
+	{
+		GLExt::glBindVertexArray(currentVAO);
+	}
+
+	GetImpl()->CreateProxyTextures(this);
 
 	return true;
 }
@@ -4538,7 +4688,7 @@ bool RendererImplemented::BeginRendering()
 
 	::Effekseer::Matrix44::Mul( m_cameraProj, m_camera, m_proj );
 
-	// ステートを保存する
+	// store state
 	if(m_restorationOfStates)
 	{
 		m_originalState.blend = glIsEnabled(GL_BLEND);
@@ -4567,11 +4717,11 @@ bool RendererImplemented::BeginRendering()
 	glEnable(GL_BLEND);
 	glDisable(GL_CULL_FACE);
 
+	m_currentTextures.clear();
 	m_renderState->GetActiveState().Reset();
 	m_renderState->Update( true );
-	m_currentTextures.clear();
-
-	// レンダラーリセット
+	
+	// reset renderer
 	m_standardRenderer->ResetAndRenderingIfRequired();
 
 	GLCheckError();
@@ -4655,6 +4805,11 @@ int32_t RendererImplemented::GetSquareMaxCount() const
 //----------------------------------------------------------------------------------
 void RendererImplemented::SetSquareMaxCount(int32_t count)
 {
+	int arrayBufferBinding = 0;
+	int elementArrayBufferBinding = 0;
+	glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &arrayBufferBinding);
+	glGetIntegerv(GL_ELEMENT_ARRAY_BUFFER_BINDING, &elementArrayBufferBinding);
+
 	m_squareMaxCount = count;
 
 	if (m_vertexBuffer != nullptr) AddRef();
@@ -4691,8 +4846,11 @@ void RendererImplemented::SetSquareMaxCount(int32_t count)
 	// 参照カウントの調整
 	Release();
 
-	// インデックスデータの生成
+	// generate index data
 	GenerateIndexData();
+
+	GLExt::glBindBuffer(GL_ARRAY_BUFFER, arrayBufferBinding);
+	GLExt::glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementArrayBufferBinding);
 }
 
 //----------------------------------------------------------------------------------
@@ -4983,11 +5141,11 @@ void RendererImplemented::DrawSprites( int32_t spriteCount, int32_t vertexOffset
 	impl->drawcallCount++;
 	impl->drawvertexCount += spriteCount * 4;
 
-	if( m_renderMode == ::Effekseer::RenderMode::Normal )
+	if (GetRenderMode() == ::Effekseer::RenderMode::Normal)
 	{
 		glDrawElements(GL_TRIANGLES, spriteCount * 6, GL_UNSIGNED_SHORT, (void*) (vertexOffset / 4 * 6 * sizeof(GLushort)));
 	}
-	else if( m_renderMode == ::Effekseer::RenderMode::Wireframe )
+	else if (GetRenderMode() == ::Effekseer::RenderMode::Wireframe)
 	{
 		glDrawElements(GL_LINES, spriteCount * 8, GL_UNSIGNED_SHORT, (void*) (vertexOffset / 4 * 8 * sizeof(GLushort)));
 	}
@@ -5013,28 +5171,39 @@ void RendererImplemented::DrawPolygon( int32_t vertexCount, int32_t indexCount)
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-Shader* RendererImplemented::GetShader(bool useTexture, bool useDistortion) const
+Shader* RendererImplemented::GetShader(bool useTexture, ::Effekseer::RendererMaterialType materialType) const
 {
-	if( useDistortion )
+	if (materialType == ::Effekseer::RendererMaterialType::BackDistortion)
 	{
-		if( useTexture && m_renderMode == Effekseer::RenderMode::Normal )
+		if (useTexture && GetRenderMode() == Effekseer::RenderMode::Normal)
 		{
 			return m_shader_distortion;
 		}
 		else
 		{
-			return m_shader_no_texture_distortion;
+			return m_shader_distortion;
+		}
+	}
+	else if (materialType == ::Effekseer::RendererMaterialType::Lighting)
+	{
+		if (useTexture && GetRenderMode() == Effekseer::RenderMode::Normal)
+		{
+			return m_shader_lighting;
+		}
+		else
+		{
+			return m_shader_lighting;
 		}
 	}
 	else
 	{
-		if( useTexture && m_renderMode == Effekseer::RenderMode::Normal )
+		if (useTexture && GetRenderMode() == Effekseer::RenderMode::Normal)
 		{
 			return m_shader;
 		}
 		else
 		{
-			return m_shader_no_texture;
+			return m_shader;
 		}
 	}
 }
@@ -5046,8 +5215,8 @@ void RendererImplemented::BeginShader(Shader* shader)
 {
 	GLCheckError();
 
-	// VAOの切り替え
-	if (m_renderMode == ::Effekseer::RenderMode::Wireframe)
+	// change VAO with shader
+	if (GetRenderMode() == ::Effekseer::RenderMode::Wireframe)
 	{
 		SetVertexArray(m_vao_wire_frame);
 	}
@@ -5055,19 +5224,15 @@ void RendererImplemented::BeginShader(Shader* shader)
 	{
 		SetVertexArray(m_vao);
 	}
-	else if (shader == m_shader_no_texture)
-	{
-		SetVertexArray(m_vao_no_texture);
-	}
 	else if (shader == m_shader_distortion)
 	{
 		SetVertexArray(m_vao_distortion);
 	}
-	else if (shader == m_shader_no_texture_distortion)
+	else if (shader == m_shader_lighting)
 	{
-		SetVertexArray(m_vao_no_texture_distortion);
+		SetVertexArray(m_vao_lighting);
 	}
-	
+
 	shader->BeginScene();
 
 	if (m_currentVertexArray)
@@ -5178,6 +5343,65 @@ void RendererImplemented::ResetRenderState()
 	m_renderState->Update( true );
 }
 
+Effekseer::TextureData* RendererImplemented::CreateProxyTexture(EffekseerRenderer::ProxyTextureType type) {
+
+	GLint bound = 0;
+	glGetIntegerv(GL_TEXTURE_BINDING_2D, &bound);
+
+	std::array<uint8_t, 4> buf;
+
+	if (type == EffekseerRenderer::ProxyTextureType::White)
+	{
+		buf.fill(255);
+	}
+	else if (type == EffekseerRenderer::ProxyTextureType::Normal)
+	{
+		buf.fill(127);
+		buf[2] = 255;
+		buf[3] = 255;
+	}
+	else
+	{
+		assert(0);
+	}
+
+	GLuint texture = 0;
+	glGenTextures(1, &texture);
+	glBindTexture(GL_TEXTURE_2D, texture);
+	glTexImage2D(GL_TEXTURE_2D,
+				 0,
+				 GL_RGBA,
+				 1,
+				 1,
+				 0,
+				 GL_RGBA,
+				 GL_UNSIGNED_BYTE,
+				 buf.data());
+
+	// Generate mipmap
+	GLExt::glGenerateMipmap(GL_TEXTURE_2D);
+	glBindTexture(GL_TEXTURE_2D, bound);
+
+	auto textureData = new Effekseer::TextureData();
+	textureData->UserPtr = nullptr;
+	textureData->UserID = texture;
+	textureData->TextureFormat = Effekseer::TextureFormatType::ABGR8;
+	textureData->Width = 1;
+	textureData->Height = 1;
+	return textureData;
+}
+
+void RendererImplemented::DeleteProxyTexture(Effekseer::TextureData* data) {
+	if (data != nullptr)
+	{
+		GLuint texture = (GLuint)data->UserID;
+		glDeleteTextures(1, &texture);
+		delete data;
+	}
+}
+
+bool RendererImplemented::IsVertexArrayObjectSupported() const { return GLExt::IsSupportedVertexArray(); }
+
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
@@ -5272,6 +5496,7 @@ Model::~Model()
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
+
 
 //----------------------------------------------------------------------------------
 // Include
@@ -5461,10 +5686,11 @@ void RenderState::Update( bool forced )
 		GLCheckError();
 		for (int32_t i = 0; i < (int32_t)m_renderer->GetCurrentTextures().size(); i++)
 		{
-			/* テクスチャが設定されていない場合はスキップ */
+			// If a texture is not assigned, skip it.
 			if (m_renderer->GetCurrentTextures()[i] == 0) continue;
 
-			if (m_active.TextureFilterTypes[i] != m_next.TextureFilterTypes[i] || forced)
+			// always changes because a flag is assigned into a texture
+			// if (m_active.TextureFilterTypes[i] != m_next.TextureFilterTypes[i] || forced)
 			{
 				GLExt::glActiveTexture(GL_TEXTURE0 + i);
 				GLCheckError();
@@ -5478,7 +5704,8 @@ void RenderState::Update( bool forced )
 				GLCheckError();
 			}
 
-			if (m_active.TextureWrapTypes[i] != m_next.TextureWrapTypes[i] || forced)
+			// always changes because a flag is assigned into a texture
+			// if (m_active.TextureWrapTypes[i] != m_next.TextureWrapTypes[i] || forced)
 			{
 				GLExt::glActiveTexture(GL_TEXTURE0 + i);
 				GLCheckError();
@@ -5509,6 +5736,7 @@ void RenderState::Update( bool forced )
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
+
 
 //-----------------------------------------------------------------------------------
 //
@@ -6141,6 +6369,7 @@ bool Shader::IsValid() const
 //-----------------------------------------------------------------------------------
 }
 
+
 #ifdef __EFFEKSEER_RENDERER_INTERNAL_LOADER__
 
 //----------------------------------------------------------------------------------
@@ -6348,6 +6577,7 @@ void TextureLoader::Unload(Effekseer::TextureData* data )
 
 #endif
 
+
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
@@ -6443,8 +6673,11 @@ void VertexArray::Init()
 		GLExt::glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_indexBuffer->GetInterface());
 	}
 
-	m_shader->EnableAttribs();
-	m_shader->SetVertex();
+	if (m_vertexBuffer != nullptr)
+	{
+		m_shader->EnableAttribs();
+		m_shader->SetVertex();
+	}
 
 	GLExt::glBindVertexArray(0);
 
@@ -6474,6 +6707,7 @@ void VertexArray::Release()
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
+
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
@@ -6569,13 +6803,15 @@ void VertexBuffer::Lock()
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
-bool VertexBuffer::RingBufferLock( int32_t size, int32_t& offset, void*& data )
+bool VertexBuffer::RingBufferLock(int32_t size, int32_t& offset, void*& data, int32_t alignment)
 {
 	assert( !m_isLock );
 	assert( !m_ringBufferLock );
 	assert( this->m_isDynamic );
 
 	if( size > m_size ) return false;
+
+	m_vertexRingOffset =(m_vertexRingOffset + alignment - 1) / alignment* alignment;
 
 #ifdef __ANDROID__
 	if (true)
@@ -6605,11 +6841,11 @@ bool VertexBuffer::RingBufferLock( int32_t size, int32_t& offset, void*& data )
 	return true;
 }
 
-bool VertexBuffer::TryRingBufferLock(int32_t size, int32_t& offset, void*& data)
+bool VertexBuffer::TryRingBufferLock(int32_t size, int32_t& offset, void*& data, int32_t alignment)
 {
 	if ((int32_t) m_vertexRingOffset + size > m_size) return false;
 
-	return RingBufferLock(size, offset, data);
+	return RingBufferLock(size, offset, data, alignment);
 }
 
 //-----------------------------------------------------------------------------------
@@ -6694,3 +6930,738 @@ bool VertexBuffer::IsValid()
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
+
+
+
+namespace Effekseer
+{
+namespace GL
+{
+
+static const char g_material_model_vs_src_pre[] =
+	R"(
+IN vec4 a_Position;
+IN vec3 a_Normal;
+IN vec3 a_Binormal;
+IN vec3 a_Tangent;
+IN vec2 a_TexCoord;
+IN vec4 a_Color;
+)"
+#if defined(MODEL_SOFTWARE_INSTANCING)
+	R"(
+IN float a_InstanceID;
+IN vec4 a_UVOffset;
+IN vec4 a_ModelColor;
+)"
+#endif
+	R"(
+
+OUT lowp vec4 v_VColor;
+OUT mediump vec2 v_UV1;
+OUT mediump vec2 v_UV2;
+OUT mediump vec3 v_WorldP;
+OUT mediump vec3 v_WorldN;
+OUT mediump vec3 v_WorldT;
+OUT mediump vec3 v_WorldB;
+OUT mediump vec2 v_ScreenUV;
+//$C_OUT1$
+//$C_OUT2$
+)"
+#if defined(MODEL_SOFTWARE_INSTANCING)
+	R"(
+uniform mat4 ModelMatrix[20];
+uniform vec4 UVOffset[20];
+uniform vec4 ModelColor[20];
+)"
+#else
+	R"(
+uniform mat4 ModelMatrix;
+uniform vec4 UVOffset;
+uniform vec4 ModelColor;
+)"
+#endif
+	R"(
+uniform mat4 ProjectionMatrix;
+uniform vec4 mUVInversed;
+uniform vec4 predefined_uniform;
+
+
+)";
+
+static const char g_material_model_vs_src_suf1[] =
+	R"(
+
+void main()
+{
+)"
+#if defined(MODEL_SOFTWARE_INSTANCING)
+	R"(
+	mat4 modelMatrix = ModelMatrix[int(a_InstanceID)];
+	vec4 uvOffset = a_UVOffset;
+	vec4 modelColor = a_ModelColor;
+)"
+#else
+	R"(
+	mat4 modelMatrix = ModelMatrix;
+	vec4 uvOffset = UVOffset;
+	vec4 modelColor = ModelColor * a_Color;
+)"
+#endif
+	R"(
+	mat3 modelMatRot = mat3(modelMatrix);
+	vec3 worldPos = (modelMatrix * a_Position).xyz;
+	vec3 worldNormal = normalize(modelMatRot * a_Normal);
+	vec3 worldBinormal = normalize(modelMatRot * a_Binormal);
+	vec3 worldTangent = normalize(modelMatRot * a_Tangent);
+
+	// UV
+	vec2 uv1 = a_TexCoord.xy * uvOffset.zw + uvOffset.xy;
+	vec2 uv2 = uv1;
+
+	uv1.y = mUVInversed.x + mUVInversed.y * uv1.y;
+	uv1.y = mUVInversed.x + mUVInversed.y * uv1.y;
+
+	vec3 pixelNormalDir = worldNormal;
+)";
+
+static const char g_material_model_vs_src_suf2[] =
+	R"(
+	worldPos = worldPos + worldPositionOffset;
+
+	v_WorldP = worldPos;
+	v_WorldN = worldNormal;
+	v_WorldB = worldBinormal;
+	v_WorldT = worldTangent;
+	v_UV1 = uv1;
+	v_UV2 = uv2;
+	v_VColor = a_Color;
+	gl_Position = ProjectionMatrix * vec4(worldPos, 1.0);
+	v_ScreenUV.xy = gl_Position.xy / gl_Position.w;
+	v_ScreenUV.xy = vec2(v_ScreenUV.x + 1.0, v_ScreenUV.y + 1.0) * 0.5;
+}
+)";
+
+static const char g_material_sprite_vs_src_pre_simple[] =
+	R"(
+IN vec4 atPosition;
+IN vec4 atColor;
+IN vec4 atTexCoord;
+)"
+
+	R"(
+OUT lowp vec4 v_VColor;
+OUT mediump vec2 v_UV1;
+OUT mediump vec2 v_UV2;
+OUT mediump vec3 v_WorldP;
+OUT mediump vec3 v_WorldN;
+OUT mediump vec3 v_WorldT;
+OUT mediump vec3 v_WorldB;
+OUT mediump vec2 v_ScreenUV;
+)"
+
+	R"(
+uniform mat4 uMatCamera;
+uniform mat4 uMatProjection;
+uniform vec4 mUVInversed;
+uniform vec4 predefined_uniform;
+
+)";
+
+static const char g_material_sprite_vs_src_pre[] =
+	R"(
+IN vec4 atPosition;
+IN vec4 atColor;
+IN vec3 atNormal;
+IN vec3 atTangent;
+IN vec2 atTexCoord;
+IN vec2 atTexCoord2;
+//$C_IN1$
+//$C_IN2$
+)"
+
+	R"(
+OUT lowp vec4 v_VColor;
+OUT mediump vec2 v_UV1;
+OUT mediump vec2 v_UV2;
+OUT mediump vec3 v_WorldP;
+OUT mediump vec3 v_WorldN;
+OUT mediump vec3 v_WorldT;
+OUT mediump vec3 v_WorldB;
+OUT mediump vec2 v_ScreenUV;
+//$C_OUT1$
+//$C_OUT2$
+)"
+
+	R"(
+uniform mat4 uMatCamera;
+uniform mat4 uMatProjection;
+uniform vec4 mUVInversed;
+uniform vec4 predefined_uniform;
+
+)";
+
+static const char g_material_sprite_vs_src_suf1_simple[] =
+
+	R"(
+
+void main() {
+	vec3 worldPos = atPosition.xyz;
+
+	// UV
+	vec2 uv1 = atTexCoord.xy;
+	uv1.y = mUVInversed.x + mUVInversed.y * uv1.y;
+	vec2 uv2 = uv1;
+
+	// NBT
+	vec3 worldNormal = vec3(0.0, 0.0, 0.0);
+	vec3 worldBinormal = vec3(0.0, 0.0, 0.0);
+	vec3 worldTangent = vec3(0.0, 0.0, 0.0);
+	v_WorldN = worldNormal;
+	v_WorldB = worldBinormal;
+	v_WorldT = worldTangent;
+
+	vec3 pixelNormalDir = worldNormal;
+
+)";
+
+static const char g_material_sprite_vs_src_suf1[] =
+
+	R"(
+
+void main() {
+	vec3 worldPos = atPosition.xyz;
+
+	// UV
+	vec2 uv1 = atTexCoord.xy;
+	uv1.y = mUVInversed.x + mUVInversed.y * uv1.y;
+	vec2 uv2 = atTexCoord2.xy;
+	uv2.y = mUVInversed.x + mUVInversed.y * uv2.y;
+
+	// NBT
+	vec3 worldNormal = (atNormal - vec3(0.5, 0.5, 0.5)) * 2.0;
+	vec3 worldTangent = (atTangent - vec3(0.5, 0.5, 0.5)) * 2.0;
+	vec3 worldBinormal = cross(worldNormal, worldTangent);
+
+	v_WorldN = worldNormal;
+	v_WorldB = worldBinormal;
+	v_WorldT = worldTangent;
+	vec3 pixelNormalDir = worldNormal;
+)";
+
+static const char g_material_sprite_vs_src_suf2[] =
+
+	R"(
+	worldPos = worldPos + worldPositionOffset;
+
+	vec4 cameraPos = uMatCamera * vec4(worldPos, 1.0);
+	cameraPos = cameraPos / cameraPos.w;
+
+	gl_Position = uMatProjection * cameraPos;
+
+	v_WorldP = worldPos;
+	v_VColor = atColor;
+
+	v_UV1 = uv1;
+	v_UV2 = uv2;
+	v_ScreenUV.xy = gl_Position.xy / gl_Position.w;
+	v_ScreenUV.xy = vec2(v_ScreenUV.x + 1.0, v_ScreenUV.y + 1.0) * 0.5;
+}
+
+)";
+
+static const char g_material_fs_src_pre[] =
+	R"(
+
+IN lowp vec4 v_VColor;
+IN mediump vec2 v_UV1;
+IN mediump vec2 v_UV2;
+IN mediump vec3 v_WorldP;
+IN mediump vec3 v_WorldN;
+IN mediump vec3 v_WorldT;
+IN mediump vec3 v_WorldB;
+IN mediump vec2 v_ScreenUV;
+//$C_PIN1$
+//$C_PIN2$
+
+uniform vec4 mUVInversedBack;
+uniform vec4 predefined_uniform;
+
+)";
+
+static const char g_material_fs_src_suf1[] =
+	R"(
+
+#ifdef __MATERIAL_LIT__
+
+float saturate(float v)
+{
+	return max(min(v, 1.0), 0.0);
+}
+
+float calcD_GGX(float roughness, float dotNH)
+{
+	float alpha = roughness*roughness;
+	float alphaSqr = alpha*alpha;
+	float pi = 3.14159;
+	float denom = dotNH * dotNH *(alphaSqr-1.0) + 1.0;
+	return (alpha / denom) * (alpha / denom) / pi;
+}
+
+float calcF(float F0, float dotLH)
+{
+	float dotLH5 = pow(1.0f-dotLH,5);
+	return F0 + (1.0-F0)*(dotLH5);
+}
+
+float calcG_Schlick(float roughness, float dotNV, float dotNL)
+{
+	// UE4
+	float k = (roughness + 1.0) * (roughness + 1.0) / 8.0;
+	// float k = roughness * roughness / 2.0;
+
+	float gV = dotNV*(1.0 - k) + k;
+	float gL = dotNL*(1.0 - k) + k;
+
+	return 1.0 / (gV * gL);
+}
+
+float calcLightingGGX(vec3 N, vec3 V, vec3 L, float roughness, float F0)
+{
+	vec3 H = normalize(V+L);
+
+	float dotNL = saturate( dot(N,L) );
+	float dotLH = saturate( dot(L,H) );
+	float dotNH = saturate( dot(N,H) ) - 0.001;
+	float dotNV = saturate( dot(N,V) ) + 0.001;
+
+	float D = calcD_GGX(roughness, dotNH);
+	float F = calcF(F0, dotLH);
+	float G = calcG_Schlick(roughness, dotNV, dotNL);
+
+	return dotNL * D * F * G / 4.0;
+}
+
+vec3 calcDirectionalLightDiffuseColor(vec3 diffuseColor, vec3 normal, vec3 lightDir, float ao)
+{
+	vec3 color = vec3(0.0,0.0,0.0);
+
+	float NoL = dot(normal,lightDir);
+	color.xyz = lightColor.xyz * max(NoL,0.0) * ao / 3.14;
+	color.xyz = color.xyz * diffuseColor.xyz;
+	return color;
+}
+
+#endif
+
+void main()
+{
+	vec2 uv1 = v_UV1;
+	vec2 uv2 = v_UV2;
+	vec3 worldPos = v_WorldP;
+	vec3 worldNormal = v_WorldN;
+	vec3 worldTangent = v_WorldT;
+	vec3 worldBinormal = v_WorldB;
+	vec3 pixelNormalDir = worldNormal;
+)";
+
+static const char g_material_fs_src_suf2_lit[] =
+	R"(
+
+	vec3 viewDir = normalize(cameraPosition.xyz - worldPos);
+	vec3 diffuse = calcDirectionalLightDiffuseColor(baseColor, pixelNormalDir, lightDirection.xyz, ambientOcclusion);
+	vec3 specular = lightColor.xyz * calcLightingGGX(worldNormal, viewDir, lightDirection.xyz, roughness, 0.9);
+
+	vec4 Output =  vec4(metallic * specular + (1.0 - metallic) * diffuse + lightAmbientColor.xyz, opacity);
+
+	if(opacityMask <= 0.0f) discard;
+
+	FRAGCOLOR = Output;
+
+
+}
+
+)";
+
+static const char g_material_fs_src_suf2_unlit[] =
+	R"(
+
+	FRAGCOLOR = vec4(emissive, opacity);
+}
+
+)";
+
+static const char g_material_fs_src_suf2_refraction[] =
+	R"(
+	float airRefraction = 1.0;
+
+	vec3 dir = mat3(cameraMat) * pixelNormalDir;
+	vec2 distortUV = dir.xy * (refraction - airRefraction);
+
+	distortUV += v_ScreenUV;
+	distortUV.y = mUVInversedBack.x + mUVInversedBack.y * distortUV.y;
+
+	vec4 bg = TEX2D(background, distortUV);
+	FRAGCOLOR = bg;
+}
+
+)";
+
+std::string Replace(std::string target, std::string from_, std::string to_)
+{
+	std::string::size_type Pos(target.find(from_));
+
+	while (Pos != std::string::npos)
+	{
+		target.replace(Pos, from_.length(), to_);
+		Pos = target.find(from_, Pos + to_.length());
+	}
+
+	return target;
+}
+
+struct ShaderData
+{
+	std::string CodeVS;
+	std::string CodePS;
+};
+
+ShaderData GenerateShader(Material* material, MaterialShaderType shaderType)
+{
+	auto getType = [](int32_t i) -> std::string {
+		if (i == 1)
+			return "float";
+		if (i == 2)
+			return "vec2";
+		if (i == 3)
+			return "vec3";
+		if (i == 4)
+			return "vec4";
+	};
+
+	bool isSprite = shaderType == MaterialShaderType::Standard || shaderType == MaterialShaderType::Refraction;
+	bool isRefrection =
+		material->GetHasRefraction() && (shaderType == MaterialShaderType::Refraction || shaderType == MaterialShaderType::RefractionModel);
+
+	ShaderData shaderData;
+
+	for (int stage = 0; stage < 2; stage++)
+	{
+		std::ostringstream maincode;
+
+		if (stage == 0)
+		{
+			if (isSprite)
+			{
+				if (material->GetIsSimpleVertex())
+				{
+					maincode << g_material_sprite_vs_src_pre_simple;
+				}
+				else
+				{
+					maincode << g_material_sprite_vs_src_pre;
+				}
+			}
+			else
+			{
+				maincode << g_material_model_vs_src_pre;
+			}
+		}
+		else
+		{
+			maincode << g_material_fs_src_pre;
+		}
+
+		for (int32_t i = 0; i < material->GetUniformCount(); i++)
+		{
+			auto uniformIndex = material->GetUniformIndex(i);
+			auto uniformName = material->GetUniformName(i);
+
+			if (uniformIndex == 0)
+				maincode << "uniform float " << uniformName << ";" << std::endl;
+			if (uniformIndex == 1)
+				maincode << "uniform vec2 " << uniformName << ";" << std::endl;
+			if (uniformIndex == 2)
+				maincode << "uniform vec3 " << uniformName << ";" << std::endl;
+			if (uniformIndex == 3)
+				maincode << "uniform vec4 " << uniformName << ";" << std::endl;
+		}
+
+		for (size_t i = 0; i < material->GetTextureCount(); i++)
+		{
+			auto textureIndex = material->GetTextureIndex(i);
+			auto textureName = material->GetTextureName(i);
+
+			maincode << "uniform sampler2D " << textureName << ";" << std::endl;
+		}
+
+		for (size_t i = material->GetTextureCount(); i < material->GetTextureCount() + 1; i++)
+		{
+			maincode << "uniform sampler2D "
+					 << "background"
+					 << ";" << std::endl;
+		}
+
+		if (material->GetShadingModel() == ::Effekseer::ShadingModelType::Lit)
+		{
+			maincode << "uniform vec4 "
+					 << "lightDirection"
+					 << ";" << std::endl;
+			maincode << "uniform vec4 "
+					 << "lightColor"
+					 << ";" << std::endl;
+			maincode << "uniform vec4 "
+					 << "lightAmbientColor"
+					 << ";" << std::endl;
+			maincode << "uniform vec4 "
+					 << "cameraPosition"
+					 << ";" << std::endl;
+
+			maincode << "#define __MATERIAL_LIT__ 1" << std::endl;
+		}
+		else if (material->GetShadingModel() == ::Effekseer::ShadingModelType::Unlit)
+		{
+		}
+
+		if (isRefrection && stage == 1)
+		{
+			maincode << "uniform mat4 "
+					 << "cameraMat"
+					 << ";" << std::endl;
+		}
+
+		if (!isSprite && stage == 0)
+		{
+			if (material->GetCustomData1Count() > 0)
+			{
+				maincode << "uniform vec4 customData1;" << std::endl;
+			}
+			if (material->GetCustomData2Count() > 0)
+			{
+				maincode << "uniform vec4 customData2;" << std::endl;
+			}
+		}
+
+		auto baseCode = std::string(material->GetGenericCode());
+		baseCode = Replace(baseCode, "$F1$", "float");
+		baseCode = Replace(baseCode, "$F2$", "vec2");
+		baseCode = Replace(baseCode, "$F3$", "vec3");
+		baseCode = Replace(baseCode, "$F4$", "vec4");
+		baseCode = Replace(baseCode, "$TIME$", "predefined_uniform.x");
+		baseCode = Replace(baseCode, "$UV$", "uv");
+		baseCode = Replace(baseCode, "$MOD", "mod");
+		baseCode = Replace(baseCode, "$SUFFIX", "");
+
+		// replace textures
+		for (size_t i = 0; i < material->GetTextureCount(); i++)
+		{
+			auto textureIndex = material->GetTextureIndex(i);
+			auto textureName = std::string(material->GetTextureName(i));
+
+			std::string keyP = "$TEX_P" + std::to_string(textureIndex) + "$";
+			std::string keyS = "$TEX_S" + std::to_string(textureIndex) + "$";
+
+			baseCode = Replace(baseCode, keyP, "TEX2D(" + textureName + ",");
+			baseCode = Replace(baseCode, keyS, ")");
+		}
+
+		if (stage == 0)
+		{
+			if (isSprite)
+			{
+				if (material->GetIsSimpleVertex())
+				{
+					maincode << g_material_sprite_vs_src_suf1_simple;
+				}
+				else
+				{
+					maincode << g_material_sprite_vs_src_suf1;
+				}
+			}
+			else
+			{
+				maincode << g_material_model_vs_src_suf1;
+			}
+
+			if (material->GetCustomData1Count() > 0)
+			{
+				if (isSprite)
+				{
+					maincode << getType(material->GetCustomData1Count()) + " customData1 = atCustomData1;\n";
+				}
+				maincode << "v_CustomData1 = customData1;\n";
+			}
+
+			if (material->GetCustomData2Count() > 0)
+			{
+				if (isSprite)
+				{
+					maincode << getType(material->GetCustomData2Count()) + " customData2 = atCustomData2;\n";
+				}
+				maincode << "v_CustomData2 = customData2;\n";
+			}
+
+			maincode << baseCode;
+
+			if (isSprite)
+			{
+				maincode << g_material_sprite_vs_src_suf2;
+			}
+			else
+			{
+				maincode << g_material_model_vs_src_suf2;
+			}
+
+			shaderData.CodeVS = maincode.str();
+		}
+		else
+		{
+			maincode << g_material_fs_src_suf1;
+
+			if (material->GetCustomData1Count() > 0)
+			{
+				maincode << getType(material->GetCustomData1Count()) + " customData1 = v_CustomData1;\n";
+			}
+
+			if (material->GetCustomData2Count() > 0)
+			{
+				maincode << getType(material->GetCustomData2Count()) + " customData2 = v_CustomData2;\n";
+			}
+
+			maincode << baseCode;
+
+			if (shaderType == MaterialShaderType::Refraction || shaderType == MaterialShaderType::RefractionModel)
+			{
+				maincode << g_material_fs_src_suf2_refraction;
+			}
+			else
+			{
+				if (material->GetShadingModel() == Effekseer::ShadingModelType::Lit)
+				{
+					maincode << g_material_fs_src_suf2_lit;
+				}
+				else if (material->GetShadingModel() == Effekseer::ShadingModelType::Unlit)
+				{
+					maincode << g_material_fs_src_suf2_unlit;
+				}
+			}
+
+			shaderData.CodePS = maincode.str();
+		}
+	}
+
+	// custom data
+	if (material->GetCustomData1Count() > 0)
+	{
+		if (isSprite)
+		{
+			shaderData.CodeVS =
+				Replace(shaderData.CodeVS, "//$C_IN1$", "IN " + getType(material->GetCustomData1Count()) + " atCustomData1;");
+		}
+		shaderData.CodeVS =
+			Replace(shaderData.CodeVS, "//$C_OUT1$", "OUT mediump " + getType(material->GetCustomData1Count()) + " v_CustomData1;");
+		shaderData.CodePS =
+			Replace(shaderData.CodePS, "//$C_PIN1$", "IN mediump " + getType(material->GetCustomData1Count()) + " v_CustomData1;");
+	}
+
+	if (material->GetCustomData2Count() > 0)
+	{
+		if (isSprite)
+		{
+			shaderData.CodeVS =
+				Replace(shaderData.CodeVS, "//$C_IN2$", "IN " + getType(material->GetCustomData1Count()) + " atCustomData2;");
+		}
+		shaderData.CodeVS =
+			Replace(shaderData.CodeVS, "//$C_OUT2$", "OUT mediump " + getType(material->GetCustomData1Count()) + " v_CustomData2;");
+		shaderData.CodePS =
+			Replace(shaderData.CodePS, "//$C_PIN2$", "IN mediump " + getType(material->GetCustomData1Count()) + " v_CustomData2;");
+	}
+
+	return shaderData;
+}
+
+} // namespace GL
+
+} // namespace Effekseer
+
+namespace Effekseer
+{
+
+class CompiledMaterialBinaryGL : public CompiledMaterialBinary, ReferenceObject
+{
+private:
+	std::array<std::vector<uint8_t>, static_cast<int32_t>(MaterialShaderType::Max)> vertexShaders_;
+
+	std::array<std::vector<uint8_t>, static_cast<int32_t>(MaterialShaderType::Max)> pixelShaders_;
+
+public:
+	CompiledMaterialBinaryGL() {}
+
+	virtual ~CompiledMaterialBinaryGL() {}
+
+	void SetVertexShaderData(MaterialShaderType type, const std::vector<uint8_t>& data)
+	{
+		vertexShaders_.at(static_cast<int>(type)) = data;
+	}
+
+	void SetPixelShaderData(MaterialShaderType type, const std::vector<uint8_t>& data) { pixelShaders_.at(static_cast<int>(type)) = data; }
+
+	const uint8_t* GetVertexShaderData(MaterialShaderType type) const override { return vertexShaders_.at(static_cast<int>(type)).data(); }
+
+	int32_t GetVertexShaderSize(MaterialShaderType type) const override { return vertexShaders_.at(static_cast<int>(type)).size(); }
+
+	const uint8_t* GetPixelShaderData(MaterialShaderType type) const override { return pixelShaders_.at(static_cast<int>(type)).data(); }
+
+	int32_t GetPixelShaderSize(MaterialShaderType type) const override { return pixelShaders_.at(static_cast<int>(type)).size(); }
+
+	int AddRef() override { return ReferenceObject::AddRef(); }
+
+	int Release() override { return ReferenceObject::Release(); }
+
+	int GetRef() override { return ReferenceObject::GetRef(); }
+};
+
+CompiledMaterialBinary* MaterialCompilerGL::Compile(Material* material)
+{
+	auto binary = new CompiledMaterialBinaryGL();
+
+	auto convertToVector = [](const std::string& str) -> std::vector<uint8_t> {
+		std::vector<uint8_t> ret;
+		ret.resize(str.size() + 1);
+		memcpy(ret.data(), str.data(), str.size());
+		ret[str.size()] = 0;
+		return ret;
+	};
+
+	auto saveBinary = [&material, &binary, &convertToVector](MaterialShaderType type) {
+		auto shader = GL::GenerateShader(material, type);
+		binary->SetVertexShaderData(type, convertToVector(shader.CodeVS));
+		binary->SetPixelShaderData(type, convertToVector(shader.CodePS));
+	};
+
+	if (material->GetHasRefraction())
+	{
+		saveBinary(MaterialShaderType::Refraction);
+		saveBinary(MaterialShaderType::RefractionModel);
+	}
+
+	saveBinary(MaterialShaderType::Standard);
+	saveBinary(MaterialShaderType::Model);
+
+	return binary;
+}
+
+} // namespace Effekseer
+
+#ifdef __SHARED_OBJECT__
+
+extern "C"
+{
+#ifdef _WIN32
+#define EFK_EXPORT __declspec(dllexport)
+#else
+#define EFK_EXPORT
+#endif
+
+	EFK_EXPORT Effekseer::MaterialCompiler* EFK_STDCALL CreateCompiler() { return new Effekseer::MaterialCompilerGL(); }
+}
+#endif
