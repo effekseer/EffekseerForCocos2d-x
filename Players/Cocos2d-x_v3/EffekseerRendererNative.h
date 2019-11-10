@@ -292,6 +292,13 @@ template <> struct StrideView<SimpleVertexDX9>
 	}
 };
 
+void CalcBillboard(::Effekseer::BillboardType billboardType,
+				   Effekseer::Matrix43& dst,
+				   ::Effekseer::Vector3D& s,
+				   ::Effekseer::Vector3D& R,
+				   ::Effekseer::Vector3D& F,
+				   const ::Effekseer::Matrix43& src,
+				   const ::Effekseer::Vector3D& frontDirection);
 
 /**
 	@brief Spline generator
@@ -330,6 +337,14 @@ void ApplyDepthParameters(::Effekseer::Matrix43& mat,
 					  ::Effekseer::Vector3D& scaleValues,
 						  ::Effekseer::NodeRendererDepthParameter* depthParameter,
 					  bool isRightHand);
+
+void ApplyDepthParameters(::Effekseer::Matrix43& mat,
+						  ::Effekseer::Vector3D& translationValues,
+						  ::Effekseer::Vector3D& scaleValues,
+						  const ::Effekseer::Vector3D& cameraFront,
+						  const ::Effekseer::Vector3D& cameraPos,
+						  ::Effekseer::NodeRendererDepthParameter* depthParameter,
+						  bool isRightHand);
 
 void ApplyDepthParameters(::Effekseer::Matrix44& mat,
 						  const ::Effekseer::Vector3D& cameraFront,
@@ -1146,11 +1161,10 @@ public:
 #ifndef __EFFEKSEERRENDERER_STANDARD_RENDERER_BASE_H__
 #define __EFFEKSEERRENDERER_STANDARD_RENDERER_BASE_H__
 
-//----------------------------------------------------------------------------------
-// Include
-//----------------------------------------------------------------------------------
 #include "EffekseerNative.h"
 #include <vector>
+#include <algorithm>
+#include <functional>
 
 
 //-----------------------------------------------------------------------------------
@@ -1182,12 +1196,12 @@ struct StandardRendererState
 
 	::Effekseer::RendererMaterialType MaterialType;
 	::Effekseer::MaterialData* MaterialPtr;
-	uint32_t MaterialUniformCount;
+	int32_t MaterialUniformCount = 0;
 	std::array<std::array<float, 4>, 16> MaterialUniforms;
-	uint32_t MaterialTextureCount;
+	int32_t MaterialTextureCount = 0;
 	std::array<::Effekseer::TextureData*, 16> MaterialTextures;
-	uint32_t CustomData1Count = 0;
-	uint32_t CustomData2Count = 0;
+	int32_t CustomData1Count = 0;
+	int32_t CustomData2Count = 0;
 
 	StandardRendererState()
 	{
@@ -1254,13 +1268,13 @@ struct StandardRendererState
 		if (Refraction != state.Refraction)
 			return true;
 
-		for (uint32_t i = 0; i < state.MaterialUniformCount; i++)
+		for (int32_t i = 0; i < state.MaterialUniformCount; i++)
 		{
 			if (MaterialUniforms[i] != state.MaterialUniforms[i])
 				return true;
 		}
 
-		for (uint32_t i = 0; i < state.MaterialTextureCount; i++)
+		for (int32_t i = 0; i < state.MaterialTextureCount; i++)
 		{
 			if (MaterialTextures[i] != state.MaterialTextures[i])
 				return true;
@@ -1286,13 +1300,13 @@ struct StandardRendererState
 				CustomData1Count = MaterialPtr->CustomData1;
 				CustomData2Count = MaterialPtr->CustomData2;
 
-				MaterialUniformCount = Effekseer::Min(materialParam->MaterialUniforms.size(), MaterialUniforms.size());
+				MaterialUniformCount = static_cast<int32_t>(Effekseer::Min(materialParam->MaterialUniforms.size(), MaterialUniforms.size()));
 				for (size_t i = 0; i < MaterialUniformCount; i++)
 				{
 					MaterialUniforms[i] = materialParam->MaterialUniforms[i];
 				}
 
-				MaterialTextureCount = Effekseer::Min(materialParam->MaterialTextures.size(), MaterialTextures.size());
+				MaterialTextureCount = static_cast<int32_t>(Effekseer::Min(materialParam->MaterialTextures.size(), MaterialTextures.size()));
 				for (size_t i = 0; i < MaterialTextureCount; i++)
 				{
 					if (materialParam->MaterialTextures[i].Type == 1)
@@ -1625,10 +1639,14 @@ public:
 		if (m_state.MaterialPtr != nullptr)
 		{
 			std::array<Effekseer::TextureData*, 16> textures;
+			textures.fill(nullptr);
+			int32_t textureCount = Effekseer::Min(m_state.MaterialTextureCount, textures.size() - 1);
 
 			if (m_state.MaterialTextureCount > 0)
 			{
-				for (size_t i = 0; i < Effekseer::Min(m_state.MaterialTextureCount, textures.size()); i++)
+				auto textureSize = static_cast<int32_t>(textures.size());
+
+				for (size_t i = 0; i < Effekseer::Min(m_state.MaterialTextureCount, textureSize); i++)
 				{
 					textures[i] = m_state.MaterialTextures[i];
 					state.TextureFilterTypes[i] = Effekseer::TextureFilterType::Linear;
@@ -1638,14 +1656,18 @@ public:
 
 			if (m_renderer->GetBackground() != 0)
 			{
-				textures[m_state.MaterialTextureCount] = m_renderer->GetBackground();
+				textures[textureCount] = m_renderer->GetBackground();
+				state.TextureFilterTypes[textureCount] = Effekseer::TextureFilterType::Linear;
+				state.TextureWrapTypes[textureCount] = Effekseer::TextureWrapType::Clamp;
+				textureCount += 1;
 			}
 
-			m_renderer->SetTextures(shader_, textures.data(), Effekseer::Min(m_state.MaterialTextureCount + 1, textures.size()));
+			m_renderer->SetTextures(shader_, textures.data(), textureCount);
 		}
 		else
 		{
-			Effekseer::TextureData* textures[2];
+			std::array<Effekseer::TextureData*, 2> textures;
+			textures.fill(nullptr);
 
 			if (m_state.TexturePtr != nullptr && m_state.TexturePtr != (Effekseer::TextureData*)0x01 && m_renderer->GetRenderMode() == Effekseer::RenderMode::Normal)
 			{
@@ -1665,16 +1687,16 @@ public:
 					textures[1] = m_state.NormalTexturePtr;
 				}
 
-				m_renderer->SetTextures(shader_, textures, 2);
+				m_renderer->SetTextures(shader_, textures.data(), 2);
 			}
 			else if (distortion)
 			{
 				textures[1] = m_renderer->GetBackground();
-				m_renderer->SetTextures(shader_, textures, 2);
+				m_renderer->SetTextures(shader_, textures.data(), 2);
 			}
 			else
 			{
-				m_renderer->SetTextures(shader_, textures, 1);
+				m_renderer->SetTextures(shader_, textures.data(), 1);
 			}
 		}
 
@@ -1830,8 +1852,8 @@ public:
 			{
 				DistortionPixelConstantBuffer pcb;
 				pcb.scale[0] = m_state.DistortionIntensity;
-				pcb.uvInversed[0] = uvInversed[0];
-				pcb.uvInversed[1] = uvInversed[1];
+				pcb.uvInversed[0] = uvInversedBack[0];
+				pcb.uvInversed[1] = uvInversedBack[1];
 
 				m_renderer->SetPixelBufferToShader(&pcb, sizeof(DistortionPixelConstantBuffer), 0);
 			}
@@ -1883,9 +1905,6 @@ public:
 #ifndef	__EFFEKSEERRENDERER_MODEL_RENDERER_BASE_H__
 #define	__EFFEKSEERRENDERER_MODEL_RENDERER_BASE_H__
 
-//----------------------------------------------------------------------------------
-// Include
-//----------------------------------------------------------------------------------
 #include "EffekseerNative.h"
 #include <assert.h>
 #include <string.h>
@@ -1929,10 +1948,25 @@ class ModelRendererBase
 	: public ::Effekseer::ModelRenderer
 {
 protected:
-	std::vector<Effekseer::Matrix44>	m_matrixes;
-	std::vector<Effekseer::RectF>		m_uv;
-	std::vector<Effekseer::Color>		m_colors;
-	std::vector<int32_t>				m_times;
+	struct KeyValue
+	{
+		float Key;
+		int Value;
+	};
+
+	std::vector<KeyValue> keyValues_;
+	
+	std::vector<Effekseer::Matrix44> matrixesSorted_;
+	std::vector<Effekseer::RectF> uvSorted_;
+	std::vector<Effekseer::Color> colorsSorted_;
+	std::vector<int32_t> timesSorted_;
+	std::vector<std::array<float, 4>> customData1Sorted_;
+	std::vector<std::array<float, 4>> customData2Sorted_;
+
+	std::vector<Effekseer::Matrix44> m_matrixes;
+	std::vector<Effekseer::RectF> m_uv;
+	std::vector<Effekseer::Color> m_colors;
+	std::vector<int32_t> m_times;
 	std::vector<std::array<float, 4>> customData1_;
 	std::vector<std::array<float, 4>> customData2_;
 
@@ -1966,6 +2000,8 @@ public:
 	template<typename RENDERER>
 	void BeginRendering_(RENDERER* renderer, const efkModelNodeParam& parameter, int32_t count, void* userData)
 	{
+		keyValues_.clear();
+
 		m_matrixes.clear();
 		m_uv.clear();
 		m_colors.clear();
@@ -1973,8 +2009,16 @@ public:
 		customData1_.clear();
 		customData2_.clear();
 
+		matrixesSorted_.clear();
+		uvSorted_.clear();
+		colorsSorted_.clear();
+		timesSorted_.clear();
+		customData1Sorted_.clear();
+		customData2Sorted_.clear();
+
 		if (parameter.BasicParameterPtr->MaterialType == ::Effekseer::RendererMaterialType::File &&
 			parameter.BasicParameterPtr->MaterialParameterPtr != nullptr &&
+			parameter.BasicParameterPtr->MaterialParameterPtr->MaterialIndex >= 0 &&
 			parameter.EffectPointer->GetMaterial(parameter.BasicParameterPtr->MaterialParameterPtr->MaterialIndex) != nullptr)
 		{
 			auto material = parameter.EffectPointer->GetMaterial(parameter.BasicParameterPtr->MaterialParameterPtr->MaterialIndex);
@@ -1996,102 +2040,7 @@ public:
 		::Effekseer::BillboardType btype = parameter.Billboard;
 		Effekseer::Matrix44 mat44;
 
-		if (btype == ::Effekseer::BillboardType::Billboard ||
-			btype == ::Effekseer::BillboardType::RotatedBillboard ||
-			btype == ::Effekseer::BillboardType::YAxisFixed)
-		{
-			const ::Effekseer::Matrix43& mat = instanceParameter.SRTMatrix43;
-			::Effekseer::Vector3D s;
-			::Effekseer::Matrix43 r;
-			::Effekseer::Vector3D t;
-			mat.GetSRT(s, r, t);
-
-			::Effekseer::Vector3D F;
-			::Effekseer::Vector3D R;
-			::Effekseer::Vector3D U;
-
-			if (btype == ::Effekseer::BillboardType::Billboard)
-			{
-				::Effekseer::Vector3D Up(0.0f, 1.0f, 0.0f);
-
-				::Effekseer::Vector3D::Normal(F, -renderer->GetCameraFrontDirection());
-				::Effekseer::Vector3D::Normal(R, ::Effekseer::Vector3D::Cross(R, Up, F));
-				::Effekseer::Vector3D::Normal(U, ::Effekseer::Vector3D::Cross(U, F, R));
-			}
-			else if (btype == ::Effekseer::BillboardType::RotatedBillboard)
-			{
-				::Effekseer::Vector3D Up(0.0f, 1.0f, 0.0f);
-
-				::Effekseer::Vector3D::Normal(F, -renderer->GetCameraFrontDirection());
-
-				::Effekseer::Vector3D::Normal(R, ::Effekseer::Vector3D::Cross(R, Up, F));
-				::Effekseer::Vector3D::Normal(U, ::Effekseer::Vector3D::Cross(U, F, R));
-
-				float c_zx = sqrt(1.0f - r.Value[2][1] * r.Value[2][1]);
-				float s_z = 0.0f;
-				float c_z = 0.0f;
-
-				if (fabsf(c_zx) > 0.05f)
-				{
-					s_z = -r.Value[0][1] / c_zx;
-					c_z = sqrt(1.0f - s_z * s_z);
-					if (r.Value[1][1] < 0.0f) c_z = -c_z;
-				}
-				else
-				{
-					s_z = 0.0f;
-					c_z = 1.0f;
-				}
-
-				::Effekseer::Vector3D r_temp = R;
-				::Effekseer::Vector3D u_temp = U;
-
-				R.X = r_temp.X * c_z + u_temp.X * s_z;
-				R.Y = r_temp.Y * c_z + u_temp.Y * s_z;
-				R.Z = r_temp.Z * c_z + u_temp.Z * s_z;
-
-				U.X = u_temp.X * c_z - r_temp.X * s_z;
-				U.Y = u_temp.Y * c_z - r_temp.Y * s_z;
-				U.Z = u_temp.Z * c_z - r_temp.Z * s_z;
-			}
-			else if (btype == ::Effekseer::BillboardType::YAxisFixed)
-			{
-				U = ::Effekseer::Vector3D(r.Value[1][0], r.Value[1][1], r.Value[1][2]);
-
-				::Effekseer::Vector3D::Normal(F, -renderer->GetCameraFrontDirection());
-
-				::Effekseer::Vector3D::Normal(R, ::Effekseer::Vector3D::Cross(R, U, F));
-				::Effekseer::Vector3D::Normal(F, ::Effekseer::Vector3D::Cross(F, R, U));
-			}
-
-			::Effekseer::Matrix43 mat_rot;
-
-			mat_rot.Value[0][0] = -R.X;
-			mat_rot.Value[0][1] = -R.Y;
-			mat_rot.Value[0][2] = -R.Z;
-			mat_rot.Value[1][0] = U.X;
-			mat_rot.Value[1][1] = U.Y;
-			mat_rot.Value[1][2] = U.Z;
-			mat_rot.Value[2][0] = F.X;
-			mat_rot.Value[2][1] = F.Y;
-			mat_rot.Value[2][2] = F.Z;
-			mat_rot.Value[3][0] = t.X;
-			mat_rot.Value[3][1] = t.Y;
-			mat_rot.Value[3][2] = t.Z;
-
-			::Effekseer::Matrix43 mat_scale;
-			mat_scale.Scaling(s.X, s.Y, s.Z);
-			::Effekseer::Matrix43::Multiple(mat_rot, mat_scale, mat_rot);
-
-			for (int32_t r_ = 0; r_ < 4; r_++)
-			{
-				for (int32_t c_ = 0; c_ < 3; c_++)
-				{
-					mat44.Values[r_][c_] = mat_rot.Value[r_][c_];
-				}
-			}
-		}
-		else if (btype == ::Effekseer::BillboardType::Fixed)
+		if (btype == ::Effekseer::BillboardType::Fixed)
 		{
 			for (int32_t r_ = 0; r_ < 4; r_++)
 			{
@@ -2101,7 +2050,28 @@ public:
 				}
 			}
 		}
+		else
+		{
+			Effekseer::Matrix43 mat43;
+			Effekseer::Vector3D s;
+			Effekseer::Vector3D R;
+			Effekseer::Vector3D F;
 
+			CalcBillboard(btype, mat43, s ,R, F, instanceParameter.SRTMatrix43, renderer->GetCameraFrontDirection());
+
+			::Effekseer::Matrix43 mat_scale;
+			mat_scale.Scaling(s.X, s.Y, s.Z);
+			::Effekseer::Matrix43::Multiple(mat43, mat_scale, mat43);
+
+			for (int32_t r_ = 0; r_ < 4; r_++)
+			{
+				for (int32_t c_ = 0; c_ < 3; c_++)
+				{
+					mat44.Values[r_][c_] = mat43.Value[r_][c_];
+				}
+			}
+		}
+		
 		if (parameter.Magnification != 1.0f)
 		{
 			Effekseer::Matrix44 mat_scale;
@@ -2160,6 +2130,83 @@ public:
 				// refraction, standard
 				renderPassCount = 2;
 			}
+		}
+
+		// sort
+		if (param.DepthParameterPtr->ZSort != Effekseer::ZSortType::None)
+		{
+			keyValues_.resize(m_matrixes.size());
+			for (size_t i = 0; i < keyValues_.size(); i++)
+			{
+				efkVector3D t;
+				t.X = m_matrixes[i].Values[3][0];
+				t.Y = m_matrixes[i].Values[3][1];
+				t.Z = m_matrixes[i].Values[3][2];
+
+				auto frontDirection = renderer->GetCameraFrontDirection();
+				if (!param.IsRightHand)
+				{
+					frontDirection.Z = -frontDirection.Z;
+				}
+
+				keyValues_[i].Key = Effekseer::Vector3D::Dot(t, frontDirection);
+				keyValues_[i].Value = static_cast<int32_t>(i);
+			}
+			
+			if (param.DepthParameterPtr->ZSort == Effekseer::ZSortType::NormalOrder)
+			{
+				std::sort(keyValues_.begin(), keyValues_.end(), [](const KeyValue& a, const KeyValue& b) -> bool { return a.Key < b.Key; });
+			}
+			else
+			{
+				std::sort(keyValues_.begin(), keyValues_.end(), [](const KeyValue& a, const KeyValue& b) -> bool { return a.Key > b.Key; });
+			}
+
+			matrixesSorted_.resize(m_matrixes.size());
+			uvSorted_.resize(m_matrixes.size());
+			colorsSorted_.resize(m_matrixes.size());
+			timesSorted_.resize(m_matrixes.size());
+
+			if (customData1Count_ > 0)
+			{
+				customData1Sorted_.resize(m_matrixes.size());
+			}
+
+			if (customData2Count_ > 0)
+			{
+				customData2Sorted_.resize(m_matrixes.size());
+			}
+
+			for (size_t i = 0; i < keyValues_.size(); i++)
+			{
+				matrixesSorted_[keyValues_[i].Value] = m_matrixes[i];
+				uvSorted_[keyValues_[i].Value] = m_uv[i];
+				colorsSorted_[keyValues_[i].Value] = m_colors[i];
+				timesSorted_[keyValues_[i].Value] = m_times[i];
+			}
+
+			if (customData1Count_ > 0)
+			{
+				for (size_t i = 0; i < keyValues_.size(); i++)
+				{
+					customData1Sorted_[keyValues_[i].Value] = customData1_[i];
+				}
+			}
+
+			if (customData2Count_ > 0)
+			{
+				for (size_t i = 0; i < keyValues_.size(); i++)
+				{
+					customData2Sorted_[keyValues_[i].Value] = customData2_[i];
+				}
+			}
+
+			m_matrixes = matrixesSorted_;
+			m_uv = uvSorted_;
+			m_colors = colorsSorted_;
+			m_times = timesSorted_;
+			customData1_ = customData1Sorted_;
+			customData2_ = customData2Sorted_;
 		}
 
 		for (int32_t renderPassInd = 0; renderPassInd < renderPassCount; renderPassInd++)
@@ -2331,6 +2378,8 @@ public:
 			if (materialParam->MaterialTextures.size() > 0)
 			{
 				std::array<Effekseer::TextureData*, 16> textures;
+				int32_t textureCount = Effekseer::Min(materialParam->MaterialTextures.size(), textures.size() - 1);
+
 				auto effect = param.EffectPointer;
 
 				for (size_t i = 0; i < Effekseer::Min(materialParam->MaterialTextures.size(), textures.size()); i++)
@@ -2364,10 +2413,13 @@ public:
 
 				if (renderer->GetBackground() != 0)
 				{
-					textures[materialParam->MaterialTextures.size()] = renderer->GetBackground();
+					textures[textureCount] = renderer->GetBackground();
+					state.TextureFilterTypes[textureCount] = Effekseer::TextureFilterType::Linear;
+					state.TextureWrapTypes[textureCount] = Effekseer::TextureWrapType::Clamp;
+					textureCount += 1;
 				}
 
-				renderer->SetTextures(shader_, textures.data(), Effekseer::Min(materialParam->MaterialTextures.size() + 1, textures.size()));
+				renderer->SetTextures(shader_, textures.data(), textureCount);
 			}
 		}
 		else
@@ -2617,7 +2669,7 @@ public:
 
 			for( size_t loop = 0; loop < m_matrixes.size(); )
 			{
-				int32_t modelCount = Effekseer::Min( m_matrixes.size() - loop, model->ModelCount );
+				int32_t modelCount = Effekseer::Min(static_cast<int32_t>(m_matrixes.size()) - loop, model->ModelCount);
 				
 				for( int32_t num = 0; num < modelCount; num++ )
 				{
@@ -2686,7 +2738,7 @@ public:
 				
 				ColorToFloat4( m_colors[loop], vcb->ModelColor[0] );
 
-									if (cutomData1Ptr != nullptr)
+				if (cutomData1Ptr != nullptr)
 				{
 					cutomData1Ptr[0] = customData1_[loop][0];
 					cutomData1Ptr[1] = customData1_[loop][1];
@@ -3019,11 +3071,19 @@ namespace EffekseerRenderer
 
 					if (parameter.ViewpointDependent)
 					{
-						const ::Effekseer::Matrix43& mat = param.SRTMatrix43;
+						::Effekseer::Matrix43 mat = param.SRTMatrix43;
 						::Effekseer::Vector3D s;
 						::Effekseer::Matrix43 r;
 						::Effekseer::Vector3D t;
 						mat.GetSRT(s, r, t);
+
+						ApplyDepthParameters(r,
+											 t,
+											 s,
+											 m_renderer->GetCameraFrontDirection(),
+											 m_renderer->GetCameraPosition(),
+											 parameter.DepthParameterPtr,
+											 parameter.IsRightHand);
 
 						// extend
 						pl.X = pl.X * s.X;
@@ -3071,15 +3131,26 @@ namespace EffekseerRenderer
 					}
 					else
 					{
+						::Effekseer::Matrix43 mat = param.SRTMatrix43;
+
+						::Effekseer::Vector3D s;
+
+						ApplyDepthParameters(mat,
+											 m_renderer->GetCameraFrontDirection(),
+											 m_renderer->GetCameraPosition(),
+											 //s,
+											 parameter.DepthParameterPtr,
+											 parameter.IsRightHand);
+
 						::Effekseer::Vector3D::Transform(
 							pl,
 							pl,
-							param.SRTMatrix43);
+							mat);
 
 						::Effekseer::Vector3D::Transform(
 							pr,
-							pr,
-							param.SRTMatrix43);
+							pr, 
+							mat);
 
 						spline_left.AddVertex(pl);
 						spline_right.AddVertex(pr);
@@ -3126,11 +3197,19 @@ namespace EffekseerRenderer
 
 					if (parameter.ViewpointDependent)
 					{
-						const ::Effekseer::Matrix43& mat = param.SRTMatrix43;
+						::Effekseer::Matrix43 mat = param.SRTMatrix43;
 						::Effekseer::Vector3D s;
 						::Effekseer::Matrix43 r;
 						::Effekseer::Vector3D t;
 						mat.GetSRT(s, r, t);
+
+						ApplyDepthParameters(r,
+											 t,
+											 s,
+											 m_renderer->GetCameraFrontDirection(),
+											 m_renderer->GetCameraPosition(),
+											 parameter.DepthParameterPtr,
+											 parameter.IsRightHand);
 
 						if (parameter.SplineDivision > 1)
 						{
@@ -3184,12 +3263,24 @@ namespace EffekseerRenderer
 						}
 						else
 						{
+							::Effekseer::Matrix43 mat = param.SRTMatrix43;
+
+							::Effekseer::Vector3D s;
+	
+							ApplyDepthParameters(mat,
+												 m_renderer->GetCameraFrontDirection(),
+												 m_renderer->GetCameraPosition(),
+												 //s,
+												 parameter.DepthParameterPtr,
+												 parameter.IsRightHand);
+
+
 							for (int i = 0; i < 2; i++)
 							{
 								::Effekseer::Vector3D::Transform(
 									verteies[i].Pos,
 									verteies[i].Pos,
-									param.SRTMatrix43);
+									mat);
 							}
 						}
 					}
@@ -3385,9 +3476,12 @@ namespace EffekseerRenderer
 
 					for (int32_t sploop = 0; sploop < parameter.SplineDivision; sploop++)
 					{
-						auto c = (float*)(&custom[0]);
-						memcpy(c, param.CustomData1.data(), sizeof(float) * customData1Count_);
-						custom += 4;
+						for (size_t i = 0; i < 4; i++)
+						{
+							auto c = (float*)(&custom[0]);
+							memcpy(c, param.CustomData1.data(), sizeof(float) * customData1Count_);
+							custom += 1;						
+						}
 					}
 				}
 			}
@@ -3402,9 +3496,12 @@ namespace EffekseerRenderer
 
 					for (int32_t sploop = 0; sploop < parameter.SplineDivision; sploop++)
 					{
-						auto c = (float*)(&custom[0]);
-						memcpy(c, param.CustomData2.data(), sizeof(float) * customData1Count_);
-						custom += 4;
+						for (size_t i = 0; i < 4; i++)
+						{
+							auto c = (float*)(&custom[0]);
+							memcpy(c, param.CustomData2.data(), sizeof(float) * customData2Count_);
+							custom += 1;
+						}
 					}
 				}
 			}
@@ -3551,6 +3648,14 @@ class RingRendererBase
 	: public ::Effekseer::RingRenderer
 {
 protected:
+
+	struct KeyValue
+	{
+		float Key;
+		efkRingInstanceParam Value;
+	};
+	std::vector<KeyValue> instances_;
+
 	RENDERER*						m_renderer;
 	int32_t							m_ringBufferOffset;
 	uint8_t*						m_ringBufferData;
@@ -3582,11 +3687,38 @@ public:
 
 protected:
 
+	void RenderingInstance(const efkRingInstanceParam& inst,
+						   const efkRingNodeParam& param,
+						   const StandardRendererState& state,
+						   const ::Effekseer::Matrix44& camera)
+	{
+		if ((state.MaterialPtr != nullptr && !state.MaterialPtr->IsSimpleVertex) ||
+			param.BasicParameterPtr->MaterialType == Effekseer::RendererMaterialType::Lighting)
+		{
+			Rendering_Internal<DynamicVertex>(param, inst, nullptr, camera);
+		}
+		else if (param.BasicParameterPtr->MaterialType == Effekseer::RendererMaterialType::BackDistortion)
+		{
+			Rendering_Internal<VERTEX_DISTORTION>(param, inst, nullptr, camera);
+		}
+		else
+		{
+			Rendering_Internal<VERTEX_NORMAL>(param, inst, nullptr, camera);
+		}
+	}
+
 	void BeginRendering_(RENDERER* renderer, int32_t count, const efkRingNodeParam& param)
 	{
 		m_spriteCount = 0;
 		int32_t singleVertexCount = param.VertexCount * 8;
 		m_instanceCount = count;
+
+		instances_.clear();
+
+		if (param.DepthParameterPtr->ZSort != Effekseer::ZSortType::None)
+		{
+			instances_.reserve(count);
+		}
 
 		if (count == 1)
 		{
@@ -3625,20 +3757,17 @@ protected:
 
 	void Rendering_(const efkRingNodeParam& parameter, const efkRingInstanceParam& instanceParameter, void* userData, const ::Effekseer::Matrix44& camera)
 	{
-		const auto& state = m_renderer->GetStandardRenderer()->GetState();
+		if (parameter.DepthParameterPtr->ZSort == Effekseer::ZSortType::None || CanSingleRendering())
+		{
+			const auto& state = m_renderer->GetStandardRenderer()->GetState();
 
-		if ((state.MaterialPtr != nullptr && !state.MaterialPtr->IsSimpleVertex) || 
-			parameter.BasicParameterPtr->MaterialType == Effekseer::RendererMaterialType::Lighting)
-		{
-			Rendering_Internal<DynamicVertex>(parameter, instanceParameter, userData, camera);
-		}
-		else if (parameter.BasicParameterPtr->MaterialType == Effekseer::RendererMaterialType::BackDistortion)
-		{
-			Rendering_Internal<VERTEX_DISTORTION>(parameter, instanceParameter, userData, camera);
+			RenderingInstance(instanceParameter, parameter, state, camera);
 		}
 		else
 		{
-			Rendering_Internal<VERTEX_NORMAL>(parameter, instanceParameter, userData, camera);
+			KeyValue kv;
+			kv.Value = instanceParameter;
+			instances_.push_back(kv);
 		}
 	}
 
@@ -3663,93 +3792,19 @@ protected:
 	template<typename VERTEX>
 	void Rendering_Internal( const efkRingNodeParam& parameter, const efkRingInstanceParam& instanceParameter, void* userData, const ::Effekseer::Matrix44& camera )
 	{
-		::Effekseer::Matrix43 mat_rot;
+		::Effekseer::Matrix43 mat43;
 
 		if (parameter.Billboard == ::Effekseer::BillboardType::Billboard ||
 			parameter.Billboard == ::Effekseer::BillboardType::RotatedBillboard ||
 			parameter.Billboard == ::Effekseer::BillboardType::YAxisFixed)
 		{
-			const ::Effekseer::Matrix43& mat = instanceParameter.SRTMatrix43;
-			::Effekseer::Vector3D s;
-			::Effekseer::Matrix43 r;
-			::Effekseer::Vector3D t;
+			Effekseer::Vector3D s;
+			Effekseer::Vector3D R;
+			Effekseer::Vector3D F;
 
-			mat.GetSRT(s, r, t);
+			CalcBillboard(parameter.Billboard, mat43, s, R, F, instanceParameter.SRTMatrix43, m_renderer->GetCameraFrontDirection());
 
-			::Effekseer::Vector3D F;
-			::Effekseer::Vector3D R;
-			::Effekseer::Vector3D U;
-
-			if (parameter.Billboard == ::Effekseer::BillboardType::Billboard)
-			{
-				::Effekseer::Vector3D Up(0.0f, 1.0f, 0.0f);
-
-				::Effekseer::Vector3D::Normal(F, -m_renderer->GetCameraFrontDirection());
-
-				::Effekseer::Vector3D::Normal(R, ::Effekseer::Vector3D::Cross(R, Up, F));
-				::Effekseer::Vector3D::Normal(U, ::Effekseer::Vector3D::Cross(U, F, R));
-			}
-			else if (parameter.Billboard == ::Effekseer::BillboardType::RotatedBillboard)
-			{
-				::Effekseer::Vector3D Up(0.0f, 1.0f, 0.0f);
-
-				::Effekseer::Vector3D::Normal(F, -m_renderer->GetCameraFrontDirection());
-
-				::Effekseer::Vector3D::Normal(R, ::Effekseer::Vector3D::Cross(R, Up, F));
-				::Effekseer::Vector3D::Normal(U, ::Effekseer::Vector3D::Cross(U, F, R));
-
-				float c_zx = sqrt(1.0f - r.Value[2][1] * r.Value[2][1]);
-				float s_z = 0.0f;
-				float c_z = 0.0f;
-
-				if (fabsf(c_zx) > 0.05f)
-				{
-					s_z = -r.Value[0][1] / c_zx;
-					c_z = sqrt(1.0f - s_z * s_z);
-					if (r.Value[1][1] < 0.0f)
-						c_z = -c_z;
-				}
-				else
-				{
-					s_z = 0.0f;
-					c_z = 1.0f;
-				}
-
-				::Effekseer::Vector3D r_temp = R;
-				::Effekseer::Vector3D u_temp = U;
-
-				R.X = r_temp.X * c_z + u_temp.X * s_z;
-				R.Y = r_temp.Y * c_z + u_temp.Y * s_z;
-				R.Z = r_temp.Z * c_z + u_temp.Z * s_z;
-
-				U.X = u_temp.X * c_z - r_temp.X * s_z;
-				U.Y = u_temp.Y * c_z - r_temp.Y * s_z;
-				U.Z = u_temp.Z * c_z - r_temp.Z * s_z;
-			}
-			else if (parameter.Billboard == ::Effekseer::BillboardType::YAxisFixed)
-			{
-				U = ::Effekseer::Vector3D(r.Value[1][0], r.Value[1][1], r.Value[1][2]);
-
-				::Effekseer::Vector3D::Normal(F, -m_renderer->GetCameraFrontDirection());
-
-				::Effekseer::Vector3D::Normal(R, ::Effekseer::Vector3D::Cross(R, U, F));
-				::Effekseer::Vector3D::Normal(F, ::Effekseer::Vector3D::Cross(F, R, U));
-			}
-
-			mat_rot.Value[0][0] = -R.X;
-			mat_rot.Value[0][1] = -R.Y;
-			mat_rot.Value[0][2] = -R.Z;
-			mat_rot.Value[1][0] = U.X;
-			mat_rot.Value[1][1] = U.Y;
-			mat_rot.Value[1][2] = U.Z;
-			mat_rot.Value[2][0] = F.X;
-			mat_rot.Value[2][1] = F.Y;
-			mat_rot.Value[2][2] = F.Z;
-			mat_rot.Value[3][0] = t.X;
-			mat_rot.Value[3][1] = t.Y;
-			mat_rot.Value[3][2] = t.Z;
-
-			ApplyDepthParameters(mat_rot,
+			ApplyDepthParameters(mat43,
 								 m_renderer->GetCameraFrontDirection(),
 								 m_renderer->GetCameraPosition(),
 								 s,
@@ -3760,20 +3815,20 @@ protected:
 			{
 				::Effekseer::Matrix43 mat_scale;
 				mat_scale.Scaling(s.X, s.Y, s.Z);
-				::Effekseer::Matrix43::Multiple(mat_rot, mat_scale, mat_rot);
+				::Effekseer::Matrix43::Multiple(mat43, mat_scale, mat43);
 			}
 			else
 			{
 				::Effekseer::Matrix43 mat_scale;
 				mat_scale.Scaling(s.X, s.Y, s.Z);
-				::Effekseer::Matrix43::Multiple(mat_rot, mat_scale, mat_rot);
+				::Effekseer::Matrix43::Multiple(mat43, mat_scale, mat43);
 			}
 		}
 		else if (parameter.Billboard == ::Effekseer::BillboardType::Fixed)
 		{
-			mat_rot = instanceParameter.SRTMatrix43;
+			mat43 = instanceParameter.SRTMatrix43;
 
-			ApplyDepthParameters(mat_rot,
+			ApplyDepthParameters(mat43,
 								 m_renderer->GetCameraFrontDirection(),
 								 m_renderer->GetCameraPosition(),
 								 parameter.DepthParameterPtr,
@@ -3881,14 +3936,14 @@ protected:
 
 			if (alpha != 1.0f)
 			{
-				outerColorNext.A *= alpha;
-				innerColorNext.A *= alpha;
-				centerColorNext.A *= alpha;
+				outerColorNext.A = static_cast<uint8_t>(outerColorNext.A * alpha);
+				innerColorNext.A = static_cast<uint8_t>(innerColorNext.A * alpha);
+				centerColorNext.A = static_cast<uint8_t>(centerColorNext.A * alpha);
 			}
 
 			uv0texNext = uv0Current + uv0Step;
 
-			VERTEX* v = &verteies[i];
+			StrideView<VERTEX> v(&verteies[i], stride_, 8);
 			v[0].Pos = outerCurrent;
 			v[0].SetColor( outerColor );
 			v[0].UV[0] = uv0Current;
@@ -3926,7 +3981,7 @@ protected:
 			// distortion
 			if (vertexType == VertexType::Distortion)
 			{
-				auto vs = (VERTEX_DISTORTION*) &verteies[i];
+				StrideView<VERTEX_DISTORTION> vs(&verteies[i], stride_, 8);
 				auto binormalCurrent = v[5].Pos - v[0].Pos;
 				auto binormalNext = v[7].Pos - v[2].Pos;
 
@@ -3979,7 +4034,7 @@ protected:
 			}
 			else if (vertexType == VertexType::Dynamic)
 			{
-				auto vs = (DynamicVertex*)&verteies[i];
+				StrideView<DynamicVertex> vs(&verteies[i], stride_, 8);
 
 				// return back
 				float t_b;
@@ -4022,10 +4077,15 @@ protected:
 				::Effekseer::Vector3D::Normal(normalNext, normalNext);
 
 				// rotate directions
-				::Effekseer::Vector3D::Transform(normalCurrent, normalCurrent, mat_rot);
-				::Effekseer::Vector3D::Transform(normalNext, normalNext, mat_rot);
-				::Effekseer::Vector3D::Transform(tangentCurrent, tangentCurrent, mat_rot);
-				::Effekseer::Vector3D::Transform(tangentNext, tangentNext, mat_rot);
+				::Effekseer::Matrix43 matRot = mat43;
+				matRot.Value[3][0] = 0.0f;
+				matRot.Value[3][1] = 0.0f;
+				matRot.Value[3][2] = 0.0f;
+
+				::Effekseer::Vector3D::Transform(normalCurrent, normalCurrent, matRot);
+				::Effekseer::Vector3D::Transform(normalNext, normalNext, matRot);
+				::Effekseer::Vector3D::Transform(tangentCurrent, tangentCurrent, matRot);
+				::Effekseer::Vector3D::Transform(tangentNext, tangentNext, matRot);
 
 				vs[0].Normal = PackVector3DF(normalCurrent);
 				vs[1].Normal = vs[0].Normal;
@@ -4089,14 +4149,14 @@ protected:
 		{
 			for (int32_t i = 0; i < 4; i++)
 			{
-				m_singleRenderingMatrix.Values[i][0] = mat_rot.Value[i][0];
-				m_singleRenderingMatrix.Values[i][1] = mat_rot.Value[i][1];
-				m_singleRenderingMatrix.Values[i][2] = mat_rot.Value[i][2];
+				m_singleRenderingMatrix.Values[i][0] = mat43.Value[i][0];
+				m_singleRenderingMatrix.Values[i][1] = mat43.Value[i][1];
+				m_singleRenderingMatrix.Values[i][2] = mat43.Value[i][2];
 			}
 		}
 		else
 		{
-			TransformVertexes(verteies, singleVertexCount, mat_rot);
+			TransformVertexes(verteies, singleVertexCount, mat43);
 		}
 
 		// custom parameter
@@ -4126,15 +4186,51 @@ protected:
 
 	}
 
-	void EndRendering_(RENDERER* renderer, const efkRingNodeParam& param)
+	void EndRendering_(RENDERER* renderer, const efkRingNodeParam& param, void* userData, const ::Effekseer::Matrix44& camera)
 	{
 		if (CanSingleRendering())
 		{
-
 			::Effekseer::Matrix44 mat;
 			::Effekseer::Matrix44::Mul(mat, m_singleRenderingMatrix, renderer->GetCameraMatrix());
 
 			renderer->GetStandardRenderer()->Rendering(mat, renderer->GetProjectionMatrix());
+		}
+
+		if (param.DepthParameterPtr->ZSort != Effekseer::ZSortType::None && !CanSingleRendering())
+		{
+			for (auto& kv : instances_)
+			{
+				efkVector3D t;
+				t.X = kv.Value.SRTMatrix43.Value[3][0];
+				t.Y = kv.Value.SRTMatrix43.Value[3][1];
+				t.Z = kv.Value.SRTMatrix43.Value[3][2];
+
+				auto frontDirection = m_renderer->GetCameraFrontDirection();
+				if (!param.IsRightHand)
+				{
+					frontDirection.Z = -frontDirection.Z;
+				}
+
+				kv.Key = Effekseer::Vector3D::Dot(t, frontDirection);
+			}
+
+			if (param.DepthParameterPtr->ZSort == Effekseer::ZSortType::NormalOrder)
+			{
+				std::sort(instances_.begin(), instances_.end(), [](const KeyValue& a, const KeyValue& b) -> bool { return a.Key < b.Key; });
+			}
+			else
+			{
+				std::sort(instances_.begin(), instances_.end(), [](const KeyValue& a, const KeyValue& b) -> bool { return a.Key > b.Key; });
+			}
+
+
+			const auto& state = m_renderer->GetStandardRenderer()->GetState();
+
+			for (auto& kv : instances_)
+			{
+				RenderingInstance(kv.Value, param, state, camera);
+			}
+			
 		}
 	}
 
@@ -4154,9 +4250,10 @@ public:
 	{
 		if (m_ringBufferData == NULL) return;
 
-		if (m_spriteCount == 0) return;
+		if (m_spriteCount == 0 && parameter.DepthParameterPtr->ZSort == Effekseer::ZSortType::None)
+			return;
 
-		EndRendering_(m_renderer, parameter);
+		EndRendering_(m_renderer, parameter, userData, m_renderer->GetCameraMatrix());
 	}
 };
 //----------------------------------------------------------------------------------
@@ -4231,6 +4328,26 @@ public:
 
 protected:
 
+	void RenderingInstance(const efkSpriteInstanceParam& inst,
+						   const efkSpriteNodeParam& param,
+						   const StandardRendererState& state,
+						   const ::Effekseer::Matrix44& camera)
+	{
+		if ((state.MaterialPtr != nullptr && !state.MaterialPtr->IsSimpleVertex) ||
+			param.BasicParameterPtr->MaterialType == Effekseer::RendererMaterialType::Lighting)
+		{
+			Rendering_Internal<DynamicVertex>(param, inst, nullptr, camera);
+		}
+		else if (param.BasicParameterPtr->MaterialType == Effekseer::RendererMaterialType::BackDistortion)
+		{
+			Rendering_Internal<VERTEX_DISTORTION>(param, inst, nullptr, camera);
+		}
+		else
+		{
+			Rendering_Internal<VERTEX_NORMAL>(param, inst, nullptr, camera);
+		}
+	}
+
 	void BeginRendering_(RENDERER* renderer, int32_t count, const efkSpriteNodeParam& param)
 	{
 		EffekseerRenderer::StandardRendererState state;
@@ -4269,19 +4386,7 @@ protected:
 			auto camera = m_renderer->GetCameraMatrix();
 			const auto& state = m_renderer->GetStandardRenderer()->GetState();
 
-			if ((state.MaterialPtr != nullptr && !state.MaterialPtr->IsSimpleVertex) ||
-				parameter.BasicParameterPtr->MaterialType == Effekseer::RendererMaterialType::Lighting)
-			{
-				Rendering_Internal<DynamicVertex>(parameter, instanceParameter, userData, camera);
-			}
-			else if (parameter.BasicParameterPtr->MaterialType == Effekseer::RendererMaterialType::BackDistortion)
-			{
-				Rendering_Internal<VERTEX_DISTORTION>(parameter, instanceParameter, userData, camera);
-			}
-			else
-			{
-				Rendering_Internal<VERTEX_NORMAL>(parameter, instanceParameter, userData, camera);
-			}
+			RenderingInstance(instanceParameter, parameter, state, camera);
 		}
 		else
 		{
@@ -4365,92 +4470,18 @@ protected:
 			parameter.Billboard == ::Effekseer::BillboardType::RotatedBillboard ||
 			parameter.Billboard == ::Effekseer::BillboardType::YAxisFixed)
 		{
-			const ::Effekseer::Matrix43& mat = instanceParameter.SRTMatrix43;
-			::Effekseer::Vector3D s;
-			::Effekseer::Matrix43 r;
-			::Effekseer::Vector3D t;
-			mat.GetSRT( s, r, t );
-	
-			// 拡大
-			for( int i = 0; i < 4; i++ )
+			Effekseer::Matrix43 mat_rot;
+			Effekseer::Vector3D s;
+			Effekseer::Vector3D R;
+			Effekseer::Vector3D F;
+
+			CalcBillboard(parameter.Billboard, mat_rot, s, R, F, instanceParameter.SRTMatrix43, m_renderer->GetCameraFrontDirection());
+
+			for (int i = 0; i < 4; i++)
 			{
 				verteies[i].Pos.X = verteies[i].Pos.X * s.X;
 				verteies[i].Pos.Y = verteies[i].Pos.Y * s.Y;
 			}
-	
-			::Effekseer::Vector3D F;
-			::Effekseer::Vector3D R;
-			::Effekseer::Vector3D U;
-			
-			
-			if( parameter.Billboard == ::Effekseer::BillboardType::Billboard )
-			{
-				::Effekseer::Vector3D Up( 0.0f, 1.0f, 0.0f );
-	
-				::Effekseer::Vector3D::Normal( F, -m_renderer->GetCameraFrontDirection());
-	
-				::Effekseer::Vector3D::Normal( R, ::Effekseer::Vector3D::Cross( R, Up, F ) );
-				::Effekseer::Vector3D::Normal( U, ::Effekseer::Vector3D::Cross( U, F, R ) );
-			}
-			else if( parameter.Billboard == ::Effekseer::BillboardType::RotatedBillboard )
-			{
-				::Effekseer::Vector3D Up( 0.0f, 1.0f, 0.0f );
-	
-				::Effekseer::Vector3D::Normal( F, -m_renderer->GetCameraFrontDirection());
-	
-				::Effekseer::Vector3D::Normal( R, ::Effekseer::Vector3D::Cross( R, Up, F ) );
-				::Effekseer::Vector3D::Normal( U, ::Effekseer::Vector3D::Cross( U, F, R ) );
-	
-				float c_zx = sqrt( 1.0f - r.Value[2][1] * r.Value[2][1] );
-				float s_z = 0.0f;
-				float c_z = 0.0f;
-	
-				if( fabsf( c_zx ) > 0.05f )
-				{
-					s_z = - r.Value[0][1] / c_zx;
-					c_z = sqrt( 1.0f - s_z * s_z );
-					if( r.Value[1][1] < 0.0f ) c_z = - c_z;
-				}
-				else
-				{
-					s_z = 0.0f;
-					c_z = 1.0f;
-				}
-				
-				::Effekseer::Vector3D r_temp = R;
-				::Effekseer::Vector3D u_temp = U;
-	
-				R.X = r_temp.X * c_z + u_temp.X * s_z;
-				R.Y = r_temp.Y * c_z + u_temp.Y * s_z;
-				R.Z = r_temp.Z * c_z + u_temp.Z * s_z;
-	
-				U.X = u_temp.X * c_z - r_temp.X * s_z;
-				U.Y = u_temp.Y * c_z - r_temp.Y * s_z;
-				U.Z = u_temp.Z * c_z - r_temp.Z * s_z;
-			}
-			else if( parameter.Billboard == ::Effekseer::BillboardType::YAxisFixed )
-			{
-				U = ::Effekseer::Vector3D( r.Value[1][0], r.Value[1][1], r.Value[1][2] );
-	
-				::Effekseer::Vector3D::Normal( F, -m_renderer->GetCameraFrontDirection());
-				::Effekseer::Vector3D::Normal( R, ::Effekseer::Vector3D::Cross( R, U, F ) );
-				::Effekseer::Vector3D::Normal( F, ::Effekseer::Vector3D::Cross( F, R, U ) );
-			}
-			
-			::Effekseer::Matrix43 mat_rot;
-	
-			mat_rot.Value[0][0] = - R.X;
-			mat_rot.Value[0][1] = - R.Y;
-			mat_rot.Value[0][2] = - R.Z;
-			mat_rot.Value[1][0] = U.X;
-			mat_rot.Value[1][1] = U.Y;
-			mat_rot.Value[1][2] = U.Z;
-			mat_rot.Value[2][0] = F.X;
-			mat_rot.Value[2][1] = F.Y;
-			mat_rot.Value[2][2] = F.Z;
-			mat_rot.Value[3][0] = t.X;
-			mat_rot.Value[3][1] = t.Y;
-			mat_rot.Value[3][2] = t.Z;
 	
 			ApplyDepthParameters(mat_rot,
 								 m_renderer->GetCameraFrontDirection(),
@@ -4466,8 +4497,8 @@ protected:
 				StrideView<DynamicVertex> vs(verteies.pointerOrigin_, stride_, 4);
 				for (auto i = 0; i < 4; i++)
 				{
-					vs[i].Normal = PackVector3DF(-F);
-					vs[i].Tangent = PackVector3DF(-R);
+					vs[i].Normal = PackVector3DF(F);
+					vs[i].Tangent = PackVector3DF(R);
 				}
 			}
 		}
@@ -4514,7 +4545,7 @@ protected:
 				}
 				else if (vertexType == VertexType::Dynamic)
 				{
-					auto vs = (DynamicVertex*)&verteies[i];
+					StrideView<DynamicVertex> vs(verteies.pointerOrigin_, stride_, 4);
 					auto tangentX = efkVector3D(mat.Value[0][0], mat.Value[0][1], mat.Value[0][2]);
 					auto tangentZ = efkVector3D(mat.Value[2][0], mat.Value[2][1], mat.Value[2][2]);
 					vs[i].Normal = PackVector3DF(tangentZ);
@@ -4583,18 +4614,7 @@ protected:
 				auto camera = m_renderer->GetCameraMatrix();
 				const auto& state = renderer->GetStandardRenderer()->GetState();
 
-				if (state.MaterialPtr != nullptr && !state.MaterialPtr->IsSimpleVertex)
-				{
-					Rendering_Internal<DynamicVertex>(param, kv.Value, nullptr, camera);
-				}
-				else if (param.BasicParameterPtr->MaterialType == Effekseer::RendererMaterialType::BackDistortion)
-				{
-					Rendering_Internal<VERTEX_DISTORTION>(param, kv.Value, nullptr, camera);
-				}
-				else
-				{
-					Rendering_Internal<VERTEX_NORMAL>(param, kv.Value, nullptr, camera);
-				}
+				RenderingInstance(kv.Value, param, state, camera);
 			}
 		}
 	}
@@ -4901,9 +4921,20 @@ namespace EffekseerRenderer
 					auto p = efkVector3D();
 					auto& param = instances[loop];
 
-					p.X = param.SRTMatrix43.Value[3][0];
-					p.Y = param.SRTMatrix43.Value[3][1];
-					p.Z = param.SRTMatrix43.Value[3][2];
+					auto mat = param.SRTMatrix43;
+
+					::Effekseer::Vector3D s;
+
+					ApplyDepthParameters(mat,
+										 m_renderer->GetCameraFrontDirection(),
+										 m_renderer->GetCameraPosition(),
+										 //s,
+										 parameter.DepthParameterPtr,
+										 parameter.IsRightHand);
+
+					p.X = mat.Value[3][0];
+					p.Y = mat.Value[3][1];
+					p.Z = mat.Value[3][2];
 
 					spline.AddVertex(p);
 				}
@@ -4919,6 +4950,21 @@ namespace EffekseerRenderer
 
 				for (int32_t sploop = 0; sploop < parameter.SplineDivision; sploop++)
 				{
+					auto mat = param.SRTMatrix43;
+
+					::Effekseer::Vector3D s;
+					::Effekseer::Matrix43 r;
+					::Effekseer::Vector3D t;
+					mat.GetSRT(s, r, t);
+
+					ApplyDepthParameters(r,
+										 t,
+										 s,
+										 m_renderer->GetCameraFrontDirection(),
+										 m_renderer->GetCameraPosition(),
+										 parameter.DepthParameterPtr,
+										 parameter.IsRightHand);
+
 					bool isFirst = param.InstanceIndex == 0 && sploop == 0;
 					bool isLast = param.InstanceIndex == (param.InstanceCount - 1);
 
@@ -4972,12 +5018,6 @@ namespace EffekseerRenderer
 						rightColor.A = (uint8_t)Effekseer::Clamp(param.ColorRight.A + (param.ColorRightMiddle.A - param.ColorRight.A) * l, 255, 0);
 					}
 
-					const ::Effekseer::Matrix43& mat = param.SRTMatrix43;
-					::Effekseer::Vector3D s;
-					::Effekseer::Matrix43 r;
-					::Effekseer::Vector3D t;
-					mat.GetSRT(s, r, t);
-
 					VERTEX v[3];
 
 					v[0].Pos.X = (-size / 2.0f) * s.X;
@@ -5001,9 +5041,9 @@ namespace EffekseerRenderer
 					}
 					else
 					{
-						v[1].Pos.X = param.SRTMatrix43.Value[3][0];
-						v[1].Pos.Y = param.SRTMatrix43.Value[3][1];
-						v[1].Pos.Z = param.SRTMatrix43.Value[3][2];
+						v[1].Pos.X = t.X;
+						v[1].Pos.Y = t.Y;
+						v[1].Pos.Z = t.Z;
 					}
 
 					if (isFirst)
@@ -5159,7 +5199,7 @@ namespace EffekseerRenderer
 						::Effekseer::Vector3D::Normal(tangent, vr_->Pos - vl_->Pos);
 
 						Effekseer::Vector3D normal;
-						Effekseer::Vector3D::Cross(normal, axis, tangent);
+						Effekseer::Vector3D::Cross(normal, tangent, axis);
 						Effekseer::Vector3D::Normal(normal, normal);
 
 						Effekseer::Color normal_ = PackVector3DF(normal);
@@ -5226,9 +5266,12 @@ namespace EffekseerRenderer
 					
 					for (int32_t sploop = 0; sploop < parameter.SplineDivision; sploop++)
 					{
-						auto c = (float*)(&custom[0]);
-						memcpy(c, param.CustomData1.data(), sizeof(float) * customData1Count_);
-						custom += 8;
+						for (size_t i = 0; i < 8; i++)
+						{
+							auto c = (float*)(&custom[0]);
+							memcpy(c, param.CustomData1.data(), sizeof(float) * customData1Count_);
+							custom += 1;
+						}
 					}
 				}
 			}
@@ -5243,9 +5286,12 @@ namespace EffekseerRenderer
 
 					for (int32_t sploop = 0; sploop < parameter.SplineDivision; sploop++)
 					{
-						auto c = (float*)(&custom[0]);
-						memcpy(c, param.CustomData2.data(), sizeof(float) * customData1Count_);
-						custom += 8;
+						for (size_t i = 0; i < 8; i++)
+						{
+							auto c = (float*)(&custom[0]);
+							memcpy(c, param.CustomData2.data(), sizeof(float) * customData2Count_);
+							custom += 1;
+						}
 					}
 				}
 			}
@@ -5544,6 +5590,9 @@ enum class OpenGLDeviceType
 //----------------------------------------------------------------------------------
 namespace EffekseerRendererGL
 {
+
+class DeviceObjectCollection;
+
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
@@ -5570,12 +5619,25 @@ protected:
 
 public:
 	/**
-		@brief	インスタンスを生成する。
-		@param	squareMaxCount		最大描画スプライト数
-		@param	OpenGLDeviceType	デバイスの種類
-		@return	インスタンス
+	@brief
+	\~english	Create an instance
+	\~japanese	インスタンスを生成する。
+	@param	squareMaxCount
+	\~english	the number of maximum sprites
+	\~japanese	最大描画スプライト数
+	@param	deviceType
+	\~english	device type of opengl
+	\~japanese	デバイスの種類
+	@param	deviceObjectCollection
+	\~english	for a middleware. it should be nullptr.
+	\~japanese	ミドルウェア向け。 nullptrにすべきである。
+	@return
+	\~english	instance
+	\~japanese	インスタンス
 	*/
-	static Renderer* Create(int32_t squareMaxCount, OpenGLDeviceType deviceType = OpenGLDeviceType::OpenGL2);
+	static Renderer* Create(int32_t squareMaxCount,
+							OpenGLDeviceType deviceType = OpenGLDeviceType::OpenGL2,
+							DeviceObjectCollection* deviceObjectCollection = nullptr);
 
 	/**
 		@brief	最大描画スプライト数を取得する。
@@ -5717,17 +5779,25 @@ class CompiledMaterialBinary;
 namespace EffekseerRendererGL
 {
 
+class DeviceObjectCollection;
+
 class MaterialLoader : public ::Effekseer::MaterialLoader
 {
 private:
+	OpenGLDeviceType deviceType_;
 	Renderer* renderer_ = nullptr;
+	DeviceObjectCollection* deviceObjectCollection_ = nullptr;
+
 	::Effekseer::FileInterface* fileInterface_ = nullptr;
 	::Effekseer::DefaultFileInterface defaultFileInterface_;
 
 	::Effekseer::MaterialData* LoadAcutually(::Effekseer::Material& material, ::Effekseer::CompiledMaterialBinary* binary);
 
 public:
-	MaterialLoader(Renderer* renderer, ::Effekseer::FileInterface* fileInterface);
+	MaterialLoader(OpenGLDeviceType deviceType,
+		Renderer* renderer,
+				   DeviceObjectCollection* deviceObjectCollection,
+				   ::Effekseer::FileInterface* fileInterface);
 	virtual ~MaterialLoader();
 
 	::Effekseer::MaterialData* Load(const EFK_CHAR* path) override;
@@ -5741,6 +5811,58 @@ public:
 
 #endif // __EFFEKSEERRENDERER_GL_MODELLOADER_H__
 
+
+#ifndef __EFFEKSEERRENDERER_GL_DEVICEOBJECT_COLLECTION_H__
+#define __EFFEKSEERRENDERER_GL_DEVICEOBJECT_COLLECTION_H__
+
+#include <set>
+#include "EffekseerNative.h"
+
+namespace EffekseerRendererGL
+{
+
+class DeviceObject;
+
+class DeviceObjectCollection : public ::Effekseer::ReferenceObject
+{
+	friend class DeviceObject;
+
+private:
+	std::set<DeviceObject*> deviceObjects_;
+
+	/**
+		@brief	register an object
+	*/
+	void Register(DeviceObject* device);
+
+	/**
+		@brief	unregister an object
+	*/
+	void Unregister(DeviceObject* device);
+
+public:
+	DeviceObjectCollection() = default;
+
+	~DeviceObjectCollection() = default;
+
+	/**
+		@brief
+		\~english Call when device lost causes
+		\~japanese デバイスロストが発生した時に実行する。
+	*/
+	void OnLostDevice();
+
+	/**
+		@brief
+		\~english Call when device reset causes
+		\~japanese デバイスがリセットされた時に実行する。
+	*/
+	void OnResetDevice();
+};
+
+} // namespace EffekseerRendererGL
+
+#endif // __EFFEKSEERRENDERER_GL_DEVICEOBJECT_H__
 
 #pragma once
 

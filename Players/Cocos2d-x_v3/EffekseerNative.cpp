@@ -3928,6 +3928,21 @@ void Matrix43::ToMatrix44(Matrix44& dst)
 	dst.Values[3][3] = 1.0f;
 }
 
+bool Matrix43::IsValid() const
+{
+	for (int m = 0; m < 4; m++)
+	{
+		for (int n = 0; n < 3; n++)
+		{
+			if (isinf(Value[m][n]))
+				return false;
+			if (isnan(Value[m][n]))
+				return false;
+		}
+	}
+	return true;
+}
+
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
@@ -6785,6 +6800,9 @@ class EffectNodeImplemented
 protected:
 	// 所属しているパラメーター
 	Effect*	m_effect;
+	
+	//! a generation in the node tree
+	int generation_;
 
 	// 子ノード
 	std::vector<EffectNodeImplemented*>	m_Nodes;
@@ -6862,6 +6880,8 @@ public:
 	DynamicFactorParameter DynamicFactor;
 
 	Effect* GetEffect() const override;
+
+	int GetGeneration() const override;
 
 	int GetChildrenCount() const override;
 
@@ -7484,6 +7504,8 @@ public:
 	RingColorParameter InnerColor;
 
 	int RingTexture;
+
+	RingRenderer::NodeParameter nodeParameter;
 
 	EffectNodeRing( Effect* effect, unsigned char*& pos )
 		: EffectNodeImplemented(effect, pos)
@@ -8415,11 +8437,23 @@ private:
 	// 確保済みインスタンス数
 	int m_instance_max;
 
-	// 確保済みインスタンス
-	std::queue<Instance*>	m_reserved_instances;
+	// buffers which is allocated while initializing
+	// 初期化中に確保されたバッファ
+	std::unique_ptr<InstanceChunk[]> reservedChunksBuffer_;
+	std::unique_ptr<uint8_t[]> reservedGroupBuffer_;
+	std::unique_ptr<uint8_t[]> reservedContainerBuffer_;
 
-	// 確保済みインスタンスバッファ
-	uint8_t*				m_reserved_instances_buffer;
+	// pooled instances. Thease are not used and waiting to be used.
+	// プールされたインスタンス。使用されておらず、使用されてるのを待っている。
+	std::queue<InstanceChunk*> pooledChunks_;
+	std::queue<InstanceGroup*> pooledGroups_;
+	std::queue<InstanceContainer*> pooledContainers_;
+
+	// instance chunks by generations
+	// 世代ごとのインスタンスチャンク
+	static const size_t GenerationsMax = 20;
+	std::array<std::vector<InstanceChunk*>, GenerationsMax> instanceChunks_;
+	std::array<int32_t, GenerationsMax> creatableChunkOffsets_;
 
 	// 再生中オブジェクトの組み合わせ集合体
 	std::map<Handle,DrawSet>	m_DrawSets;
@@ -8490,9 +8524,6 @@ private:
 	// 描画オブジェクト破棄処理
 	void GCDrawSet( bool isRemovingManager );
 
-	// インスタンスコンテナ生成
-	InstanceContainer* CreateInstanceContainer( EffectNode* pEffectNode, InstanceGlobal* pGlobal, bool isRoot, const Matrix43& rootMatrix, Instance* pParent);
-
 	// メモリ確保関数
 	static void* EFK_STDCALL Malloc( unsigned int size );
 
@@ -8512,11 +8543,14 @@ public:
 	// デストラクタ
 	virtual ~ManagerImplemented();
 
-	/* Root以外の破棄済みインスタンスバッファ回収(Flip,Update,終了時からのみ呼ばれる) */
-	void PushInstance( Instance* instance );
+	/* Root以外のインスタンスバッファ生成(Flip,Update,終了時からのみ呼ばれる) */
+	Instance* CreateInstance( EffectNode* pEffectNode, InstanceContainer* pContainer, InstanceGroup* pGroup );
 
-	/* Root以外のインスタンスバッファ取得(Flip,Update,終了時からのみ呼ばれる) */
-	Instance* PopInstance();
+	InstanceGroup* CreateInstanceGroup( EffectNode* pEffectNode, InstanceContainer* pContainer, InstanceGlobal* pGlobal );
+	void ReleaseGroup( InstanceGroup* group );
+
+	InstanceContainer* CreateInstanceContainer( EffectNode* pEffectNode, InstanceGlobal* pGlobal, bool isRoot, const Matrix43& rootMatrix, Instance* pParent );
+	void ReleaseInstanceContainer( InstanceContainer* container );
 
 	/**
 		@brief マネージャー破棄
@@ -8706,6 +8740,8 @@ public:
 
 	int32_t GetInstanceCount( Handle handle ) override;
 
+	int32_t GetTotalInstanceCount() const override;
+
 	/**
 		@brief	エフェクトのインスタンスに設定されている行列を取得する。
 		@param	handle	[in]	インスタンスのハンドル
@@ -8825,20 +8861,11 @@ private:
 	
 	int GetCameraCullingMaskToShowAllEffects() override;
 
-	/**
-		@brief	Update処理時間を取得。
-	*/
-	int GetUpdateTime() const override {return m_updateTime;};
+	int GetUpdateTime() const override;
 	
-	/**
-		@brief	Draw処理時間を取得。
-	*/
-	int GetDrawTime() const override {return m_drawTime;};
+	int GetDrawTime() const override;
 
-	/**
-		@brief	残りの確保したインスタンス数を取得する。
-	*/
-	virtual int32_t GetRestInstancesCount() const override { return (int32_t)m_reserved_instances.size(); }
+	int32_t GetRestInstancesCount() const override;
 
 	/**
 		@brief	start reload
@@ -8936,7 +8963,7 @@ public:
 		Type* operator*() const { assert( m_Node != nullptr ); return m_Node; }
 		Type* operator->() const { assert( m_Node != nullptr ); return m_Node; }
 		ReverseIterator& operator++() { assert( m_Node != nullptr ); m_Node = m_Node->m_PrevNode; return *this; }
-		ReverseIterator operator++(int) { assert( m_Node != nullptr ); ReverseIterator it(m_Node); m_Node = m_Node->m_NextNode; return it; }
+		ReverseIterator operator++(int) { assert( m_Node != nullptr ); ReverseIterator it(m_Node); m_Node = m_Node->m_PrevNode; return it; }
 		bool operator==( const ReverseIterator& rhs ) const { return m_Node == rhs.m_Node; }
 		bool operator!=( const ReverseIterator& rhs ) const { return m_Node != rhs.m_Node; }
 	};
@@ -9176,14 +9203,14 @@ namespace Effekseer
 	@note
 
 */
-class InstanceContainer
+class InstanceContainer : public IntrusiveList<InstanceContainer>::Node
 {
 	friend class ManagerImplemented;
 
 private:
 
 	// マネージャ
-	Manager*	m_pManager;
+	ManagerImplemented*	m_pManager;
 
 	// パラメーター
 	EffectNodeImplemented* m_pEffectNode;
@@ -9192,10 +9219,7 @@ private:
 	InstanceGlobal*	m_pGlobal;
 
 	// 子のコンテナ
-	InstanceContainer**	m_Children;
-
-	// インスタンスの子の数
-	int	m_ChildrenCount;
+	IntrusiveList<InstanceContainer>	m_Children;
 
 	// グループの連結リストの先頭
 	InstanceGroup*	m_headGroups;
@@ -9203,35 +9227,20 @@ private:
 	// グループの連結リストの最後
 	InstanceGroup*	m_tailGroups;
 
-	// placement new
-	static void* operator new( size_t size, Manager* pManager );
-
-	// placement delete
-	static void operator delete( void* p, Manager* pManager );
-
-	// default delete
-	static void operator delete( void* p ){}
-
 	// コンストラクタ
-	InstanceContainer( Manager* pManager, EffectNode* pEffectNode, InstanceGlobal* pGlobal, int ChildrenCount );
+	InstanceContainer( ManagerImplemented* pManager, EffectNode* pEffectNode, InstanceGlobal* pGlobal );
 
 	// デストラクタ
 	virtual ~InstanceContainer();
-
-	// 指定した番号にコンテナを設定
-	void SetChild( int num, InstanceContainer* pContainter );
 
 	// 無効なグループの破棄
 	void RemoveInvalidGroups();
 
 public:
-	// 指定した番号のコンテナを取得
-	InstanceContainer* GetChild( int num );
-
 	/**
 		@brief	グループの作成
 	*/
-	InstanceGroup* CreateGroup();
+	InstanceGroup* CreateInstanceGroup();
 
 	/**
 		@brief	グループの先頭取得
@@ -9249,6 +9258,10 @@ public:
 	void KillAllInstances(  bool recursive );
 
 	InstanceGlobal* GetRootInstance();
+
+	void AddChild( InstanceContainer* pContainter );
+
+	InstanceContainer* GetChild( int index );
 };
 
 //----------------------------------------------------------------------------------
@@ -9300,7 +9313,7 @@ struct InstanceCustomData
 /**
 	@brief	エフェクトの実体
 */
-class Instance : public IntrusiveList<Instance>::Node
+class alignas(16) Instance : public IntrusiveList<Instance>::Node
 {
 	friend class Manager;
 	friend class InstanceContainer;
@@ -9323,8 +9336,13 @@ public:
 	// コンテナ
 	InstanceContainer*	m_pContainer;
 
-	// グループの連結リストの先頭
-	InstanceGroup*	m_headGroups;
+	// a group which the instance belongs to
+	// 自分が所属するグループ
+	InstanceGroup* ownGroup_;
+
+	// a head of list in children group
+	// 子グループの連結リストの先頭
+	InstanceGroup* childrenGroups_;
 
 	// 親
 	Instance*	m_pParent;
@@ -9527,7 +9545,7 @@ public:
 	Matrix43		m_GlobalMatrix43;
 
 	// 親の変換用行列
-	Matrix43		m_ParentMatrix43;
+	Matrix43		m_ParentMatrix;
 
 	// 変換用行列が計算済かどうか
 	bool			m_GlobalMatrix43Calculated;
@@ -9560,12 +9578,16 @@ public:
 	random_int ApplyEq(const RefMinMax& dpInd, random_int originalParam);
 
 	// コンストラクタ
-	Instance( Manager* pManager, EffectNode* pEffectNode, InstanceContainer* pContainer );
+	Instance( Manager* pManager, EffectNode* pEffectNode, InstanceContainer* pContainer, InstanceGroup* pGroup );
 
 	// デストラクタ
 	virtual ~Instance();
 
+	bool IsRequiredToCreateChildren(float currentTime);
+
 	void GenerateChildrenInRequired(float currentTime);
+
+	void UpdateChildrenGroupMatrix();
 
 public:
 	/**
@@ -9632,6 +9654,50 @@ private:
 //
 //----------------------------------------------------------------------------------
 #endif	// __EFFEKSEER_INSTANCE_H__
+
+
+#ifndef __EFFEKSEER_INSTANCECHUNK_H__
+#define __EFFEKSEER_INSTANCECHUNK_H__
+
+
+namespace Effekseer
+{
+
+/**
+	@brief	a group of allocated instances
+	@note
+	instances are allocated as a group because of memory optimization
+*/
+class alignas(32) InstanceChunk
+{
+public:
+	static const int32_t InstancesOfChunk = 16;
+
+	InstanceChunk();
+
+	~InstanceChunk();
+
+	void UpdateInstances(float deltaFrame);
+
+	Instance* CreateInstance(Manager* pManager, EffectNode* pEffectNode, InstanceContainer* pContainer, InstanceGroup* pGroup);
+
+	int32_t GetAliveCount() const { return aliveCount_; }
+
+	bool IsInstanceCreatable() const { return aliveCount_ < InstancesOfChunk; }
+
+private:
+	std::array<uint8_t[sizeof(Instance)], InstancesOfChunk> instances_;
+
+	//! flags whether are instances alive
+	std::array<bool, InstancesOfChunk> instancesAlive_;
+
+	//! the number of living instances
+	int32_t aliveCount_ = 0;
+};
+
+} // namespace Effekseer
+
+#endif // __EFFEKSEER_INSTANCECHUNK_H__
 
 
 #ifndef	__EFFEKSEER_INSTANCEGLOBAL_H__
@@ -9762,6 +9828,7 @@ namespace Effekseer
 class InstanceGroup
 {
 friend class InstanceContainer;
+friend class ManagerImplemented;
 
 private:
 	ManagerImplemented*		m_manager;
@@ -9770,21 +9837,18 @@ private:
 	InstanceGlobal*		m_global;
 	int32_t				m_time;
 
+	Matrix43 parentMatrix_;
+	Matrix43 parentRotation_;
+	Vector3D parentTranslation_;
+	Vector3D parentScale_;
+
 	// インスタンスの実体
 	IntrusiveList<Instance> m_instances;
 	IntrusiveList<Instance> m_removingInstances;
 
-		//! placement new
-	static void* operator new(size_t size);
-
-	//! placement delete
-	static void operator delete(void* p);
-
 	InstanceGroup( Manager* manager, EffectNode* effectNode, InstanceContainer* container, InstanceGlobal* global );
 
 	~InstanceGroup();
-
-	void RemoveInvalidInstances();
 
 public:
 
@@ -9805,11 +9869,11 @@ public:
 
 	int GetInstanceCount() const;
 
-	int GetRemovingInstanceCount() const;
-
 	void Update( float deltaFrame, bool shown );
 
 	void SetBaseMatrix( const Matrix43& mat );
+
+	void SetParentMatrix( const Matrix43& mat );
 
 	void RemoveForcibly();
 
@@ -9832,8 +9896,12 @@ public:
 	*/
 	InstanceGroup*	NextUsedByContainer;
 
-	InstanceGlobal* GetInstanceGlobal() const { return m_global; }
+	InstanceGlobal* GetRootInstance() const { return m_global; }
 
+	const Matrix43& GetParentMatrix() const { return parentMatrix_; }
+	const Vector3D& GetParentTranslation() const { return parentTranslation_; }
+	const Matrix43& GetParentRotation() const { return parentRotation_; }
+	const Vector3D& GetParentScale() const { return parentScale_; }
 };
 //----------------------------------------------------------------------------------
 //
@@ -10152,6 +10220,7 @@ namespace Effekseer
 //----------------------------------------------------------------------------------
 EffectNodeImplemented::EffectNodeImplemented(Effect* effect, unsigned char*& pos)
 	: m_effect(effect)
+	, generation_(0)
 	, m_userData(NULL)
 	, IsRendered(true)
 	, TranslationFCurve(NULL)
@@ -10170,6 +10239,12 @@ void EffectNodeImplemented::LoadParameter(unsigned char*& pos, EffectNode* paren
 	int size = 0;
 	int node_type = 0;
 	auto ef = (EffectImplemented*)m_effect;
+
+	if (parent) {
+		generation_ = parent->GetGeneration() + 1;
+	} else {
+		generation_ = 0;
+	}
 
 	memcpy(&node_type, pos, sizeof(int));
 	pos += sizeof(int);
@@ -10619,6 +10694,8 @@ void EffectNodeImplemented::LoadParameter(unsigned char*& pos, EffectNode* paren
 			memcpy(&IsDepthOffsetScaledWithParticleScale, pos, sizeof(int32_t));
 			pos += sizeof(int32_t);
 
+			DepthValues.IsDepthOffsetScaledWithParticleScale = IsDepthOffsetScaledWithParticleScale > 0;
+
 			if (m_effect->GetVersion() >= 15)
 			{
 				memcpy(&DepthValues.DepthParameter.SuppressionOfScalingByDepth, pos, sizeof(float));
@@ -10651,6 +10728,7 @@ void EffectNodeImplemented::LoadParameter(unsigned char*& pos, EffectNode* paren
 			DepthValues.DepthParameter.DepthOffset = DepthValues.DepthOffset;
 			DepthValues.DepthParameter.IsDepthOffsetScaledWithCamera = DepthValues.IsDepthOffsetScaledWithCamera;
 			DepthValues.DepthParameter.IsDepthOffsetScaledWithParticleScale = DepthValues.IsDepthOffsetScaledWithParticleScale;
+			DepthValues.DepthParameter.ZSort = DepthValues.ZSort;
 		}
 
 		// Convert right handle coordinate system into left handle coordinate system
@@ -10854,6 +10932,8 @@ void EffectNodeImplemented::CalcCustomData(const Instance* instance, std::array<
 //
 //----------------------------------------------------------------------------------
 Effect* EffectNodeImplemented::GetEffect() const { return m_effect; }
+
+int EffectNodeImplemented::GetGeneration() const { return generation_; }
 
 //----------------------------------------------------------------------------------
 //
@@ -11663,7 +11743,7 @@ void EffectNodeRibbon::BeginRendering(int32_t count, Manager* manager)
 		m_nodeParameter.DepthParameterPtr = &DepthValues.DepthParameter;
 		m_nodeParameter.BasicParameterPtr = &RendererCommon.BasicParameter;
 		m_nodeParameter.TextureUVTypeParameterPtr = &TextureUVType;
-
+		m_nodeParameter.IsRightHand = manager->GetCoordinateSystem() == CoordinateSystem::RH;
 		renderer->BeginRendering(m_nodeParameter, count, m_userData);
 	}
 }
@@ -12115,25 +12195,17 @@ void EffectNodeRing::BeginRendering(int32_t count, Manager* manager)
 	RingRenderer* renderer = manager->GetRingRenderer();
 	if( renderer != NULL )
 	{
-		RingRenderer::NodeParameter nodeParameter;
-		//nodeParameter.TextureFilter = RendererCommon.FilterType;
-		//nodeParameter.TextureWrap = RendererCommon.WrapType;
+		nodeParameter.EffectPointer = GetEffect();
 		nodeParameter.ZTest = RendererCommon.ZTest;
 		nodeParameter.ZWrite = RendererCommon.ZWrite;
 		nodeParameter.Billboard = Billboard;
 		nodeParameter.VertexCount = VertexCount;
-		nodeParameter.EffectPointer = GetEffect();
-		nodeParameter.IsRightHand = manager->GetCoordinateSystem() ==
-			CoordinateSystem::RH;
-		nodeParameter.StartingFade = Shape.StartingFade;
-		nodeParameter.EndingFade = Shape.EndingFade;
+		nodeParameter.IsRightHand = manager->GetCoordinateSystem() == CoordinateSystem::RH;
 
 		nodeParameter.DepthParameterPtr = &DepthValues.DepthParameter;
-		//nodeParameter.DepthOffset = DepthValues.DepthOffset;
-		//nodeParameter.IsDepthOffsetScaledWithCamera = DepthValues.IsDepthOffsetScaledWithCamera;
-		//nodeParameter.IsDepthOffsetScaledWithParticleScale = DepthValues.IsDepthOffsetScaledWithParticleScale;
-
 		nodeParameter.BasicParameterPtr = &RendererCommon.BasicParameter;
+		nodeParameter.StartingFade = Shape.StartingFade;
+		nodeParameter.EndingFade = Shape.EndingFade;
 
 		renderer->BeginRendering( nodeParameter, count, m_userData );
 	}
@@ -12148,10 +12220,7 @@ void EffectNodeRing::Rendering(const Instance& instance, const Instance* next_in
 	RingRenderer* renderer = manager->GetRingRenderer();
 	if( renderer != NULL )
 	{
-		RingRenderer::NodeParameter nodeParameter;
 		nodeParameter.EffectPointer = GetEffect();
-		//nodeParameter.TextureFilter = RendererCommon.FilterType;
-		//nodeParameter.TextureWrap = RendererCommon.WrapType;
 		nodeParameter.ZTest = RendererCommon.ZTest;
 		nodeParameter.ZWrite = RendererCommon.ZWrite;
 		nodeParameter.Billboard = Billboard;
@@ -12160,9 +12229,6 @@ void EffectNodeRing::Rendering(const Instance& instance, const Instance* next_in
 			CoordinateSystem::RH;
 
 		nodeParameter.DepthParameterPtr = &DepthValues.DepthParameter;
-		//nodeParameter.DepthOffset = DepthValues.DepthOffset;
-		//nodeParameter.IsDepthOffsetScaledWithCamera = DepthValues.IsDepthOffsetScaledWithCamera;
-		//nodeParameter.IsDepthOffsetScaledWithParticleScale = DepthValues.IsDepthOffsetScaledWithParticleScale;
 		nodeParameter.BasicParameterPtr = &RendererCommon.BasicParameter;
 		nodeParameter.StartingFade = Shape.StartingFade;
 		nodeParameter.EndingFade = Shape.EndingFade;
@@ -12223,24 +12289,6 @@ void EffectNodeRing::EndRendering(Manager* manager)
 	RingRenderer* renderer = manager->GetRingRenderer();
 	if( renderer != NULL )
 	{
-		RingRenderer::NodeParameter nodeParameter;
-		//nodeParameter.TextureFilter = RendererCommon.FilterType;
-		//nodeParameter.TextureWrap = RendererCommon.WrapType;
-		nodeParameter.ZTest = RendererCommon.ZTest;
-		nodeParameter.ZWrite = RendererCommon.ZWrite;
-		nodeParameter.Billboard = Billboard;
-		nodeParameter.EffectPointer = GetEffect();
-		nodeParameter.IsRightHand = manager->GetCoordinateSystem() ==
-			CoordinateSystem::RH;
-		nodeParameter.StartingFade = Shape.StartingFade;
-		nodeParameter.EndingFade = Shape.EndingFade;
-
-		nodeParameter.DepthParameterPtr = &DepthValues.DepthParameter;
-		//nodeParameter.DepthOffset = DepthValues.DepthOffset;
-		//nodeParameter.IsDepthOffsetScaledWithCamera = DepthValues.IsDepthOffsetScaledWithCamera;
-		//nodeParameter.IsDepthOffsetScaledWithParticleScale = DepthValues.IsDepthOffsetScaledWithParticleScale;
-
-		nodeParameter.BasicParameterPtr = &RendererCommon.BasicParameter;
 		renderer->EndRendering( nodeParameter, m_userData );
 	}
 }
@@ -13047,7 +13095,7 @@ void EffectNodeTrack::BeginRendering(int32_t count, Manager* manager)
 		m_nodeParameter.SplineDivision = SplineDivision;
 		m_nodeParameter.BasicParameterPtr = &RendererCommon.BasicParameter;
 		m_nodeParameter.TextureUVTypeParameterPtr = &TextureUVType;
-
+		m_nodeParameter.IsRightHand = manager->GetCoordinateSystem() == CoordinateSystem::RH;
 		renderer->BeginRendering(m_nodeParameter, count, m_userData);
 	}
 }
@@ -13064,7 +13112,7 @@ void EffectNodeTrack::BeginRenderingGroup(InstanceGroup* group, Manager* manager
 
 		m_instanceParameter.InstanceCount = group->GetInstanceCount();
 		m_instanceParameter.InstanceIndex = 0;
-
+		
 		if (group->GetFirst() != nullptr)
 		{
 			m_instanceParameter.UV = group->GetFirst()->GetUV();
@@ -13130,7 +13178,7 @@ void EffectNodeTrack::EndRendering(Manager* manager)
 void EffectNodeTrack::InitializeRenderedInstanceGroup(InstanceGroup& instanceGroup, Manager* manager)
 {
 	InstanceGroupValues& instValues = instanceGroup.rendererValues.track;
-	auto instanceGlobal = instanceGroup.GetInstanceGlobal();
+	auto instanceGlobal = instanceGroup.GetRootInstance();
 
 	InitializeValues(instValues.ColorLeft, TrackColorLeft, instanceGlobal);
 	InitializeValues(instValues.ColorCenter, TrackColorCenter, instanceGlobal);
@@ -14784,8 +14832,7 @@ void ManagerImplemented::GCDrawSet( bool isRemovingManager )
 			if (drawset.InstanceContainerPointer != nullptr)
 			{
 				drawset.InstanceContainerPointer->RemoveForcibly(true);
-				drawset.InstanceContainerPointer->~InstanceContainer();
-				InstanceContainer::operator delete(drawset.InstanceContainerPointer, this);
+				ReleaseInstanceContainer( drawset.InstanceContainerPointer );
 			}
 
 			ES_SAFE_RELEASE( drawset.ParameterPointer );
@@ -14890,22 +14937,24 @@ void ManagerImplemented::GCDrawSet( bool isRemovingManager )
 //----------------------------------------------------------------------------------
 InstanceContainer* ManagerImplemented::CreateInstanceContainer( EffectNode* pEffectNode, InstanceGlobal* pGlobal, bool isRoot, const Matrix43& rootMatrix, Instance* pParent )
 {
-	InstanceContainer* pContainer = new(this) InstanceContainer(
-		this,
-		pEffectNode,
-		pGlobal,
-		pEffectNode->GetChildrenCount() );
-	
+	if( pooledContainers_.empty() )
+	{
+		return nullptr;
+	}
+	InstanceContainer* memory = pooledContainers_.front();
+	pooledContainers_.pop();
+	InstanceContainer* pContainer = new(memory) InstanceContainer( this, pEffectNode, pGlobal );
+
 	for (int i = 0; i < pEffectNode->GetChildrenCount(); i++)
 	{
-		pContainer->SetChild(i, CreateInstanceContainer(pEffectNode->GetChild(i), pGlobal, false, Matrix43(), nullptr));
+		pContainer->AddChild(CreateInstanceContainer(pEffectNode->GetChild(i), pGlobal, false, Matrix43(), nullptr));
 	}
 
 	if( isRoot )
 	{
 		pGlobal->SetRootContainer(pContainer);
 
-		InstanceGroup* group = pContainer->CreateGroup();
+		InstanceGroup* group = pContainer->CreateInstanceGroup();
 		Instance* instance = group->CreateInstance();
 		instance->Initialize( NULL, 0, 0, rootMatrix);
 
@@ -14914,6 +14963,15 @@ InstanceContainer* ManagerImplemented::CreateInstanceContainer( EffectNode* pEff
 	}
 
 	return pContainer;
+}
+
+//----------------------------------------------------------------------------------
+//
+//----------------------------------------------------------------------------------
+void ManagerImplemented::ReleaseInstanceContainer( InstanceContainer* container )
+{
+	container->~InstanceContainer();
+	pooledContainers_.push( container );
 }
 
 //----------------------------------------------------------------------------------
@@ -15008,12 +15066,30 @@ ManagerImplemented::ManagerImplemented( int instance_max, bool autoFlip )
 
 	m_renderingDrawSets.reserve( 64 );
 
-	m_reserved_instances_buffer = new uint8_t[ sizeof(Instance) * m_instance_max ];
-
-	for( int i = 0; i < m_instance_max; i++ )
+	int chunk_max = (m_instance_max + InstanceChunk::InstancesOfChunk - 1) / InstanceChunk::InstancesOfChunk;
+	reservedChunksBuffer_.reset(new InstanceChunk[chunk_max]);
+	for (int i = 0; i < chunk_max; i++)
 	{
-		Instance* instances = (Instance*)m_reserved_instances_buffer;
-		m_reserved_instances.push( &instances[i] );
+		pooledChunks_.push(&reservedChunksBuffer_[i]);
+	}
+	for (auto& chunks : instanceChunks_)
+	{
+		chunks.reserve(chunk_max);
+	}
+	std::fill(creatableChunkOffsets_.begin(), creatableChunkOffsets_.end(), 0);
+
+	// Pooling InstanceGroup
+	reservedGroupBuffer_.reset( new uint8_t[instance_max * sizeof(InstanceGroup)] );
+	for( int i = 0; i < instance_max; i++ )
+	{
+		pooledGroups_.push( (InstanceGroup*)&reservedGroupBuffer_[i * sizeof(InstanceGroup)] );
+	}
+
+	// Pooling InstanceGroup
+	reservedContainerBuffer_.reset( new uint8_t[instance_max * sizeof(InstanceGroup)] );
+	for( int i = 0; i < instance_max; i++ )
+	{
+		pooledContainers_.push( (InstanceContainer*)&reservedContainerBuffer_[i * sizeof(InstanceGroup)] );
 	}
 
 	m_setting->SetEffectLoader(new DefaultEffectLoader());
@@ -15034,8 +15110,8 @@ ManagerImplemented::~ManagerImplemented()
 		GCDrawSet( true );
 	}
 
-	assert( m_reserved_instances.size() == m_instance_max ); 
-	ES_SAFE_DELETE_ARRAY( m_reserved_instances_buffer );
+	//assert( m_reserved_instances.size() == m_instance_max ); 
+	//ES_SAFE_DELETE_ARRAY( m_reserved_instances_buffer );
 
 	Culling3D::SafeRelease(m_cullingWorld);
 
@@ -15053,24 +15129,54 @@ ManagerImplemented::~ManagerImplemented()
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-void ManagerImplemented::PushInstance( Instance* instance )
+Instance* ManagerImplemented::CreateInstance( EffectNode* pEffectNode, InstanceContainer* pContainer, InstanceGroup* pGroup )
 {
-	m_reserved_instances.push( instance );
+	int32_t generationNumber = pEffectNode->GetGeneration();
+	assert(generationNumber < GenerationsMax);
+
+	auto& chunks = instanceChunks_[generationNumber];
+
+	int32_t offset = creatableChunkOffsets_[generationNumber];
+
+	auto it = std::find_if(chunks.begin() + offset, chunks.end(), [](const InstanceChunk* chunk) { return chunk->IsInstanceCreatable(); });
+
+	creatableChunkOffsets_[generationNumber] = (int32_t)std::distance(chunks.begin(), it);
+
+	if (it != chunks.end())
+	{
+		auto chunk = *it;
+		return chunk->CreateInstance(this, pEffectNode, pContainer, pGroup);
+	}
+
+	if (!pooledChunks_.empty())
+	{
+		auto chunk = pooledChunks_.front();
+		pooledChunks_.pop();
+		chunks.push_back(chunk);
+		return chunk->CreateInstance(this, pEffectNode, pContainer, pGroup);
+	}
+
+	return nullptr;
 }
 
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-Instance* ManagerImplemented::PopInstance()
+InstanceGroup* ManagerImplemented::CreateInstanceGroup( EffectNode* pEffectNode, InstanceContainer* pContainer, InstanceGlobal* pGlobal )
 {
-	if( m_reserved_instances.empty() )
+	if( pooledGroups_.empty() )
 	{
-		return NULL;
+		return nullptr;
 	}
+	InstanceGroup* memory = pooledGroups_.front();
+	pooledGroups_.pop();
+	return new(memory) InstanceGroup( this, pEffectNode, pContainer, pGlobal );
+}
 
-	Instance* ret = m_reserved_instances.front();
-	m_reserved_instances.pop();
-	return ret;
+void ManagerImplemented::ReleaseGroup(InstanceGroup* group)
+{
+	group->~InstanceGroup();
+	pooledGroups_.push(group);
 }
 
 //----------------------------------------------------------------------------------
@@ -15449,6 +15555,17 @@ int32_t ManagerImplemented::GetInstanceCount( Handle handle )
 		return m_DrawSets[handle].GlobalPointer->GetInstanceCount();
 	}
 	return 0;
+}
+
+int32_t ManagerImplemented::GetTotalInstanceCount() const
+{
+	int32_t instanceCount = 0;
+	for (auto pair : m_DrawSets)
+	{
+		const DrawSet& drawSet = pair.second;
+		instanceCount += drawSet.GlobalPointer->GetInstanceCount();
+	}
+	return instanceCount;
 }
 
 //----------------------------------------------------------------------------------
@@ -16018,6 +16135,31 @@ void ManagerImplemented::Update( float deltaFrame )
 	// start to measure time
 	int64_t beginTime = ::Effekseer::GetTime();
 
+	std::fill(creatableChunkOffsets_.begin(), creatableChunkOffsets_.end(), 0);
+	for (auto& chunks : instanceChunks_)
+	{
+		for (auto chunk : chunks)
+		{
+			chunk->UpdateInstances(deltaFrame);
+		}
+
+		auto first = chunks.begin();
+		auto last = chunks.end();
+		while (first != last)
+		{
+			auto it = std::find_if(first, last, [](const InstanceChunk* chunk) { return chunk->GetAliveCount() == 0; });
+			if (it != last)
+			{
+				pooledChunks_.push(*it);
+				if (it != last - 1)
+					*it = *(last - 1);
+				last--;
+			}
+			first = it;
+		}
+		chunks.erase(last, chunks.end());
+	}
+
 	for (auto& drawSet : m_DrawSets)
 	{
 		UpdateHandle(drawSet.second, deltaFrame);
@@ -16542,9 +16684,21 @@ void ManagerImplemented::DrawHandleFront(Handle handle, const Manager::DrawParam
 	}
 }
 
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
+int ManagerImplemented::GetUpdateTime() const 
+{
+	return m_updateTime; 
+};
+
+int ManagerImplemented::GetDrawTime() const 
+{
+	return m_drawTime; 
+};
+
+int32_t ManagerImplemented::GetRestInstancesCount() const
+{
+	return static_cast<int32_t>(pooledChunks_.size()) * InstanceChunk::InstancesOfChunk;
+}
+
 void ManagerImplemented::BeginReloadEffect( Effect* effect, bool doLockThread)
 {
 	if (doLockThread)
@@ -16562,8 +16716,7 @@ void ManagerImplemented::BeginReloadEffect( Effect* effect, bool doLockThread)
 	
 		/* インスタンス削除 */
 		(*it).second.InstanceContainerPointer->RemoveForcibly( true );
-		(*it).second.InstanceContainerPointer->~InstanceContainer();
-		InstanceContainer::operator delete( (*it).second.InstanceContainerPointer, this );
+		ReleaseInstanceContainer( (*it).second.InstanceContainerPointer );
 		(*it).second.InstanceContainerPointer = NULL;
 	}
 }
@@ -16712,28 +16865,10 @@ namespace Effekseer
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-void* InstanceContainer::operator new(size_t size, Manager* pManager)
-{
-	return pManager->GetMallocFunc()((uint32_t)size);
-}
-
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-void InstanceContainer::operator delete(void* p, Manager* pManager)
-{
-	pManager->GetFreeFunc()(p, sizeof(InstanceContainer));
-}
-
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-InstanceContainer::InstanceContainer(Manager* pManager, EffectNode* pEffectNode, InstanceGlobal* pGlobal, int ChildrenCount)
+InstanceContainer::InstanceContainer(ManagerImplemented* pManager, EffectNode* pEffectNode, InstanceGlobal* pGlobal)
 	: m_pManager(pManager)
 	, m_pEffectNode((EffectNodeImplemented*)pEffectNode)
 	, m_pGlobal(pGlobal)
-	, m_Children(NULL)
-	, m_ChildrenCount(ChildrenCount)
 	, m_headGroups(NULL)
 	, m_tailGroups(NULL)
 
@@ -16742,12 +16877,6 @@ InstanceContainer::InstanceContainer(Manager* pManager, EffectNode* pEffectNode,
 	if (en->RenderingPriority >= 0)
 	{
 		pGlobal->RenderedInstanceContainers[en->RenderingPriority] = this;
-	}
-
-	m_Children = (InstanceContainer**)m_pManager->GetMallocFunc()(sizeof(InstanceContainer*) * m_ChildrenCount);
-	for (int i = 0; i < m_ChildrenCount; i++)
-	{
-		m_Children[i] = NULL;
 	}
 }
 
@@ -16761,32 +16890,27 @@ InstanceContainer::~InstanceContainer()
 	assert(m_headGroups == NULL);
 	assert(m_tailGroups == NULL);
 
-	for (int i = 0; i < m_ChildrenCount; i++)
+	for( auto child : m_Children )
 	{
-		if (m_Children[i] != NULL)
-		{
-			m_Children[i]->~InstanceContainer();
-			InstanceContainer::operator delete(m_Children[i], m_pManager);
-			m_Children[i] = NULL;
-		}
+		m_pManager->ReleaseInstanceContainer( child );
 	}
-	m_pManager->GetFreeFunc()((void*)m_Children, sizeof(InstanceContainer*) * m_ChildrenCount);
 }
 
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-InstanceContainer* InstanceContainer::GetChild(int num)
+void InstanceContainer::AddChild(InstanceContainer* pContainter)
 {
-	return m_Children[num];
+	m_Children.push_back( pContainter );
 }
 
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-void InstanceContainer::SetChild(int num, InstanceContainer* pContainter)
+InstanceContainer* InstanceContainer::GetChild(int index)
 {
-	m_Children[num] = pContainter;
+	auto it = m_Children.begin();
+	for( int i = 0; i < index; i++) {
+		it++;
+	}
+	return *it;
 }
 
 //----------------------------------------------------------------------------------
@@ -16799,11 +16923,10 @@ void InstanceContainer::RemoveInvalidGroups()
 
 	for (InstanceGroup* group = m_headGroups; group != NULL; )
 	{
-		if (!group->IsReferencedFromInstance && group->GetInstanceCount() == 0 && group->GetRemovingInstanceCount() == 0)
+		if (!group->IsReferencedFromInstance && group->GetInstanceCount() == 0)
 		{
 			InstanceGroup* next = group->NextUsedByContainer;
-
-			delete group;
+			m_pManager->ReleaseGroup( group );
 
 			if (m_headGroups == group)
 			{
@@ -16832,9 +16955,9 @@ void InstanceContainer::RemoveInvalidGroups()
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-InstanceGroup* InstanceContainer::CreateGroup()
+InstanceGroup* InstanceContainer::CreateInstanceGroup()
 {
-	InstanceGroup* group = new InstanceGroup(m_pManager, m_pEffectNode, this, m_pGlobal);
+	InstanceGroup* group = m_pManager->CreateInstanceGroup( m_pEffectNode, this, m_pGlobal );
 
 	if (m_tailGroups != NULL)
 	{
@@ -16877,9 +17000,9 @@ void InstanceContainer::Update(bool recursive, float deltaFrame, bool shown)
 
 	if (recursive)
 	{
-		for (int i = 0; i < m_ChildrenCount; i++)
+		for (auto child : m_Children)
 		{
-			m_Children[i]->Update(recursive, deltaFrame, shown);
+			child->Update(recursive, deltaFrame, shown);
 		}
 	}
 }
@@ -16899,9 +17022,9 @@ void InstanceContainer::SetBaseMatrix(bool recursive, const Matrix43& mat)
 
 	if (recursive)
 	{
-		for (int i = 0; i < m_ChildrenCount; i++)
+		for (auto child : m_Children)
 		{
-			m_Children[i]->SetBaseMatrix(recursive, mat);
+			child->SetBaseMatrix(recursive, mat);
 		}
 	}
 }
@@ -16922,9 +17045,9 @@ void InstanceContainer::RemoveForcibly(bool recursive)
 
 	if (recursive)
 	{
-		for (int i = 0; i < m_ChildrenCount; i++)
+		for (auto child : m_Children)
 		{
-			m_Children[i]->RemoveForcibly(recursive);
+			child->RemoveForcibly(recursive);
 		}
 	}
 }
@@ -17017,9 +17140,9 @@ void InstanceContainer::Draw(bool recursive)
 
 	if (recursive)
 	{
-		for (int i = 0; i < m_ChildrenCount; i++)
+		for (auto child : m_Children)
 		{
-			m_Children[i]->Draw(recursive);
+			child->Draw(recursive);
 		}
 	}
 }
@@ -17036,9 +17159,9 @@ void InstanceContainer::KillAllInstances(bool recursive)
 
 	if (recursive)
 	{
-		for (int i = 0; i < m_ChildrenCount; i++)
+		for (auto child : m_Children)
 		{
-			m_Children[i]->KillAllInstances(recursive);
+			child->KillAllInstances(recursive);
 		}
 	}
 }
@@ -17214,12 +17337,13 @@ random_int Instance::ApplyEq(const RefMinMax& dpInd, random_int originalParam)
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-Instance::Instance(Manager* pManager, EffectNode* pEffectNode, InstanceContainer* pContainer)
+Instance::Instance(Manager* pManager, EffectNode* pEffectNode, InstanceContainer* pContainer, InstanceGroup* pGroup)
 	: m_pManager(pManager)
 	, m_pEffectNode((EffectNodeImplemented*)pEffectNode)
 	, m_pContainer(pContainer)
-	, m_headGroups(NULL)
-	, m_pParent(NULL)
+	, ownGroup_(pGroup)
+	, childrenGroups_(nullptr)
+	, m_pParent(nullptr)
 	, m_State(INSTANCE_STATE_ACTIVE)
 	, m_LivedTime(0)
 	, m_LivingTime(0)
@@ -17245,13 +17369,13 @@ Instance::Instance(Manager* pManager, EffectNode* pEffectNode, InstanceContainer
 
 		if( group != NULL )
 		{
-			group->NextUsedByInstance = childContainer->CreateGroup();
+			group->NextUsedByInstance = childContainer->CreateInstanceGroup();
 			group = group->NextUsedByInstance;
 		}
 		else
 		{
-			group = childContainer->CreateGroup();
-			m_headGroups = group;
+			group = childContainer->CreateInstanceGroup();
+			childrenGroups_ = group;
 		}
 	}
 }
@@ -17281,13 +17405,37 @@ Instance::~Instance()
 	}
 }
 
+bool Instance::IsRequiredToCreateChildren(float currentTime)
+{
+	auto instanceGlobal = this->m_pContainer->GetRootInstance();
+
+	auto parameter = (EffectNodeImplemented*)m_pEffectNode;
+
+	InstanceGroup* group = childrenGroups_;
+
+	for (int32_t i = 0; i < parameter->GetChildrenCount(); i++, group = group->NextUsedByInstance)
+	{
+		auto node = (EffectNodeImplemented*)parameter->GetChild(i);
+		assert(group != NULL);
+
+		// GenerationTimeOffset can be minus value.
+		// Minus frame particles is generated simultaniously at frame 0.
+		if (maxGenerationChildrenCount[i] > m_generatedChildrenCount[i] && m_nextGenerationTime[i] <= currentTime)
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
 void Instance::GenerateChildrenInRequired(float currentTime)
 {
 	auto instanceGlobal = this->m_pContainer->GetRootInstance();
 
 	auto parameter = (EffectNodeImplemented*)m_pEffectNode;
 
-	InstanceGroup* group = m_headGroups;
+	InstanceGroup* group = childrenGroups_;
 
 	for (int32_t i = 0; i < parameter->GetChildrenCount(); i++, group = group->NextUsedByInstance)
 	{
@@ -17321,6 +17469,14 @@ void Instance::GenerateChildrenInRequired(float currentTime)
 				break;
 			}
 		}
+	}
+}
+
+void Instance::UpdateChildrenGroupMatrix()
+{
+	for (InstanceGroup* group = childrenGroups_; group != nullptr; group = group->NextUsedByInstance)
+	{
+		group->SetParentMatrix(m_GlobalMatrix43);
 	}
 }
 
@@ -17411,19 +17567,20 @@ void Instance::Initialize( Instance* parent, int32_t instanceNumber, int32_t par
 		// SRTの初期化
 		m_GenerationLocation.Indentity();
 		m_GlobalMatrix43 = globalMatrix;
-		m_ParentMatrix43.Indentity();
+		assert(m_GlobalMatrix43.IsValid());
 
 		// 親の初期化
-		m_ParentMatrix43 = GetGlobalMatrix43();
+		m_ParentMatrix.Indentity();
 
 		// Generate zero frame effect
+
+		// for new children
+		UpdateChildrenGroupMatrix();
+
 		GenerateChildrenInRequired(0.0f);
 		return;
 	}
 	
-	// 親の行列を計算
-	m_pParent->CalculateMatrix( 0 );
-
 	// 状態の初期化
 	m_State = INSTANCE_STATE_ACTIVE;
 
@@ -17434,79 +17591,28 @@ void Instance::Initialize( Instance* parent, int32_t instanceNumber, int32_t par
 		m_LivedTime = (float)ri.getValue(*instanceGlobal);
 	}
 
-	// SRTの初期化
-	m_pParent->GetGlobalMatrix43().GetTranslation( m_GlobalPosition );
+	// initialize SRT
+
+	// calculate parent matrixt to get matrix
+	m_pParent->CalculateMatrix(0);
+	
+	const Matrix43& parentMatrix = m_pParent->GetGlobalMatrix43();
+	parentMatrix.GetTranslation( m_GlobalPosition );
 	m_GlobalRevisionLocation = Vector3D(0.0f, 0.0f, 0.0f);
 	m_GlobalRevisionVelocity = Vector3D(0.0f, 0.0f, 0.0f);
 	m_GenerationLocation.Indentity();
 	m_GlobalMatrix43 = globalMatrix;
-	m_ParentMatrix43.Indentity();
+	assert(m_GlobalMatrix43.IsValid());
 
 	// 親の初期化
-	if( parameter->CommonValues.TranslationBindType == BindType::WhenCreating )
-	{
-		m_ParentMatrix43.Value[3][0] = m_pParent->m_GlobalMatrix43.Value[3][0];
-		m_ParentMatrix43.Value[3][1] = m_pParent->m_GlobalMatrix43.Value[3][1];
-		m_ParentMatrix43.Value[3][2] = m_pParent->m_GlobalMatrix43.Value[3][2];
-	}
-
-	if( parameter->CommonValues.RotationBindType == BindType::WhenCreating &&
+	if( parameter->CommonValues.TranslationBindType == BindType::WhenCreating ||
+		parameter->CommonValues.RotationBindType == BindType::WhenCreating ||
 		parameter->CommonValues.ScalingBindType == BindType::WhenCreating )
 	{
-		for( int m = 0; m < 3; m++ )
-		{
-			for( int n = 0; n < 3; n++ )
-			{
-				m_ParentMatrix43.Value[m][n] = m_pParent->m_GlobalMatrix43.Value[m][n];
-			}
-		}
+		m_ParentMatrix = parentMatrix;
+		assert(m_ParentMatrix.IsValid());
 	}
-	else if ( parameter->CommonValues.RotationBindType == BindType::WhenCreating )
-	{
-		for( int m = 0; m < 3; m++ )
-		{
-			for( int n = 0; n < 3; n++ )
-			{
-				m_ParentMatrix43.Value[m][n] = m_pParent->m_GlobalMatrix43.Value[m][n];
-			}
-		}
 
-		float s[3];
-		for( int m = 0; m < 3; m++ )
-		{
-			s[m] = 0;
-			for( int n = 0; n < 3; n++ )
-			{
-				s[m] += m_ParentMatrix43.Value[m][n] * m_ParentMatrix43.Value[m][n];
-			}
-			s[m] = sqrt( s[m] );
-		}
-
-		for( int m = 0; m < 3; m++ )
-		{
-			for( int n = 0; n < 3; n++ )
-			{
-				m_ParentMatrix43.Value[m][n] = m_ParentMatrix43.Value[m][n] / s[m];
-			}
-		}
-	}
-	else if ( parameter->CommonValues.ScalingBindType == BindType::WhenCreating )
-	{
-		float s[3];
-		for( int m = 0; m < 3; m++ )
-		{
-			s[m] = 0;
-			for( int n = 0; n < 3; n++ )
-			{
-				s[m] += m_pParent->m_GlobalMatrix43.Value[m][n] * m_pParent->m_GlobalMatrix43.Value[m][n];
-			}
-			s[m] = sqrt( s[m] );
-		}
-		m_ParentMatrix43.Value[0][0] = s[0];
-		m_ParentMatrix43.Value[1][1] = s[1];
-		m_ParentMatrix43.Value[2][2] = s[2];
-	}
-	
 	// Initialize parent color
 	if (parameter->RendererCommon.ColorBindType == BindType::Always)
 	{
@@ -17983,8 +18089,17 @@ void Instance::Initialize( Instance* parent, int32_t instanceNumber, int32_t par
 
 	m_pEffectNode->InitializeRenderedInstance(*this, m_pManager);
 
-	// Generate zero frame effect
-	GenerateChildrenInRequired(0.0f);
+	if (IsRequiredToCreateChildren(0.0f))
+	{
+		// calculate myself to update children group matrix
+		CalculateMatrix(0);
+
+		// for new children
+		UpdateChildrenGroupMatrix();
+
+		// Generate zero frame effect
+		GenerateChildrenInRequired(0.0f);
+	}
 }
 
 //----------------------------------------------------------------------------------
@@ -18054,7 +18169,15 @@ void Instance::Update( float deltaFrame, bool shown )
 	{
 		GenerateChildrenInRequired(originalTime + deltaFrame);
 	}
-	
+
+	UpdateChildrenGroupMatrix();
+	/*
+	for (InstanceGroup* group = childrenGroups_; group != nullptr; group = group->NextUsedByInstance)
+	{
+		group->SetParentMatrix(m_GlobalMatrix43);
+	}
+	*/
+
 	// check whether killed?
 	bool killed = false;
 	if( m_pEffectNode->GetType() != EFFECT_NODE_TYPE_ROOT )
@@ -18082,7 +18205,7 @@ void Instance::Update( float deltaFrame, bool shown )
 		if( !killed && m_pEffectNode->CommonValues.RemoveWhenChildrenIsExtinct )
 		{
 			int maxcreate_count = 0;
-			InstanceGroup* group = m_headGroups;
+			InstanceGroup* group = childrenGroups_;
 
 			for (int i = 0; i < m_pEffectNode->GetChildrenCount(); i++, group = group->NextUsedByInstance)
 			{
@@ -18149,13 +18272,13 @@ void Instance::CalculateMatrix( float deltaFrame )
 		CalculateParentMatrix( deltaFrame );
 	}
 
-	Vector3D localPosition;
-	Vector3D localAngle;
-	Vector3D localScaling;
-
 	/* 更新処理 */
 	if( m_pEffectNode->GetType() != EFFECT_NODE_TYPE_ROOT )
 	{
+		Vector3D localPosition;
+		Vector3D localAngle;
+		Vector3D localScaling;
+
 		/* 位置の更新(時間から直接求めれるよう対応済み) */
 		if( m_pEffectNode->TranslationType == ParameterTranslationType_None )
 		{
@@ -18341,58 +18464,53 @@ void Instance::CalculateMatrix( float deltaFrame )
 
 		/* 描画部分の更新 */
 		m_pEffectNode->UpdateRenderedInstance( *this, m_pManager );
-	}
-	
-	// 行列の更新
-	if( m_pEffectNode->GetType() != EFFECT_NODE_TYPE_ROOT )
-	{
-		m_GlobalMatrix43.Scaling( localScaling.X, localScaling.Y,  localScaling.Z );
 
+		// 回転行列の作成
+		Matrix43 MatRot;
 		if( m_pEffectNode->RotationType == ParameterRotationType_Fixed ||
 			m_pEffectNode->RotationType == ParameterRotationType_PVA ||
 			m_pEffectNode->RotationType == ParameterRotationType_Easing ||
 			m_pEffectNode->RotationType == ParameterRotationType_FCurve )
 		{
-			Matrix43 MatRot;
 			MatRot.RotationZXY( localAngle.Z, localAngle.X, localAngle.Y );
-			Matrix43::Multiple( m_GlobalMatrix43, m_GlobalMatrix43, MatRot );
 		}
 		else if( m_pEffectNode->RotationType == ParameterRotationType_AxisPVA ||
 				 m_pEffectNode->RotationType == ParameterRotationType_AxisEasing )
 		{
-			Matrix43 MatRot;
 			Vector3D axis;
 			axis.X = rotation_values.axis.axis.x;
 			axis.Y = rotation_values.axis.axis.y;
 			axis.Z = rotation_values.axis.axis.z;
 
 			MatRot.RotationAxis( axis, rotation_values.axis.rotation );
-			Matrix43::Multiple( m_GlobalMatrix43, m_GlobalMatrix43, MatRot );
+		}
+		else
+		{
+			MatRot.Indentity();
 		}
 
-		if( localPosition.X != 0.0f ||
-			localPosition.Y != 0.0f || 
-			localPosition.Z != 0.0f )
-		{
-			Matrix43 MatTra;
-			MatTra.Translation( localPosition.X, localPosition.Y, localPosition.Z );
-			Matrix43::Multiple( m_GlobalMatrix43, m_GlobalMatrix43, MatTra );
-		}
+		// 行列の更新
+		m_GlobalMatrix43.SetSRT( localScaling, MatRot, localPosition );
+		assert(m_GlobalMatrix43.IsValid());
 
 		if( m_pEffectNode->GenerationLocation.EffectsRotation )
 		{
 			Matrix43::Multiple( m_GlobalMatrix43, m_GlobalMatrix43, m_GenerationLocation );
+			assert(m_GlobalMatrix43.IsValid());
 		}
 
-		Matrix43::Multiple( m_GlobalMatrix43, m_GlobalMatrix43, m_ParentMatrix43 );
-		
-		Vector3D currentPosition;
-		m_GlobalMatrix43.GetTranslation( currentPosition );
-		m_GlobalVelocity = currentPosition - m_GlobalPosition;
-		m_GlobalPosition = currentPosition;
+		Matrix43::Multiple( m_GlobalMatrix43, m_GlobalMatrix43, m_ParentMatrix );
+		assert(m_GlobalMatrix43.IsValid());
 
 		if( m_pEffectNode->LocationAbs.type != LocationAbsType::None )
 		{
+			Vector3D currentPosition;
+			m_GlobalMatrix43.GetTranslation( currentPosition );
+			assert(m_GlobalMatrix43.IsValid());
+
+			m_GlobalVelocity = currentPosition - m_GlobalPosition;
+			m_GlobalPosition = currentPosition;
+
 			ModifyMatrixFromLocationAbs( deltaFrame );
 		}
 	}
@@ -18408,75 +18526,44 @@ void Instance::CalculateParentMatrix( float deltaFrame )
 	// 親の行列を計算
 	m_pParent->CalculateMatrix( deltaFrame );
 
-	if( m_pEffectNode->GetType() != EFFECT_NODE_TYPE_ROOT )
+	if (m_pEffectNode->GetType() != EFFECT_NODE_TYPE_ROOT)
 	{
-		BindType lType = m_pEffectNode->CommonValues.TranslationBindType;
+		BindType tType = m_pEffectNode->CommonValues.TranslationBindType;
 		BindType rType = m_pEffectNode->CommonValues.RotationBindType;
 		BindType sType = m_pEffectNode->CommonValues.ScalingBindType;
 
-		const Instance* rootInstance;
-		InstanceGlobal* instanceGlobal = m_pContainer->GetRootInstance();
-		InstanceContainer* rootContainer = instanceGlobal->GetRootContainer();
-		InstanceGroup* firstGloup = rootContainer->GetFirstGroup();
-		if( firstGloup && firstGloup->GetInstanceCount() > 0 )
+		if (tType == BindType::WhenCreating && rType == BindType::WhenCreating && sType == BindType::WhenCreating)
 		{
-			rootInstance = firstGloup->GetFirst();
+			// do not do anything
 		}
-		else
+		else if (tType == BindType::Always && rType == BindType::Always && sType == BindType::Always)
 		{
-			rootInstance = NULL;
-		}
-		
-		if( (lType == BindType::Always && rType == BindType::Always && sType == BindType::Always) )
-		{
-			m_ParentMatrix43 = m_pParent->GetGlobalMatrix43();
-		}
-		else if ( lType == BindType::NotBind_Root && rType == BindType::NotBind_Root && sType == BindType::NotBind_Root )
-		{
-			m_ParentMatrix43 = rootInstance->GetGlobalMatrix43();
+			m_ParentMatrix = ownGroup_->GetParentMatrix();
+			assert(m_ParentMatrix.IsValid());
 		}
 		else
 		{
 			Vector3D s, t;
 			Matrix43 r;
 
-			m_ParentMatrix43.GetSRT( s, r, t );
-			
-			if( lType == BindType::Always )
-			{
-				m_pParent->GetGlobalMatrix43().GetTranslation( t );
-			}
-			else if( lType == BindType::NotBind_Root && rootInstance != NULL )
-			{
-				rootInstance->GetGlobalMatrix43().GetTranslation( t );
-			}
-			
-			if( rType == BindType::Always )
-			{
-				m_pParent->GetGlobalMatrix43().GetRotation( r );
-			}
-			else if( rType == BindType::NotBind_Root && rootInstance != NULL )
-			{
-				rootInstance->GetGlobalMatrix43().GetRotation( r );
-			}
-			
+			if (tType == BindType::WhenCreating)
+				m_ParentMatrix.GetTranslation(t);
+			else
+				t = ownGroup_->GetParentTranslation();
 
-			if( sType == BindType::Always )
-			{
-				m_pParent->GetGlobalMatrix43().GetScale( s );
-			}
-			else if( sType == BindType::NotBind_Root && rootInstance != NULL )
-			{
-				rootInstance->GetGlobalMatrix43().GetScale( s );
-			}
+			if (rType == BindType::WhenCreating)
+				m_ParentMatrix.GetRotation(r);
+			else
+				r = ownGroup_->GetParentRotation();
 
-			m_ParentMatrix43.SetSRT( s, r, t );
+			if (sType == BindType::WhenCreating)
+				m_ParentMatrix.GetScale(s);
+			else
+				s = ownGroup_->GetParentScale();
+
+			m_ParentMatrix.SetSRT(s, r, t);
+			assert(m_ParentMatrix.IsValid());
 		}
-	}
-	else
-	{
-		// Rootの場合
-		m_ParentMatrix43 = m_pParent->GetGlobalMatrix43();
 	}
 
 	m_ParentMatrix43Calculated = true;
@@ -18545,6 +18632,7 @@ void Instance::ModifyMatrixFromLocationAbs( float deltaFrame )
 	Matrix43 MatTraGlobal;
 	MatTraGlobal.Translation( m_GlobalRevisionLocation.X, m_GlobalRevisionLocation.Y, m_GlobalRevisionLocation.Z );
 	Matrix43::Multiple( m_GlobalMatrix43, m_GlobalMatrix43, MatTraGlobal );
+	assert(m_GlobalMatrix43.IsValid());
 }
 
 //----------------------------------------------------------------------------------
@@ -18571,7 +18659,7 @@ void Instance::Kill()
 {
 	if( m_State == INSTANCE_STATE_ACTIVE )
 	{
-		for( InstanceGroup* group = m_headGroups; group != NULL; group = group->NextUsedByInstance )
+		for( InstanceGroup* group = childrenGroups_; group != NULL; group = group->NextUsedByInstance )
 		{
 			group->IsReferencedFromInstance = false;
 		}
@@ -18728,6 +18816,59 @@ std::array<float, 4> Instance::GetCustomData(int32_t index) const
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
+
+
+
+
+namespace Effekseer
+{
+
+InstanceChunk::InstanceChunk() { std::fill(instancesAlive_.begin(), instancesAlive_.end(), false); }
+
+InstanceChunk::~InstanceChunk() {}
+
+void InstanceChunk::UpdateInstances(float deltaFrame)
+{
+	for (int32_t i = 0; i < InstancesOfChunk; i++)
+	{
+		if (instancesAlive_[i])
+		{
+			Instance* instance = reinterpret_cast<Instance*>(instances_[i]);
+
+			if (instance->m_State == INSTANCE_STATE_ACTIVE)
+			{
+				instance->Update(deltaFrame, true);
+			}
+			else if (instance->m_State == INSTANCE_STATE_REMOVING)
+			{
+				// start to remove
+				instance->m_State = INSTANCE_STATE_REMOVED;
+			}
+			else if (instance->m_State == INSTANCE_STATE_REMOVED)
+			{
+				instance->~Instance();
+				instancesAlive_[i] = false;
+				aliveCount_--;
+			}
+		}
+	}
+}
+
+Instance* InstanceChunk::CreateInstance(Manager* pManager, EffectNode* pEffectNode, InstanceContainer* pContainer, InstanceGroup* pGroup)
+{
+	for (int32_t i = 0; i < InstancesOfChunk; i++)
+	{
+		if (!instancesAlive_[i])
+		{
+			instancesAlive_[i] = true;
+			aliveCount_++;
+			return new (instances_[i]) Instance(pManager, pEffectNode, pContainer, pGroup);
+		}
+	}
+	return nullptr;
+}
+
+} // namespace Effekseer
 
 
 
@@ -18904,14 +19045,6 @@ namespace Effekseer
 {
 
 
-void* InstanceGroup::operator new(size_t size)
-{
-	assert(sizeof(InstanceGroup) == size);
-	return GetMallocFunc()(size);
-}
-
-void InstanceGroup::operator delete(void* p) { GetFreeFunc()(p, sizeof(InstanceGroup)); }
-
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
@@ -18925,7 +19058,7 @@ InstanceGroup::InstanceGroup( Manager* manager, EffectNode* effectNode, Instance
 	, NextUsedByInstance	( NULL )
 	, NextUsedByContainer	( NULL )
 {
-
+	parentMatrix_.Indentity();
 }
 
 //----------------------------------------------------------------------------------
@@ -18939,63 +19072,17 @@ InstanceGroup::~InstanceGroup()
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-void InstanceGroup::RemoveInvalidInstances()
-{
-	auto it = m_removingInstances.begin();
-
-	while( it != m_removingInstances.end() )
-	{
-		auto instance = *it;
-
-		if( instance->m_State == INSTANCE_STATE_ACTIVE )
-		{
-			assert(0);
-		}
-		else if( instance->m_State == INSTANCE_STATE_REMOVING )
-		{
-			// 削除中処理
-			instance->m_State = INSTANCE_STATE_REMOVED;
-			it++;
-		}
-		else if( instance->m_State == INSTANCE_STATE_REMOVED )
-		{
-			it = m_removingInstances.erase( it );
-
-			// 削除処理
-			if( instance->m_pEffectNode->GetType() == EFFECT_NODE_TYPE_ROOT )
-			{
-				delete instance;
-			}
-			else
-			{
-				instance->~Instance();
-				m_manager->PushInstance( instance );
-			}
-
-			m_global->DecInstanceCount();
-		}
-	}
-}
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
 Instance* InstanceGroup::CreateInstance()
 {
 	Instance* instance = NULL;
 
-	if( m_effectNode->GetType() == EFFECT_NODE_TYPE_ROOT )
-	{
-		instance = new Instance( m_manager, m_effectNode, m_container );
-	}
-	else
-	{
-		Instance* buf = m_manager->PopInstance();
-		if( buf == NULL ) return NULL;
-		instance = new(buf)Instance( m_manager, m_effectNode, m_container );
-	}
+	instance = m_manager->CreateInstance( m_effectNode, m_container, this );
 	
-	m_instances.push_back( instance );
-	m_global->IncInstanceCount();
+	if( instance )
+	{
+		m_instances.push_back( instance );
+		m_global->IncInstanceCount();
+	}
 	return instance;
 }
 
@@ -19022,39 +19109,20 @@ int InstanceGroup::GetInstanceCount() const
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-int InstanceGroup::GetRemovingInstanceCount() const
-{
-	return (int32_t)m_removingInstances.size();
-}
-
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
 void InstanceGroup::Update( float deltaFrame, bool shown )
 {
-	RemoveInvalidInstances();
-
-	auto it = m_instances.begin();
-
-	while( it != m_instances.end() )
+	for (auto it = m_instances.begin(); it != m_instances.end();)
 	{
 		auto instance = *it;
 
-		if( instance->m_State == INSTANCE_STATE_ACTIVE )
+		if (instance->m_State != INSTANCE_STATE_ACTIVE)
 		{
-			// 更新処理
-			instance->Update( deltaFrame, shown );
-
-			// 破棄チェック
-			if( instance->m_State != INSTANCE_STATE_ACTIVE )
-			{
-				it = m_instances.erase( it );
-				m_removingInstances.push_back( instance );
-			}
-			else
-			{
-				it++;
-			}
+			it = m_instances.erase(it);
+			m_global->DecInstanceCount();
+		}
+		else
+		{
+			it++;
 		}
 	}
 
@@ -19071,6 +19139,74 @@ void InstanceGroup::SetBaseMatrix( const Matrix43& mat )
 		if (instance->m_State == INSTANCE_STATE_ACTIVE)
 		{
 			Matrix43::Multiple(instance->m_GlobalMatrix43, instance->m_GlobalMatrix43, mat);
+			assert(instance->m_GlobalMatrix43.IsValid());
+		}
+	}
+}
+
+void InstanceGroup::SetParentMatrix(const Matrix43& mat)
+{
+	BindType tType = m_effectNode->CommonValues.TranslationBindType;
+	BindType rType = m_effectNode->CommonValues.RotationBindType;
+	BindType sType = m_effectNode->CommonValues.ScalingBindType;
+
+	auto rootGroup = m_global->GetRootContainer()->GetFirstGroup();
+
+	if (tType == BindType::Always && rType == BindType::Always && sType == BindType::Always)
+	{
+		parentMatrix_ = mat;
+	}
+	else if (tType == BindType::NotBind_Root && rType == BindType::NotBind_Root && sType == BindType::NotBind_Root)
+	{
+		parentMatrix_ = rootGroup->GetParentMatrix();
+	}
+	else if (tType == BindType::WhenCreating && rType == BindType::WhenCreating && sType == BindType::WhenCreating)
+	{
+		// don't do anything
+	}
+	else
+	{
+		Vector3D s, t;
+		Matrix43 r;
+		mat.GetSRT(s, r, t);
+
+		if (tType == BindType::Always)
+		{
+			parentTranslation_ = t;
+		}
+		else if (tType == BindType::NotBind_Root)
+		{
+			parentTranslation_ = rootGroup->GetParentTranslation();
+		}
+		else if (tType == BindType::NotBind)
+		{
+			parentTranslation_ = Vector3D(0.0f, 0.0f, 0.0f);
+		}
+
+		if (rType == BindType::Always)
+		{
+			parentRotation_ = r;
+		}
+		else if (rType == BindType::NotBind_Root)
+		{
+			parentRotation_ = rootGroup->GetParentRotation();
+		}
+		else if (rType == BindType::NotBind)
+		{
+			parentRotation_.Indentity();
+		}
+
+		if (sType == BindType::Always)
+		{
+			parentScale_ = s;
+		}
+		else if (sType == BindType::NotBind_Root)
+		{
+			parentScale_ = rootGroup->GetParentScale();
+		}
+		else if (sType == BindType::NotBind)
+		{
+			parentScale_ = Vector3D(1.0f, 1.0f, 1.0f);
 		}
 	}
 }
@@ -19081,9 +19217,6 @@ void InstanceGroup::SetBaseMatrix( const Matrix43& mat )
 void InstanceGroup::RemoveForcibly()
 {
 	KillAllInstances();
-
-	RemoveInvalidInstances();
-	RemoveInvalidInstances();
 }
 
 //----------------------------------------------------------------------------------
@@ -19099,7 +19232,6 @@ void InstanceGroup::KillAllInstances()
 		if (instance->GetState() == INSTANCE_STATE_ACTIVE)
 		{
 			instance->Kill();
-			m_removingInstances.push_back(instance);
 		}
 	}
 }

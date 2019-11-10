@@ -300,7 +300,7 @@ namespace efk
 		bool										isDistortionEnabled = false;
 
 		bool										isDistorted = false;
-
+		float time_ = 0.0f;
 		InternalManager*	internalManager_ = nullptr;
 
 		cocos2d::CustomCommand					distortionCommand;

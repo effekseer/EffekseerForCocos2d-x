@@ -711,6 +711,7 @@ class EffectNodeModel;
 class InstanceGlobal;
 class InstanceContainer;
 class Instance;
+class InstanceChunk;
 class InstanceGroup;
 
 class ParticleRenderer;
@@ -1386,7 +1387,6 @@ struct Matrix44;
 	[2,0][2,1][2,2]<BR>
 	[3,0][3,1][3,2]<BR>
 */
-#pragma pack(push,1)
 struct Matrix43
 {
 private:
@@ -1507,6 +1507,11 @@ public:
 	void ToMatrix44(Matrix44& dst);
 
 	/**
+		@brief	check whether all values are not valid number(not nan, not inf)
+	*/
+	bool IsValid() const;
+
+	/**
 		@brief	行列同士の乗算を行う。
 		@param	out	[out]	結果
 		@param	in1	[in]	乗算の左側
@@ -1515,7 +1520,6 @@ public:
 	static void Multiple( Matrix43& out, const Matrix43& in1, const Matrix43& in2 );
 };
 
-#pragma pack(pop)
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
@@ -1735,21 +1739,27 @@ public:
 };
 
 /**
-	@brief	ファイルアクセス用のファクトリクラス
+	@brief
+	\~English	factory class for io
+	\~Japanese	IOのためのファクトリークラス
 */
 class FileInterface
 {
 private:
-
 public:
-	virtual FileReader* OpenRead( const EFK_CHAR* path ) = 0;
+	virtual FileReader* OpenRead(const EFK_CHAR* path) = 0;
 
-	virtual FileWriter* OpenWrite( const EFK_CHAR* path ) = 0;
+	/**
+		@brief
+		\~English	try to open a reader. It need not to succeeds in opening it.
+		\~Japanese	リーダーを開くことを試します。成功する必要はありません。
+	*/
+	virtual FileReader* TryOpenRead(const EFK_CHAR* path) { return OpenRead(path); }
+
+	virtual FileWriter* OpenWrite(const EFK_CHAR* path) = 0;
 };
 
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
+
  } 
 //----------------------------------------------------------------------------------
 //
@@ -2432,6 +2442,13 @@ public:
 	virtual Effect* GetEffect() const = 0;
 
 	/**
+	@brief	
+	\~English	Get a generation in the node tree. The generation increases by 1 as it moves a child node.
+	\~Japanese	ノードツリーの世代を取得する。世代は子のノードになるにしたがって1増える。
+	*/
+	virtual int GetGeneration() const = 0;
+
+	/**
 	@brief	子のノードの数を取得する。
 	*/
 	virtual int GetChildrenCount() const = 0;
@@ -2775,6 +2792,23 @@ public:
 		最初に確保した個数よりも多く存在する。
 	*/
 	virtual int32_t GetInstanceCount( Handle handle ) = 0;
+	
+	/**
+		@brief
+		\~English Get the number of instances which is used in playing effects
+		\~Japanese 全てのエフェクトに使用されているインスタンス数を取得する。
+		@return	
+		\~English The number of instances
+		\~Japanese インスタンス数
+		@note
+		\~English 
+		The number of Root is included. 
+		This means that the number of used instances added resting resting instances is larger than the number of allocated onces by the number of root.
+		\~Japanese 
+		Rootも個数に含まれる。つまり、Root削除をしていない限り、
+		Managerに残っているインスタンス数+エフェクトに使用されているインスタンス数は、最初に確保した個数よりも存在しているRootの数の分だけ多く存在する。
+	*/
+	virtual int32_t GetTotalInstanceCount() const = 0;
 
 	/**
 		@brief	エフェクトのインスタンスに設定されている行列を取得する。
@@ -3122,7 +3156,9 @@ public:
 	virtual int GetDrawTime() const = 0;
 
 	/**
-		@brief	残りの確保したインスタンス数を取得する。
+		@brief
+		\~English	Gets the number of remaining allocated instances.
+		\~Japanese	残りの確保したインスタンス数を取得する。
 	*/
 	virtual int32_t GetRestInstancesCount() const = 0;
 
@@ -3555,6 +3591,7 @@ struct NodeRendererTextureUVTypeParameter;
 			//bool				Distortion;
 			//float				DistortionIntensity;
 
+			bool IsRightHand;
 			int32_t				SplineDivision;
 			NodeRendererDepthParameter* DepthParameterPtr = nullptr;
 			NodeRendererBasicParameter* BasicParameterPtr = nullptr;
@@ -3816,6 +3853,7 @@ struct NodeRendererTextureUVTypeParameter;
 
 			int32_t				SplineDivision;
 
+			bool IsRightHand;
 			NodeRendererDepthParameter* DepthParameterPtr = nullptr;
 			NodeRendererBasicParameter* BasicParameterPtr = nullptr;
 			NodeRendererTextureUVTypeParameter* TextureUVTypeParameterPtr = nullptr;

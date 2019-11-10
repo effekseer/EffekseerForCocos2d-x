@@ -54,7 +54,7 @@ namespace efk
 
 		void ReleaseTexture();
 
-		// コピー先のテクスチャを準備
+		// prepare a taget
 		void PrepareTexture(uint32_t width, uint32_t height, GLint internalFormat);
 
 		virtual bool OnDistorting() override;
@@ -340,10 +340,80 @@ namespace efk
 
 #pragma endregion
 
+class CachedMaterialLoader : public ::Effekseer::MaterialLoader
+{
+private:
+	struct Cached
+	{
+		::Effekseer::MaterialData* DataPtr;
+		int32_t Count;
+
+		Cached()
+		{
+			DataPtr = nullptr;
+			Count = 1;
+		}
+	};
+
+	::Effekseer::MaterialLoader* loader_;
+	std::map<std::basic_string<EFK_CHAR>, Cached> cache_;
+	std::map<void*, std::basic_string<EFK_CHAR>> data2key_;
+
+public:
+	CachedMaterialLoader(::Effekseer::MaterialLoader* loader) { this->loader_ = loader; }
+
+	virtual ~CachedMaterialLoader() { ES_SAFE_DELETE(loader_); }
+
+	virtual ::Effekseer::MaterialData* Load(const EFK_CHAR* path) override
+	{
+		auto key = std::basic_string<EFK_CHAR>(path);
+
+		auto it = cache_.find(key);
+
+		if (it != cache_.end())
+		{
+			it->second.Count++;
+			return it->second.DataPtr;
+		}
+
+		Cached v;
+		v.DataPtr = loader_->Load(path);
+
+		if (v.DataPtr != nullptr)
+		{
+			cache_[key] = v;
+			data2key_[v.DataPtr] = key;
+		}
+
+		return v.DataPtr;
+	}
+
+	virtual void Unload(::Effekseer::MaterialData* data) override
+	{
+		if (data == nullptr)
+			return;
+		auto key = data2key_[data];
+
+		auto it = cache_.find(key);
+
+		if (it != cache_.end())
+		{
+			it->second.Count--;
+			if (it->second.Count == 0)
+			{
+				loader_->Unload(it->second.DataPtr);
+				data2key_.erase(data);
+				cache_.erase(key);
+			}
+		}
+	}
+};
+
 #pragma region EffekseerSetting
 	class EffekseerSetting;
 
 	static EffekseerSetting* g_effekseerSetting = nullptr;
+	static ::EffekseerRendererGL::DeviceObjectCollection* g_deviceObjectCollection = nullptr;
 
 	class EffekseerSetting
 		: public ::Effekseer::Setting
@@ -357,12 +427,19 @@ namespace efk
 			SetEffectLoader(Effekseer::Effect::CreateEffectLoader(effectFile));
 			SetTextureLoader(new TextureLoader(effectFile));
 			SetModelLoader(new ::EffekseerRendererGL::ModelLoader(effectFile));
+
+#if (CC_TARGET_PLATFORM == CC_PLATFORM_IOS || CC_TARGET_PLATFORM == CC_PLATFORM_ANDROID)
+			SetMaterialLoader(new CachedMaterialLoader(new ::EffekseerRendererGL::MaterialLoader(EffekseerRendererGL::OpenGLDeviceType::OpenGLES2, nullptr, g_deviceObjectCollection, effectFile)));
+#else
+			SetMaterialLoader(new CachedMaterialLoader(new ::EffekseerRendererGL::MaterialLoader(EffekseerRendererGL::OpenGLDeviceType::OpenGL2, nullptr, g_deviceObjectCollection, effectFile)));
+#endif
 			// TODO sound
 		}
 
 		virtual ~EffekseerSetting()
 		{
 			delete effectFile;
+			ES_SAFE_RELEASE(g_deviceObjectCollection);
 			g_effekseerSetting = nullptr;
 		}
 	public:
@@ -371,6 +448,7 @@ namespace efk
 			if (g_effekseerSetting == nullptr)
 			{
 				g_effekseerSetting = new EffekseerSetting();
+				g_deviceObjectCollection = new ::EffekseerRendererGL::DeviceObjectCollection();
 			}
 			else
 			{
@@ -883,9 +961,9 @@ namespace efk
 #endif
 
 #if (CC_TARGET_PLATFORM == CC_PLATFORM_IOS || CC_TARGET_PLATFORM == CC_PLATFORM_ANDROID)
-		renderer2d = ::EffekseerRendererGL::Renderer::Create(spriteSize, EffekseerRendererGL::OpenGLDeviceType::OpenGLES2);
+		renderer2d = ::EffekseerRendererGL::Renderer::Create(spriteSize, EffekseerRendererGL::OpenGLDeviceType::OpenGLES2, g_deviceObjectCollection);
 #else
-		renderer2d = ::EffekseerRendererGL::Renderer::Create(spriteSize, EffekseerRendererGL::OpenGLDeviceType::OpenGL2);
+		renderer2d = ::EffekseerRendererGL::Renderer::Create(spriteSize, EffekseerRendererGL::OpenGLDeviceType::OpenGL2, g_deviceObjectCollection);
 #endif
 		
 		manager2d = ::Effekseer::Manager::Create(8000);
@@ -1025,6 +1103,8 @@ namespace efk
 	void EffectManager::update()
 	{
 		manager2d->Update();
+		time_ = 1.0f / 60.0f;
+		renderer2d->SetTime(time_);
 	}
 
 #pragma endregion
