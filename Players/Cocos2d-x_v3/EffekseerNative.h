@@ -114,6 +114,12 @@ typedef	void ( EFK_STDCALL *EffectInstanceRemovingCallback ) ( Manager* manager,
 
 #define EFK_ASSERT(x) assert(x)
 
+//! the maximum number of texture slot which can be specified by an user
+const int32_t UserTextureSlotMax = 6;
+
+//! the maximum number of texture slot including textures system specified
+const int32_t TextureSlotMax = 8;
+
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
@@ -537,6 +543,9 @@ struct TextureData
 	TextureFormatType	TextureFormat;
 	void*	UserPtr;
 	int64_t	UserID;
+
+	//! for OpenGL, it is ignored in other apis
+	bool HasMipmap = true;
 };
 
 enum class ShadingModelType : int32_t
@@ -569,8 +578,7 @@ struct MaterialData
 	int32_t CustomData2 = 0;
 	int32_t TextureCount = 0;
 	int32_t UniformCount = 0;
-	//! TODO remove magic number
-	std::array<TextureWrapType, 16> TextureWrapTypes;
+	std::array<TextureWrapType, UserTextureSlotMax> TextureWrapTypes;
 	void* UserPtr = nullptr;
 	void* ModelUserPtr = nullptr;
 	void* RefractionUserPtr = nullptr;
@@ -3257,6 +3265,9 @@ namespace Effekseer
 class Material
 {
 private:
+
+	const int32_t customDataMinCount_ = 2;
+
 	struct Texture
 	{
 		std::string Name;

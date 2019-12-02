@@ -902,8 +902,8 @@ public:
 	\~English	Specify a background texture.
 	\~Japanese	背景のテクスチャを設定する。
 	@note
-	\~English	Specified texture is not deleted by the renderer. This function is available except DirectX9, DirectX11 and OpenGL.
-	\~Japanese	設定されたテクスチャはレンダラーによって削除されない。この関数はDirectX9、DirectX11、OpenGL以外で使用できる。
+	\~English	Specified texture is not deleted by the renderer. This function is available except DirectX9, DirectX11.
+	\~Japanese	設定されたテクスチャはレンダラーによって削除されない。この関数はDirectX9、DirectX11以外で使用できる。
 	*/
 	virtual void SetBackgroundTexture(::Effekseer::TextureData* textureData);
 
@@ -1020,8 +1020,8 @@ public:
 		bool								DepthWrite				: 1;
 		::Effekseer::AlphaBlendType			AlphaBlend;
 		::Effekseer::CullingType			CullingType;
-		::Effekseer::TextureFilterType		TextureFilterTypes[4];
-		::Effekseer::TextureWrapType		TextureWrapTypes[4];
+		std::array<::Effekseer::TextureFilterType, Effekseer::TextureSlotMax> TextureFilterTypes;
+		std::array<::Effekseer::TextureWrapType, Effekseer::TextureSlotMax> TextureWrapTypes;
 
 		State();
 
@@ -1586,15 +1586,10 @@ public:
 			}
 		}
 
-		RenderStateBase::State& state = m_renderer->GetRenderState()->Push();
-		state.DepthTest = m_state.DepthTest;
-		state.DepthWrite = m_state.DepthWrite;
-		state.CullingType = m_state.CullingType;
-		state.AlphaBlend = m_state.AlphaBlend;
-
 		SHADER* shader_ = nullptr;
 
 		bool distortion = m_state.Distortion;
+		bool renderDistortedBackground = false;
 
 		if (m_state.MaterialPtr != nullptr)
 		{
@@ -1608,6 +1603,7 @@ public:
 					}
 
 					shader_ = (SHADER*)m_state.MaterialPtr->RefractionUserPtr;
+					renderDistortedBackground = true;
 				}
 				else
 				{
@@ -1632,6 +1628,17 @@ public:
 		else
 		{
 			shader_ = m_renderer->GetShader(true, m_state.MaterialType);
+		}
+
+		RenderStateBase::State& state = m_renderer->GetRenderState()->Push();
+		state.DepthTest = m_state.DepthTest;
+		state.DepthWrite = m_state.DepthWrite;
+		state.CullingType = m_state.CullingType;
+		state.AlphaBlend = m_state.AlphaBlend;
+
+		if (renderDistortedBackground)
+		{
+			state.AlphaBlend = ::Effekseer::AlphaBlendType::Blend;
 		}
 
 		m_renderer->BeginShader(shader_);
@@ -1702,7 +1709,8 @@ public:
 
 		std::array<float, 4> uvInversed;
 		std::array<float, 4> uvInversedBack;
-
+		std::array<float, 4> uvInversedMaterial;
+		
 		if (m_renderer->GetTextureUVStyle() == UVStyle::VerticalFlipped)
 		{
 			uvInversed[0] = 1.0f;
@@ -1725,6 +1733,10 @@ public:
 			uvInversedBack[1] = 1.0f;
 		}
 
+		uvInversedMaterial[0] = uvInversed[0];
+		uvInversedMaterial[1] = uvInversed[1];
+		uvInversedMaterial[2] = uvInversedBack[0];
+		uvInversedMaterial[3] = uvInversedBack[1];
 
 		if (m_state.MaterialPtr != nullptr)
 		{
@@ -1741,7 +1753,7 @@ public:
 			m_renderer->SetVertexBufferToShader(&mProj, sizeof(Effekseer::Matrix44), vsOffset);
 			vsOffset += sizeof(Effekseer::Matrix44);
 
-			m_renderer->SetVertexBufferToShader(uvInversed.data(), sizeof(float) * 4, vsOffset);
+			m_renderer->SetVertexBufferToShader(uvInversedMaterial.data(), sizeof(float) * 4, vsOffset);
 			vsOffset += (sizeof(float) * 4);
 
 			m_renderer->SetVertexBufferToShader(predefined_uniforms.data(), sizeof(float) * 4, vsOffset);
@@ -1755,7 +1767,7 @@ public:
 			
 			// ps
 			int32_t psOffset = 0;
-			m_renderer->SetPixelBufferToShader(uvInversedBack.data(), sizeof(float) * 4, psOffset);
+			m_renderer->SetPixelBufferToShader(uvInversedMaterial.data(), sizeof(float) * 4, psOffset);
 			psOffset += (sizeof(float) * 4);
 
 			m_renderer->SetPixelBufferToShader(predefined_uniforms.data(), sizeof(float) * 4, psOffset);
@@ -2122,7 +2134,7 @@ public:
 		
 		int32_t renderPassCount = 1;
 
-		if (param.BasicParameterPtr->MaterialParameterPtr != nullptr)
+		if (param.BasicParameterPtr->MaterialParameterPtr != nullptr && param.BasicParameterPtr->MaterialParameterPtr->MaterialIndex >= 0)
 		{
 			auto materialData = param.EffectPointer->GetMaterial(param.BasicParameterPtr->MaterialParameterPtr->MaterialIndex);
 			if (materialData != nullptr && materialData->IsRefractionRequired)
@@ -2249,7 +2261,7 @@ public:
 
 		isBackgroundRequired |= (param.BasicParameterPtr->MaterialType == Effekseer::RendererMaterialType::BackDistortion);
 
-		if (param.BasicParameterPtr->MaterialParameterPtr != nullptr)
+		if (param.BasicParameterPtr->MaterialParameterPtr != nullptr && param.BasicParameterPtr->MaterialParameterPtr->MaterialIndex >= 0)
 		{
 			auto materialData = param.EffectPointer->GetMaterial(param.BasicParameterPtr->MaterialParameterPtr->MaterialIndex);
 			if (materialData != nullptr && materialData->IsRefractionRequired && renderPassInd == 0)
@@ -2275,19 +2287,15 @@ public:
 		if (isBackgroundRequired && renderer->GetBackground() == 0)
 			return;
 
-		RenderStateBase::State& state = renderer->GetRenderState()->Push();
-		state.DepthTest = param.ZTest;
-		state.DepthWrite = param.ZWrite;
-		state.AlphaBlend = param.BasicParameterPtr->AlphaBlend;
-		state.CullingType = param.Culling;
-
 		// select shader
 		Effekseer::MaterialParameter* materialParam = param.BasicParameterPtr->MaterialParameterPtr;
 		//materialParam = nullptr;
 		Effekseer::MaterialData* material = nullptr;
 		SHADER* shader_ = nullptr;
-		
-		if (materialParam != nullptr && param.EffectPointer->GetMaterial(materialParam->MaterialIndex) != nullptr)
+		bool renderDistortedBackground = false;
+
+		if (materialParam != nullptr && materialParam->MaterialIndex >= 0 &&
+			param.EffectPointer->GetMaterial(materialParam->MaterialIndex) != nullptr)
 		{
 			material = param.EffectPointer->GetMaterial(materialParam->MaterialIndex);
 
@@ -2295,7 +2303,8 @@ public:
 			{
 				if (renderPassInd == 0)
 				{
-					shader_ = (SHADER*)material->RefractionModelUserPtr;				
+					shader_ = (SHADER*)material->RefractionModelUserPtr;
+					renderDistortedBackground = true;
 				}
 				else
 				{
@@ -2313,8 +2322,8 @@ public:
 				return;
 			}
 
-			if (material->TextureCount != materialParam->MaterialTextures.size() ||
-				material->UniformCount != materialParam->MaterialUniforms.size())
+			if (material != nullptr && (material->TextureCount != materialParam->MaterialTextures.size() ||
+				material->UniformCount != materialParam->MaterialUniforms.size()))
 			{
 				return;			
 			}
@@ -2370,19 +2379,32 @@ public:
 			}
 		}
 
+		RenderStateBase::State& state = renderer->GetRenderState()->Push();
+		state.DepthTest = param.ZTest;
+		state.DepthWrite = param.ZWrite;
+		state.AlphaBlend = param.BasicParameterPtr->AlphaBlend;
+		state.CullingType = param.Culling;
+
+		if (renderDistortedBackground)
+		{
+			state.AlphaBlend = ::Effekseer::AlphaBlendType::Blend;
+		}
+
 		renderer->BeginShader(shader_);
 
 		// Select texture
-		if (materialParam != nullptr)
+		if (materialParam != nullptr && material != nullptr)
 		{
+			int32_t textureCount = 0;
+			std::array<Effekseer::TextureData*, ::Effekseer::TextureSlotMax> textures;
+
 			if (materialParam->MaterialTextures.size() > 0)
 			{
-				std::array<Effekseer::TextureData*, 16> textures;
-				int32_t textureCount = Effekseer::Min(materialParam->MaterialTextures.size(), textures.size() - 1);
+				textureCount = Effekseer::Min(materialParam->MaterialTextures.size(), ::Effekseer::UserTextureSlotMax);
 
 				auto effect = param.EffectPointer;
 
-				for (size_t i = 0; i < Effekseer::Min(materialParam->MaterialTextures.size(), textures.size()); i++)
+				for (size_t i = 0; i < textureCount; i++)
 				{
 					if (materialParam->MaterialTextures[i].Type == 1)
 					{
@@ -2410,16 +2432,19 @@ public:
 					state.TextureFilterTypes[i] = Effekseer::TextureFilterType::Linear;
 					state.TextureWrapTypes[i] = material->TextureWrapTypes[i];
 				}
+			}
 
-				if (renderer->GetBackground() != 0)
-				{
-					textures[textureCount] = renderer->GetBackground();
-					state.TextureFilterTypes[textureCount] = Effekseer::TextureFilterType::Linear;
-					state.TextureWrapTypes[textureCount] = Effekseer::TextureWrapType::Clamp;
-					textureCount += 1;
-				}
+			if (renderer->GetBackground() != 0)
+			{
+				textures[textureCount] = renderer->GetBackground();
+				state.TextureFilterTypes[textureCount] = Effekseer::TextureFilterType::Linear;
+				state.TextureWrapTypes[textureCount] = Effekseer::TextureWrapType::Clamp;
+				textureCount += 1;
+			}
 
-				renderer->SetTextures(shader_, textures.data(), textureCount);
+			if (textureCount > 0)
+			{
+				renderer->SetTextures(shader_, textures.data(), textureCount);			
 			}
 		}
 		else
@@ -2486,7 +2511,8 @@ public:
 
 		std::array<float, 4> uvInversed;
 		std::array<float, 4> uvInversedBack;
-
+		std::array<float, 4> uvInversedMaterial;
+		
 		if (renderer->GetTextureUVStyle() == UVStyle::VerticalFlipped)
 		{
 			uvInversed[0] = 1.0f;
@@ -2509,6 +2535,11 @@ public:
 			uvInversedBack[1] = 1.0f;
 		}
 
+		uvInversedMaterial[0] = uvInversed[0];
+		uvInversedMaterial[1] = uvInversed[1];
+		uvInversedMaterial[2] = uvInversedBack[0];
+		uvInversedMaterial[3] = uvInversedBack[1];
+
 		ModelRendererVertexConstantBuffer<InstanceCount>* vcb =
 			(ModelRendererVertexConstantBuffer<InstanceCount>*)shader_->GetVertexConstantBuffer();
 
@@ -2525,7 +2556,7 @@ public:
 			// vs
 			int32_t vsOffset = sizeof(Effekseer::Matrix44) + (sizeof(Effekseer::Matrix44) + sizeof(float) * 4 * 2) * InstanceCount;
 
-			renderer->SetVertexBufferToShader(uvInversed.data(), sizeof(float) * 4, vsOffset);
+			renderer->SetVertexBufferToShader(uvInversedMaterial.data(), sizeof(float) * 4, vsOffset);
 			vsOffset += (sizeof(float) * 4);
 
 			renderer->SetVertexBufferToShader(predefined_uniforms.data(), sizeof(float) * 4, vsOffset);
@@ -2553,7 +2584,7 @@ public:
 
 			// ps
 			int32_t psOffset = 0;
-			renderer->SetPixelBufferToShader(uvInversedBack.data(), sizeof(float) * 4, psOffset);
+			renderer->SetPixelBufferToShader(uvInversedMaterial.data(), sizeof(float) * 4, psOffset);
 			psOffset += (sizeof(float) * 4);
 
 			renderer->SetPixelBufferToShader(predefined_uniforms.data(), sizeof(float) * 4, psOffset);
@@ -5787,6 +5818,7 @@ private:
 	OpenGLDeviceType deviceType_;
 	Renderer* renderer_ = nullptr;
 	DeviceObjectCollection* deviceObjectCollection_ = nullptr;
+	bool canLoadFromCache_ = false;
 
 	::Effekseer::FileInterface* fileInterface_ = nullptr;
 	::Effekseer::DefaultFileInterface defaultFileInterface_;
@@ -5795,9 +5827,10 @@ private:
 
 public:
 	MaterialLoader(OpenGLDeviceType deviceType,
-		Renderer* renderer,
+				   Renderer* renderer,
 				   DeviceObjectCollection* deviceObjectCollection,
-				   ::Effekseer::FileInterface* fileInterface);
+				   ::Effekseer::FileInterface* fileInterface,
+				   bool canLoadFromCache = true);
 	virtual ~MaterialLoader();
 
 	::Effekseer::MaterialData* Load(const EFK_CHAR* path) override;
@@ -5878,6 +5911,8 @@ public:
 	MaterialCompilerGL() = default;
 
 	virtual ~MaterialCompilerGL() = default;
+
+	CompiledMaterialBinary* Compile(Material* material, int32_t maximumTextureCount);
 
 	CompiledMaterialBinary* Compile(Material* material) override;
 

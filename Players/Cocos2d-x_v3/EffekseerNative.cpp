@@ -295,11 +295,25 @@ int32_t Material::GetUniformCount() const { return static_cast<int32_t>(uniforms
 
 void Material::SetUniformCount(int32_t count) { uniforms_.resize(count); }
 
-int32_t Material::GetCustomData1Count() const { return customData1Count_; }
+int32_t Material::GetCustomData1Count() const
+{
+	if (customData1Count_ == 0)
+		return 0;
+
+	// because opengl doesn't support swizzle with float
+	return std::max(customDataMinCount_, customData1Count_);
+}
 
 void Material::SetCustomData1Count(int32_t count) { customData1Count_ = count; }
 
-int32_t Material::GetCustomData2Count() const { return customData2Count_; }
+int32_t Material::GetCustomData2Count() const
+{
+	if (customData2Count_ == 0)
+		return 0;
+
+	// because opengl doesn't support swizzle with float
+	return std::max(customDataMinCount_, customData2Count_);
+}
 
 void Material::SetCustomData2Count(int32_t count) { customData2Count_ = count; }
 
@@ -679,9 +693,19 @@ bool EfkEfcProperty::Load(const void* data, int32_t size)
 
 		if (memcmp(&chunk, "INFO", 4) == 0)
 		{
-			auto loadStr = [this, &binaryReader](std::vector<std::u16string>& dst) {
+			int32_t version = 0;
+
+			auto loadStr = [this, &binaryReader, &version](std::vector<std::u16string>& dst) {
 				int32_t dataCount = 0;
 				binaryReader.Read(dataCount);
+
+				// compatibility
+				if (dataCount >= 1500)
+				{
+					version = dataCount;
+					binaryReader.Read(dataCount);
+				}
+
 				dst.resize(dataCount);
 
 				std::vector<char16_t> strBuf;
@@ -701,6 +725,11 @@ bool EfkEfcProperty::Load(const void* data, int32_t size)
 			loadStr(distortionImages_);
 			loadStr(models_);
 			loadStr(sounds_);
+
+			if (version >= 1500)
+			{
+				loadStr(materials_);
+			}
 		}
 
 		binaryReader.AddOffset(chunkSize);
@@ -6230,6 +6259,7 @@ enum ParameterCustomDataType : int32_t
 	Fixed2D = 20,
 	Easing2D = 22,
 	FCurve2D = 23,
+	Fixed4D = 40,
 	FCurveColor = 53,
 	Unknown,
 };
@@ -6262,6 +6292,7 @@ struct ParameterCustomData
 		ParameterCustomDataFixed Fixed;
 		ParameterCustomDataEasing Easing;
 		ParameterCustomDataFCurve FCurve;
+		std::array<float, 4> Fixed4D;
 		ParameterCustomDataFCurveColor FCurveColor;
 	};
 
@@ -6302,6 +6333,11 @@ struct ParameterCustomData
 		{
 			FCurve.Values = new FCurveVector2D();
 			pos += FCurve.Values->Load(pos, version);
+		}
+		else if (Type == ParameterCustomDataType::Fixed4D)
+		{
+			memcpy(Fixed4D.data(), pos, sizeof(float) * 4);
+			pos += sizeof(float) * 4;
 		}
 		else if (Type == ParameterCustomDataType::FCurveColor)
 		{
@@ -9589,6 +9625,8 @@ public:
 
 	void UpdateChildrenGroupMatrix();
 
+	InstanceGlobal* GetInstanceGlobal();
+
 public:
 	/**
 		@brief	状態の取得
@@ -9678,6 +9716,8 @@ public:
 	~InstanceChunk();
 
 	void UpdateInstances(float deltaFrame);
+
+	void UpdateInstancesByInstanceGlobal(InstanceGlobal* global, float deltaFrame);
 
 	Instance* CreateInstance(Manager* pManager, EffectNode* pEffectNode, InstanceContainer* pContainer, InstanceGroup* pGroup);
 
@@ -16130,19 +16170,55 @@ void ManagerImplemented::Flip()
 //----------------------------------------------------------------------------------
 void ManagerImplemented::Update( float deltaFrame )
 {
-	BeginUpdate();
-
 	// start to measure time
 	int64_t beginTime = ::Effekseer::GetTime();
 
-	std::fill(creatableChunkOffsets_.begin(), creatableChunkOffsets_.end(), 0);
+	BeginUpdate();
+
 	for (auto& chunks : instanceChunks_)
 	{
 		for (auto chunk : chunks)
 		{
 			chunk->UpdateInstances(deltaFrame);
 		}
+	}
 
+	for (auto& drawSet : m_DrawSets)
+	{
+		UpdateHandle(drawSet.second, deltaFrame);
+	}
+
+	EndUpdate();
+
+	// end to measure time
+	m_updateTime = (int)(Effekseer::GetTime() - beginTime);
+}
+
+//----------------------------------------------------------------------------------
+//
+//----------------------------------------------------------------------------------
+void ManagerImplemented::BeginUpdate()
+{
+	m_renderingMutex.lock();
+	m_isLockedWithRenderingMutex = true;
+
+	if( m_autoFlip )
+	{
+		Flip();
+	}
+
+	m_sequenceNumber++;
+
+	std::fill(creatableChunkOffsets_.begin(), creatableChunkOffsets_.end(), 0);
+}
+
+//----------------------------------------------------------------------------------
+//
+//----------------------------------------------------------------------------------
+void ManagerImplemented::EndUpdate()
+{
+	for (auto& chunks : instanceChunks_)
+	{
 		auto first = chunks.begin();
 		auto last = chunks.end();
 		while (first != last)
@@ -16160,38 +16236,6 @@ void ManagerImplemented::Update( float deltaFrame )
 		chunks.erase(last, chunks.end());
 	}
 
-	for (auto& drawSet : m_DrawSets)
-	{
-		UpdateHandle(drawSet.second, deltaFrame);
-	}
-
-	// end to measure time
-	m_updateTime = (int)(Effekseer::GetTime() - beginTime);
-
-	EndUpdate();
-}
-
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-void ManagerImplemented::BeginUpdate()
-{
-	m_renderingMutex.lock();
-	m_isLockedWithRenderingMutex = true;
-
-	if( m_autoFlip )
-	{
-		Flip();
-	}
-
-	m_sequenceNumber++;
-}
-
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-void ManagerImplemented::EndUpdate()
-{
 	m_renderingMutex.unlock();
 	m_isLockedWithRenderingMutex = false;
 }
@@ -16201,10 +16245,18 @@ void ManagerImplemented::EndUpdate()
 //----------------------------------------------------------------------------------
 void ManagerImplemented::UpdateHandle( Handle handle, float deltaFrame )
 {
-	std::map<Handle,DrawSet>::iterator it = m_DrawSets.find( handle );
+	auto it = m_DrawSets.find( handle );
 	if( it != m_DrawSets.end() )
 	{
 		DrawSet& drawSet = it->second;
+
+		for (auto& chunks : instanceChunks_)
+		{
+			for (auto chunk : chunks)
+			{
+				chunk->UpdateInstancesByInstanceGlobal(drawSet.GlobalPointer, deltaFrame);
+			}
+		}
 
 		UpdateHandle( drawSet, deltaFrame );
 	}
@@ -17478,6 +17530,14 @@ void Instance::UpdateChildrenGroupMatrix()
 	{
 		group->SetParentMatrix(m_GlobalMatrix43);
 	}
+}
+
+//----------------------------------------------------------------------------------
+//
+//----------------------------------------------------------------------------------
+InstanceGlobal* Instance::GetInstanceGlobal()
+{
+	return m_pContainer->GetRootInstance();
 }
 
 //----------------------------------------------------------------------------------
@@ -18792,6 +18852,10 @@ std::array<float, 4> Instance::GetCustomData(int32_t index) const
 		auto values = parameterCustomData->FCurve.Values->GetValues(m_LivingTime, m_LivedTime);
 		return std::array<float, 4>{values[0] + instanceCustomData->fcruve.offset.x, values[1] + instanceCustomData->fcruve.offset.y, 0, 0};
 	}
+	else if (parameterCustomData->Type == ParameterCustomDataType::Fixed4D)
+	{
+		return parameterCustomData->Fixed4D;
+	}
 	else if (parameterCustomData->Type == ParameterCustomDataType::FCurveColor)
 	{
 		auto values = parameterCustomData->FCurveColor.Values->GetValues(m_LivingTime, m_LivedTime);
@@ -18834,6 +18898,36 @@ void InstanceChunk::UpdateInstances(float deltaFrame)
 		if (instancesAlive_[i])
 		{
 			Instance* instance = reinterpret_cast<Instance*>(instances_[i]);
+
+			if (instance->m_State == INSTANCE_STATE_ACTIVE)
+			{
+				instance->Update(deltaFrame, true);
+			}
+			else if (instance->m_State == INSTANCE_STATE_REMOVING)
+			{
+				// start to remove
+				instance->m_State = INSTANCE_STATE_REMOVED;
+			}
+			else if (instance->m_State == INSTANCE_STATE_REMOVED)
+			{
+				instance->~Instance();
+				instancesAlive_[i] = false;
+				aliveCount_--;
+			}
+		}
+	}
+}
+void InstanceChunk::UpdateInstancesByInstanceGlobal(InstanceGlobal* global, float deltaFrame)
+{
+	for (int32_t i = 0; i < InstancesOfChunk; i++)
+	{
+		if (instancesAlive_[i])
+		{
+			Instance* instance = reinterpret_cast<Instance*>(instances_[i]);
+			
+			if (global != instance->GetInstanceGlobal()) {
+				continue;
+			}
 
 			if (instance->m_State == INSTANCE_STATE_ACTIVE)
 			{

@@ -777,16 +777,8 @@ void RenderStateBase::State::Reset()
 	DepthWrite = false;
 	AlphaBlend = ::Effekseer::AlphaBlendType::Blend;
 	CullingType = ::Effekseer::CullingType::Double;
-
-	TextureFilterTypes[0] = ::Effekseer::TextureFilterType::Nearest;
-	TextureFilterTypes[1] = ::Effekseer::TextureFilterType::Nearest;
-	TextureFilterTypes[2] = ::Effekseer::TextureFilterType::Nearest;
-	TextureFilterTypes[3] = ::Effekseer::TextureFilterType::Nearest;
-	
-	TextureWrapTypes[0] = ::Effekseer::TextureWrapType::Clamp;
-	TextureWrapTypes[1] = ::Effekseer::TextureWrapType::Clamp;
-	TextureWrapTypes[2] = ::Effekseer::TextureWrapType::Clamp;
-	TextureWrapTypes[3] = ::Effekseer::TextureWrapType::Clamp;	
+	TextureFilterTypes.fill(::Effekseer::TextureFilterType::Nearest);
+	TextureWrapTypes.fill(::Effekseer::TextureWrapType::Clamp);
 }
 
 //-----------------------------------------------------------------------------------
@@ -798,15 +790,8 @@ void RenderStateBase::State::CopyTo( State& state )
 	state.DepthWrite = DepthWrite;
 	state.AlphaBlend = AlphaBlend;
 	state.CullingType = CullingType;
-	state.TextureFilterTypes[0] = TextureFilterTypes[0];
-	state.TextureFilterTypes[1] = TextureFilterTypes[1];
-	state.TextureFilterTypes[2] = TextureFilterTypes[2];
-	state.TextureFilterTypes[3] = TextureFilterTypes[3];
-
-	state.TextureWrapTypes[0] = TextureWrapTypes[0];
-	state.TextureWrapTypes[1] = TextureWrapTypes[1];
-	state.TextureWrapTypes[2] = TextureWrapTypes[2];
-	state.TextureWrapTypes[3] = TextureWrapTypes[3];
+	state.TextureFilterTypes = TextureFilterTypes;
+	state.TextureWrapTypes = TextureWrapTypes;
 }
 
 //-----------------------------------------------------------------------------------
@@ -1445,6 +1430,7 @@ struct RenderStateSet
 	GLint		vao;
 	GLint arrayBufferBinding;
 	GLint elementArrayBufferBinding;
+	std::array<GLuint, ::Effekseer::TextureSlotMax> boundTextures;
 };
 
 /**
@@ -1505,8 +1491,8 @@ private:
 
 	EffekseerRenderer::DistortingCallback* m_distortingCallback;
 
-	/* 現在設定されているテクスチャ */
-	std::vector<GLuint>	m_currentTextures;
+	// textures which are specified currently
+	std::vector<::Effekseer::TextureData> currentTextures_;
 
 	VertexArray*	m_currentVertexArray;
 
@@ -1669,10 +1655,9 @@ public:
 		return &m_background;
 	}
 
-	/**
-	@brief	背景を設定する。
-	*/
 	void SetBackground(GLuint background) override;
+
+	void SetBackgroundTexture(::Effekseer::TextureData* textureData) override;
 
 	EffekseerRenderer::DistortingCallback* GetDistortingCallback() override;
 
@@ -1710,7 +1695,7 @@ public:
 
 	void DeleteProxyTexture(Effekseer::TextureData* data) override;
 
-	std::vector<GLuint>& GetCurrentTextures() { return m_currentTextures; }
+	const std::vector<::Effekseer::TextureData>& GetCurrentTextures() const { return currentTextures_; }
 
 	OpenGLDeviceType GetDeviceType() const override { return m_deviceType; }
 
@@ -1758,7 +1743,7 @@ private:
 	RendererImplemented*	m_renderer;
 	bool					m_isCCW = true;
 
-	GLuint					m_samplers[4];
+	std::array<GLuint, Effekseer::TextureSlotMax> m_samplers;
 
 
 public:
@@ -1875,8 +1860,8 @@ private:
 	std::vector<ConstantLayout>	m_vertexConstantLayout;
 	std::vector<ConstantLayout>	m_pixelConstantLayout;
 
-	GLuint	m_textureSlots[4];
-	bool	m_textureSlotEnables[4];
+	std::array<GLuint, Effekseer::TextureSlotMax> m_textureSlots;
+	std::array<bool, Effekseer::TextureSlotMax> m_textureSlotEnables;
 
 	std::vector<char>	m_vsSrc;
 	std::vector<char>	m_psSrc;
@@ -2165,6 +2150,7 @@ private:
 	OpenGLDeviceType deviceType_;
 	Renderer* renderer_ = nullptr;
 	DeviceObjectCollection* deviceObjectCollection_ = nullptr;
+	bool canLoadFromCache_ = false;
 
 	::Effekseer::FileInterface* fileInterface_ = nullptr;
 	::Effekseer::DefaultFileInterface defaultFileInterface_;
@@ -2173,9 +2159,10 @@ private:
 
 public:
 	MaterialLoader(OpenGLDeviceType deviceType,
-		Renderer* renderer,
+				   Renderer* renderer,
 				   DeviceObjectCollection* deviceObjectCollection,
-				   ::Effekseer::FileInterface* fileInterface);
+				   ::Effekseer::FileInterface* fileInterface,
+				   bool canLoadFromCache = true);
 	virtual ~MaterialLoader();
 
 	::Effekseer::MaterialData* Load(const EFK_CHAR* path) override;
@@ -3814,6 +3801,8 @@ void ModelRenderer::EndRendering( const efkModelNodeParam& parameter, void* user
 
 
 
+#undef min
+
 namespace EffekseerRendererGL
 {
 
@@ -3966,14 +3955,14 @@ namespace EffekseerRendererGL
 
 		shader->SetPixelConstantBufferSize(psOffset);
 
-		int32_t lastIndex = 0;
+		int32_t lastIndex = -1;
 		for (int32_t ti = 0; ti < material.GetTextureCount(); ti++)
 		{
 			shader->SetTextureSlot(material.GetTextureIndex(ti), shader->GetUniformId(material.GetTextureName(ti)));
 			lastIndex = Effekseer::Max(lastIndex, material.GetTextureIndex(ti));
 		}
 
-		lastIndex++;
+		lastIndex += 1;
 		shader->SetTextureSlot(lastIndex, shader->GetUniformId("background"));
 
 		materialData->TextureCount = material.GetTextureCount();
@@ -4105,14 +4094,14 @@ namespace EffekseerRendererGL
 
 		shader->SetPixelConstantBufferSize(psOffset);
 
-		int32_t lastIndex = 0;
+		int32_t lastIndex = -1;
 		for (int32_t ti = 0; ti < material.GetTextureCount(); ti++)
 		{
 			shader->SetTextureSlot(material.GetTextureIndex(ti), shader->GetUniformId(material.GetTextureName(ti)));
 			lastIndex = Effekseer::Max(lastIndex, material.GetTextureIndex(ti));
 		}
 
-		lastIndex++;
+		lastIndex += 1;
 		shader->SetTextureSlot(lastIndex, shader->GetUniformId("background"));
 
 		if (st == 0)
@@ -4127,7 +4116,7 @@ namespace EffekseerRendererGL
 
 	materialData->CustomData1 = material.GetCustomData1Count();
 	materialData->CustomData2 = material.GetCustomData2Count();
-	materialData->TextureCount = material.GetTextureCount();
+	materialData->TextureCount = std::min(material.GetTextureCount(), Effekseer::UserTextureSlotMax);
 	materialData->UniformCount = material.GetUniformCount();
 	materialData->ShadingModel = material.GetShadingModel();
 
@@ -4142,8 +4131,9 @@ namespace EffekseerRendererGL
 MaterialLoader::MaterialLoader(OpenGLDeviceType deviceType,
 							   Renderer* renderer,
 							   DeviceObjectCollection* deviceObjectCollection,
-							   ::Effekseer::FileInterface* fileInterface)
-	: fileInterface_(fileInterface)
+							   ::Effekseer::FileInterface* fileInterface,
+							   bool canLoadFromCache)
+	: fileInterface_(fileInterface), canLoadFromCache_(canLoadFromCache)
 {
 	if (fileInterface == nullptr)
 	{
@@ -4168,6 +4158,7 @@ MaterialLoader ::~MaterialLoader()
 ::Effekseer::MaterialData* MaterialLoader::Load(const EFK_CHAR* path)
 {
 	// code file
+	if (canLoadFromCache_)
 	{
 		auto binaryPath = std::u16string(path) + u"d";
 		std::unique_ptr<Effekseer::FileReader> reader(fileInterface_->TryOpenRead(binaryPath.c_str()));
@@ -4980,6 +4971,14 @@ bool RendererImplemented::BeginRendering()
 		glGetIntegerv(GL_BLEND_EQUATION, &m_originalState.blendEquation);
 		glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &m_originalState.arrayBufferBinding);
 		glGetIntegerv(GL_ELEMENT_ARRAY_BUFFER_BINDING, &m_originalState.elementArrayBufferBinding);
+		
+		for (size_t i = 0; i < m_originalState.boundTextures.size(); i++)
+		{
+			GLint bound = 0;
+			GLExt::glActiveTexture(GL_TEXTURE0 + i);
+			glGetIntegerv(GL_TEXTURE_BINDING_2D, &bound);
+			m_originalState.boundTextures[i] = bound;
+		}
 
 		if (GLExt::IsSupportedVertexArray())
 		{
@@ -4991,7 +4990,7 @@ bool RendererImplemented::BeginRendering()
 	glEnable(GL_BLEND);
 	glDisable(GL_CULL_FACE);
 
-	m_currentTextures.clear();
+	currentTextures_.clear();
 	m_renderState->GetActiveState().Reset();
 	m_renderState->Update( true );
 	
@@ -5020,6 +5019,13 @@ bool RendererImplemented::EndRendering()
 		{
 			GLExt::glBindVertexArray(m_originalState.vao);
 		}
+
+		for (size_t i = 0; i < m_originalState.boundTextures.size(); i++)
+		{
+			GLExt::glActiveTexture(GL_TEXTURE0 + i);
+			glBindTexture(GL_TEXTURE_2D, m_originalState.boundTextures[i]);
+		}
+		GLExt::glActiveTexture(GL_TEXTURE0);
 
 		if (m_originalState.blend) glEnable(GL_BLEND); else glDisable(GL_BLEND);
 		if (m_originalState.cullFace) glEnable(GL_CULL_FACE); else glDisable(GL_CULL_FACE);
@@ -5318,6 +5324,8 @@ void RendererImplemented::SetBackground(GLuint background)
 	m_background.UserID = background;
 }
 
+void RendererImplemented::SetBackgroundTexture(::Effekseer::TextureData* textureData) { m_background = *textureData; }
+
 EffekseerRenderer::DistortingCallback* RendererImplemented::GetDistortingCallback()
 {
 	return m_distortingCallback;
@@ -5593,8 +5601,8 @@ void RendererImplemented::SetTextures(Shader* shader, Effekseer::TextureData** t
 {
 	GLCheckError();
 
-	m_currentTextures.clear();
-	m_currentTextures.resize(count);
+	currentTextures_.clear();
+	currentTextures_.resize(count);
 
 	for (int32_t i = 0; i < count; i++)
 	{
@@ -5607,8 +5615,16 @@ void RendererImplemented::SetTextures(Shader* shader, Effekseer::TextureData** t
 		GLExt::glActiveTexture(GL_TEXTURE0 + i);
 		glBindTexture(GL_TEXTURE_2D, id);
 		
-		m_currentTextures[i] = id;
-
+		if (textures[i] != nullptr)
+		{
+			currentTextures_[i] = *textures[i];
+		}
+		else
+		{
+			currentTextures_[i].UserID = 0;
+			currentTextures_[i].UserPtr = nullptr;
+		}
+		
 		if (shader->GetTextureSlotEnable(i))
 		{
 			GLExt::glUniform1i(shader->GetTextureSlot(i), i);
@@ -5631,6 +5647,7 @@ void RendererImplemented::ResetRenderState()
 Effekseer::TextureData* RendererImplemented::CreateProxyTexture(EffekseerRenderer::ProxyTextureType type) {
 
 	GLint bound = 0;
+	GLExt::glActiveTexture(GL_TEXTURE0);
 	glGetIntegerv(GL_TEXTURE_BINDING_2D, &bound);
 
 	std::array<uint8_t, 4> buf;
@@ -5802,7 +5819,7 @@ RenderState::RenderState( RendererImplemented* renderer )
 {
 	if (m_renderer->GetDeviceType() == OpenGLDeviceType::OpenGL3 || m_renderer->GetDeviceType() == OpenGLDeviceType::OpenGLES3)
 	{
-		GLExt::glGenSamplers(4, m_samplers);
+		GLExt::glGenSamplers(Effekseer::TextureSlotMax, m_samplers.data());
 	}
 
 	GLint frontFace = 0;
@@ -5821,7 +5838,7 @@ RenderState::~RenderState()
 {
 	if (m_renderer->GetDeviceType() == OpenGLDeviceType::OpenGL3 || m_renderer->GetDeviceType() == OpenGLDeviceType::OpenGLES3)
 	{
-		GLExt::glDeleteSamplers(4, m_samplers);
+		GLExt::glDeleteSamplers(Effekseer::TextureSlotMax, m_samplers.data());
 	}
 }
 
@@ -5933,6 +5950,7 @@ void RenderState::Update( bool forced )
 	GLCheckError();
 	
 	static const GLint glfilterMin[] = { GL_NEAREST, GL_LINEAR_MIPMAP_LINEAR };
+	static const GLint glfilterMin_NoneMipmap[] = {GL_NEAREST, GL_LINEAR};
 	static const GLint glfilterMag[] = { GL_NEAREST, GL_LINEAR };
 	static const GLint glwrap[] = { GL_REPEAT, GL_CLAMP_TO_EDGE };
 
@@ -5941,7 +5959,7 @@ void RenderState::Update( bool forced )
 		for (int32_t i = 0; i < (int32_t)m_renderer->GetCurrentTextures().size(); i++)
 		{
 			// If a texture is not assigned, skip it.
-			if (m_renderer->GetCurrentTextures()[i] == 0)
+			if (m_renderer->GetCurrentTextures()[i].UserID == 0)
 				continue;
 
 			if (m_active.TextureFilterTypes[i] != m_next.TextureFilterTypes[i] || forced)
@@ -5950,15 +5968,24 @@ void RenderState::Update( bool forced )
 
 				// for webngl
 #ifndef NDEBUG
-				GLint bound = 0;
-				glGetIntegerv(GL_TEXTURE_BINDING_2D, &bound);
-				assert(bound > 0);
+				//GLint bound = 0;
+				//glGetIntegerv(GL_TEXTURE_BINDING_2D, &bound);
+				//assert(bound > 0);
 #endif
 
 				int32_t filter_ = (int32_t) m_next.TextureFilterTypes[i];
 
 				GLExt::glSamplerParameteri(m_samplers[i], GL_TEXTURE_MAG_FILTER, glfilterMag[filter_]);
-				GLExt::glSamplerParameteri(m_samplers[i], GL_TEXTURE_MIN_FILTER, glfilterMin[filter_]);
+
+				if (m_renderer->GetCurrentTextures()[i].HasMipmap)
+				{
+					GLExt::glSamplerParameteri(m_samplers[i], GL_TEXTURE_MIN_FILTER, glfilterMin[filter_]);
+				}
+				else
+				{
+					GLExt::glSamplerParameteri(m_samplers[i], GL_TEXTURE_MIN_FILTER, glfilterMin_NoneMipmap[filter_]);
+				}
+				
 				//glSamplerParameteri( m_samplers[i],  GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 				//glSamplerParameteri( m_samplers[i],  GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 
@@ -5983,7 +6010,7 @@ void RenderState::Update( bool forced )
 		for (int32_t i = 0; i < (int32_t)m_renderer->GetCurrentTextures().size(); i++)
 		{
 			// If a texture is not assigned, skip it.
-			if (m_renderer->GetCurrentTextures()[i] == 0) continue;
+			if (m_renderer->GetCurrentTextures()[i].UserID == 0) continue;
 
 			// always changes because a flag is assigned into a texture
 			// if (m_active.TextureFilterTypes[i] != m_next.TextureFilterTypes[i] || forced)
@@ -6063,7 +6090,7 @@ static const char g_header_vs_gl3_src [] =
 "#define mediump\n" \
 "#define highp\n" \
 "#define IN in\n" \
-"#define TEX2D texture\n" \
+"#define TEX2D textureLod\n" \
 "#define OUT out\n";
 
 static const char g_header_fs_gl3_src [] =
@@ -6079,7 +6106,7 @@ static const char g_header_vs_gles3_src [] =
 "#version 300 es\n" \
 "precision mediump float;\n" \
 "#define IN in\n" \
-"#define TEX2D texture\n" \
+"#define TEX2D textureLod\n" \
 "#define OUT out\n";
 
 static const char g_header_fs_gles3_src [] =
@@ -6092,7 +6119,7 @@ static const char g_header_fs_gles3_src [] =
 static const char g_header_vs_gles2_src [] =
 "precision mediump float;\n" \
 "#define IN attribute\n" \
-"#define TEX2D texture2D\n" \
+"#define TEX2D texture2DLod\n" \
 "#define OUT varying\n";
 
 static const char g_header_fs_gles2_src [] =
@@ -6107,7 +6134,7 @@ static const char g_header_vs_gl2_src [] =
 "#define mediump\n" \
 "#define highp\n" \
 "#define IN attribute\n" \
-"#define TEX2D texture2D\n" \
+"#define TEX2D texture2DLod\n" \
 "#define OUT varying\n";
 
 static const char g_header_fs_gl2_src [] =
@@ -6238,11 +6265,8 @@ Shader::Shader(
 	, m_vertexConstantBuffer	( NULL )
 	, m_pixelConstantBuffer		( NULL )
 {
-	for (int32_t i = 0; i < 4; i++)
-	{
-		m_textureSlots[i] = 0;
-		m_textureSlotEnables[i] = false;
-	}
+	m_textureSlots.fill(0);
+	m_textureSlotEnables.fill(false);
 
 	m_vsSrc.resize(vertexShaderSize);
 	memcpy(m_vsSrc.data(), vs_src, vertexShaderSize );
@@ -7259,6 +7283,13 @@ namespace Effekseer
 namespace GL
 {
 
+static char* material_common_define = R"(
+#define MOD mod
+#define FRAC fract
+#define LERP mix
+
+)";
+
 static const char g_material_model_vs_src_pre[] =
 	R"(
 IN vec4 a_Position;
@@ -7306,6 +7337,17 @@ uniform mat4 ProjectionMatrix;
 uniform vec4 mUVInversed;
 uniform vec4 predefined_uniform;
 
+vec2 GetUV(vec2 uv)
+{
+	uv.y = mUVInversed.x + mUVInversed.y * uv.y;
+	return uv;
+}
+
+vec2 GetUVBack(vec2 uv)
+{
+	uv.y = mUVInversed.z + mUVInversed.w * uv.y;
+	return uv;
+}
 
 )";
 
@@ -7339,10 +7381,12 @@ void main()
 	vec2 uv1 = a_TexCoord.xy * uvOffset.zw + uvOffset.xy;
 	vec2 uv2 = uv1;
 
-	uv1.y = mUVInversed.x + mUVInversed.y * uv1.y;
-	uv1.y = mUVInversed.x + mUVInversed.y * uv1.y;
+	//uv1.y = mUVInversed.x + mUVInversed.y * uv1.y;
+	//uv1.y = mUVInversed.x + mUVInversed.y * uv1.y;
 
 	vec3 pixelNormalDir = worldNormal;
+	
+	vec4 vcolor = modelColor;
 )";
 
 static const char g_material_model_vs_src_suf2[] =
@@ -7355,7 +7399,7 @@ static const char g_material_model_vs_src_suf2[] =
 	v_WorldT = worldTangent;
 	v_UV1 = uv1;
 	v_UV2 = uv2;
-	v_VColor = a_Color;
+	v_VColor = vcolor;
 	gl_Position = ProjectionMatrix * vec4(worldPos, 1.0);
 	v_ScreenUV.xy = gl_Position.xy / gl_Position.w;
 	v_ScreenUV.xy = vec2(v_ScreenUV.x + 1.0, v_ScreenUV.y + 1.0) * 0.5;
@@ -7385,6 +7429,18 @@ uniform mat4 uMatCamera;
 uniform mat4 uMatProjection;
 uniform vec4 mUVInversed;
 uniform vec4 predefined_uniform;
+
+vec2 GetUV(vec2 uv)
+{
+	uv.y = mUVInversed.x + mUVInversed.y * uv.y;
+	return uv;
+}
+
+vec2 GetUVBack(vec2 uv)
+{
+	uv.y = mUVInversed.z + mUVInversed.w * uv.y;
+	return uv;
+}
 
 )";
 
@@ -7419,6 +7475,18 @@ uniform mat4 uMatProjection;
 uniform vec4 mUVInversed;
 uniform vec4 predefined_uniform;
 
+vec2 GetUV(vec2 uv)
+{
+	uv.y = mUVInversed.x + mUVInversed.y * uv.y;
+	return uv;
+}
+
+vec2 GetUVBack(vec2 uv)
+{
+	uv.y = mUVInversed.z + mUVInversed.w * uv.y;
+	return uv;
+}
+
 )";
 
 static const char g_material_sprite_vs_src_suf1_simple[] =
@@ -7430,7 +7498,7 @@ void main() {
 
 	// UV
 	vec2 uv1 = atTexCoord.xy;
-	uv1.y = mUVInversed.x + mUVInversed.y * uv1.y;
+	//uv1.y = mUVInversed.x + mUVInversed.y * uv1.y;
 	vec2 uv2 = uv1;
 
 	// NBT
@@ -7442,7 +7510,7 @@ void main() {
 	v_WorldT = worldTangent;
 
 	vec3 pixelNormalDir = worldNormal;
-
+	vec4 vcolor = atColor;
 )";
 
 static const char g_material_sprite_vs_src_suf1[] =
@@ -7454,9 +7522,9 @@ void main() {
 
 	// UV
 	vec2 uv1 = atTexCoord.xy;
-	uv1.y = mUVInversed.x + mUVInversed.y * uv1.y;
+	//uv1.y = mUVInversed.x + mUVInversed.y * uv1.y;
 	vec2 uv2 = atTexCoord2.xy;
-	uv2.y = mUVInversed.x + mUVInversed.y * uv2.y;
+	//uv2.y = mUVInversed.x + mUVInversed.y * uv2.y;
 
 	// NBT
 	vec3 worldNormal = (atNormal - vec3(0.5, 0.5, 0.5)) * 2.0;
@@ -7467,6 +7535,7 @@ void main() {
 	v_WorldB = worldBinormal;
 	v_WorldT = worldTangent;
 	vec3 pixelNormalDir = worldNormal;
+	vec4 vcolor = atColor;
 )";
 
 static const char g_material_sprite_vs_src_suf2[] =
@@ -7480,7 +7549,7 @@ static const char g_material_sprite_vs_src_suf2[] =
 	gl_Position = uMatProjection * cameraPos;
 
 	v_WorldP = worldPos;
-	v_VColor = atColor;
+	v_VColor = vcolor;
 
 	v_UV1 = uv1;
 	v_UV2 = uv2;
@@ -7506,6 +7575,19 @@ IN mediump vec2 v_ScreenUV;
 
 uniform vec4 mUVInversedBack;
 uniform vec4 predefined_uniform;
+
+vec2 GetUV(vec2 uv)
+{
+	uv.y = mUVInversedBack.x + mUVInversedBack.y * uv.y;
+	return uv;
+}
+
+vec2 GetUVBack(vec2 uv)
+{
+	uv.y = mUVInversedBack.z + mUVInversedBack.w * uv.y;
+	return uv;
+}
+
 
 )";
 
@@ -7585,6 +7667,8 @@ void main()
 	vec3 worldTangent = v_WorldT;
 	vec3 worldBinormal = v_WorldB;
 	vec3 pixelNormalDir = worldNormal;
+	vec4 vcolor = v_VColor;
+
 )";
 
 static const char g_material_fs_src_suf2_lit[] =
@@ -7598,10 +7682,9 @@ static const char g_material_fs_src_suf2_lit[] =
 	Output.xyz = Output.xyz + emissive.xyz;
 
 	if(opacityMask <= 0.0) discard;
+	if(opacity <= 0.0) discard;
 
 	FRAGCOLOR = Output;
-
-
 }
 
 )";
@@ -7610,6 +7693,7 @@ static const char g_material_fs_src_suf2_unlit[] =
 	R"(
 
 	if(opacityMask <= 0.0) discard;
+	if(opacity <= 0.0) discard;
 
 	FRAGCOLOR = vec4(emissive, opacity);
 }
@@ -7624,12 +7708,13 @@ static const char g_material_fs_src_suf2_refraction[] =
 	vec2 distortUV = dir.xy * (refraction - airRefraction);
 
 	distortUV += v_ScreenUV;
-	distortUV.y = mUVInversedBack.x + mUVInversedBack.y * distortUV.y;
+	distortUV = GetUVBack(distortUV);	
 
 	vec4 bg = TEX2D(background, distortUV);
 	FRAGCOLOR = bg;
 
 	if(opacityMask <= 0.0) discard;
+	if(opacity <= 0.0) discard;
 }
 
 )";
@@ -7653,7 +7738,7 @@ struct ShaderData
 	std::string CodePS;
 };
 
-ShaderData GenerateShader(Material* material, MaterialShaderType shaderType)
+ShaderData GenerateShader(Material* material, MaterialShaderType shaderType, int32_t maximumTextureCount)
 {
 	auto getType = [](int32_t i) -> std::string {
 		if (i == 1)
@@ -7668,7 +7753,7 @@ ShaderData GenerateShader(Material* material, MaterialShaderType shaderType)
 		return "";
 	};
 
-		auto getElement = [](int32_t i) -> std::string {
+	auto getElement = [](int32_t i) -> std::string {
 		if (i == 1)
 			return ".x";
 		if (i == 2)
@@ -7681,7 +7766,6 @@ ShaderData GenerateShader(Material* material, MaterialShaderType shaderType)
 		return "";
 	};
 
-
 	bool isSprite = shaderType == MaterialShaderType::Standard || shaderType == MaterialShaderType::Refraction;
 	bool isRefrection =
 		material->GetHasRefraction() && (shaderType == MaterialShaderType::Refraction || shaderType == MaterialShaderType::RefractionModel);
@@ -7691,6 +7775,8 @@ ShaderData GenerateShader(Material* material, MaterialShaderType shaderType)
 	for (int stage = 0; stage < 2; stage++)
 	{
 		std::ostringstream maincode;
+
+		maincode << material_common_define;
 
 		if (stage == 0)
 		{
@@ -7730,7 +7816,9 @@ ShaderData GenerateShader(Material* material, MaterialShaderType shaderType)
 				maincode << "uniform vec4 " << uniformName << ";" << std::endl;
 		}
 
-		for (size_t i = 0; i < material->GetTextureCount(); i++)
+		int32_t actualTextureCount = std::min(maximumTextureCount, material->GetTextureCount());
+
+		for (size_t i = 0; i < actualTextureCount; i++)
 		{
 			auto textureIndex = material->GetTextureIndex(i);
 			auto textureName = material->GetTextureName(i);
@@ -7738,14 +7826,14 @@ ShaderData GenerateShader(Material* material, MaterialShaderType shaderType)
 			maincode << "uniform sampler2D " << textureName << ";" << std::endl;
 		}
 
-		for (size_t i = material->GetTextureCount(); i < material->GetTextureCount() + 1; i++)
+		for (size_t i = actualTextureCount; i < actualTextureCount + 1; i++)
 		{
 			maincode << "uniform sampler2D "
 					 << "background"
 					 << ";" << std::endl;
 		}
 
-		if (material->GetShadingModel() == ::Effekseer::ShadingModelType::Lit)
+		if (material->GetShadingModel() == ::Effekseer::ShadingModelType::Lit && stage == 1)
 		{
 			maincode << "uniform vec4 "
 					 << "lightDirection"
@@ -7796,7 +7884,7 @@ ShaderData GenerateShader(Material* material, MaterialShaderType shaderType)
 		baseCode = Replace(baseCode, "$SUFFIX", "");
 
 		// replace textures
-		for (size_t i = 0; i < material->GetTextureCount(); i++)
+		for (size_t i = 0; i < actualTextureCount; i++)
 		{
 			auto textureIndex = material->GetTextureIndex(i);
 			auto textureName = std::string(material->GetTextureName(i));
@@ -7804,8 +7892,29 @@ ShaderData GenerateShader(Material* material, MaterialShaderType shaderType)
 			std::string keyP = "$TEX_P" + std::to_string(textureIndex) + "$";
 			std::string keyS = "$TEX_S" + std::to_string(textureIndex) + "$";
 
-			baseCode = Replace(baseCode, keyP, "TEX2D(" + textureName + ",");
-			baseCode = Replace(baseCode, keyS, ")");
+			if (stage == 0)
+			{
+				baseCode = Replace(baseCode, keyP, "TEX2D(" + textureName + ",GetUV(");
+				baseCode = Replace(baseCode, keyS, "), 0.0)");
+			}
+			else
+			{
+				baseCode = Replace(baseCode, keyP, "TEX2D(" + textureName + ",GetUV(");
+				baseCode = Replace(baseCode, keyS, "))");	
+			}
+		}
+
+		// invalid texture
+		for (size_t i = actualTextureCount; i < material->GetTextureCount(); i++)
+		{
+			auto textureIndex = material->GetTextureIndex(i);
+			auto textureName = std::string(material->GetTextureName(i));
+
+			std::string keyP = "$TEX_P" + std::to_string(textureIndex) + "$";
+			std::string keyS = "$TEX_S" + std::to_string(textureIndex) + "$";
+
+			baseCode = Replace(baseCode, keyP, "vec4(");
+			baseCode = Replace(baseCode, keyS, ",0.0,1.0)");
 		}
 
 		if (stage == 0)
@@ -7964,7 +8073,7 @@ public:
 	int GetRef() override { return ReferenceObject::GetRef(); }
 };
 
-CompiledMaterialBinary* MaterialCompilerGL::Compile(Material* material)
+CompiledMaterialBinary* MaterialCompilerGL::Compile(Material* material, int32_t maximumTextureCount)
 {
 	auto binary = new CompiledMaterialBinaryGL();
 
@@ -7976,8 +8085,8 @@ CompiledMaterialBinary* MaterialCompilerGL::Compile(Material* material)
 		return ret;
 	};
 
-	auto saveBinary = [&material, &binary, &convertToVector](MaterialShaderType type) {
-		auto shader = GL::GenerateShader(material, type);
+	auto saveBinary = [&material, &binary, &convertToVector, &maximumTextureCount](MaterialShaderType type) {
+		auto shader = GL::GenerateShader(material, type, maximumTextureCount);
 		binary->SetVertexShaderData(type, convertToVector(shader.CodeVS));
 		binary->SetPixelShaderData(type, convertToVector(shader.CodePS));
 	};
@@ -7993,6 +8102,8 @@ CompiledMaterialBinary* MaterialCompilerGL::Compile(Material* material)
 
 	return binary;
 }
+
+CompiledMaterialBinary* MaterialCompilerGL::Compile(Material* material) { return Compile(material, Effekseer::UserTextureSlotMax); }
 
 } // namespace Effekseer
 
