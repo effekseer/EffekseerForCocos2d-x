@@ -75,7 +75,7 @@ effekseerHeader.readLines(rootEDir + 'Effekseer.Base.h')
 #param
 effekseerHeader.readLines(rootEDir + 'Parameter/Effekseer.Parameters.h')
 
-effekseerHeader.readLines(rootEDir + 'Effekseer.CustomAllocator.h')
+effekseerHeader.readLines(rootEDir + 'Utils/Effekseer.CustomAllocator.h')
 effekseerHeader.readLines(rootEDir + 'Utils/Effekseer.BinaryReader.h')
 
 effekseerHeader.readLines(rootEDir + 'Effekseer.Vector2D.h')
@@ -170,7 +170,7 @@ effekseerCPP.addLine('#endif')
 # param
 effekseerCPP.readLines(rootEDir + 'Parameter/Effekseer.Parameters.cpp')
 
-effekseerCPP.readLines(rootEDir + 'Effekseer.CustomAllocator.cpp')
+effekseerCPP.readLines(rootEDir + 'Utils/Effekseer.CustomAllocator.cpp')
 
 #material
 effekseerCPP.readLines(rootEDir + 'Material/Effekseer.Material.cpp')

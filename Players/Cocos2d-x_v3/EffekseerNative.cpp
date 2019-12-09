@@ -164,6 +164,17 @@ bool Material::Load(const uint8_t* data, int32_t size)
 				auto name = std::string((const char*)(data + offset));
 				offset += strNameLength;
 
+				// name is for human, uniformName is a variable name after 3
+				if (version >= 3)
+				{
+					int strUniformNameLength = 0;
+					memcpy(&strUniformNameLength, data + offset, 4);
+					offset += sizeof(int);
+
+					name = std::string((const char*)(data + offset));
+					offset += strUniformNameLength;
+				}
+
 				int strDefaultPathLength = 0;
 				memcpy(&strDefaultPathLength, data + offset, 4);
 				offset += sizeof(int);
@@ -208,6 +219,17 @@ bool Material::Load(const uint8_t* data, int32_t size)
 
 				auto name = std::string((const char*)(data + offset));
 				offset += strLength;
+
+				// name is for human, uniformName is a variable name after 3
+				if (version >= 3)
+				{
+					int strUniformNameLength = 0;
+					memcpy(&strUniformNameLength, data + offset, 4);
+					offset += sizeof(int);
+
+					name = std::string((const char*)(data + offset));
+					offset += strUniformNameLength;
+				}
 
 				// offset
 				offset += sizeof(int);
@@ -5691,7 +5713,7 @@ public:
 class FCurveVector2D
 {
 public:
-	FCurveTimelineType Timeline = FCurveTimelineType::Percent;
+	FCurveTimelineType Timeline = FCurveTimelineType::Time;
 	FCurve X = FCurve(0);
 	FCurve Y = FCurve(0);
 
@@ -5704,7 +5726,7 @@ public:
 class FCurveVector3D
 {
 public:
-	FCurveTimelineType Timeline = FCurveTimelineType::Percent;
+	FCurveTimelineType Timeline = FCurveTimelineType::Time;
 	FCurve X = FCurve(0);
 	FCurve Y = FCurve(0);
 	FCurve Z = FCurve(0);
@@ -5718,7 +5740,7 @@ public:
 class FCurveVectorColor
 {
 public:
-	FCurveTimelineType Timeline = FCurveTimelineType::Percent;
+	FCurveTimelineType Timeline = FCurveTimelineType::Time;
 	FCurve R = FCurve(255);
 	FCurve G = FCurve(255);
 	FCurve B = FCurve(255);
@@ -18733,13 +18755,15 @@ void Instance::Kill()
 //----------------------------------------------------------------------------------
 RectF Instance::GetUV() const
 {
+	RectF uv(0.0f, 0.0f, 1.0f, 1.0f);
+
 	if( m_pEffectNode->RendererCommon.UVType == ParameterRendererCommon::UV_DEFAULT )
 	{
 		return RectF( 0.0f, 0.0f, 1.0f, 1.0f );
 	}
 	else if( m_pEffectNode->RendererCommon.UVType == ParameterRendererCommon::UV_FIXED )
 	{
-		return RectF(
+		uv = RectF(
 			m_pEffectNode->RendererCommon.UV.Fixed.Position.x,
 			m_pEffectNode->RendererCommon.UV.Fixed.Position.y,
 			m_pEffectNode->RendererCommon.UV.Fixed.Position.w,
@@ -18776,7 +18800,7 @@ RectF Instance::GetUV() const
 		int32_t frameX = frameNum % m_pEffectNode->RendererCommon.UV.Animation.FrameCountX;
 		int32_t frameY = frameNum / m_pEffectNode->RendererCommon.UV.Animation.FrameCountX;
 
-		return RectF(
+		uv = RectF(
 			m_pEffectNode->RendererCommon.UV.Animation.Position.x + m_pEffectNode->RendererCommon.UV.Animation.Position.w * frameX,
 			m_pEffectNode->RendererCommon.UV.Animation.Position.y + m_pEffectNode->RendererCommon.UV.Animation.Position.h * frameY,
 			m_pEffectNode->RendererCommon.UV.Animation.Position.w,
@@ -18786,7 +18810,7 @@ RectF Instance::GetUV() const
 	{
 		auto time = (int32_t)m_LivingTime;
 
-		return RectF(
+		uv = RectF(
 			uvAreaOffset.X + uvScrollSpeed.X * time,
 			uvAreaOffset.Y + uvScrollSpeed.Y * time,
 			uvAreaOffset.Width,
@@ -18799,14 +18823,36 @@ RectF Instance::GetUV() const
 		auto fcurvePos = m_pEffectNode->RendererCommon.UV.FCurve.Position->GetValues(m_LivingTime, m_LivedTime);
 		auto fcurveSize = m_pEffectNode->RendererCommon.UV.FCurve.Size->GetValues(m_LivingTime, m_LivedTime);
 
-		return RectF(uvAreaOffset.X + fcurvePos[0],
+		uv = RectF(uvAreaOffset.X + fcurvePos[0],
 					 uvAreaOffset.Y + fcurvePos[1],
 					 uvAreaOffset.Width + fcurveSize[0],
 					 uvAreaOffset.Height + fcurveSize[1]);
 	}
 
+	// For webgl bug (it makes slow if sampling points are too far on WebGL)
+	float far = 4.0;
 
-	return RectF( 0.0f, 0.0f, 1.0f, 1.0f );
+	if (uv.X < -far && uv.X + uv.Width < -far)
+	{
+		uv.X += far;
+	}
+
+	if (uv.X > far && uv.X + uv.Width > far)
+	{
+		uv.X -= far;
+	}
+
+	if (uv.Y < -far && uv.Y + uv.Height < -far)
+	{
+		uv.Y += far;
+	}
+
+	if (uv.Y > far && uv.Y + uv.Height > far)
+	{
+		uv.Y -= far;
+	}
+
+	return uv;
 }
 
 std::array<float, 4> Instance::GetCustomData(int32_t index) const
