@@ -80,7 +80,7 @@ namespace efk
 
 		EffectManager* manager = nullptr;
 		Effect* effect_ = nullptr;
-		::Effekseer::Handle handle = 0;
+		::Effekseer::Handle handle = -1;
 
 		cocos2d::CustomCommand	renderCommand;
 
