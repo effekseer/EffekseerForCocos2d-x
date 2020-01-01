@@ -415,6 +415,35 @@ public:
 	static EffekseerSetting* g_effekseerSetting = nullptr;
 	static ::EffekseerRendererGL::DeviceObjectCollection* g_deviceObjectCollection = nullptr;
 
+	class EffekseerDeviceObjectCollection : public ::EffekseerRendererGL::DeviceObjectCollection
+	{
+	private:
+
+	public:
+		EffekseerDeviceObjectCollection()
+		{
+		}
+
+		virtual ~EffekseerDeviceObjectCollection()
+		{
+			g_deviceObjectCollection = nullptr;
+		}
+
+		static ::EffekseerRendererGL::DeviceObjectCollection* create()
+		{
+			if (g_deviceObjectCollection == nullptr)
+			{
+				g_deviceObjectCollection = new ::EffekseerRendererGL::DeviceObjectCollection();
+			}
+			else
+			{
+				g_deviceObjectCollection->AddRef();
+			}
+
+			return g_deviceObjectCollection;
+		}
+	};
+
 	class EffekseerSetting
 		: public ::Effekseer::Setting
 	{
@@ -429,9 +458,9 @@ public:
 			SetModelLoader(new ::EffekseerRendererGL::ModelLoader(effectFile));
 
 #if (CC_TARGET_PLATFORM == CC_PLATFORM_IOS || CC_TARGET_PLATFORM == CC_PLATFORM_ANDROID)
-			SetMaterialLoader(new CachedMaterialLoader(new ::EffekseerRendererGL::MaterialLoader(EffekseerRendererGL::OpenGLDeviceType::OpenGLES2, nullptr, g_deviceObjectCollection, effectFile)));
+			SetMaterialLoader(new CachedMaterialLoader(new ::EffekseerRendererGL::MaterialLoader(EffekseerRendererGL::OpenGLDeviceType::OpenGLES2, nullptr, EffekseerDeviceObjectCollection::create(), effectFile)));
 #else
-			SetMaterialLoader(new CachedMaterialLoader(new ::EffekseerRendererGL::MaterialLoader(EffekseerRendererGL::OpenGLDeviceType::OpenGL2, nullptr, g_deviceObjectCollection, effectFile)));
+			SetMaterialLoader(new CachedMaterialLoader(new ::EffekseerRendererGL::MaterialLoader(EffekseerRendererGL::OpenGLDeviceType::OpenGL2, nullptr, EffekseerDeviceObjectCollection::create(), effectFile)));
 #endif
 			// TODO sound
 		}
@@ -439,7 +468,6 @@ public:
 		virtual ~EffekseerSetting()
 		{
 			delete effectFile;
-			ES_SAFE_RELEASE(g_deviceObjectCollection);
 			g_effekseerSetting = nullptr;
 		}
 	public:
@@ -448,7 +476,6 @@ public:
 			if (g_effekseerSetting == nullptr)
 			{
 				g_effekseerSetting = new EffekseerSetting();
-				g_deviceObjectCollection = new ::EffekseerRendererGL::DeviceObjectCollection();
 			}
 			else
 			{
@@ -961,9 +988,9 @@ public:
 #endif
 
 #if (CC_TARGET_PLATFORM == CC_PLATFORM_IOS || CC_TARGET_PLATFORM == CC_PLATFORM_ANDROID)
-		renderer2d = ::EffekseerRendererGL::Renderer::Create(spriteSize, EffekseerRendererGL::OpenGLDeviceType::OpenGLES2, g_deviceObjectCollection);
+		renderer2d = ::EffekseerRendererGL::Renderer::Create(spriteSize, EffekseerRendererGL::OpenGLDeviceType::OpenGLES2, EffekseerDeviceObjectCollection::create());
 #else
-		renderer2d = ::EffekseerRendererGL::Renderer::Create(spriteSize, EffekseerRendererGL::OpenGLDeviceType::OpenGL2, g_deviceObjectCollection);
+		renderer2d = ::EffekseerRendererGL::Renderer::Create(spriteSize, EffekseerRendererGL::OpenGLDeviceType::OpenGL2, EffekseerDeviceObjectCollection::create());
 #endif
 		
 		manager2d = ::Effekseer::Manager::Create(8000);
