@@ -685,9 +685,9 @@ public:
 
 	EffectEmitter::~EffectEmitter()
 	{
-		if (effect != nullptr)
+		if (effect_ != nullptr)
 		{
-			effect->release();
+			effect_->release();
 		}
 
 		if (manager != nullptr)
@@ -703,11 +703,11 @@ public:
 
 	void EffectEmitter::setEffect(Effect* effect)
 	{
-		if (this->effect != nullptr) effect->release();
+		if (effect_ != nullptr) effect_->release();
 
-		this->effect = effect;
+		effect_ = effect;
 
-		if (this->effect != nullptr) effect->retain();
+		if (effect_ != nullptr) effect_->retain();
 	}
 
 	::Effekseer::Handle EffectEmitter::getInternalHandle() const

@@ -79,7 +79,7 @@ namespace efk
 		cocos2d::Color4B color_ = cocos2d::Color4B(255, 255, 255, 255);
 
 		EffectManager* manager = nullptr;
-		Effect* effect = nullptr;
+		Effect* effect_ = nullptr;
 		::Effekseer::Handle handle = 0;
 
 		cocos2d::CustomCommand	renderCommand;
