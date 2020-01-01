@@ -12,6 +12,7 @@
 #define	__EFFEKSEERRENDERER_COMMON_UTILS_H__
 
 #include "EffekseerNative.h"
+#include <Effekseer/Material/Effekseer.CompiledMaterial.h>
 #include <assert.h>
 #include <string.h>
 #include <math.h>
@@ -146,8 +147,8 @@ template <typename T> struct StrideView
 	int32_t stride_;
 	uint8_t* pointer_;
 	uint8_t* pointerOrigin_;
-	
-#if _DEBUG
+
+#ifndef NDEBUG
 	int32_t offset_;
 	int32_t elementCount_;
 #endif
@@ -156,7 +157,7 @@ template <typename T> struct StrideView
 		: stride_(stride)
 		, pointer_(reinterpret_cast<uint8_t*>(pointer))
 		, pointerOrigin_(reinterpret_cast<uint8_t*>(pointer))
-#if _DEBUG
+#ifndef NDEBUG
 		, offset_(0)
 		, elementCount_(elementCount)
 #endif
@@ -164,7 +165,7 @@ template <typename T> struct StrideView
 	}
 
 	T& operator[](int i) const { 
-#if _DEBUG
+#ifndef NDEBUG
 		assert(i >= 0);
 		assert(i + offset_ < elementCount_);
 #endif
@@ -173,7 +174,7 @@ template <typename T> struct StrideView
 
 	StrideView& operator+=(const int& rhs)
 	{
-#if _DEBUG
+#ifndef NDEBUG
 		offset_ += rhs;
 #endif
 		pointer_ += stride_ * rhs;
@@ -181,7 +182,7 @@ template <typename T> struct StrideView
 	}
 
 	void Reset() { 
-#if _DEBUG
+#ifndef NDEBUG
 		offset_ = 0;
 #endif
 		pointer_ = pointerOrigin_; 
@@ -197,7 +198,7 @@ template<> struct StrideView<SimpleVertex>
 	uint8_t* pointer_;
 	uint8_t* pointerOrigin_;
 
-#if _DEBUG
+#ifndef NDEBUG
 	int32_t offset_;
 	int32_t elementCount_;
 #endif
@@ -205,7 +206,7 @@ template<> struct StrideView<SimpleVertex>
 	StrideView(void* pointer, int32_t stride, int32_t elementCount)
 		: pointer_(reinterpret_cast<uint8_t*>(pointer))
 		, pointerOrigin_(reinterpret_cast<uint8_t*>(pointer))
-#if _DEBUG
+#ifndef NDEBUG
 		, offset_(0)
 		, elementCount_(elementCount)
 #endif
@@ -215,7 +216,7 @@ template<> struct StrideView<SimpleVertex>
 
 	SimpleVertex& operator[](int i) const
 	{
-#if _DEBUG
+#ifndef NDEBUG
 		assert(i >= 0);
 		assert(i + offset_ < elementCount_);
 #endif
@@ -224,7 +225,7 @@ template<> struct StrideView<SimpleVertex>
 
 	StrideView& operator+=(const int& rhs)
 	{
-#if _DEBUG
+#ifndef NDEBUG
 		offset_ += rhs;
 #endif
 		pointer_ += stride_ * rhs;
@@ -233,7 +234,7 @@ template<> struct StrideView<SimpleVertex>
 
 	void Reset()
 	{
-#if _DEBUG
+#ifndef NDEBUG
 		offset_ = 0;
 #endif
 		pointer_ = pointerOrigin_;
@@ -249,7 +250,7 @@ template <> struct StrideView<SimpleVertexDX9>
 	uint8_t* pointer_;
 	uint8_t* pointerOrigin_;
 
-#if _DEBUG
+#ifndef NDEBUG
 	int32_t offset_;
 	int32_t elementCount_;
 #endif
@@ -257,7 +258,7 @@ template <> struct StrideView<SimpleVertexDX9>
 	StrideView(void* pointer, int32_t stride, int32_t elementCount)
 		: pointer_(reinterpret_cast<uint8_t*>(pointer))
 		, pointerOrigin_(reinterpret_cast<uint8_t*>(pointer))
-#if _DEBUG
+#ifndef NDEBUG
 		, offset_(0)
 		, elementCount_(elementCount)
 #endif
@@ -267,7 +268,7 @@ template <> struct StrideView<SimpleVertexDX9>
 
 	SimpleVertexDX9& operator[](int i) const
 	{
-#if _DEBUG
+#ifndef NDEBUG
 		assert(i >= 0);
 		assert(i + offset_ < elementCount_);
 #endif
@@ -276,7 +277,7 @@ template <> struct StrideView<SimpleVertexDX9>
 
 	StrideView& operator+=(const int& rhs)
 	{
-#if _DEBUG
+#ifndef NDEBUG
 		offset_ += rhs;
 #endif
 		pointer_ += stride_ * rhs;
@@ -285,7 +286,7 @@ template <> struct StrideView<SimpleVertexDX9>
 
 	void Reset()
 	{
-#if _DEBUG
+#ifndef NDEBUG
 		offset_ = 0;
 #endif
 		pointer_ = pointerOrigin_;
@@ -547,6 +548,145 @@ inline Effekseer::Color PackVector3DF(const Effekseer::Vector3D& v)
 	ret.A = 255;
 	return ret;
 }
+
+struct MaterialShaderParameterGenerator
+{
+	int32_t VertexSize = 0;
+	int32_t VertexShaderUniformBufferSize = 0;
+	int32_t PixelShaderUniformBufferSize = 0;
+
+	int32_t VertexCameraMatrixOffset = -1;
+	int32_t VertexProjectionMatrixOffset = -1;
+	int32_t VertexInversedFlagOffset = -1;
+	int32_t VertexPredefinedOffset = -1;
+	int32_t VertexUserUniformOffset = -1;
+
+	int32_t PixelInversedFlagOffset = -1;
+	int32_t PixelPredefinedOffset = -1;
+	int32_t PixelCameraPositionOffset = -1;
+	int32_t PixelLightDirectionOffset = -1;
+	int32_t PixelLightColorOffset = -1;
+	int32_t PixelLightAmbientColorOffset = -1;
+	int32_t PixelCameraMatrixOffset = -1;
+	int32_t PixelUserUniformOffset = -1;
+
+	int32_t VertexModelMatrixOffset = -1;
+	int32_t VertexModelUVOffset = -1;
+	int32_t VertexModelColorOffset = -1;
+
+	int32_t VertexModelCustomData1Offset = -1;
+	int32_t VertexModelCustomData2Offset = -1;
+
+	MaterialShaderParameterGenerator(const ::Effekseer::Material& material, bool isModel, int32_t stage, int32_t instanceCount)
+	{
+		if (isModel)
+		{
+			VertexSize = sizeof(::Effekseer::Model::Vertex);
+		}
+		else if (material.GetIsSimpleVertex())
+		{
+			VertexSize = sizeof(EffekseerRenderer::SimpleVertex);
+		}
+		else
+		{
+			VertexSize = sizeof(EffekseerRenderer::DynamicVertex) +
+						 sizeof(float) * (material.GetCustomData1Count() + material.GetCustomData2Count());
+		}
+
+		if (isModel)
+		{
+			int32_t vsOffset = 0;
+			VertexProjectionMatrixOffset = vsOffset;
+			vsOffset += sizeof(Effekseer::Matrix44);
+
+			VertexModelMatrixOffset = vsOffset;
+			vsOffset += sizeof(Effekseer::Matrix44) * instanceCount;
+
+			VertexModelUVOffset = vsOffset;
+			vsOffset += sizeof(float) * 4 * instanceCount;
+
+			VertexModelColorOffset = vsOffset;
+			vsOffset += sizeof(float) * 4 * instanceCount;
+
+			VertexInversedFlagOffset = vsOffset;
+			vsOffset += sizeof(float) * 4;
+
+			VertexPredefinedOffset = vsOffset;
+			vsOffset += sizeof(float) * 4;
+
+			if (material.GetCustomData1Count() > 0)
+			{
+				VertexModelCustomData1Offset = vsOffset;
+				vsOffset += sizeof(float) * 4 * instanceCount;
+			}
+
+			if (material.GetCustomData2Count() > 0)
+			{
+				VertexModelCustomData2Offset = vsOffset;
+				vsOffset += sizeof(float) * 4 * instanceCount;
+			}
+
+			VertexUserUniformOffset = vsOffset;
+			vsOffset += sizeof(float) * 4 * material.GetUniformCount();
+
+			VertexShaderUniformBufferSize = vsOffset;
+		}
+		else
+		{
+			int32_t vsOffset = 0;
+			VertexCameraMatrixOffset = vsOffset;
+			vsOffset += sizeof(Effekseer::Matrix44);
+
+			VertexProjectionMatrixOffset = vsOffset;
+			vsOffset += sizeof(Effekseer::Matrix44);
+
+			VertexInversedFlagOffset = vsOffset;
+			vsOffset += sizeof(float) * 4;
+
+			VertexPredefinedOffset = vsOffset;
+			vsOffset += sizeof(float) * 4;
+
+			VertexUserUniformOffset = vsOffset;
+			vsOffset += sizeof(float) * 4 * material.GetUniformCount();
+
+			VertexShaderUniformBufferSize = vsOffset;
+		}
+
+		int32_t psOffset = 0;
+
+		PixelInversedFlagOffset = psOffset;
+		psOffset += sizeof(float) * 4;
+
+		PixelPredefinedOffset = psOffset;
+		psOffset += sizeof(float) * 4;
+
+		if (material.GetShadingModel() == ::Effekseer::ShadingModelType::Lit)
+		{
+			PixelCameraPositionOffset = psOffset;
+			psOffset += sizeof(float) * 4;
+
+			PixelLightDirectionOffset = psOffset;
+			psOffset += sizeof(float) * 4;
+
+			PixelLightColorOffset = psOffset;
+			psOffset += sizeof(float) * 4;
+
+			PixelLightAmbientColorOffset = psOffset;
+			psOffset += sizeof(float) * 4;
+		}
+
+		if (material.GetHasRefraction() && stage == 1)
+		{
+			PixelCameraMatrixOffset = psOffset;
+			psOffset += sizeof(Effekseer::Matrix44);
+		}
+
+		PixelUserUniformOffset = psOffset;
+		psOffset += sizeof(float) * 4 * material.GetUniformCount();
+
+		PixelShaderUniformBufferSize = psOffset;
+	}
+};
 
 }
 #endif // __EFFEKSEERRENDERER_COMMON_UTILS_H__
@@ -2008,6 +2148,86 @@ protected:
 	{
 	}
 
+	template <typename RENDERER>
+	void SortTemporaryValues(RENDERER* renderer, const efkModelNodeParam& param)
+	{
+		if (param.DepthParameterPtr->ZSort != Effekseer::ZSortType::None)
+		{
+			keyValues_.resize(m_matrixes.size());
+			for (size_t i = 0; i < keyValues_.size(); i++)
+			{
+				efkVector3D t;
+				t.X = m_matrixes[i].Values[3][0];
+				t.Y = m_matrixes[i].Values[3][1];
+				t.Z = m_matrixes[i].Values[3][2];
+
+				auto frontDirection = renderer->GetCameraFrontDirection();
+				if (!param.IsRightHand)
+				{
+					frontDirection.Z = -frontDirection.Z;
+				}
+
+				keyValues_[i].Key = Effekseer::Vector3D::Dot(t, frontDirection);
+				keyValues_[i].Value = static_cast<int32_t>(i);
+			}
+
+			if (param.DepthParameterPtr->ZSort == Effekseer::ZSortType::NormalOrder)
+			{
+				std::sort(keyValues_.begin(), keyValues_.end(), [](const KeyValue& a, const KeyValue& b) -> bool { return a.Key < b.Key; });
+			}
+			else
+			{
+				std::sort(keyValues_.begin(), keyValues_.end(), [](const KeyValue& a, const KeyValue& b) -> bool { return a.Key > b.Key; });
+			}
+
+			matrixesSorted_.resize(m_matrixes.size());
+			uvSorted_.resize(m_matrixes.size());
+			colorsSorted_.resize(m_matrixes.size());
+			timesSorted_.resize(m_matrixes.size());
+
+			if (customData1Count_ > 0)
+			{
+				customData1Sorted_.resize(m_matrixes.size());
+			}
+
+			if (customData2Count_ > 0)
+			{
+				customData2Sorted_.resize(m_matrixes.size());
+			}
+
+			for (size_t i = 0; i < keyValues_.size(); i++)
+			{
+				matrixesSorted_[keyValues_[i].Value] = m_matrixes[i];
+				uvSorted_[keyValues_[i].Value] = m_uv[i];
+				colorsSorted_[keyValues_[i].Value] = m_colors[i];
+				timesSorted_[keyValues_[i].Value] = m_times[i];
+			}
+
+			if (customData1Count_ > 0)
+			{
+				for (size_t i = 0; i < keyValues_.size(); i++)
+				{
+					customData1Sorted_[keyValues_[i].Value] = customData1_[i];
+				}
+			}
+
+			if (customData2Count_ > 0)
+			{
+				for (size_t i = 0; i < keyValues_.size(); i++)
+				{
+					customData2Sorted_[keyValues_[i].Value] = customData2_[i];
+				}
+			}
+
+			m_matrixes = matrixesSorted_;
+			m_uv = uvSorted_;
+			m_colors = colorsSorted_;
+			m_times = timesSorted_;
+			customData1_ = customData1Sorted_;
+			customData2_ = customData2Sorted_;
+		}
+	}
+
 public:
 
 	virtual ~ModelRendererBase() {}
@@ -2148,81 +2368,7 @@ public:
 		}
 
 		// sort
-		if (param.DepthParameterPtr->ZSort != Effekseer::ZSortType::None)
-		{
-			keyValues_.resize(m_matrixes.size());
-			for (size_t i = 0; i < keyValues_.size(); i++)
-			{
-				efkVector3D t;
-				t.X = m_matrixes[i].Values[3][0];
-				t.Y = m_matrixes[i].Values[3][1];
-				t.Z = m_matrixes[i].Values[3][2];
-
-				auto frontDirection = renderer->GetCameraFrontDirection();
-				if (!param.IsRightHand)
-				{
-					frontDirection.Z = -frontDirection.Z;
-				}
-
-				keyValues_[i].Key = Effekseer::Vector3D::Dot(t, frontDirection);
-				keyValues_[i].Value = static_cast<int32_t>(i);
-			}
-			
-			if (param.DepthParameterPtr->ZSort == Effekseer::ZSortType::NormalOrder)
-			{
-				std::sort(keyValues_.begin(), keyValues_.end(), [](const KeyValue& a, const KeyValue& b) -> bool { return a.Key < b.Key; });
-			}
-			else
-			{
-				std::sort(keyValues_.begin(), keyValues_.end(), [](const KeyValue& a, const KeyValue& b) -> bool { return a.Key > b.Key; });
-			}
-
-			matrixesSorted_.resize(m_matrixes.size());
-			uvSorted_.resize(m_matrixes.size());
-			colorsSorted_.resize(m_matrixes.size());
-			timesSorted_.resize(m_matrixes.size());
-
-			if (customData1Count_ > 0)
-			{
-				customData1Sorted_.resize(m_matrixes.size());
-			}
-
-			if (customData2Count_ > 0)
-			{
-				customData2Sorted_.resize(m_matrixes.size());
-			}
-
-			for (size_t i = 0; i < keyValues_.size(); i++)
-			{
-				matrixesSorted_[keyValues_[i].Value] = m_matrixes[i];
-				uvSorted_[keyValues_[i].Value] = m_uv[i];
-				colorsSorted_[keyValues_[i].Value] = m_colors[i];
-				timesSorted_[keyValues_[i].Value] = m_times[i];
-			}
-
-			if (customData1Count_ > 0)
-			{
-				for (size_t i = 0; i < keyValues_.size(); i++)
-				{
-					customData1Sorted_[keyValues_[i].Value] = customData1_[i];
-				}
-			}
-
-			if (customData2Count_ > 0)
-			{
-				for (size_t i = 0; i < keyValues_.size(); i++)
-				{
-					customData2Sorted_[keyValues_[i].Value] = customData2_[i];
-				}
-			}
-
-			m_matrixes = matrixesSorted_;
-			m_uv = uvSorted_;
-			m_colors = colorsSorted_;
-			m_times = timesSorted_;
-			customData1_ = customData1Sorted_;
-			customData2_ = customData2Sorted_;
-		}
+		SortTemporaryValues(renderer, param);
 
 		for (int32_t renderPassInd = 0; renderPassInd < renderPassCount; renderPassInd++)
 		{

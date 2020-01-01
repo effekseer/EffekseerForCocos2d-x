@@ -16339,12 +16339,12 @@ void ManagerImplemented::Preupdate(DrawSet& drawSet)
 
 	drawSet.InstanceContainerPointer = pContainer;
 
+	drawSet.IsPreupdated = true;
+
 	for (int32_t frame = 0; frame < drawSet.StartFrame; frame++)
 	{
 		UpdateHandle(drawSet, 1);
 	}
-
-	drawSet.IsPreupdated = true;
 }
 
 bool ManagerImplemented::IsClippedWithDepth(DrawSet& drawSet, InstanceContainer* container, const Manager::DrawParameter& drawParameter) {
@@ -18834,22 +18834,22 @@ RectF Instance::GetUV() const
 
 	if (uv.X < -far && uv.X + uv.Width < -far)
 	{
-		uv.X += far;
+		uv.X += (-static_cast<int32_t>(uv.X) - far);
 	}
 
 	if (uv.X > far && uv.X + uv.Width > far)
 	{
-		uv.X -= far;
+		uv.X -= (static_cast<int32_t>(uv.X) - far);
 	}
 
 	if (uv.Y < -far && uv.Y + uv.Height < -far)
 	{
-		uv.Y += far;
+		uv.Y += (-static_cast<int32_t>(uv.Y) - far);
 	}
 
 	if (uv.Y > far && uv.Y + uv.Height > far)
 	{
-		uv.Y -= far;
+		uv.Y -= (static_cast<int32_t>(uv.Y) - far);
 	}
 
 	return uv;
