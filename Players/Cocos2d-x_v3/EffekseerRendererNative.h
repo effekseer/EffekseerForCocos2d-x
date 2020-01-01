@@ -12,7 +12,6 @@
 #define	__EFFEKSEERRENDERER_COMMON_UTILS_H__
 
 #include "EffekseerNative.h"
-#include <Effekseer/Material/Effekseer.CompiledMaterial.h>
 #include <assert.h>
 #include <string.h>
 #include <math.h>

@@ -19,7 +19,7 @@ class CreateHeader:
 		f = codecs.open(path, 'r','utf-8_sig')
 		line = f.readline()
 		while line:
-			if re.search('include \"', line) == None:
+			if re.search('include \"', line) == None and re.search('include <Effekseer/', line) == None:
  	 			self.lines.append(line)
 			line = f.readline()
 		self.lines.append('\r\n')
@@ -166,6 +166,7 @@ effekseerCPP.addLine('#elif defined(__ARM_NEON__)')
 effekseerCPP.addLine('#define EFK_NEON')
 effekseerCPP.addLine('#include <arm_neon.h>')
 effekseerCPP.addLine('#endif')
+effekseerCPP.addLine('#undef far')
 
 # param
 effekseerCPP.readLines(rootEDir + 'Parameter/Effekseer.Parameters.cpp')

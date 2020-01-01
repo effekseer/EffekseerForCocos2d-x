@@ -698,7 +698,7 @@ public:
 
 	Effect* EffectEmitter::getEffect()
 	{
-		return effect;
+		return effect_;
 	}
 
 	void EffectEmitter::setEffect(Effect* effect)
@@ -722,16 +722,16 @@ public:
 
 	void EffectEmitter::play(int32_t startTime)
 	{
-		if (effect == nullptr) return;
+		if (effect_ == nullptr) return;
 		if (manager == nullptr) return;
 
 		if (startTime == 0)
 		{
-			handle = manager->play(effect, 0, 0, 0, 0);
+			handle = manager->play(effect_, 0, 0, 0, 0);
 		}
 		else
 		{
-			handle = manager->play(effect, 0, 0, 0, startTime);
+			handle = manager->play(effect_, 0, 0, 0, startTime);
 		}
 
 		auto transform = this->getNodeToWorldTransform();

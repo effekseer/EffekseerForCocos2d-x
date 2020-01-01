@@ -41,6 +41,7 @@
 #define EFK_NEON
 #include <arm_neon.h>
 #endif
+#undef far
 
 namespace Effekseer
 {
