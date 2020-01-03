@@ -6032,8 +6032,14 @@ void RenderState::Update( bool forced )
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, glfilterMag[filter_]);
 				GLCheckError();
 
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, glfilterMin[filter_]);
-				GLCheckError();
+				if (m_renderer->GetCurrentTextures()[i].HasMipmap)
+				{
+					glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, glfilterMin[filter_]);
+				}
+				else
+				{
+					glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, glfilterMin_NoneMipmap[filter_]);
+				}
 			}
 
 			// always changes because a flag is assigned into a texture
@@ -6131,7 +6137,7 @@ static const char g_header_fs_gles2_src [] =
 "#define FRAGCOLOR gl_FragColor\n";
 
 static const char g_header_vs_gl2_src [] =
-"#version 110\n" \
+"#version 120\n" \
 "#define lowp\n" \
 "#define mediump\n" \
 "#define highp\n" \
@@ -6140,7 +6146,7 @@ static const char g_header_vs_gl2_src [] =
 "#define OUT varying\n";
 
 static const char g_header_fs_gl2_src [] =
-"#version 110\n" \
+"#version 120\n" \
 "#define lowp\n" \
 "#define mediump\n" \
 "#define highp\n" \

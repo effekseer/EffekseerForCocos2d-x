@@ -372,8 +372,12 @@ namespace efk
 			@brief
 			\~English	Update the manager every frame.
 			\~Japanese	毎フレーム実行する。
+			@param delta
+			\~English	In seconds.
+			\~Japanese	秒
+
 		*/
-		void update();
+		void update(float delta = 1.0f/ 60.0f);
 
 		/**
 			@brief

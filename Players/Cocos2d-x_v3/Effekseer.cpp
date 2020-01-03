@@ -3,6 +3,17 @@
 
 namespace efk
 {
+	int ccNextPOT(int x)
+	{
+		x = x - 1;
+		x = x | (x >> 1);
+		x = x | (x >> 2);
+		x = x | (x >> 4);
+		x = x | (x >> 8);
+		x = x | (x >> 16);
+		return x + 1;
+	}
+
 	static std::u16string getFilenameWithoutExt(const char16_t* path)
 	{
 		int start = 0;
@@ -178,7 +189,7 @@ namespace efk
 		{
 			this->position = position;
 			if (this->position < 0) this->position = 0;
-			if (this->position > data.size()) this->position = data.size();
+			if (this->position > static_cast<int32_t>(data.size())) this->position = static_cast<int32_t>(data.size());
 		}
 
 		int GetPosition()
@@ -233,7 +244,7 @@ namespace efk
 
 #pragma region
 	static std::map<Effekseer::TextureData*, std::basic_string<EFK_CHAR>> g_glTex2FilePath;
-	static std::map<std::basic_string<EFK_CHAR>, cocos2d::CCTexture2D*> g_filePath2CTex;
+	static std::map<std::basic_string<EFK_CHAR>, cocos2d::Texture2D*> g_filePath2CTex;
 	static std::map<std::basic_string<EFK_CHAR>, Effekseer::TextureData*> g_filePath2EffectData;
 
 	class TextureLoader
@@ -288,13 +299,18 @@ namespace efk
 
 			cocos2d::Image* image = new cocos2d::Image();
 			cocos2d::Texture2D* texture = new cocos2d::Texture2D();
+			bool hasMipmap = false;
 			if (image != nullptr &&
 				texture != nullptr &&
 				image->initWithImageData((const uint8_t*)data_texture, size_texture))
 			{
 				if (texture->initWithImage(image))
 				{
-					texture->generateMipmap();
+					if (texture->getPixelsWide() == ccNextPOT(texture->getPixelsWide()) &&
+						texture->getPixelsHigh() == ccNextPOT(texture->getPixelsHigh()))
+					{
+						texture->generateMipmap();
+					}
 				}
 				else
 				{
@@ -311,6 +327,7 @@ namespace efk
 			textureData->Width = texture->getPixelsWide();
 			textureData->Height = texture->getPixelsHigh();
 			textureData->TextureFormat = Effekseer::TextureFormatType::ABGR8;
+			textureData->HasMipmap = texture->hasMipmaps();
 			g_filePath2CTex[key] = texture;
 			g_filePath2EffectData[key] = textureData;
 			g_glTex2FilePath[textureData] = key;
@@ -1127,10 +1144,10 @@ public:
 		getInternalRenderer()->SetProjectionMatrix(mat_);
 	}
 
-	void EffectManager::update()
+	void EffectManager::update(float delta)
 	{
 		manager2d->Update();
-		time_ = 1.0f / 60.0f;
+		time_ += delta;
 		renderer2d->SetTime(time_);
 	}
 
