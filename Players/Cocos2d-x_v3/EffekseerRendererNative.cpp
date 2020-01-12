@@ -658,6 +658,25 @@ Renderer::~Renderer() { ES_SAFE_DELETE(impl); }
 
 Renderer::Impl* Renderer::GetImpl() { return impl; }
 
+const ::Effekseer::Matrix44& Renderer::GetProjectionMatrix() const { return impl->GetProjectionMatrix(); }
+
+void Renderer::SetProjectionMatrix(const ::Effekseer::Matrix44& mat) { impl->SetProjectionMatrix(mat); }
+
+const ::Effekseer::Matrix44& Renderer::GetCameraMatrix() const { return impl->GetCameraMatrix(); }
+
+void Renderer::SetCameraMatrix(const ::Effekseer::Matrix44& mat) { impl->SetCameraMatrix(mat); }
+
+::Effekseer::Matrix44& Renderer::GetCameraProjectionMatrix() { return impl->GetCameraProjectionMatrix(); }
+
+::Effekseer::Vector3D Renderer::GetCameraFrontDirection() const { return impl->GetCameraFrontDirection(); }
+
+::Effekseer::Vector3D Renderer::GetCameraPosition() const { return impl->GetCameraPosition(); }
+
+void Renderer::SetCameraParameter(const ::Effekseer::Vector3D& front, const ::Effekseer::Vector3D& position)
+{
+	impl->SetCameraParameter(front, position);
+}
+
 int32_t Renderer::GetDrawCallCount() const { return impl->GetDrawCallCount(); }
 
 int32_t Renderer::GetDrawVertexCount() const { return impl->GetDrawVertexCount(); }
@@ -692,6 +711,38 @@ void Renderer::SetBackgroundTexture(::Effekseer::TextureData* textureData)
 
 namespace EffekseerRenderer
 {
+
+const ::Effekseer::Matrix44& Renderer::Impl::GetProjectionMatrix() const { return projectionMat_; }
+
+void Renderer::Impl::SetProjectionMatrix(const ::Effekseer::Matrix44& mat) { projectionMat_ = mat; }
+
+const ::Effekseer::Matrix44& Renderer::Impl::GetCameraMatrix() const { return cameraMat_; }
+
+void Renderer::Impl::SetCameraMatrix(const ::Effekseer::Matrix44& mat)
+{
+	cameraFrontDirection_ = ::Effekseer::Vector3D(mat.Values[0][2], mat.Values[1][2], mat.Values[2][2]);
+
+	auto localPos = ::Effekseer::Vector3D(-mat.Values[3][0], -mat.Values[3][1], -mat.Values[3][2]);
+	auto f = cameraFrontDirection_;
+	auto r = ::Effekseer::Vector3D(mat.Values[0][0], mat.Values[1][0], mat.Values[2][0]);
+	auto u = ::Effekseer::Vector3D(mat.Values[0][1], mat.Values[1][1], mat.Values[2][1]);
+
+	cameraPosition_ = r * localPos.X + u * localPos.Y + f * localPos.Z;
+
+	cameraMat_ = mat;
+}
+
+::Effekseer::Matrix44& Renderer::Impl::GetCameraProjectionMatrix() { return cameraProjMat_; }
+
+::Effekseer::Vector3D Renderer::Impl::GetCameraFrontDirection() const { return cameraFrontDirection_; }
+
+::Effekseer::Vector3D Renderer::Impl::GetCameraPosition() const { return cameraPosition_; }
+
+void Renderer::Impl::SetCameraParameter(const ::Effekseer::Vector3D& front, const ::Effekseer::Vector3D& position)
+{
+	cameraFrontDirection_ = front;
+	cameraPosition_ = position;
+}
 
 void Renderer::Impl::CreateProxyTextures(Renderer* renderer)
 {
@@ -1471,13 +1522,6 @@ private:
 	::Effekseer::Color		m_lightColor;
 	::Effekseer::Color		m_lightAmbient;
 
-	::Effekseer::Matrix44	m_proj;
-	::Effekseer::Matrix44	m_camera;
-	::Effekseer::Matrix44	m_cameraProj;
-
-	::Effekseer::Vector3D	m_cameraPosition;
-	::Effekseer::Vector3D	m_cameraFrontDirection;
-
 	::EffekseerRenderer::RenderStateBase*		m_renderState;
 
 	Effekseer::TextureData	m_background;
@@ -1577,37 +1621,6 @@ public:
 		@brief	ライトの環境光の色を設定する。
 	*/
 	void SetLightAmbientColor( const ::Effekseer::Color& color ) override;
-
-	/**
-		@brief	投影行列を取得する。
-	*/
-	const ::Effekseer::Matrix44& GetProjectionMatrix() const override;
-
-	/**
-		@brief	投影行列を設定する。
-	*/
-	void SetProjectionMatrix( const ::Effekseer::Matrix44& mat ) override;
-
-	/**
-		@brief	カメラ行列を取得する。
-	*/
-	const ::Effekseer::Matrix44& GetCameraMatrix() const override;
-
-	/**
-		@brief	カメラ行列を設定する。
-	*/
-	void SetCameraMatrix( const ::Effekseer::Matrix44& mat ) override;
-
-	/**
-		@brief	カメラプロジェクション行列を取得する。
-	*/
-	::Effekseer::Matrix44& GetCameraProjectionMatrix() override;
-
-	::Effekseer::Vector3D GetCameraFrontDirection() const override;
-
-	::Effekseer::Vector3D GetCameraPosition() const  override;
-
-	void SetCameraParameter(const ::Effekseer::Vector3D& front, const ::Effekseer::Vector3D& position)  override;
 
 	/**
 		@brief	スプライトレンダラーを生成する。
@@ -4951,7 +4964,7 @@ bool RendererImplemented::BeginRendering()
 {
 	GLCheckError();
 
-	::Effekseer::Matrix44::Mul( m_cameraProj, m_camera, m_proj );
+	::Effekseer::Matrix44::Mul(GetCameraProjectionMatrix(), GetCameraMatrix(), GetProjectionMatrix());
 
 	// store state
 	if(m_restorationOfStates)
@@ -5182,71 +5195,6 @@ const ::Effekseer::Color& RendererImplemented::GetLightAmbientColor() const
 void RendererImplemented::SetLightAmbientColor( const ::Effekseer::Color& color )
 {
 	m_lightAmbient = color;
-}
-
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-const ::Effekseer::Matrix44& RendererImplemented::GetProjectionMatrix() const
-{
-	return m_proj;
-}
-
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-void RendererImplemented::SetProjectionMatrix( const ::Effekseer::Matrix44& mat )
-{
-	m_proj = mat;
-}
-
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-const ::Effekseer::Matrix44& RendererImplemented::GetCameraMatrix() const
-{
-	return m_camera;
-}
-
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-void RendererImplemented::SetCameraMatrix( const ::Effekseer::Matrix44& mat )
-{
-	m_cameraFrontDirection = ::Effekseer::Vector3D(mat.Values[0][2], mat.Values[1][2], mat.Values[2][2]);
-
-	auto localPos = ::Effekseer::Vector3D(-mat.Values[3][0], -mat.Values[3][1], -mat.Values[3][2]);
-	auto f = m_cameraFrontDirection;
-	auto r = ::Effekseer::Vector3D(mat.Values[0][0], mat.Values[1][0], mat.Values[2][0]);
-	auto u = ::Effekseer::Vector3D(mat.Values[0][1], mat.Values[1][1], mat.Values[2][1]);
-
-	m_cameraPosition = r * localPos.X + u * localPos.Y + f * localPos.Z;
-
-	m_camera = mat;
-}
-
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-::Effekseer::Matrix44& RendererImplemented::GetCameraProjectionMatrix()
-{
-	return m_cameraProj;
-}
-
-::Effekseer::Vector3D RendererImplemented::GetCameraFrontDirection() const
-{
-	return m_cameraFrontDirection;
-}
-
-::Effekseer::Vector3D RendererImplemented::GetCameraPosition() const
-{
-	return m_cameraPosition;
-}
-
-void RendererImplemented::SetCameraParameter(const ::Effekseer::Vector3D& front, const ::Effekseer::Vector3D& position)
-{
-	m_cameraFrontDirection = front;
-	m_cameraPosition = position;
 }
 
 //----------------------------------------------------------------------------------

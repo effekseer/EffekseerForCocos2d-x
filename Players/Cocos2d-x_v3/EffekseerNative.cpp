@@ -8894,7 +8894,11 @@ public:
 	void UpdateHandle( Handle handle, float deltaFrame = 1.0f ) override;
 
 private:
-	void UpdateHandle( DrawSet& drawSet, float deltaFrame );
+
+	void UpdateInstancesByInstanceGlobal(const DrawSet& drawSet);
+
+	//! update draw sets
+	void UpdateHandleInternal(DrawSet& drawSet);
 
 	void Preupdate(DrawSet& drawSet);
 
@@ -9306,7 +9310,7 @@ public:
 	*/
 	InstanceGroup* GetFirstGroup() const;
 
-	void Update( bool recursive, float deltaFrame, bool shown );
+	void Update( bool recursive, bool shown );
 
 	void SetBaseMatrix( bool recursive, const Matrix43& mat );
 
@@ -9738,9 +9742,9 @@ public:
 
 	~InstanceChunk();
 
-	void UpdateInstances(float deltaFrame);
+	void UpdateInstances();
 
-	void UpdateInstancesByInstanceGlobal(InstanceGlobal* global, float deltaFrame);
+	void UpdateInstancesByInstanceGlobal(const InstanceGlobal* global);
 
 	Instance* CreateInstance(Manager* pManager, EffectNode* pEffectNode, InstanceContainer* pContainer, InstanceGroup* pGroup);
 
@@ -9816,6 +9820,12 @@ private:
 	virtual ~InstanceGlobal();
 
 public:
+	//! A delta time for next update
+	float NextDeltaFrame = 0.0f;
+
+	void BeginDeltaFrame(float frame);
+
+	void EndDeltaFrame();
 
 	bool		IsGlobalColorSet = false;
 	Color		GlobalColor = Color(255, 255, 255, 255);
@@ -9834,8 +9844,6 @@ public:
 	void IncInstanceCount();
 
 	void DecInstanceCount();
-
-	void AddUpdatedFrame( float frame );
 
 	/**
 		@brief	全てのインスタンス数を取得
@@ -9932,7 +9940,7 @@ public:
 
 	int GetInstanceCount() const;
 
-	void Update( float deltaFrame, bool shown );
+	void Update(bool shown);
 
 	void SetBaseMatrix( const Matrix43& mat );
 
@@ -16198,17 +16206,23 @@ void ManagerImplemented::Update( float deltaFrame )
 
 	BeginUpdate();
 
+	for (auto& drawSet : m_DrawSets)
+	{	
+		float df = drawSet.second.IsPaused ? 0 : deltaFrame * drawSet.second.Speed;
+		drawSet.second.GlobalPointer->BeginDeltaFrame(df);
+	}
+
 	for (auto& chunks : instanceChunks_)
 	{
 		for (auto chunk : chunks)
 		{
-			chunk->UpdateInstances(deltaFrame);
+			chunk->UpdateInstances();
 		}
 	}
 
 	for (auto& drawSet : m_DrawSets)
 	{
-		UpdateHandle(drawSet.second, deltaFrame);
+		UpdateHandleInternal(drawSet.second);
 	}
 
 	EndUpdate();
@@ -16273,22 +16287,29 @@ void ManagerImplemented::UpdateHandle( Handle handle, float deltaFrame )
 	{
 		DrawSet& drawSet = it->second;
 
-		for (auto& chunks : instanceChunks_)
 		{
-			for (auto chunk : chunks)
-			{
-				chunk->UpdateInstancesByInstanceGlobal(drawSet.GlobalPointer, deltaFrame);
-			}
+			float df = drawSet.IsPaused ? 0 : deltaFrame * drawSet.Speed;
+			drawSet.GlobalPointer->BeginDeltaFrame(df);
 		}
 
-		UpdateHandle( drawSet, deltaFrame );
+		UpdateInstancesByInstanceGlobal(drawSet);
+
+		UpdateHandleInternal(drawSet);
 	}
 }
 
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-void ManagerImplemented::UpdateHandle( DrawSet& drawSet, float deltaFrame )
+void ManagerImplemented::UpdateInstancesByInstanceGlobal(const DrawSet& drawSet) 
+{
+	for (auto& chunks : instanceChunks_)
+	{
+		for (auto chunk : chunks)
+		{
+			chunk->UpdateInstancesByInstanceGlobal(drawSet.GlobalPointer);
+		}
+	}
+}
+
+void ManagerImplemented::UpdateHandleInternal(DrawSet& drawSet)
 {
 	// calculate dynamic parameters
 	auto e = static_cast<EffectImplemented*>(drawSet.ParameterPointer);
@@ -16313,21 +16334,16 @@ void ManagerImplemented::UpdateHandle( DrawSet& drawSet, float deltaFrame )
 				drawSet.GlobalPointer);
 	}
 
-	if (!drawSet.IsPreupdated)
-	{
-		Preupdate(drawSet);
-	}
+	Preupdate(drawSet);
 
-	float df = drawSet.IsPaused ? 0 : deltaFrame * drawSet.Speed;
-
-	drawSet.InstanceContainerPointer->Update( true, df, drawSet.IsShown );
+	drawSet.InstanceContainerPointer->Update( true, drawSet.IsShown );
 
 	if( drawSet.DoUseBaseMatrix )
 	{
 		drawSet.InstanceContainerPointer->SetBaseMatrix( true, drawSet.BaseMatrix );
 	}
 
-	drawSet.GlobalPointer->AddUpdatedFrame( df );
+	drawSet.GlobalPointer->EndDeltaFrame();
 }
 
 
@@ -16344,7 +16360,11 @@ void ManagerImplemented::Preupdate(DrawSet& drawSet)
 
 	for (int32_t frame = 0; frame < drawSet.StartFrame; frame++)
 	{
-		UpdateHandle(drawSet, 1);
+		drawSet.GlobalPointer->BeginDeltaFrame(1.0f);
+
+		UpdateInstancesByInstanceGlobal(drawSet);
+
+		UpdateHandleInternal(drawSet);
 	}
 }
 
@@ -16829,14 +16849,24 @@ void ManagerImplemented::EndReloadEffect( Effect* effect, bool doLockThread)
 
 		// Create an instance through a container
 		(*it).second.InstanceContainerPointer = CreateInstanceContainer( ((EffectImplemented*)effect)->GetRoot(), (*it).second.GlobalPointer, true, (*it).second.GlobalMatrix, NULL );
-		
+
 		// skip
 		for( float f = 0; f < (*it).second.GlobalPointer->GetUpdatedFrame() - 1; f+= 1.0f )
 		{
-			(*it).second.InstanceContainerPointer->Update( true, 1.0f, false );
+			(*it).second.GlobalPointer->BeginDeltaFrame(1.0f);
+
+			UpdateInstancesByInstanceGlobal((*it).second);
+
+			(*it).second.InstanceContainerPointer->Update(true, false);
+			(*it).second.GlobalPointer->EndDeltaFrame();
 		}
 
-		(*it).second.InstanceContainerPointer->Update( true, 1.0f, (*it).second.IsShown );
+		(*it).second.GlobalPointer->BeginDeltaFrame(1.0f);
+
+		UpdateInstancesByInstanceGlobal((*it).second);
+
+		(*it).second.InstanceContainerPointer->Update(true, (*it).second.IsShown);
+		(*it).second.GlobalPointer->EndDeltaFrame();
 	}
 
 	if (doLockThread)
@@ -17062,12 +17092,12 @@ InstanceGroup* InstanceContainer::GetFirstGroup() const
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-void InstanceContainer::Update(bool recursive, float deltaFrame, bool shown)
+void InstanceContainer::Update(bool recursive, bool shown)
 {
 	// 更新
 	for (InstanceGroup* group = m_headGroups; group != NULL; group = group->NextUsedByContainer)
 	{
-		group->Update(deltaFrame, shown);
+		group->Update(shown);
 	}
 
 	// 破棄
@@ -17077,7 +17107,7 @@ void InstanceContainer::Update(bool recursive, float deltaFrame, bool shown)
 	{
 		for (auto child : m_Children)
 		{
-			child->Update(recursive, deltaFrame, shown);
+			child->Update(recursive, shown);
 		}
 	}
 }
@@ -18938,7 +18968,7 @@ InstanceChunk::InstanceChunk() { std::fill(instancesAlive_.begin(), instancesAli
 
 InstanceChunk::~InstanceChunk() {}
 
-void InstanceChunk::UpdateInstances(float deltaFrame)
+void InstanceChunk::UpdateInstances()
 {
 	for (int32_t i = 0; i < InstancesOfChunk; i++)
 	{
@@ -18948,7 +18978,8 @@ void InstanceChunk::UpdateInstances(float deltaFrame)
 
 			if (instance->m_State == INSTANCE_STATE_ACTIVE)
 			{
-				instance->Update(deltaFrame, true);
+				auto deltaTime = instance->GetInstanceGlobal()->NextDeltaFrame;
+				instance->Update(deltaTime, true);
 			}
 			else if (instance->m_State == INSTANCE_STATE_REMOVING)
 			{
@@ -18964,7 +18995,7 @@ void InstanceChunk::UpdateInstances(float deltaFrame)
 		}
 	}
 }
-void InstanceChunk::UpdateInstancesByInstanceGlobal(InstanceGlobal* global, float deltaFrame)
+void InstanceChunk::UpdateInstancesByInstanceGlobal(const InstanceGlobal* global)
 {
 	for (int32_t i = 0; i < InstancesOfChunk; i++)
 	{
@@ -18978,7 +19009,8 @@ void InstanceChunk::UpdateInstancesByInstanceGlobal(InstanceGlobal* global, floa
 
 			if (instance->m_State == INSTANCE_STATE_ACTIVE)
 			{
-				instance->Update(deltaFrame, true);
+				auto deltaTime = global->NextDeltaFrame;
+				instance->Update(deltaTime, true);
 			}
 			else if (instance->m_State == INSTANCE_STATE_REMOVING)
 			{
@@ -19050,6 +19082,14 @@ InstanceGlobal::~InstanceGlobal()
 	
 }
 
+void InstanceGlobal::BeginDeltaFrame(float frame) { NextDeltaFrame = frame; }
+
+void InstanceGlobal::EndDeltaFrame()
+{
+	m_updatedFrame += NextDeltaFrame;
+	NextDeltaFrame = 0.0f;
+}
+
 std::array<float, 4> InstanceGlobal::GetDynamicEquationResult(int32_t index) {
 	assert(0 <= index && index < dynamicEqResults.size());
 	return dynamicEqResults[index];
@@ -19075,14 +19115,6 @@ float InstanceGlobal::GetRand()
 float InstanceGlobal::GetRand(float min_, float max_)
 {
 	return GetRand() * (max_ - min_) + min_;
-}
-
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-void InstanceGlobal::AddUpdatedFrame( float frame )
-{
-	m_updatedFrame += frame;
 }
 
 //----------------------------------------------------------------------------------
@@ -19250,7 +19282,7 @@ int InstanceGroup::GetInstanceCount() const
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-void InstanceGroup::Update( float deltaFrame, bool shown )
+void InstanceGroup::Update(bool shown)
 {
 	for (auto it = m_instances.begin(); it != m_instances.end();)
 	{
