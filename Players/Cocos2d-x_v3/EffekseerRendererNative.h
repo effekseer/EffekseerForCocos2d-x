@@ -5342,7 +5342,7 @@ namespace EffekseerRenderer
 
 					U = axis;
 
-					::Effekseer::Vector3D::Normal(F, -m_renderer->GetCameraFrontDirection());
+					::Effekseer::Vector3D::Normal(F, m_renderer->GetCameraFrontDirection());
 
 					::Effekseer::Vector3D::Normal(R, ::Effekseer::Vector3D::Cross(R, U, F));
 					::Effekseer::Vector3D::Normal(F, ::Effekseer::Vector3D::Cross(F, R, U));
@@ -5670,12 +5670,9 @@ public:
 //-----------------------------------------------------------------------------------
 #endif	// __EFFEKSEERRENDERER_VERTEXBUFFER_BASE_H__
 
-#ifndef	__EFFEKSEERRENDERER_GL_BASE_PRE_H__
-#define	__EFFEKSEERRENDERER_GL_BASE_PRE_H__
+#ifndef __EFFEKSEERRENDERER_GL_BASE_PRE_H__
+#define __EFFEKSEERRENDERER_GL_BASE_PRE_H__
 
-//----------------------------------------------------------------------------------
-// Include
-//----------------------------------------------------------------------------------
 #include "EffekseerNative.h"
 #include <vector>
 
@@ -5683,30 +5680,7 @@ public:
 #include <Windows.h>
 #endif
 
-#if defined(__EFFEKSEER_RENDERER_GL_GLEW__)
-
-#if _WIN32
-#include <GL/gl.h>
-#elif defined(__APPLE__)
-#define GL_SILENCE_DEPRECATION
-#include <OpenGL/gl3.h>
-#else
-#include <GL/glew.h>
-#endif
-
-#elif defined(__EFFEKSEER_RENDERER_GL_GLEW_S__)
-
-#if _WIN32
-#include <GL/gl.h>
-#elif defined(__APPLE__)
-#define GL_SILENCE_DEPRECATION
-#include <OpenGL/gl3.h>
-#else
-#define GLEW_STATIC
-#include <GL/glew.h>
-#endif
-
-#elif defined(__EFFEKSEER_RENDERER_GLES2__)
+#if defined(__EFFEKSEER_RENDERER_GLES2__)
 
 #if defined(__APPLE__)
 #include <OpenGLES/ES2/gl.h>
@@ -5727,7 +5701,9 @@ public:
 
 #elif defined(__EFFEKSEER_RENDERER_GL2__)
 
-#if defined(__APPLE__)
+#if _WIN32
+#include <GL/gl.h>
+#elif defined(__APPLE__)
 #define GL_SILENCE_DEPRECATION
 #include <OpenGL/gl.h>
 #else
@@ -5736,7 +5712,9 @@ public:
 
 #else
 
-#if defined(__APPLE__)
+#if _WIN32
+#include <GL/gl.h>
+#elif defined(__APPLE__)
 #define GL_SILENCE_DEPRECATION
 #include <OpenGL/gl3.h>
 #else
@@ -5751,14 +5729,9 @@ public:
 #pragma comment(lib, "opengl32.lib")
 #endif
 
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
 namespace EffekseerRendererGL
 {
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
+
 class Renderer;
 
 enum class OpenGLDeviceType
@@ -5770,14 +5743,9 @@ enum class OpenGLDeviceType
 	Emscripten,
 };
 
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-}
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-#endif	// __EFFEKSEERRENDERER_GL_BASE_PRE_H__
+} // namespace EffekseerRendererGL
+
+#endif // __EFFEKSEERRENDERER_GL_BASE_PRE_H__
 
 
 #ifndef	__EFFEKSEERRENDERER_GL_RENDERER_H__
