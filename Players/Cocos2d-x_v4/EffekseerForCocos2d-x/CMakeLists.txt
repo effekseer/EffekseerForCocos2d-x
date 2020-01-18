@@ -7,7 +7,8 @@ add_library(EffekseerForCocos2d-x
     EffekseerForCocos2d-x.h)
 
 target_include_directories(${PROJECT_NAME} 
-    PUBLIC ../Effekseer/)
+    PUBLIC ../Effekseer/
+	PUBLIC ./)
 
 target_link_libraries(${PROJECT_NAME} 
     PRIVATE cocos2d

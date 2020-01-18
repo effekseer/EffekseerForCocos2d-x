@@ -56,7 +56,8 @@ public:
 	@note
 	\~English
 	It is released automatically with autorelease after version1.41
-
+
+
 	\~Japanese
 	1.41以降、autoreleaseにより自動的に解放されます。
 */
@@ -80,8 +81,8 @@ private:
 	Effect* effect_ = nullptr;
 	::Effekseer::Handle handle = -1;
 
-	cocos2d::CustomCommand renderCommand;
-
+	cocos2d::CallbackCommand renderCommand;
+	
 public:
 	/**
 		@brief
@@ -414,7 +415,8 @@ public:
 		@brief
 		\~English	Create the instance of network server class.
 		\~Japanese	ネットワークサーバークラスのインスタンスを生成する。
-	
+	
+
 		@return
 		\~English	Instance
 		\~Japanese	インスタンス

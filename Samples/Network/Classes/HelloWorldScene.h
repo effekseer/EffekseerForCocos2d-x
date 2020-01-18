@@ -4,15 +4,19 @@
 #include "cocos2d.h"
 
 /**
-	必ずEffekseer.hをインクルードする必要があります
+	必ずEffekseer.h or EffekseerForCocos2d-x.h(after4.0)をインクルードする必要があります
 
-	You must include Effekseer.h
+	You must include Effekseer.h or EffekseerForCocos2d-x.h(after4.0)
 
-	你必須包括Effekseer.h
+	你必須包括Effekseer.h or EffekseerForCocos2d-x.h(after4.0)
 
-	你必须包括Effekseer.h
+	你必须包括Effekseer.h or EffekseerForCocos2d-x.h(after4.0)
 */
+#if COCOS2D_VERSION >= 0x00040000
+#include "EffekseerForCocos2d-x.h"
+#else
 #include "Effekseer/Effekseer.h"
+#endif
 
 class HelloWorld : public cocos2d::Scene
 {

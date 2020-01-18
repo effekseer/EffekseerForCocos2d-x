@@ -3,9 +3,10 @@
 
 #ifdef CC_USE_METAL
 #else
+#include "cocos/renderer/backend/opengl/TextureGL.h"
 #include <EffekseerRenderer/EffekseerRendererGL.DeviceObjectCollection.h>
-#include <EffekseerRenderer/EffekseerRendererGL.ModelLoader.h>
 #include <EffekseerRenderer/EffekseerRendererGL.MaterialLoader.h>
+#include <EffekseerRenderer/EffekseerRendererGL.ModelLoader.h>
 #endif
 
 namespace efk
@@ -303,7 +304,14 @@ Effekseer::TextureData* TextureLoader::Load(const EFK_CHAR* path, ::Effekseer::T
 		delete[] data_texture;
 
 		Effekseer::TextureData* textureData = new Effekseer::TextureData();
-		textureData->UserID = texture->getName();
+
+#ifdef CC_USE_METAL
+		assert(0); // not supported
+#else
+		auto backend = static_cast<cocos2d::backend::Texture2DGL*>(texture->getBackendTexture());
+		textureData->UserID = backend->getHandler();
+#endif
+
 		textureData->Width = texture->getPixelsWide();
 		textureData->Height = texture->getPixelsHigh();
 		textureData->TextureFormat = Effekseer::TextureFormatType::ABGR8;
@@ -847,6 +855,7 @@ void EffectEmitter::update(float delta)
 void EffectEmitter::draw(cocos2d::Renderer* renderer, const cocos2d::Mat4& parentTransform, uint32_t parentFlags)
 {
 	renderCommand.init(_globalZOrder);
+
 	auto renderer2d = manager->getInternalRenderer();
 	Effekseer::Matrix44 mCamera = renderer2d->GetCameraMatrix();
 	Effekseer::Matrix44 mProj = renderer2d->GetProjectionMatrix();
@@ -872,10 +881,6 @@ void EffectEmitter::draw(cocos2d::Renderer* renderer, const cocos2d::Mat4& paren
 #ifdef CC_USE_METAL
 
 #else
-		cocos2d::GL::useProgram(0);
-		cocos2d::GL::enableVertexAttribs(0);
-		cocos2d::GL::bindVAO(0);
-		cocos2d::GL::bindTexture2D((GLuint)0);
 #endif
 
 		// Count drawcall and vertex
@@ -1026,7 +1031,10 @@ void EffectManager::begin(cocos2d::Renderer* renderer, float globalZOrder)
 		manager2d->Draw();
 
 	};
-	
+	
+
+
+
 	renderer->addCommand(&beginCommand);
 	*/
 }
@@ -1040,9 +1048,6 @@ void EffectManager::end(cocos2d::Renderer* renderer, float globalZOrder)
 	{
 		renderer2d->ResetRenderState();
 		renderer2d->EndRendering();
-		
-		// Reset Parameters
-		cocos2d::GL::useProgram(0);
 	};
 
 	renderer->addCommand(&endCommand);
