@@ -1,14 +1,6 @@
 ﻿
 #include "EffekseerForCocos2d-x.h"
 
-#ifdef CC_USE_METAL
-#else
-#include "cocos/renderer/backend/opengl/TextureGL.h"
-#include <EffekseerRenderer/EffekseerRendererGL.DeviceObjectCollection.h>
-#include <EffekseerRenderer/EffekseerRendererGL.MaterialLoader.h>
-#include <EffekseerRenderer/EffekseerRendererGL.ModelLoader.h>
-#endif
-
 namespace efk
 {
 int ccNextPOT(int x)
@@ -304,14 +296,7 @@ Effekseer::TextureData* TextureLoader::Load(const EFK_CHAR* path, ::Effekseer::T
 		delete[] data_texture;
 
 		Effekseer::TextureData* textureData = new Effekseer::TextureData();
-
-#ifdef CC_USE_METAL
-		assert(0); // not supported
-#else
-		auto backend = static_cast<cocos2d::backend::Texture2DGL*>(texture->getBackendTexture());
-		textureData->UserID = backend->getHandler();
-#endif
-
+		UpdateTextureData(textureData, texture);
 		textureData->Width = texture->getPixelsWide();
 		textureData->Height = texture->getPixelsHigh();
 		textureData->TextureFormat = Effekseer::TextureFormatType::ABGR8;
@@ -872,16 +857,13 @@ void EffectEmitter::draw(cocos2d::Renderer* renderer, const cocos2d::Mat4& paren
 			manager->isDistorted = true;
 		}
 
+#ifdef CC_USE_METAL
+            preRender(renderer2d);
+#endif
 		renderer2d->SetRestorationOfStatesFlag(true);
 		renderer2d->BeginRendering();
 		manager->getInternalManager()->DrawHandle(handle);
 		renderer2d->EndRendering();
-
-		// Reset Parameters
-#ifdef CC_USE_METAL
-
-#else
-#endif
 
 		// Count drawcall and vertex
 		renderer->addDrawnBatches(renderer2d->GetDrawCallCount());
@@ -935,13 +917,7 @@ bool EffectManager::Initialize(cocos2d::Size visibleSize)
 	spriteSize = 2400;
 #endif
 
-#if (CC_TARGET_PLATFORM == CC_PLATFORM_IOS || CC_TARGET_PLATFORM == CC_PLATFORM_ANDROID)
-	renderer2d = ::EffekseerRendererGL::Renderer::Create(
-		spriteSize, EffekseerRendererGL::OpenGLDeviceType::OpenGLES2, EffekseerDeviceObjectCollection::create());
-#else
-	renderer2d = ::EffekseerRendererGL::Renderer::Create(
-		spriteSize, EffekseerRendererGL::OpenGLDeviceType::OpenGL2, EffekseerDeviceObjectCollection::create());
-#endif
+	CreateRenderer(spriteSize);
 
 	manager2d = ::Effekseer::Manager::Create(8000);
 

@@ -1,10 +1,24 @@
 
 project(EffekseerForCocos2d-x)
 
+if (APPLE)
+
 add_library(EffekseerForCocos2d-x
     STATIC
     EffekseerForCocos2d-x.cpp
     EffekseerForCocos2d-x.h)
+    Metal/Effekseer+Metal.cpp
+    GL/Effekseer+GL.cpp)
+
+else()
+
+add_library(EffekseerForCocos2d-x
+    STATIC
+    EffekseerForCocos2d-x.cpp
+    EffekseerForCocos2d-x.h
+    GL/Effekseer+GL.cpp)
+
+endif()
 
 target_include_directories(${PROJECT_NAME} 
     PUBLIC ../Effekseer/

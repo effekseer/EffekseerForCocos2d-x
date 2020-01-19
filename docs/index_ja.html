@@ -60,8 +60,22 @@
 			<img src="Top.png">
 		</div>
 
+		<h2>インストール方法(バージョン4)</h2>
 
-		<h2>インストール方法</h2>
+		<p>
+		<b>Players/Cocos2d-x_v4</b>をCocos2d-xのプロジェクトにコピーしてください。
+		</p>
+
+		<p>
+		下記のようにコードをCMakeLists.txtに追加してください。
+		</p>
+
+<pre>
+add_subdirectory(Cocos2d-x_v4)
+target_link_libraries(${APP_NAME} EffekseerForCocos2d-x)
+</pre>
+
+		<h2>インストール方法(バージョン3)</h2>
 		<p>
 		<b>Players/Cocos2d-x_v3</b>ディレクトリに以下のファイルが存在します。
 		</p>
@@ -108,11 +122,15 @@ Effekseerの標準出力で保存したエフェクトファイルをcocos2d-x�
 <br>
 
 <p>
-Effekseer.hをインクルードします。
+EffekseerForCocos2d-x.h(バージョン4)かEffekseer.h(バージョン3)をインクルードします。
 </p>
 
 <pre>
+#if COCOS2D_VERSION >= 0x00040000
+#include "EffekseerForCocos2d-x.h"
+#else
 #include "Effekseer/Effekseer.h"
+#endif
 </pre>
 <br>
 

@@ -60,7 +60,21 @@
 			<img src="Top.png">
 		</div>
 
-		<h2>Installation method</h2>
+		<h2>Installation method (Version4)</h2>
+		<p>
+		Please copy Players/Cocos2d-x_v4 to the project of Cocos 2d-x.
+		</p>
+
+		<p>
+		Add codes int CMakeLists.txt as follows.
+		</p>
+
+<pre>
+add_subdirectory(Cocos2d-x_v4)
+target_link_libraries(${APP_NAME} EffekseerForCocos2d-x)
+</pre>
+
+		<h2>Installation method (Version3)</h2>
 		<p>
 		<b>Players/Cocos2d-x_v3</b>following files to the directory exists.
 		</p>
@@ -105,11 +119,15 @@ Play effects files saved with Effekseer's standard output with Cocos2d-x. For mo
 <br>
 
 <p>
-Include Effekseer.h.
+Include EffekseerForCocos2d-x.h(Version4) or Effekseer.h(Version3).
 </p>
 
 <pre>
+#if COCOS2D_VERSION >= 0x00040000
+#include "EffekseerForCocos2d-x.h"
+#else
 #include "Effekseer/Effekseer.h"
+#endif
 </pre>
 <br>
 
