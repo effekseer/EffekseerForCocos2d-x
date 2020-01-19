@@ -1,0 +1,182 @@
+#ifndef CC_USE_METAL
+
+#include "Effekseer/EffectManager.h"
+#include "EffekseerRendererGL/EffekseerRenderer/EffekseerRendererGL.DeviceObjectCollection.h"
+#include "renderer/backend/opengl/TextureGL.h"
+
+namespace efk {
+
+#pragma region DistortingCallbackGL
+class DistortingCallbackGL
+	: public EffekseerRenderer::DistortingCallback
+{
+	GLuint framebufferForCopy = 0;
+	GLuint backGroundTexture = 0;
+	uint32_t backGroundTextureWidth = 0;
+	uint32_t backGroundTextureHeight = 0;
+	GLuint backGroundTextureInternalFormat = 0;
+
+	EffekseerRendererGL::Renderer*	renderer = nullptr;
+
+public:
+	DistortingCallbackGL(EffekseerRendererGL::Renderer* renderer);
+
+	virtual ~DistortingCallbackGL();
+
+	void ReleaseTexture();
+
+	// prepare a taget
+	void PrepareTexture(uint32_t width, uint32_t height, GLint internalFormat);
+
+	virtual bool OnDistorting() override;
+};
+
+DistortingCallbackGL::DistortingCallbackGL(EffekseerRendererGL::Renderer* renderer)
+{
+	this->renderer = renderer;
+	glGenTextures(1, &backGroundTexture);
+#ifndef _WIN32
+	glGenFramebuffers(1, &framebufferForCopy);
+#endif
+}
+
+DistortingCallbackGL::~DistortingCallbackGL()
+{
+	ReleaseTexture();
+}
+
+void DistortingCallbackGL::ReleaseTexture()
+{
+#ifndef _WIN32
+	glDeleteFramebuffers(1, &framebufferForCopy);
+#endif
+	glDeleteTextures(1, &backGroundTexture);
+}
+
+void DistortingCallbackGL::PrepareTexture(uint32_t width, uint32_t height, GLint internalFormat)
+{
+	glBindTexture(GL_TEXTURE_2D, backGroundTexture);
+	glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+
+	backGroundTextureWidth = width;
+	backGroundTextureHeight = height;
+	backGroundTextureInternalFormat = internalFormat;
+}
+
+bool DistortingCallbackGL::OnDistorting()
+{
+#ifndef _WIN32
+	GLint backupFramebuffer;
+	glGetIntegerv(GL_FRAMEBUFFER_BINDING, &backupFramebuffer);
+	if (backupFramebuffer <= 0) return false;
+#endif
+	GLint viewport[4];
+	glGetIntegerv(GL_VIEWPORT, viewport);
+	uint32_t width = viewport[2];
+	uint32_t height = viewport[3];
+
+	if (backGroundTextureWidth != width ||
+		backGroundTextureHeight != height)
+	{
+		PrepareTexture(width, height, GL_RGBA);
+	}
+
+#ifndef _WIN32
+
+	GLint rbtype;
+	glGetFramebufferAttachmentParameteriv(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+		GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, &rbtype);
+
+	if (rbtype == GL_RENDERBUFFER) {
+		GLint renderbuffer;
+		glGetFramebufferAttachmentParameteriv(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+			GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, &renderbuffer);
+
+		glBindFramebuffer(GL_FRAMEBUFFER, framebufferForCopy);
+		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, renderbuffer);
+	}
+	else if (rbtype == GL_TEXTURE_2D) {
+		GLint renderTexture;
+		glGetFramebufferAttachmentParameteriv(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+			GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, &renderTexture);
+
+		glBindFramebuffer(GL_FRAMEBUFFER, framebufferForCopy);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, renderTexture, 0);
+	}
+#endif
+
+	glBindTexture(GL_TEXTURE_2D, backGroundTexture);
+	//glCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, width, height );
+	glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, viewport[0], viewport[1], width, height);
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+#ifndef _WIN32
+	glBindFramebuffer(GL_FRAMEBUFFER, backupFramebuffer);
+#endif
+
+	renderer->SetBackground(backGroundTexture);
+
+	return true;
+}
+#pragma endregion
+
+
+static ::EffekseerRendererGL::DeviceObjectCollection* g_deviceObjectCollection = nullptr;
+
+class EffekseerDeviceObjectCollection : public ::EffekseerRendererGL::DeviceObjectCollection
+{
+private:
+
+public:
+	EffekseerDeviceObjectCollection()
+	{
+	}
+
+	virtual ~EffekseerDeviceObjectCollection()
+	{
+		g_deviceObjectCollection = nullptr;
+	}
+
+	static ::EffekseerRendererGL::DeviceObjectCollection* create()
+	{
+		if (g_deviceObjectCollection == nullptr)
+		{
+			g_deviceObjectCollection = new ::EffekseerRendererGL::DeviceObjectCollection();
+		}
+		else
+		{
+			g_deviceObjectCollection->AddRef();
+		}
+
+		return g_deviceObjectCollection;
+	}
+};
+
+void UpdateTextureData(::Effekseer::TextureData* textureData, cocos2d::Texture2D* texture)
+{
+	auto textureGL = static_cast<cocos2d::backend::Texture2DGL*>(texture->getBackendTexture());
+	textureData->UserID = textureGL->getHandler();
+}
+
+void CleanupTextureData(::Effekseer::TextureData* textureData) {}
+
+::EffekseerRenderer::DistortingCallback* CreateDistortingCallback(::EffekseerRenderer::Renderer* renderer)
+{
+	auto renderGL = static_cast<::EffekseerRendererGL::Renderer*>(renderer);
+	return new DistortingCallbackGL(renderGL);
+}
+
+void EffectEmitter::preRender(EffekseerRenderer::Renderer*) {}
+
+void EffectManager::CreateRenderer(int32_t spriteSize)
+{
+#if (CC_TARGET_PLATFORM == CC_PLATFORM_MOBILE)
+	renderer2d = ::EffekseerRendererGL::Renderer::Create(spriteSize, EffekseerRendererGL::OpenGLDeviceType::OpenGLES2, EffekseerDeviceObjectCollection::create());
+#else
+	renderer2d = ::EffekseerRendererGL::Renderer::Create(spriteSize, EffekseerRendererGL::OpenGLDeviceType::OpenGL2, EffekseerDeviceObjectCollection::create());
+#endif
+}
+
+}
+
+#endif

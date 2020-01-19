@@ -46,113 +46,6 @@ static std::u16string getFilenameWithoutExt(const char16_t* path)
 	return std::u16string(ret.data());
 }
 
-class DistortingCallbackGL : public EffekseerRenderer::DistortingCallback
-{
-	GLuint framebufferForCopy = 0;
-	GLuint backGroundTexture = 0;
-	uint32_t backGroundTextureWidth = 0;
-	uint32_t backGroundTextureHeight = 0;
-	GLuint backGroundTextureInternalFormat = 0;
-
-	EffekseerRendererGL::Renderer* renderer = nullptr;
-
-public:
-	DistortingCallbackGL(EffekseerRendererGL::Renderer* renderer);
-
-	virtual ~DistortingCallbackGL();
-
-	void ReleaseTexture();
-
-	// prepare a taget
-	void PrepareTexture(uint32_t width, uint32_t height, GLint internalFormat);
-
-	virtual bool OnDistorting() override;
-};
-
-DistortingCallbackGL::DistortingCallbackGL(EffekseerRendererGL::Renderer* renderer)
-{
-	this->renderer = renderer;
-	glGenTextures(1, &backGroundTexture);
-#ifndef _WIN32
-	glGenFramebuffers(1, &framebufferForCopy);
-#endif
-}
-
-DistortingCallbackGL::~DistortingCallbackGL() { ReleaseTexture(); }
-
-void DistortingCallbackGL::ReleaseTexture()
-{
-#ifndef _WIN32
-	glDeleteFramebuffers(1, &framebufferForCopy);
-#endif
-	glDeleteTextures(1, &backGroundTexture);
-}
-
-void DistortingCallbackGL::PrepareTexture(uint32_t width, uint32_t height, GLint internalFormat)
-{
-	glBindTexture(GL_TEXTURE_2D, backGroundTexture);
-	glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
-
-	backGroundTextureWidth = width;
-	backGroundTextureHeight = height;
-	backGroundTextureInternalFormat = internalFormat;
-}
-
-bool DistortingCallbackGL::OnDistorting()
-{
-#ifndef _WIN32
-	GLint backupFramebuffer;
-	glGetIntegerv(GL_FRAMEBUFFER_BINDING, &backupFramebuffer);
-	if (backupFramebuffer <= 0)
-		return false;
-#endif
-	GLint viewport[4];
-	glGetIntegerv(GL_VIEWPORT, viewport);
-	uint32_t width = viewport[2];
-	uint32_t height = viewport[3];
-
-	if (backGroundTextureWidth != width || backGroundTextureHeight != height)
-	{
-		PrepareTexture(width, height, GL_RGBA);
-	}
-
-#ifndef _WIN32
-
-	GLint rbtype;
-	glGetFramebufferAttachmentParameteriv(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, &rbtype);
-
-	if (rbtype == GL_RENDERBUFFER)
-	{
-		GLint renderbuffer;
-		glGetFramebufferAttachmentParameteriv(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, &renderbuffer);
-
-		glBindFramebuffer(GL_FRAMEBUFFER, framebufferForCopy);
-		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, renderbuffer);
-	}
-	else if (rbtype == GL_TEXTURE_2D)
-	{
-		GLint renderTexture;
-		glGetFramebufferAttachmentParameteriv(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, &renderTexture);
-
-		glBindFramebuffer(GL_FRAMEBUFFER, framebufferForCopy);
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, renderTexture, 0);
-	}
-#endif
-
-	glBindTexture(GL_TEXTURE_2D, backGroundTexture);
-	// glCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, width, height );
-	glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, viewport[0], viewport[1], width, height);
-	glBindTexture(GL_TEXTURE_2D, 0);
-
-#ifndef _WIN32
-	glBindFramebuffer(GL_FRAMEBUFFER, backupFramebuffer);
-#endif
-
-	renderer->SetBackground(backGroundTexture);
-
-	return true;
-}
-
 class EffekseerFileReader : public Effekseer::FileReader
 {
 	std::vector<uint8_t> data;
@@ -930,7 +823,7 @@ bool EffectManager::Initialize(cocos2d::Size visibleSize)
 										 ::Effekseer::Vector3D(visibleSize.width / 2.0f, visibleSize.height / 2.0f, -200.0f),
 										 ::Effekseer::Vector3D(0.0f, 1.0f, 0.0f)));
 
-	distortingCallback = new DistortingCallbackGL(renderer2d);
+	distortingCallback = CreateDistortingCallback(renderer2d);
 
 	manager2d->SetSpriteRenderer(renderer2d->CreateSpriteRenderer());
 	manager2d->SetRibbonRenderer(renderer2d->CreateRibbonRenderer());
