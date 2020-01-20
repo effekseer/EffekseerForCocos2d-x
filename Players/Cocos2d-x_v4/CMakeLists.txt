@@ -79,10 +79,10 @@ if (APPLE)
 
     set_target_properties (EffekseerRendererMetal PROPERTIES FOLDER Effekseer)
     set_target_properties (LLGI PROPERTIES FOLDER Effekseer)
-else()
-    add_subdirectory(EffekseerRendererGL)
-    set_target_properties (EffekseerRendererGL PROPERTIES FOLDER Effekseer)
 endif()
+
+add_subdirectory(EffekseerRendererGL)
+set_target_properties (EffekseerRendererGL PROPERTIES FOLDER Effekseer)
 
 add_subdirectory(EffekseerForCocos2d-x)
 

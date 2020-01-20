@@ -41,6 +41,7 @@ if (APPLE)
         PUBLIC EffekseerRendererGL)
 
     add_dependencies(${PROJECT_NAME} EffekseerRendererMetal)
+    add_dependencies(${PROJECT_NAME} EffekseerRendererGL)
 else()
     target_include_directories(${PROJECT_NAME} 
         PUBLIC ../EffekseerRendererGL/)
