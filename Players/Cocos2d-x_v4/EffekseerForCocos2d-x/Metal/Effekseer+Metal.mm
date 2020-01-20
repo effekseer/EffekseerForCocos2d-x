@@ -1,13 +1,27 @@
+#include "cocos2d.h"
 #ifdef CC_USE_METAL
 
-#include "Effekseer/EffectManager.h"
-#include "EffekseerRendererMetal/EffekseerRendererMetal.RendererImplemented.h"
+#include "../EffekseerForCocos2d-x.h"
+#include "../../EffekseerRendererMetal/EffekseerRenderer/EffekseerRendererMetal.RendererImplemented.h"
+#include "../../EffekseerRendererMetal/EffekseerRendererMetal.h"
 #include "renderer/backend/metal/TextureMTL.h"
 #include "renderer/backend/metal/CommandBufferMTL.h"
 #include "renderer/backend/metal/Utils.h"
-#include "Metal/LLGI.TextureMetal.h"
+#include <Metal/LLGI.TextureMetal.h>
 
 namespace efk {
+
+Effekseer::ModelLoader* CreateModelLoader(Effekseer::FileInterface* effectFile)
+{
+    // TODO
+    return nullptr;
+}
+
+::Effekseer::MaterialLoader* CreateMaterialLoader(Effekseer::FileInterface* effectFile)
+{
+    // TODO
+    return nullptr;
+}
 
 void UpdateTextureData(::Effekseer::TextureData* textureData, cocos2d::Texture2D* texture)
 {
@@ -50,11 +64,16 @@ void EffectManager::CreateRenderer(int32_t spriteSize)
 {
     renderer2d = EffekseerRendererMetal::Create(spriteSize,
                                                   cocos2d::backend::Utils::getDefaultColorAttachmentPixelFormat(),
-                                                  cocos2d::backend::Utils::getDefaultDepthStencilAttachmentPixelFormat());
+                                                  cocos2d::backend::Utils::getDefaultDepthStencilAttachmentPixelFormat(), false);
 
-    memoryPool = EffekseerRendererMetal::CreateSingleFrameMemoryPool(renderer2d);
-    auto cmdList = EffekseerRendererMetal::CreateCommandList(renderer2d, memoryPool);
-    renderer2d->SetCommandList(cmdList);
+    memoryPool_ = EffekseerRendererMetal::CreateSingleFrameMemoryPool(renderer2d);
+    commandList_ = EffekseerRendererMetal::CreateCommandList(renderer2d, memoryPool_);
+    renderer2d->SetCommandList(commandList_);
+}
+
+void ResetBackground(::EffekseerRenderer::Renderer* renderer)
+{
+    // TODO
 }
 
 }

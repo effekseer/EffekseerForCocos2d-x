@@ -1,13 +1,15 @@
-﻿
+
 #pragma once
 
 #include "cocos2d.h"
 #include <Effekseer.h>
-#ifdef CC_USE_METAL
-#include <EffekseerRendererMetal.h>
-#else
-#include <EffekseerRendererGL.h>
-#endif
+#include <EffekseerRenderer.Renderer.h>
+
+//#ifdef CC_USE_METAL
+//#include <EffekseerRendererMetal.h>
+//#else
+//#include <EffekseerRendererGL.h>
+//#endif
 
 namespace efk
 {
@@ -83,6 +85,8 @@ private:
 
 	cocos2d::CallbackCommand renderCommand;
 	
+    void preRender(EffekseerRenderer::Renderer*);
+    
 public:
 	/**
 		@brief
@@ -293,8 +297,11 @@ class EffectManager : public cocos2d::Ref
 
 private:
 	::Effekseer::Manager* manager2d = NULL;
-	::EffekseerRendererGL::Renderer* renderer2d = NULL;
+	::EffekseerRenderer::Renderer* renderer2d = NULL;
 	::EffekseerRenderer::DistortingCallback* distortingCallback = NULL;
+    ::EffekseerRenderer::SingleFrameMemoryPool* memoryPool_ = nullptr;
+    ::EffekseerRenderer::CommandList* commandList_ = nullptr;
+    
 	bool isDistortionEnabled = false;
 
 	bool isDistorted = false;
@@ -319,6 +326,8 @@ private:
 
 	bool Initialize(cocos2d::Size visibleSize);
 
+    void CreateRenderer(int32_t spriteSize);
+    
 public:
 	/**
 		@brief
@@ -395,7 +404,7 @@ public:
 		\~English　	The pointer of Effekseer::Renderer
 		\~Japanese	Effekseer::Rendererのポインタ
 	*/
-	::EffekseerRendererGL::Renderer* getInternalRenderer() { return renderer2d; }
+	::EffekseerRenderer::Renderer* getInternalRenderer() { return renderer2d; }
 
 	void setCameraMatrix(const cocos2d::Mat4& mat);
 	void setProjectionMatrix(const cocos2d::Mat4& mat);

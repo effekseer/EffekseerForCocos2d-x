@@ -1,8 +1,21 @@
-﻿
+
 #include "EffekseerForCocos2d-x.h"
 
 namespace efk
 {
+
+Effekseer::ModelLoader* CreateModelLoader(Effekseer::FileInterface*);
+
+::Effekseer::MaterialLoader* CreateMaterialLoader(Effekseer::FileInterface*);
+
+void UpdateTextureData(::Effekseer::TextureData* textureData, cocos2d::Texture2D* texture);
+
+void CleanupTextureData(::Effekseer::TextureData* textureData);
+
+::EffekseerRenderer::DistortingCallback* CreateDistortingCallback(::EffekseerRenderer::Renderer* renderer);
+
+void ResetBackground(::EffekseerRenderer::Renderer* renderer);
+
 int ccNextPOT(int x)
 {
 	x = x - 1;
@@ -134,7 +147,7 @@ public:
 public:
 	Effekseer::TextureData* Load(const EFK_CHAR* path, ::Effekseer::TextureType textureType) override;
 
-	void Unload(Effekseer::TextureData* data);
+	void Unload(Effekseer::TextureData* data) override;
 };
 
 TextureLoader::TextureLoader(::Effekseer::FileInterface* fileInterface) : m_fileInterface(fileInterface)
@@ -212,6 +225,7 @@ void TextureLoader::Unload(Effekseer::TextureData* data)
 
 		if (tex->getReferenceCount() == 1)
 		{
+            CleanupTextureData(data);
 			g_glTex2FilePath.erase(data);
 			g_filePath2EffectData.erase(path);
 			g_filePath2CTex.erase(path);
@@ -293,30 +307,6 @@ public:
 class EffekseerSetting;
 
 static EffekseerSetting* g_effekseerSetting = nullptr;
-static ::EffekseerRendererGL::DeviceObjectCollection* g_deviceObjectCollection = nullptr;
-
-class EffekseerDeviceObjectCollection : public ::EffekseerRendererGL::DeviceObjectCollection
-{
-private:
-public:
-	EffekseerDeviceObjectCollection() {}
-
-	virtual ~EffekseerDeviceObjectCollection() { g_deviceObjectCollection = nullptr; }
-
-	static ::EffekseerRendererGL::DeviceObjectCollection* create()
-	{
-		if (g_deviceObjectCollection == nullptr)
-		{
-			g_deviceObjectCollection = new ::EffekseerRendererGL::DeviceObjectCollection();
-		}
-		else
-		{
-			g_deviceObjectCollection->AddRef();
-		}
-
-		return g_deviceObjectCollection;
-	}
-};
 
 class EffekseerSetting : public ::Effekseer::Setting
 {
@@ -328,15 +318,8 @@ protected:
 		effectFile = new EffekseerFile();
 		SetEffectLoader(Effekseer::Effect::CreateEffectLoader(effectFile));
 		SetTextureLoader(new TextureLoader(effectFile));
-		SetModelLoader(new ::EffekseerRendererGL::ModelLoader(effectFile));
-
-#if (CC_TARGET_PLATFORM == CC_PLATFORM_IOS || CC_TARGET_PLATFORM == CC_PLATFORM_ANDROID)
-		SetMaterialLoader(new CachedMaterialLoader(new ::EffekseerRendererGL::MaterialLoader(
-			EffekseerRendererGL::OpenGLDeviceType::OpenGLES2, nullptr, EffekseerDeviceObjectCollection::create(), effectFile)));
-#else
-		SetMaterialLoader(new CachedMaterialLoader(new ::EffekseerRendererGL::MaterialLoader(
-			EffekseerRendererGL::OpenGLDeviceType::OpenGL2, nullptr, EffekseerDeviceObjectCollection::create(), effectFile)));
-#endif
+		SetModelLoader(CreateModelLoader(effectFile));
+        SetMaterialLoader(new CachedMaterialLoader(CreateMaterialLoader(effectFile)));
 		// TODO sound
 	}
 
@@ -873,6 +856,8 @@ EffectManager::~EffectManager()
 		renderer2d = nullptr;
 	}
 
+    ES_SAFE_RELEASE(memoryPool_);
+    ES_SAFE_RELEASE(commandList_);
 	ES_SAFE_RELEASE(internalManager_);
 }
 
@@ -887,9 +872,13 @@ void EffectManager::begin(cocos2d::Renderer* renderer, float globalZOrder)
 	else
 	{
 		isDistorted = true;
-		renderer2d->SetBackground(0);
+        ResetBackground(renderer2d);
 	}
 
+    if(memoryPool_ != nullptr)
+    {
+        memoryPool_->NewFrame();
+    }
 	// TODO Batch render
 	/*
 	beginCommand.init(globalZOrder);

@@ -6,8 +6,8 @@ if (APPLE)
 add_library(EffekseerForCocos2d-x
     STATIC
     EffekseerForCocos2d-x.cpp
-    EffekseerForCocos2d-x.h)
-    Metal/Effekseer+Metal.cpp
+    EffekseerForCocos2d-x.h
+    Metal/Effekseer+Metal.mm
     GL/Effekseer+GL.cpp)
 
 else()
@@ -22,7 +22,9 @@ endif()
 
 target_include_directories(${PROJECT_NAME} 
     PUBLIC ../Effekseer/
-	PUBLIC ./)
+    PUBLIC ../EffekseerRendererCommon/
+    PUBLIC ./
+    PRIVATE ../3rdParty/LLGI/src/)
 
 target_link_libraries(${PROJECT_NAME} 
     PRIVATE cocos2d
@@ -35,7 +37,8 @@ if (APPLE)
         PUBLIC ../EffekseerRendererMetal/)
 
     target_link_libraries(${PROJECT_NAME} 
-        PUBLIC EffekseerRendererMetal)
+        PUBLIC EffekseerRendererMetal
+        PUBLIC EffekseerRendererGL)
 
     add_dependencies(${PROJECT_NAME} EffekseerRendererMetal)
 else()

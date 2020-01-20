@@ -1,7 +1,9 @@
+#include "cocos2d.h"
 #ifndef CC_USE_METAL
 
-#include "Effekseer/EffectManager.h"
-#include "EffekseerRendererGL/EffekseerRenderer/EffekseerRendererGL.DeviceObjectCollection.h"
+#include "../EffekseerForCocos2d-x.h"
+#include "../../EffekseerRendererGL/EffekseerRendererGL.h"
+#include "../../EffekseerRendererGL/EffekseerRenderer/EffekseerRendererGL.DeviceObjectCollection.h"
 #include "renderer/backend/opengl/TextureGL.h"
 
 namespace efk {
@@ -120,7 +122,6 @@ bool DistortingCallbackGL::OnDistorting()
 }
 #pragma endregion
 
-
 static ::EffekseerRendererGL::DeviceObjectCollection* g_deviceObjectCollection = nullptr;
 
 class EffekseerDeviceObjectCollection : public ::EffekseerRendererGL::DeviceObjectCollection
@@ -152,6 +153,22 @@ public:
 	}
 };
 
+Effekseer::ModelLoader* CreateModelLoader(Effekseer::FileInterface* effectFile)
+{
+    return new ::EffekseerRendererGL::ModelLoader(effectFile);
+}
+
+::Effekseer::MaterialLoader* CreateMaterialLoader(Effekseer::FileInterface* effectFile)
+{
+    #if (CC_TARGET_PLATFORM == CC_PLATFORM_IOS || CC_TARGET_PLATFORM == CC_PLATFORM_ANDROID)
+            return new ::EffekseerRendererGL::MaterialLoader(
+                EffekseerRendererGL::OpenGLDeviceType::OpenGLES2, nullptr, EffekseerDeviceObjectCollection::create(), effectFile);
+    #else
+            return new ::EffekseerRendererGL::MaterialLoader(
+                EffekseerRendererGL::OpenGLDeviceType::OpenGL2, nullptr, EffekseerDeviceObjectCollection::create(), effectFile);
+    #endif
+}
+
 void UpdateTextureData(::Effekseer::TextureData* textureData, cocos2d::Texture2D* texture)
 {
 	auto textureGL = static_cast<cocos2d::backend::Texture2DGL*>(texture->getBackendTexture());
@@ -175,6 +192,11 @@ void EffectManager::CreateRenderer(int32_t spriteSize)
 #else
 	renderer2d = ::EffekseerRendererGL::Renderer::Create(spriteSize, EffekseerRendererGL::OpenGLDeviceType::OpenGL2, EffekseerDeviceObjectCollection::create());
 #endif
+}
+
+void ResetBackground(::EffekseerRenderer::Renderer* renderer)
+{
+    renderer2d->SetBackground(0);
 }
 
 }
