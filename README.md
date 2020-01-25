@@ -26,7 +26,7 @@ Cocos2d-x Effekseer branch is required to use it with Cocos2d-x v4 and MacOSX
 
 Cocos2d-x v4とMacOSXで使用するためにはCocos2d-x Effekseer ブランチが必要です。
 
-[https://github.com/effekseer/cocos2d-x/tree/cocos2d-x-effekseer](Cocos2d-x Effekseer branch)
+[Cocos2d-x Effekseer branch](https://github.com/effekseer/cocos2d-x/tree/cocos2d-x-effekseer)
 
 How to use
 =========
