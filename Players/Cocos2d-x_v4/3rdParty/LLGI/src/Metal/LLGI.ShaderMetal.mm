@@ -92,7 +92,7 @@ bool ShaderMetal::Initialize(GraphicsMetal* graphics, DataStructure* data, int32
 	SafeRelease(graphics_);
 	graphics_ = graphics;
 
-	return impl->Initialize(graphics_->GetImpl(), data[0].Data, data[0].Size);
+                                                                                                     	return impl->Initialize(graphics_->GetImpl(), data[0].Data, data[0].Size);
 }
 
 }

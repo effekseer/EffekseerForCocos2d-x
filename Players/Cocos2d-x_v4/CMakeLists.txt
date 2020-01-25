@@ -70,6 +70,11 @@ endfunction(FilterFolder)
 add_subdirectory(Effekseer)
 
 if (APPLE)
+    option(USE_INTERNAL_COMMAND_BUFFER "Use Internal Command Buffer" OFF)
+    option(USE_INTERNAL_RENDER_PASS "Use Internal Render Pass" OFF)
+    set(USE_INTERNAL_COMMAND_BUFFER OFF)
+    set(USE_INTERNAL_RENDER_PASS OFF)
+
     add_subdirectory(EffekseerRendererMetal)
 
     set(BUILD_TEST_TEMP ${BUILD_TEST})
