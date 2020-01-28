@@ -1,13 +1,48 @@
 #include "EffekseerMaterialCompilerMetal.h"
+#include "../3rdParty/LLGI/src/Metal/LLGI.CompilerMetal.h"
 
 #include <iostream>
 
 namespace Effekseer
 {
+
+static void Serialize(std::vector<uint8_t>& dst, const LLGI::CompilerResult& result)
+{
+
+	uint32_t binarySize = 0;
+
+	binarySize += sizeof(uint32_t);
+
+	for (size_t i = 0; i < result.Binary.size(); i++)
+	{
+		binarySize += sizeof(uint32_t);
+		binarySize += result.Binary[i].size();
+	}
+
+	dst.resize(binarySize);
+
+	uint32_t offset = 0;
+	uint32_t count = result.Binary.size();
+
+	memcpy(dst.data() + offset, &count, sizeof(int32_t));
+	offset += sizeof(int32_t);
+
+	for (size_t i = 0; i < result.Binary.size(); i++)
+	{
+		uint32_t size = result.Binary[i].size();
+
+		memcpy(dst.data() + offset, &size, sizeof(int32_t));
+		offset += sizeof(int32_t);
+
+		memcpy(dst.data() + offset, result.Binary[i].data(), result.Binary[i].size());
+		offset += result.Binary[i].size();
+	}
+}
+
 namespace Metal
 {
 
-static char* material_common_define = R"(mtlcode
+static char* material_common_define = R"(
 #include <metal_stdlib>
 #pragma clang diagnostic ignored "-Wparentheses-equality"
 using namespace metal;
@@ -23,7 +58,6 @@ struct ShaderInput1 {
   float3 a_Tangent [[attribute(3)]];
   float2 a_TexCoord [[attribute(4)]];
   float4 a_Color [[attribute(5)]];
-//  uint4 a_Index [[attribute(6)]];
 )"
 #if defined(MODEL_SOFTWARE_INSTANCING)
     R"(
@@ -671,14 +705,6 @@ ShaderData GenerateShader(Material* material, MaterialShaderType shaderType, int
                 ExportUniform(userUniforms, 4, "customData2");
             }
         }
-        
-        for (int32_t i = 0; i < material->GetUniformCount(); i++)
-        {
-            //auto uniformIndex = material->GetUniformIndex(i);
-            auto uniformName = material->GetUniformName(i);
-
-            ExportUniform(userUniforms, 4, uniformName);
-        }
 
         int32_t actualTextureCount = std::min(maximumTextureCount, material->GetTextureCount());
 
@@ -707,6 +733,13 @@ ShaderData GenerateShader(Material* material, MaterialShaderType shaderType, int
         {
             ExportUniform(maincode, 16, "cameraMat");
             ExportTexture(textures, "background", t_index);
+        }
+        
+        for (int32_t i = 0; i < material->GetUniformCount(); i++)
+        {
+            auto uniformName = material->GetUniformName(i);
+
+            ExportUniform(userUniforms, 4, uniformName);
         }
 
         auto baseCode = std::string(material->GetGenericCode());
@@ -753,17 +786,6 @@ ShaderData GenerateShader(Material* material, MaterialShaderType shaderType, int
                 baseCode = baseCode.replace(posP, posS + keyS.length() - posP, texSample.str());
                 posP = baseCode.find(keyP, posP + texSample.str().length());
             }
-            
-//            if (stage == 0)
-//            {
-//                baseCode = Replace(baseCode, keyP, "TEX2D(" + textureName + ",GetUV(");
-//                baseCode = Replace(baseCode, keyS, "), 0.0)");
-//            }
-//            else
-//            {
-//                baseCode = Replace(baseCode, keyP, "TEX2D(" + textureName + ",GetUV(");
-//                baseCode = Replace(baseCode, keyS, "))");
-//            }
         }
 
         // invalid texture
@@ -819,11 +841,6 @@ ShaderData GenerateShader(Material* material, MaterialShaderType shaderType, int
         shaderData.CodePS =
             Replace(shaderData.CodePS, "//$C_PIN2$", GetType(material->GetCustomData2Count()) + " v_CustomData2;");
     }
-
-//    printf(shaderData.CodeVS.c_str());
-//    printf("\n\n\n");
-//    printf(shaderData.CodePS.c_str());
-//    printf("\n\n\n");
     
     return shaderData;
 }
@@ -872,19 +889,96 @@ public:
 CompiledMaterialBinary* MaterialCompilerMetal::Compile(Material* material, int32_t maximumTextureCount)
 {
     auto binary = new CompiledMaterialBinaryMetal();
+    auto compiler = LLGI::CreateSharedPtr(new LLGI::CompilerMetal());
 
-    auto convertToVector = [](const std::string& str) -> std::vector<uint8_t> {
-        std::vector<uint8_t> ret;
-        ret.resize(str.size() + 1);
-        memcpy(ret.data(), str.data(), str.size());
-        ret[str.size()] = 0;
-        return ret;
-    };
+	auto convertToVectorVS = [compiler](const std::string& str) -> std::vector<uint8_t> {
+		std::vector<uint8_t> ret;
 
-    auto saveBinary = [&material, &binary, &convertToVector, &maximumTextureCount](MaterialShaderType type) {
+        std::vector<char> buffer;
+
+        // HACK
+        buffer.reserve(7 + str.size() + 1);
+        buffer.push_back('m');
+        buffer.push_back('t');
+        buffer.push_back('l');
+        buffer.push_back('c');
+        buffer.push_back('o');
+        buffer.push_back('d');
+        buffer.push_back('e');
+
+        auto len = str.size() + 1;
+        for (int i = 0; i < len; i++)
+        {
+            buffer.push_back(str[i]);
+        }
+        buffer[buffer.size() - 1] = 0;
+        
+        LLGI::CompilerResult result;
+        result.Binary.resize(1);
+        result.Binary[0].resize(buffer.size());
+        memcpy(result.Binary[0].data(), buffer.data(), buffer.size());
+		//compiler->Compile(result, str.c_str(), LLGI::ShaderStageType::Vertex);
+
+		if (result.Binary.size() > 0)
+		{
+			Serialize(ret, result);
+		}
+		else
+		{
+			std::cout << "VertexShader Compile Error" << std::endl;
+			std::cout << result.Message << std::endl;
+			std::cout << str << std::endl;
+		}
+
+		return ret;
+	};
+
+	auto convertToVectorPS = [compiler](const std::string& str) -> std::vector<uint8_t> {
+		std::vector<uint8_t> ret;
+
+        std::vector<char> buffer;
+
+        // HACK
+        buffer.reserve(7 + str.size() + 1);
+        buffer.push_back('m');
+        buffer.push_back('t');
+        buffer.push_back('l');
+        buffer.push_back('c');
+        buffer.push_back('o');
+        buffer.push_back('d');
+        buffer.push_back('e');
+
+        auto len = str.size() + 1;
+        for (int i = 0; i < len; i++)
+        {
+            buffer.push_back(str[i]);
+        }
+        buffer[buffer.size() - 1] = 0;
+        
+		LLGI::CompilerResult result;
+        result.Binary.resize(1);
+        result.Binary[0].resize(buffer.size());
+        memcpy(result.Binary[0].data(), buffer.data(), buffer.size());
+        //compiler->Compile(result, str.c_str(), LLGI::ShaderStageType::Pixel);
+
+		if (result.Binary.size() > 0)
+		{
+			Serialize(ret, result);
+		}
+		else
+		{
+			std::cout << "PixelShader Compile Error" << std::endl;
+			std::cout << result.Message << std::endl;
+			std::cout << str << std::endl;
+		}
+
+		return ret;
+	};
+
+    auto saveBinary = [&material, &binary, &convertToVectorVS, &convertToVectorPS, &maximumTextureCount](MaterialShaderType type) {
         auto shader = Metal::GenerateShader(material, type, maximumTextureCount);
-        binary->SetVertexShaderData(type, convertToVector(shader.CodeVS));
-        binary->SetPixelShaderData(type, convertToVector(shader.CodePS));
+        binary->SetVertexShaderData(type, convertToVectorVS(shader.CodeVS));
+        binary->SetPixelShaderData(type, convertToVectorPS(shader.CodePS));
     };
 
     if (material->GetHasRefraction())

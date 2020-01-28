@@ -384,7 +384,9 @@ public:
 		if (it_effect == path2effect.end())
 		{
 			EffectResource resource;
-			resource.effect = Effekseer::Effect::Create(EffekseerSetting::create(), path, maginification);
+            auto setting = EffekseerSetting::create();
+			resource.effect = Effekseer::Effect::Create(setting, path, maginification);
+            ES_SAFE_RELEASE(setting);
 			resource.counter = 1;
 
 			if (resource.effect != nullptr)

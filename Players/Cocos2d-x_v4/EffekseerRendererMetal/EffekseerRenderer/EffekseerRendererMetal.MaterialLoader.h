@@ -1,4 +1,4 @@
-
+/*
 #ifndef __EFFEKSEERRENDERER_METAL_MATERIALLOADER_H__
 #define __EFFEKSEERRENDERER_METAL_MATERIALLOADER_H__
 
@@ -13,7 +13,7 @@ protected:
     void Deserialize(uint8_t* data, uint32_t datasize, LLGI::CompilerResult& result) override;
     
 public:
-    MaterialLoader(::EffekseerRendererLLGI::Renderer* renderer,
+    MaterialLoader(::EffekseerRendererLLGI::GraphicsDevice* graphicsDevice,
                    ::Effekseer::FileInterface* fileInterface,
                    ::Effekseer::CompiledMaterialPlatformType platformType,
                    ::Effekseer::MaterialCompiler* materialCompiler);
@@ -22,3 +22,4 @@ public:
 
 }
 #endif // __EFFEKSEERRENDERER_METAL_MATERIALLOADER_H__
+*/
