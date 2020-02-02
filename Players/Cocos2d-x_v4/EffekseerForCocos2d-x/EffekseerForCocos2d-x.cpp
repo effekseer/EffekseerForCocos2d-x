@@ -717,6 +717,18 @@ void EffectEmitter::update(float delta)
 
 void EffectEmitter::draw(cocos2d::Renderer* renderer, const cocos2d::Mat4& parentTransform, uint32_t parentFlags)
 {
+    if (!manager->getInternalManager()->GetShown(handle) ||
+        manager->getInternalManager()->GetTotalInstanceCount() < 1)
+        return; // nothing to draw
+            
+#ifdef CC_USE_METAL
+    if (!manager->isDistorted)
+    {
+        // allow frame buffer texture to be copied for distortion
+        cocos2d::backend::Device::getInstance()->setFrameBufferOnly(false);
+    }
+#endif
+    
 	renderCommand.init(_globalZOrder);
 
 	auto renderer2d = manager->getInternalRenderer();
@@ -725,15 +737,6 @@ void EffectEmitter::draw(cocos2d::Renderer* renderer, const cocos2d::Mat4& paren
 	renderCommand.func = [=]() -> void {
 		renderer2d->SetCameraMatrix(mCamera);
 		renderer2d->SetProjectionMatrix(mProj);
-		if (!manager->isDistorted)
-		{
-			renderer2d->SetRestorationOfStatesFlag(true);
-			renderer2d->BeginRendering();
-			manager->distortingCallback->OnDistorting();
-			renderer2d->EndRendering();
-
-			manager->isDistorted = true;
-		}
 
 #ifdef CC_USE_METAL
             preRender(renderer2d);
@@ -863,7 +866,20 @@ EffectManager::~EffectManager()
 	ES_SAFE_RELEASE(internalManager_);
 }
 
-void EffectManager::setIsDistortionEnabled(bool value) { isDistortionEnabled = value; }
+void EffectManager::setIsDistortionEnabled(bool value)
+{
+    isDistortionEnabled = value;
+    if (isDistortionEnabled)
+    {
+        renderer2d->SetDistortingCallback(distortingCallback);
+        // memory cleanup will be handled by renderer
+        distortingCallback = nullptr;
+    }
+    else
+    {
+        renderer2d->SetDistortingCallback(nullptr);
+    }
+}
 
 void EffectManager::begin(cocos2d::Renderer* renderer, float globalZOrder)
 {

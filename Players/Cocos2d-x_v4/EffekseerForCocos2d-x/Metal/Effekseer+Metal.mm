@@ -12,6 +12,85 @@
 
 namespace efk {
 
+void SetMTLObjectsFromCocos2d(EffekseerRendererMetal::RendererImplemented* renderer)
+{
+    auto d = cocos2d::Director::getInstance();
+    auto buffer = d->getCommandBuffer();
+    auto bufferM = static_cast<cocos2d::backend::CommandBufferMTL*>(buffer);
+    
+    // use render pass descriptor from Cocos and add depth test
+    auto descriptor = d->getRenderer()->getRenderPassDescriptor();
+    descriptor.depthTestEnabled = true;
+    // using Cocos render pass
+    bufferM->beginRenderPass(descriptor);
+    
+    // set Command Buffer and Render Encoder from Cocos
+    renderer->SetExternalCommandBuffer(bufferM->getMTLCommandBuffer());
+    renderer->SetExternalRenderEncoder(bufferM->getRenderCommandEncoder());
+}
+
+
+#pragma region DistortingCallbackMetal
+class DistortingCallbackMetal
+    : public EffekseerRenderer::DistortingCallback
+{
+
+    EffekseerRendererMetal::RendererImplemented*    renderer = nullptr;
+    cocos2d::Texture2D*                             texture = nullptr;
+    LLGI::Texture*                                  textureLLGI = nullptr;
+
+public:
+    DistortingCallbackMetal(EffekseerRendererMetal::RendererImplemented* renderer);
+
+    virtual ~DistortingCallbackMetal();
+
+    virtual bool OnDistorting() override;
+};
+
+DistortingCallbackMetal::DistortingCallbackMetal(EffekseerRendererMetal::RendererImplemented* r)
+: renderer(r)
+{
+    auto s = cocos2d::Director::getInstance()->getOpenGLView()->getFrameSize();
+    int len = s.width * s.height * 4;
+    uint8_t* data = new uint8_t[len];
+    texture = new cocos2d::Texture2D;
+    texture->initWithData(data, len, cocos2d::backend::PixelFormat::BGRA8888, s.width, s.height, s);
+    CC_SAFE_DELETE_ARRAY(data);
+    
+    auto textureMTL = static_cast<cocos2d::backend::TextureMTL*>(texture->getBackendTexture());
+    auto tex = new LLGI::TextureMetal;
+    tex->Reset(textureMTL->getMTLTexture());
+    textureLLGI = tex;
+}
+
+DistortingCallbackMetal::~DistortingCallbackMetal()
+{
+    CC_SAFE_RELEASE(texture);
+    ES_SAFE_RELEASE(textureLLGI);
+}
+
+bool DistortingCallbackMetal::OnDistorting()
+{
+    auto d = cocos2d::Director::getInstance();
+    cocos2d::Renderer* renderer = d->getRenderer();
+    if (!renderer->isRenderingBlocked())
+    {
+        // commit previous encodings and block rendering
+        auto commandBuffer = d->getCommandBuffer();
+        commandBuffer->commitEncoding(CC_CALLBACK_0(DistortingCallbackMetal::OnDistorting, this));
+        renderer->blockRenderThread();
+        
+        // when thread is unblocked
+        SetMTLObjectsFromCocos2d(this->renderer);
+        return true;
+    }
+    
+    texture->updateWithScreen(0, 0);
+    this->renderer->SetBackground(textureLLGI);
+    return true;
+}
+#pragma endregion
+
 static ::EffekseerRenderer::GraphicsDevice* g_graphicsDevice = nullptr;
 
 class EffekseerGraphicsDevice : public ::EffekseerRendererLLGI::GraphicsDevice
@@ -86,18 +165,7 @@ void CleanupTextureData(::Effekseer::TextureData* textureData)
 void EffectEmitter::preRender(EffekseerRenderer::Renderer* renderer)
 {
     auto r = static_cast<::EffekseerRendererMetal::RendererImplemented*>(renderer);
-    auto buffer = _director->getCommandBuffer();
-    auto bufferM = static_cast<cocos2d::backend::CommandBufferMTL*>(buffer);
-    
-    // use render pass descriptor from Cocos and add depth test
-    auto descriptor = _director->getRenderer()->getRenderPassDescriptor();
-    descriptor.depthTestEnabled = true;
-    // using Cocos render pass
-    bufferM->beginRenderPass(descriptor);
-    
-    // set Command Buffer and Render Encoder from Cocos
-    r->SetExternalCommandBuffer(bufferM->getMTLCommandBuffer());
-    r->SetExternalRenderEncoder(bufferM->getRenderCommandEncoder());
+    SetMTLObjectsFromCocos2d(r);
 }
 
 void EffectManager::CreateRenderer(int32_t spriteSize)
@@ -117,7 +185,8 @@ void EffectManager::CreateRenderer(int32_t spriteSize)
 
 void ResetBackground(::EffekseerRenderer::Renderer* renderer)
 {
-    // TODO
+    auto r = static_cast<::EffekseerRendererMetal::RendererImplemented*>(renderer);
+    r->SetBackground(nullptr);
 }
 
 }
