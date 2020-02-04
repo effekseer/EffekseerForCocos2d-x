@@ -29,7 +29,7 @@ void SetMTLObjectsFromCocos2d(EffekseerRendererMetal::RendererImplemented* rende
     renderer->SetExternalRenderEncoder(bufferM->getRenderCommandEncoder());
 }
 
-
+/*
 #pragma region DistortingCallbackMetal
 class DistortingCallbackMetal
     : public EffekseerRenderer::DistortingCallback
@@ -90,6 +90,7 @@ bool DistortingCallbackMetal::OnDistorting()
     return true;
 }
 #pragma endregion
+*/
 
 static ::EffekseerRenderer::GraphicsDevice* g_graphicsDevice = nullptr;
 
