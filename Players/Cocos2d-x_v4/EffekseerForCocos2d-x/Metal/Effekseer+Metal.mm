@@ -23,20 +23,23 @@ void SetMTLObjectsFromCocos2d(EffekseerRendererMetal::RendererImplemented* rende
     descriptor.depthTestEnabled = true;
     // using Cocos render pass
     bufferM->beginRenderPass(descriptor);
+    auto v = d->getRenderer()->getViewport();
+    // important for ensuring znear and zfar are in sync with Cocos
+    bufferM->setViewport(v.x, v.y, v.w, v.h);
     
     // set Command Buffer and Render Encoder from Cocos
     renderer->SetExternalCommandBuffer(bufferM->getMTLCommandBuffer());
     renderer->SetExternalRenderEncoder(bufferM->getRenderCommandEncoder());
 }
 
-/*
+
 #pragma region DistortingCallbackMetal
 class DistortingCallbackMetal
     : public EffekseerRenderer::DistortingCallback
 {
 
     EffekseerRendererMetal::RendererImplemented*    renderer = nullptr;
-    cocos2d::Texture2D*                             texture = nullptr;
+    id<MTLTexture>                                  texture = nullptr;
     LLGI::Texture*                                  textureLLGI = nullptr;
 
 public:
@@ -50,47 +53,53 @@ public:
 DistortingCallbackMetal::DistortingCallbackMetal(EffekseerRendererMetal::RendererImplemented* r)
 : renderer(r)
 {
-    auto s = cocos2d::Director::getInstance()->getOpenGLView()->getFrameSize();
-    int len = s.width * s.height * 4;
-    uint8_t* data = new uint8_t[len];
-    texture = new cocos2d::Texture2D;
-    texture->initWithData(data, len, cocos2d::backend::PixelFormat::BGRA8888, s.width, s.height, s);
-    CC_SAFE_DELETE_ARRAY(data);
+    auto v = cocos2d::Director::getInstance()->getRenderer()->getViewport();
+    auto deviceMTL = static_cast<cocos2d::backend::DeviceMTL*>(cocos2d::backend::Device::getInstance());
     
-    auto textureMTL = static_cast<cocos2d::backend::TextureMTL*>(texture->getBackendTexture());
+    MTLTextureDescriptor* textureDescriptor =
+    [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:cocos2d::backend::Utils::getDefaultColorAttachmentPixelFormat()
+                                                       width:v.w
+                                                      height:v.h
+                                                   mipmapped:NO];
+    
+    texture = [deviceMTL->getMTLDevice() newTextureWithDescriptor:textureDescriptor];
+    
     auto tex = new LLGI::TextureMetal;
-    tex->Reset(textureMTL->getMTLTexture());
+    tex->Reset(texture);
     textureLLGI = tex;
 }
 
 DistortingCallbackMetal::~DistortingCallbackMetal()
 {
-    CC_SAFE_RELEASE(texture);
+    [texture release];
     ES_SAFE_RELEASE(textureLLGI);
 }
 
 bool DistortingCallbackMetal::OnDistorting()
 {
-    auto d = cocos2d::Director::getInstance();
-    cocos2d::Renderer* renderer = d->getRenderer();
-    if (!renderer->isRenderingBlocked())
-    {
-        // commit previous encodings and block rendering
-        auto commandBuffer = d->getCommandBuffer();
-        commandBuffer->commitEncoding(CC_CALLBACK_0(DistortingCallbackMetal::OnDistorting, this));
-        renderer->blockRenderThread();
-        
-        // when thread is unblocked
-        SetMTLObjectsFromCocos2d(this->renderer);
-        return true;
-    }
+    auto commandBuffer = static_cast<cocos2d::backend::CommandBufferMTL*>(cocos2d::Director::getInstance()->getCommandBuffer());
+    commandBuffer->endEncoding();
     
-    texture->updateWithScreen(0, 0);
-    this->renderer->SetBackground(textureLLGI);
+    auto drawable = cocos2d::backend::DeviceMTL::getCurrentDrawable();
+    
+    MTLRegion region =
+    {
+        {0, 0, 0},          // MTLOrigin
+        {texture.width, texture.height, 1}  // MTLSize
+    };
+    
+    id<MTLBlitCommandEncoder> blitEncoder = [commandBuffer->getMTLCommandBuffer() blitCommandEncoder];
+    
+    [blitEncoder copyFromTexture:drawable.texture sourceSlice:0 sourceLevel:0 sourceOrigin:region.origin sourceSize:region.size toTexture:texture destinationSlice:0 destinationLevel:0 destinationOrigin:{0, 0, 0}];
+    [blitEncoder endEncoding];
+    cocos2d::backend::Device::getInstance()->setFrameBufferOnly(true); // reset
+    
+    SetMTLObjectsFromCocos2d(renderer);
+    
+    renderer->SetBackground(textureLLGI);
     return true;
 }
 #pragma endregion
-*/
 
 static ::EffekseerRenderer::GraphicsDevice* g_graphicsDevice = nullptr;
 
@@ -159,6 +168,8 @@ void CleanupTextureData(::Effekseer::TextureData* textureData)
 
 ::EffekseerRenderer::DistortingCallback* CreateDistortingCallback(::EffekseerRenderer::Renderer* renderer)
 {
+    auto r = static_cast<::EffekseerRendererMetal::RendererImplemented*>(renderer);
+    return new DistortingCallbackMetal(r);
     return nullptr;
 }
 
@@ -174,12 +185,14 @@ void EffectManager::CreateRenderer(int32_t spriteSize)
     auto device = EffekseerGraphicsDevice::create();
     renderer2d = EffekseerRendererMetal::Create(device,
                                                 spriteSize,
-                                                  cocos2d::backend::Utils::getDefaultColorAttachmentPixelFormat(),
-                                                  cocos2d::backend::Utils::getDefaultDepthStencilAttachmentPixelFormat(), false);
+                                                cocos2d::backend::Utils::getDefaultColorAttachmentPixelFormat(),
+                                                cocos2d::backend::Utils::getDefaultDepthStencilAttachmentPixelFormat(),
+                                                false);
 
     memoryPool_ = EffekseerRendererMetal::CreateSingleFrameMemoryPool(renderer2d);
     commandList_ = EffekseerRendererMetal::CreateCommandList(renderer2d, memoryPool_);
     renderer2d->SetCommandList(commandList_);
+    renderer2d->SetBackgroundTextureUVStyle(EffekseerRenderer::UVStyle::VerticalFlipped);
     
     ES_SAFE_RELEASE(device);
 }

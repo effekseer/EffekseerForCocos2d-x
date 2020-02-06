@@ -185,11 +185,16 @@ Effekseer::TextureData* TextureLoader::Load(const EFK_CHAR* path, ::Effekseer::T
 		{
 			if (texture->initWithImage(image))
 			{
+
+#ifdef CC_USE_METAL
+            // mipmap sampler filters are not set in metal renderer
+#else
 				if (texture->getPixelsWide() == ccNextPOT(texture->getPixelsWide()) &&
 					texture->getPixelsHigh() == ccNextPOT(texture->getPixelsHigh()))
 				{
 					texture->generateMipmap();
 				}
+#endif
 			}
 			else
 			{
@@ -546,7 +551,6 @@ EffectEmitter* EffectEmitter::create(EffectManager* manager, const std::string& 
 	auto effect = Effect::create(filename, maginification);
 	effectEmitter->setEffect(effect);
 	effectEmitter->playOnEnter = true;
-	effect->release();
 	return effectEmitter;
 }
 
@@ -846,6 +850,8 @@ EffectManager::~EffectManager()
 	{
 		delete distortingCallback;
 		distortingCallback = nullptr;
+        // ensure no garbage pointer in renderer
+        renderer2d->SetDistortingCallback(nullptr);
 	}
 
 	if (manager2d != nullptr)
@@ -872,8 +878,6 @@ void EffectManager::setIsDistortionEnabled(bool value)
     if (isDistortionEnabled)
     {
         renderer2d->SetDistortingCallback(distortingCallback);
-        // memory cleanup will be handled by renderer
-        distortingCallback = nullptr;
     }
     else
     {
