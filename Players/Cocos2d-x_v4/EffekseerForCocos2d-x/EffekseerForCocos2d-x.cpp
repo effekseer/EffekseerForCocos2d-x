@@ -1,6 +1,10 @@
 
 #include "EffekseerForCocos2d-x.h"
 
+#ifdef CC_USE_METAL
+#include "cocos/renderer/backend/Device.h"
+#endif
+
 namespace efk
 {
 
@@ -848,7 +852,8 @@ EffectManager::~EffectManager()
 {
 	if (distortingCallback != nullptr)
 	{
-		delete distortingCallback;
+        // distortionCallback is destroied in renderer
+		// delete distortingCallback;
 		distortingCallback = nullptr;
         // ensure no garbage pointer in renderer
         renderer2d->SetDistortingCallback(nullptr);

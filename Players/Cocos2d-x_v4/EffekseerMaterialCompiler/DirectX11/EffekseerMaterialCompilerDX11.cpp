@@ -227,7 +227,8 @@ CompiledMaterialBinary* MaterialCompilerDX11::Compile(Material* material, int32_
 												  DX11::g_material_ps_suf1,
 												  DX11::g_material_ps_suf2_lit,
 												  DX11::g_material_ps_suf2_unlit,
-												  DX11::g_material_ps_suf2_refraction);
+												  DX11::g_material_ps_suf2_refraction,
+												  DirectX::ShaderGeneratorTarget::DirectX11);
 
 		auto shader = generator.GenerateShader(material, type, maximumTextureCount, 0, 40);
 

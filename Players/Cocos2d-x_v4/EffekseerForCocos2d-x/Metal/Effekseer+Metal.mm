@@ -53,30 +53,38 @@ public:
 DistortingCallbackMetal::DistortingCallbackMetal(EffekseerRendererMetal::RendererImplemented* r)
 : renderer(r)
 {
-    auto v = cocos2d::Director::getInstance()->getRenderer()->getViewport();
-    auto deviceMTL = static_cast<cocos2d::backend::DeviceMTL*>(cocos2d::backend::Device::getInstance());
-    
-    MTLTextureDescriptor* textureDescriptor =
-    [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:cocos2d::backend::Utils::getDefaultColorAttachmentPixelFormat()
-                                                       width:v.w
-                                                      height:v.h
-                                                   mipmapped:NO];
-    
-    texture = [deviceMTL->getMTLDevice() newTextureWithDescriptor:textureDescriptor];
-    
-    auto tex = new LLGI::TextureMetal;
-    tex->Reset(texture);
-    textureLLGI = tex;
 }
 
 DistortingCallbackMetal::~DistortingCallbackMetal()
 {
-    [texture release];
-    ES_SAFE_RELEASE(textureLLGI);
+    if(textureLLGI != nullptr)
+    {
+        [texture release];
+        ES_SAFE_RELEASE(textureLLGI);
+    }
 }
 
 bool DistortingCallbackMetal::OnDistorting()
 {
+    // to get viewport
+    if(textureLLGI == nullptr)
+    {
+        auto v = cocos2d::Director::getInstance()->getRenderer()->getViewport();
+        auto deviceMTL = static_cast<cocos2d::backend::DeviceMTL*>(cocos2d::backend::Device::getInstance());
+        
+        MTLTextureDescriptor* textureDescriptor =
+        [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:cocos2d::backend::Utils::getDefaultColorAttachmentPixelFormat()
+                                                           width:v.w
+                                                          height:v.h
+                                                       mipmapped:NO];
+        
+        texture = [deviceMTL->getMTLDevice() newTextureWithDescriptor:textureDescriptor];
+        
+        auto tex = new LLGI::TextureMetal;
+        tex->Reset(texture);
+        textureLLGI = tex;
+    }
+    
     auto commandBuffer = static_cast<cocos2d::backend::CommandBufferMTL*>(cocos2d::Director::getInstance()->getCommandBuffer());
     commandBuffer->endEncoding();
     
@@ -170,7 +178,6 @@ void CleanupTextureData(::Effekseer::TextureData* textureData)
 {
     auto r = static_cast<::EffekseerRendererMetal::RendererImplemented*>(renderer);
     return new DistortingCallbackMetal(r);
-    return nullptr;
 }
 
 
