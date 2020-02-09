@@ -41,6 +41,11 @@ struct InstanceCustomData
 
 		struct
 		{
+			Vec2f value;
+		} random;
+
+		struct
+		{
 			Vec2f offset;
 		} fcruve;
 
@@ -96,6 +101,9 @@ public:
 	Vec3f	m_GlobalRevisionLocation;
 	Vec3f	m_GlobalRevisionVelocity;
 	
+	//! for noise
+	Vec3f modifyWithNoise_;
+
 	// Color for binding
 	Color		ColorInheritance;
 
@@ -366,7 +374,11 @@ public:
 	/**
 		@brief	UVの位置取得
 	*/
+#ifdef __EFFEKSEER_BUILD_VERSION16__
+	RectF GetUV(const int32_t index) const;
+#else
 	RectF GetUV() const;
+#endif
 
 	//! get custom data
 	std::array<float,4> GetCustomData(int32_t index) const;

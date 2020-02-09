@@ -124,6 +124,8 @@ const int32_t UserTextureSlotMax = 6;
 //! the maximum number of texture slot including textures system specified
 const int32_t TextureSlotMax = 8;
 
+const int32_t LocalFieldSlotMax = 4;
+
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
@@ -615,6 +617,9 @@ struct NodeRendererBasicParameter
 	RendererMaterialType MaterialType = RendererMaterialType::Default;
 	int32_t Texture1Index = -1;
 	int32_t Texture2Index = -1;
+#ifdef __EFFEKSEER_BUILD_VERSION16__
+	int32_t Texture3Index = -1;
+#endif
 	float DistortionIntensity = 0.0f;
 	MaterialParameter* MaterialParameterPtr = nullptr;
 	AlphaBlendType AlphaBlend = AlphaBlendType::Blend;
@@ -623,6 +628,10 @@ struct NodeRendererBasicParameter
 	TextureWrapType TextureWrap1 = TextureWrapType::Repeat;
 	TextureFilterType TextureFilter2 = TextureFilterType::Nearest;
 	TextureWrapType TextureWrap2 = TextureWrapType::Repeat;
+#ifdef __EFFEKSEER_BUILD_VERSION16__
+	TextureFilterType TextureFilter3 = TextureFilterType::Nearest;
+	TextureWrapType TextureWrap3 = TextureWrapType::Repeat;
+#endif
 };
 
 //----------------------------------------------------------------------------------

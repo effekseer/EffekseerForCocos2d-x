@@ -82,7 +82,11 @@ namespace Effekseer
 	{
 		if (m_effect->GetVersion() >= 8)
 		{
-			const Vector2D* fixed = (const Vector2D*)pos;
+			std::array<Vector2D, 4> fixed;
+			memcpy(fixed.data(), pos, sizeof(Vector2D) * 4);
+
+			// This code causes bugs on asmjs
+			// const Vector2D* fixed = (const Vector2D*)pos;
 			SpritePosition.fixed.ll = fixed[0];
 			SpritePosition.fixed.lr = fixed[1];
 			SpritePosition.fixed.ul = fixed[2];
@@ -101,7 +105,11 @@ namespace Effekseer
 	}
 	else if (SpritePosition.type == SpritePosition.Fixed)
 	{
-		const Vector2D* fixed = (const Vector2D*)pos;
+		std::array<Vector2D, 4> fixed;
+		memcpy(fixed.data(), pos, sizeof(Vector2D) * 4);
+		
+		// This code causes bugs on asmjs
+		// const Vector2D* fixed = (const Vector2D*)pos;
 		SpritePosition.fixed.ll = fixed[0];
 		SpritePosition.fixed.lr = fixed[1];
 		SpritePosition.fixed.ul = fixed[2];
@@ -254,7 +262,12 @@ void EffectNodeSprite::Rendering(const Instance& instance, const Instance* next_
 			instanceParameter.Positions[3] = SpritePosition.fixed.ur;
 		}
 
+#ifdef __EFFEKSEER_BUILD_VERSION16__
+		instanceParameter.UV = instance.GetUV(0);
+		instanceParameter.AlphaUV = instance.GetUV(1);
+#else
 		instanceParameter.UV = instance.GetUV();
+#endif
 		CalcCustomData(&instance, instanceParameter.CustomData1, instanceParameter.CustomData2);
 
 		renderer->Rendering( nodeParameter, instanceParameter, m_userData );

@@ -92,6 +92,60 @@ namespace EffekseerRenderer
 				v[7].UV[0] = uvX3;
 				v[7].UV[1] = uvY2;
 			}
+#ifdef __EFFEKSEER_BUILD_VERSION16__
+			else if (TARGET == 1)
+			{
+				v[0].UV2[0] = uvX1;
+				v[0].UV2[1] = uvY1;
+
+				v[1].UV2[0] = uvX2;
+				v[1].UV2[1] = uvY1;
+
+				v[4].UV2[0] = uvX2;
+				v[4].UV2[1] = uvY1;
+
+				v[5].UV2[0] = uvX3;
+				v[5].UV2[1] = uvY1;
+
+				v[2].UV2[0] = uvX1;
+				v[2].UV2[1] = uvY2;
+
+				v[3].UV2[0] = uvX2;
+				v[3].UV2[1] = uvY2;
+
+				v[6].UV2[0] = uvX2;
+				v[6].UV2[1] = uvY2;
+
+				v[7].UV2[0] = uvX3;
+				v[7].UV2[1] = uvY2;
+			}
+			else if (TARGET == 2)
+			{
+				v[0].AlphaUV[0] = uvX1;
+				v[0].AlphaUV[1] = uvY1;
+
+				v[1].AlphaUV[0] = uvX2;
+				v[1].AlphaUV[1] = uvY1;
+
+				v[4].AlphaUV[0] = uvX2;
+				v[4].AlphaUV[1] = uvY1;
+
+				v[5].AlphaUV[0] = uvX3;
+				v[5].AlphaUV[1] = uvY1;
+
+				v[2].AlphaUV[0] = uvX1;
+				v[2].AlphaUV[1] = uvY2;
+
+				v[3].AlphaUV[0] = uvX2;
+				v[3].AlphaUV[1] = uvY2;
+
+				v[6].AlphaUV[0] = uvX2;
+				v[6].AlphaUV[1] = uvY2;
+
+				v[7].AlphaUV[0] = uvX3;
+				v[7].AlphaUV[1] = uvY2;
+			}
+#else
 			else
 			{
 				v[0].UV2[0] = uvX1;
@@ -118,6 +172,7 @@ namespace EffekseerRenderer
 				v[7].UV2[0] = uvX3;
 				v[7].UV2[1] = uvY2;
 			}
+#endif
 		}
 
 		template <typename VERTEX, int TARGET> void AssignUVs(efkTrackNodeParam& parameter, StrideView<VERTEX> verteies) 
@@ -140,6 +195,15 @@ namespace EffekseerRenderer
 						uvy = param.UV.Y;
 						uvh = param.UV.Height;
 					}
+#ifdef __EFFEKSEER_BUILD_VERSION16__
+					else if (TARGET == 2)
+					{
+						uvx = param.AlphaUV.X;
+						uvw = param.AlphaUV.Width;
+						uvy = param.AlphaUV.Y;
+						uvh = param.AlphaUV.Height;
+					}
+#endif
 
 					for (int32_t sploop = 0; sploop < parameter.SplineDivision; sploop++)
 					{
@@ -176,6 +240,15 @@ namespace EffekseerRenderer
 						uvy = param.UV.Y;
 						uvh = param.UV.Height;
 					}
+#ifdef __EFFEKSEER_BUILD_VERSION16__
+					else if (TARGET == 2)
+					{
+						uvx = param.AlphaUV.X;
+						uvw = param.AlphaUV.Width;
+						uvy = param.AlphaUV.Y;
+						uvh = param.AlphaUV.Height;
+					}
+#endif
 
 					if (loop < uvParam.TileEdgeTail)
 					{
@@ -281,8 +354,6 @@ namespace EffekseerRenderer
 					auto& param = instances[loop];
 
 					auto mat = param.SRTMatrix43;
-
-					::Effekseer::Vec3f s;
 
 					ApplyDepthParameters(mat,
 										 m_renderer->GetCameraFrontDirection(),
@@ -512,7 +583,7 @@ namespace EffekseerRenderer
 
 						vl_->Binormal = vm_->Binormal = vr_->Binormal = ToStruct(axis);
 
-						::Effekseer::Vec3f tangent = vr_->Pos - vl_->Pos;
+						::Effekseer::Vec3f tangent = vl_->Pos - vr_->Pos;
 						tangent.Normalize();
 
 						vl_->Tangent = vm_->Tangent = vr_->Tangent = ToStruct(tangent);
@@ -523,7 +594,7 @@ namespace EffekseerRenderer
 						auto vm_ = (DynamicVertex*)(&vm);
 						auto vr_ = (DynamicVertex*)(&vr);
 
-						::Effekseer::Vec3f tangent = Effekseer::Vec3f(vr_->Pos - vl_->Pos).Normalize();
+						::Effekseer::Vec3f tangent = Effekseer::Vec3f(vl_->Pos - vr_->Pos).Normalize();
 						Effekseer::Vec3f normal = Effekseer::Vec3f::Cross(tangent, axis).Normalize();
 
 						Effekseer::Color normal_ = PackVector3DF(normal);
@@ -579,6 +650,10 @@ namespace EffekseerRenderer
 			{
 				AssignUVs<VERTEX, 1>(parameter, verteies);
 			}
+
+#ifdef __EFFEKSEER_BUILD_VERSION16__
+			AssignUVs<VERTEX, 2>(parameter, verteies);
+#endif
 
 			// custom parameter
 			if (customData1Count_ > 0)
@@ -705,6 +780,10 @@ namespace EffekseerRenderer
 			state.TextureWrap1 = param.BasicParameterPtr->TextureWrap1;
 			state.TextureFilter2 = param.BasicParameterPtr->TextureFilter2;
 			state.TextureWrap2 = param.BasicParameterPtr->TextureWrap2;
+#ifdef __EFFEKSEER_BUILD_VERSION16__
+			state.TextureFilter3 = param.BasicParameterPtr->TextureFilter3;
+			state.TextureWrap3 = param.BasicParameterPtr->TextureWrap3;
+#endif
 
 			state.Distortion = param.BasicParameterPtr->MaterialType == Effekseer::RendererMaterialType::BackDistortion;
 			state.DistortionIntensity = param.BasicParameterPtr->DistortionIntensity;
@@ -713,7 +792,11 @@ namespace EffekseerRenderer
 			state.CopyMaterialFromParameterToState(param.EffectPointer,
 												   param.BasicParameterPtr->MaterialParameterPtr,
 												   param.BasicParameterPtr->Texture1Index,
-												   param.BasicParameterPtr->Texture2Index);
+												   param.BasicParameterPtr->Texture2Index
+#ifdef __EFFEKSEER_BUILD_VERSION16__
+												   , param.BasicParameterPtr->Texture3Index
+#endif
+			);
 			customData1Count_ = state.CustomData1Count;
 			customData2Count_ = state.CustomData2Count;
 

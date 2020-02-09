@@ -34,14 +34,239 @@
 #include <unistd.h>
 #endif
 
-#if (_M_IX86_FP >= 2) || defined(__SSE__)
-#define EFK_SSE2
-#include <emmintrin.h>
-#elif defined(__ARM_NEON__)
-#define EFK_NEON
-#include <arm_neon.h>
-#endif
 #undef far
+#ifndef __EFFEKSEER_PERLIN_NOISE_H__
+#define __EFFEKSEER_PERLIN_NOISE_H__
+
+
+namespace Effekseer
+{
+
+/**
+	@brief
+	Perlin noise class
+	@note
+	These codes are based on https://qiita.com/Gaccho/items/ba7d715901a0e572b0e9
+*/
+
+class PerlinNoise
+{
+	using Pint = std::uint_fast8_t;
+	std::array<Pint, 512> p{{}};
+
+	uint32_t seed_ = 0;
+
+	float GetRand()
+	{
+		const int a = 1103515245;
+		const int c = 12345;
+		const int m = 2147483647;
+
+		seed_ = (seed_ * a + c) & m;
+		auto ret = seed_ % 0x7fff;
+
+		return (float)ret / (float)(0x7fff - 1);
+	}
+
+	float GetRand(int32_t min_, int32_t max_) { return GetRand() * (max_ - min_) + min_; }
+
+public:
+	constexpr PerlinNoise() = default;
+	explicit PerlinNoise(const std::uint_fast32_t seed) { this->setSeed(seed); }
+
+	void setSeed(const std::uint_fast32_t seed)
+	{
+		seed_ = seed;
+
+		for (std::size_t i{}; i < 256; ++i)
+			this->p[i] = static_cast<Pint>(i);
+
+		for (std::size_t i{}; i < 256; ++i)
+		{
+			auto target = GetRand(0, 255);
+			std::swap(p[i], p[target]);			
+		}
+		
+		for (std::size_t i{}; i < 256; ++i)
+			this->p[256 + i] = this->p[i];
+	}
+
+private:
+	constexpr float GetFade(const float t) const noexcept { return t * t * t * (t * (t * 6 - 15) + 10); }
+
+	constexpr float GetLerp(const float t, const float a, const float b) const noexcept { return a + t * (b - a); }
+
+	constexpr float MakeGrad(const Pint hashnum, const float u, const float v) const noexcept
+	{
+		return (((hashnum & 1) == 0) ? u : -u) + (((hashnum & 2) == 0) ? v : -v);
+	}
+	constexpr float MakeGrad(const Pint hashnum, const float x, const float y, const float z) const noexcept
+	{
+		return this->MakeGrad(hashnum, hashnum < 8 ? x : y, hashnum < 4 ? y : hashnum == 12 || hashnum == 14 ? x : z);
+	}
+	constexpr float GetGrad(const Pint hashnum, const float x, const float y, const float z) const noexcept
+	{
+		return this->MakeGrad(hashnum & 15, x, y, z);
+	}
+
+public:
+	float SetNoise(float x, float y, float z) const noexcept
+	{
+		// it causes bugs in emscripten
+		//const std::size_t x_int{static_cast<std::size_t>(static_cast<std::size_t>(std::floor(x)) & 255)};
+		//const std::size_t y_int{static_cast<std::size_t>(static_cast<std::size_t>(std::floor(y)) & 255)};
+		//const std::size_t z_int{static_cast<std::size_t>(static_cast<std::size_t>(std::floor(z)) & 255)};
+
+		
+		int64_t x_int{static_cast<int64_t>(std::floor(x))};
+		int64_t y_int{static_cast<int64_t>(std::floor(y))};
+		int64_t z_int{static_cast<int64_t>(std::floor(z))};
+
+		if (x_int < 0)
+			x_int += ((std::abs(x_int) / 256 + 1) * 256);
+
+		if (y_int < 0)
+			y_int += ((std::abs(y_int) / 256 + 1) * 256);
+
+		if (z_int < 0)
+			z_int += ((std::abs(z_int) / 256 + 1) * 256);
+
+		x_int %= 256;
+		y_int %= 256;
+		z_int %= 256;
+
+		// Debug code (it should be removed)
+		//const std::size_t x_int_{static_cast<std::size_t>(static_cast<std::size_t>(std::floor(x)) & 255)};
+		//const std::size_t y_int_{static_cast<std::size_t>(static_cast<std::size_t>(std::floor(y)) & 255)};
+		//const std::size_t z_int_{static_cast<std::size_t>(static_cast<std::size_t>(std::floor(z)) & 255)};
+		//assert(x_int_ == x_int);
+		//assert(y_int_ == y_int);
+		//assert(z_int_ == z_int);
+
+
+		x -= std::floor(x);
+		y -= std::floor(y);
+		z -= std::floor(z);
+		const float u{this->GetFade(x)};
+		const float v{this->GetFade(y)};
+		const float w{this->GetFade(z)};
+		const std::size_t a0{static_cast<std::size_t>(this->p[x_int] + y_int)};
+		const std::size_t a1{static_cast<std::size_t>(this->p[a0] + z_int)};
+		const std::size_t a2{static_cast<std::size_t>(this->p[a0 + 1] + z_int)};
+		const std::size_t b0{static_cast<std::size_t>(this->p[x_int + 1] + y_int)};
+		const std::size_t b1{static_cast<std::size_t>(this->p[b0] + z_int)};
+		const std::size_t b2{static_cast<std::size_t>(this->p[b0 + 1] + z_int)};
+
+		const auto v111 = this->GetGrad(this->p[a1], x, y, z);
+		const auto v011 = this->GetGrad(this->p[b1], x - 1, y, z);
+		const auto v101 = this->GetGrad(this->p[a2], x, y - 1, z);
+		const auto v001 = this->GetGrad(this->p[b2], x - 1, y - 1, z);
+		const auto v110 = this->GetGrad(this->p[a1 + 1], x, y, z - 1);
+		const auto v010 = this->GetGrad(this->p[b1 + 1], x - 1, y, z - 1);
+		const auto v100 = this->GetGrad(this->p[a2 + 1], x, y - 1, z - 1);
+		const auto v000 = this->GetGrad(this->p[b2 + 1], x - 1, y - 1, z - 1);
+
+		const auto v11 = this->GetLerp(u, v111, v011);
+		const auto v01 = this->GetLerp(u, v101, v001);
+		const auto v10 = this->GetLerp(u, v110, v010);
+		const auto v00 = this->GetLerp(u, v100, v000);
+
+		return this->GetLerp(w, this->GetLerp(v, v11, v01), this->GetLerp(v, v10, v00));
+	}
+
+	template <typename... Args> float Noise(const Args... args_) const noexcept { return this->SetNoise(args_...) * 0.5 + 0.5; }
+
+private:
+	float SetOctaveNoise(const std::size_t octaves_, float x_, float y_, float z_) const noexcept
+	{
+		float noise_value{};
+		float amp{1.0};
+		for (std::size_t i{}; i < octaves_; ++i)
+		{
+			noise_value += this->SetNoise(x_, y_, z_) * amp;
+			x_ *= 2.0;
+			y_ *= 2.0;
+			z_ *= 2.0;
+			amp *= 0.5;
+		}
+		return noise_value;
+	}
+
+public:
+	template <typename... Args> float OctaveNoise(const std::size_t octaves_, const Args... args_) const noexcept
+	{
+		return this->SetOctaveNoise(octaves_, args_...) * 0.5 + 0.5;
+	}
+};
+
+} // namespace Effekseer
+
+#endif
+
+#ifndef __EFFEKSEER_CURL_NOISE_H__
+#define __EFFEKSEER_CURL_NOISE_H__
+
+
+namespace Effekseer
+{
+
+class CurlNoise
+{
+private:
+	PerlinNoise xnoise_;
+	PerlinNoise ynoise_;
+	PerlinNoise znoise_;
+
+public:
+	float Scale = 1.0f;
+	int32_t Octave = 2;
+
+	CurlNoise(int32_t seed) : xnoise_(seed), ynoise_(seed * (seed % 1949 + 5)), znoise_(seed * (seed % 3541 + 10)) {}
+
+	Vec3f Get(Vec3f pos) const
+	{
+		pos *= Scale;
+
+		const float e = 1.0f / 1024.0f;
+
+		const Vec3f dx = Vec3f(e, 0.0, 0.0);
+		const Vec3f dy = Vec3f(0.0, e, 0.0);
+		const Vec3f dz = Vec3f(0.0, 0.0, e);
+
+		auto noise_x = [this](Vec3f v) -> Vec3f {
+			return Vec3f(0.0f,
+						 ynoise_.OctaveNoise(Octave, v.GetX(), v.GetY(), v.GetZ()),
+						 znoise_.OctaveNoise(Octave, v.GetX(), v.GetY(), v.GetZ()));
+		};
+
+		auto noise_y = [this](Vec3f v) -> Vec3f {
+			return Vec3f(xnoise_.OctaveNoise(Octave, v.GetX(), v.GetY(), v.GetZ()),
+						 0.0f,
+						 znoise_.OctaveNoise(Octave, v.GetX(), v.GetY(), v.GetZ()));
+		};
+
+		auto noise_z = [this](Vec3f v) -> Vec3f {
+			return Vec3f(xnoise_.OctaveNoise(Octave, v.GetX(), v.GetY(), v.GetZ()),
+						 ynoise_.OctaveNoise(Octave, v.GetX(), v.GetY(), v.GetZ()),
+						 0.0f);
+		};
+
+		Vec3f p_x = noise_x(pos + dx) - noise_x(pos - dx);
+		Vec3f p_y = noise_y(pos + dy) - noise_y(pos - dy);
+		Vec3f p_z = noise_z(pos + dz) - noise_z(pos - dz);
+
+		float x = p_y.GetZ() - p_z.GetY();
+		float y = p_z.GetX() - p_x.GetZ();
+		float z = p_x.GetY() - p_y.GetX();
+
+		return Vec3f(x, y, z) * (1.0f / (e * 2.0f));
+	}
+};
+
+} // namespace Effekseer
+
+#endif
+
 
 namespace Effekseer
 {
@@ -406,6 +631,12 @@ bool CompiledMaterial::Load(const uint8_t* data, int32_t size)
 	memcpy(&version, data + offset, 4);
 	offset += sizeof(int);
 
+	// bacause of camera position node, structure of uniform is changed
+	if (version == 0)
+	{
+		return false;
+	}
+
 	uint64_t guid = 0;
 	memcpy(&guid, data + offset, 8);
 	offset += sizeof(uint64_t);
@@ -490,7 +721,7 @@ void CompiledMaterial::Save(std::vector<uint8_t>& dst, uint64_t guid, std::vecto
 	struct Header
 	{
 		char header[4];
-		int version = 0;
+		int version = Version;
 		uint64_t guid = 0;
 	};
 
@@ -2914,22 +3145,6 @@ Vector2D& Vector2D::operator+=( const Vector2D& value )
 //
 //----------------------------------------------------------------------------------
 namespace Effekseer {
-	
-inline float Rsqrt(float x)
-{
-#if defined(_M_X86) && defined(__x86__)
-	_mm_store_ss(&x, _mm_rsqrt_ss(_mm_load_ss(&x)));
-	return x;
-#else
-	float xhalf = 0.5f * x;
-	int i = *(int*)&x;
-	i = 0x5f3759df - (i >> 1);
-	x = *(float*)&i;
-	x = x * (1.5f - xhalf * x * x);
-	x = x * (1.5f - xhalf * x * x);
-	return x;
-#endif
-}
 
 //----------------------------------------------------------------------------------
 //
@@ -3802,7 +4017,7 @@ void Matrix43::GetSRT( Vector3D& s, Matrix43& r, Vector3D& t ) const
 	float sc[3];
 	for( int m = 0; m < 3; m++ )
 	{
-		sc[m] = sqrt( Value[m][0] * Value[m][0] + Value[m][1] * Value[m][1] + Value[m][2] * Value[m][2] );
+		sc[m] = std::sqrt( Value[m][0] * Value[m][0] + Value[m][1] * Value[m][1] + Value[m][2] * Value[m][2] );
 	}
 	
 	s.X = sc[0];
@@ -3827,6 +4042,34 @@ void Matrix43::GetSRT( Vector3D& s, Matrix43& r, Vector3D& t ) const
 //----------------------------------------------------------------------------------
 void Matrix43::GetScale( Vector3D& s ) const
 {
+#ifdef SSE_MODULE
+	Mat44f mat;
+	mat.X.SetX(Value[0][0]);
+	mat.X.SetY(Value[0][1]);
+	mat.X.SetZ(Value[0][2]);
+	mat.Y.SetX(Value[1][0]);
+	mat.Y.SetY(Value[1][1]);
+	mat.Y.SetZ(Value[1][2]);
+	mat.Z.SetX(Value[2][0]);
+	mat.Z.SetY(Value[2][1]);
+	mat.Z.SetZ(Value[2][2]);
+	mat.W.SetX(0.0f);
+	mat.W.SetY(0.0f);
+	mat.W.SetZ(0.0f);
+
+	mat.Transpose();
+
+	auto x2 = mat.X * mat.X;
+	auto y2 = mat.Y * mat.Y;
+	auto z2 = mat.Z * mat.Z;
+	auto s2 = x2 + y2 + z2;
+	auto sq = sqrt(s2);
+	s.X = sq.GetX();
+	s.Y = sq.GetY();
+	s.Z = sq.GetZ();
+
+#else
+
 #if defined(EFK_SSE2)
 	__m128 v0 = _mm_loadu_ps(&Value[0][0]);
 	__m128 v1 = _mm_loadu_ps(&Value[1][0]);
@@ -3863,12 +4106,14 @@ void Matrix43::GetScale( Vector3D& s ) const
 	float sc[3];
 	for( int m = 0; m < 3; m++ )
 	{
-		sc[m] = sqrt( Value[m][0] * Value[m][0] + Value[m][1] * Value[m][1] + Value[m][2] * Value[m][2] );
+		sc[m] = std::sqrt( Value[m][0] * Value[m][0] + Value[m][1] * Value[m][1] + Value[m][2] * Value[m][2] );
 	}
 	
 	s.X = sc[0];
 	s.Y = sc[1];
 	s.Z = sc[2];
+#endif
+
 #endif
 }
 
@@ -3921,7 +4166,7 @@ void Matrix43::GetRotation( Matrix43& r ) const
 	float sc[3];
 	for( int m = 0; m < 3; m++ )
 	{
-		sc[m] = sqrt( Value[m][0] * Value[m][0] + Value[m][1] * Value[m][1] + Value[m][2] * Value[m][2] );
+		sc[m] = std::sqrt( Value[m][0] * Value[m][0] + Value[m][1] * Value[m][1] + Value[m][2] * Value[m][2] );
 	}
 
 	for( int m = 0; m < 3; m++ )
@@ -4762,9 +5007,7 @@ struct random_float
 
 	float getValue(IRandObject& g) const
 	{
-		float r;
-		r = g.GetRand(min, max);
-		return r;
+		return g.GetRand(min, max);
 	}
 };
 
@@ -4797,45 +5040,10 @@ struct vector2d
 	float	x;
 	float	y;
 
-	void reset()
+	vector2d& operator*=(float rhs)
 	{
-		assert( sizeof(vector2d) == sizeof(float) * 2 );
-		memset( this, 0, sizeof(vector2d) );
-	};
-
-	void setValueToArg( Vector2D& v ) const
-	{
-		v.X = x;
-		v.Y = y;
-	}
-
-	vector2d operator + ( const vector2d& o ) const
-	{
-		vector2d ret;
-		ret.x = x + o.x;
-		ret.y = y + o.y;
-		return ret;
-	}
-
-	vector2d operator * (const float& o) const
-	{
-		vector2d ret;
-		ret.x = x * o;
-		ret.y = y * o;
-		return ret;
-	}
-
-	vector2d& operator += ( const vector2d& o )
-	{
-		x += o.x;
-		y += o.y;
-		return *this;
-	}
-
-	vector2d& operator *= ( const float& o )
-	{
-		x *= o;
-		y *= o;
+		x *= rhs;
+		y *= rhs;
 		return *this;
 	}
 };
@@ -4846,6 +5054,7 @@ struct rectf
 	float	y;
 	float	w;
 	float	h;
+
 	void reset()
 	{
 		assert( sizeof(rectf) == sizeof(float) * 4 );
@@ -4866,12 +5075,12 @@ struct random_vector2d
 		memset( this, 0 , sizeof(random_vector2d) );
 	};
 
-	vector2d getValue(IRandObject& g) const
+	Vec2f getValue(IRandObject& g) const
 	{
-		vector2d r;
-		r.x = g.GetRand(min.x, max.x);
-		r.y = g.GetRand(min.y, max.y);
-		return r;
+		return {
+			g.GetRand(min.x, max.x),
+			g.GetRand(min.y, max.y)
+		};
 	}
 };
 
@@ -4903,11 +5112,11 @@ struct easing_float
 	float easingB;
 	float easingC;
 
-	void setValueToArg( float& o, const float start_, const float end_, float t ) const
+	float getValue( const float start_, const float end_, float t ) const
 	{
 		float df = end_ - start_;
 		float d = easingA * t * t * t + easingB * t * t + easingC * t;
-		o = start_ + d * df;
+		return start_ + d * df;
 	}
 };
 
@@ -4922,22 +5131,11 @@ struct easing_vector2d
 	float easingB;
 	float easingC;
 
-	void setValueToArg( vector2d& o, const vector2d& start_, const vector2d& end_, float t ) const
+	Vec2f getValue( const Vec2f& start_, const Vec2f& end_, float t ) const
 	{
-		float d_x = end_.x - start_.x;
-		float d_y = end_.y - start_.y;
+		Vec2f size = end_ - start_;
 		float d = easingA * t * t * t + easingB * t * t + easingC * t;
-		o.x = start_.x + d * d_x;
-		o.y = start_.y + d * d_y;
-	}
-
-	void setValueToArg( Vector2D& o, const vector2d& start_, const vector2d& end_, float t ) const
-	{
-		float d_x = end_.x - start_.x;
-		float d_y = end_.y - start_.y;
-		float d = easingA * t * t * t + easingB * t * t + easingC * t;
-		o.X = start_.x + d * d_x;
-		o.Y = start_.y + d * d_y;
+		return start_ + size * d;
 	}
 };
 
@@ -4950,84 +5148,11 @@ struct vector3d
 	float	y;
 	float	z;
 
-	void reset()
+	vector3d& operator*=(float rhs)
 	{
-		assert( sizeof(vector3d) == sizeof(float) * 3 );
-		memset( this, 0, sizeof(vector3d) );
-	};
-
-	void normalize()
-	{
-		float len = sqrtf(x * x + y * y + z * z);
-		if (len > 0.0001f)
-		{
-			x /= len;
-			y /= len;
-			z /= len;
-		}
-		else
-		{
-			x = 1.0;
-			y = 0.0;
-			z = 0.0;
-		}
-	}
-
-	void setValueToArg( Vector3D& v ) const
-	{
-		v.X = x;
-		v.Y = y;
-		v.Z = z;
-	}
-
-	vector3d operator + ( const vector3d& o ) const
-	{
-		vector3d ret;
-		ret.x = x + o.x;
-		ret.y = y + o.y;
-		ret.z = z + o.z;
-		return ret;
-	}
-
-	vector3d operator - ( const vector3d& o ) const
-	{
-		vector3d ret;
-		ret.x = x - o.x;
-		ret.y = y - o.y;
-		ret.z = z - o.z;
-		return ret;
-	}
-
-	vector3d operator * ( const float& o ) const
-	{
-		vector3d ret;
-		ret.x = x * o;
-		ret.y = y * o;
-		ret.z = z * o;
-		return ret;
-	}
-
-	vector3d& operator += ( const vector3d& o )
-	{
-		x += o.x;
-		y += o.y;
-		z += o.z;
-		return *this;
-	}
-
-	vector3d& operator -= ( const vector3d& o )
-	{
-		x -= o.x;
-		y -= o.y;
-		z -= o.z;
-		return *this;
-	}
-
-	vector3d& operator *= ( const float& o )
-	{
-		x *= o;
-		y *= o;
-		z *= o;
+		x *= rhs;
+		y *= rhs;
+		z *= rhs;
 		return *this;
 	}
 };
@@ -5045,13 +5170,13 @@ struct random_vector3d
 		memset( this, 0 , sizeof(random_vector3d) );
 	};
 
-	vector3d getValue(IRandObject& g) const
+	Vec3f getValue(IRandObject& g) const
 	{
-		vector3d r;
-		r.x = g.GetRand(min.x, max.x);
-		r.y = g.GetRand(min.y, max.y);
-		r.z = g.GetRand(min.z, max.z);
-		return r;
+		return {
+			g.GetRand(min.x, max.x),
+			g.GetRand(min.y, max.y),
+			g.GetRand(min.z, max.z)
+		};
 	}
 };
 
@@ -5066,26 +5191,11 @@ struct easing_vector3d
 	float easingB;
 	float easingC;
 
-	void setValueToArg( vector3d& o, const vector3d& start_, const vector3d& end_, float t ) const
+	Vec3f getValue( const Vec3f& start_, const Vec3f& end_, float t ) const
 	{
-		float d_x = end_.x - start_.x;
-		float d_y = end_.y - start_.y;
-		float d_z = end_.z - start_.z;
+		Vec3f size = end_ - start_;
 		float d = easingA * t * t * t + easingB * t * t + easingC * t;
-		o.x = start_.x + d * d_x;
-		o.y = start_.y + d * d_y;
-		o.z = start_.z + d * d_z;
-	}
-
-	void setValueToArg( Vector3D& o, const vector3d& start_, const vector3d& end_, float t ) const
-	{
-		float d_x = end_.x - start_.x;
-		float d_y = end_.y - start_.y;
-		float d_z = end_.z - start_.z;
-		float d = easingA * t * t * t + easingB * t * t + easingC * t;
-		o.X = start_.x + d * d_x;
-		o.Y = start_.y + d * d_y;
-		o.Z = start_.z + d * d_z;
+		return start_ + size * d;
 	}
 };
 
@@ -5720,8 +5830,8 @@ public:
 
 	int32_t Load(void* data, int32_t version);
 
-	std::array<float, 2> GetValues(float living, float life) const;
-	std::array<float, 2> GetOffsets(InstanceGlobal& g) const;
+	Vec2f GetValues(float living, float life) const;
+	Vec2f GetOffsets(InstanceGlobal& g) const;
 };
 
 class FCurveVector3D
@@ -5734,8 +5844,8 @@ public:
 
 	int32_t Load(void* data, int32_t version);
 
-	std::array<float, 3> GetValues(float living, float life) const;
-	std::array<float, 3> GetOffsets(InstanceGlobal& g) const;
+	Vec3f GetValues(float living, float life) const;
+	Vec3f GetOffsets(InstanceGlobal& g) const;
 };
 
 class FCurveVectorColor
@@ -5985,6 +6095,29 @@ struct ParameterTranslationEasing
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
+
+enum class LocalForceFieldType : int32_t
+{
+	None = 0,
+	Turbulence = 1,
+};
+
+struct LocalForceFieldTurbulenceParameter
+{
+	float Strength = 0.1f;
+	CurlNoise Noise;
+
+	LocalForceFieldTurbulenceParameter(int32_t seed, float scale, float strength, int octave);
+};
+
+struct LocalForceFieldParameter
+{
+	std::unique_ptr <LocalForceFieldTurbulenceParameter> Turbulence;
+
+	bool Load(uint8_t*& pos, int32_t version);
+};
+
+
 enum class LocationAbsType : int32_t
 {
 	None = 0,
@@ -6003,7 +6136,7 @@ struct LocationAbsParameter
 
 		} none;
 
-		vector3d	gravity;
+		Vec3f	gravity;
 
 		struct {
 			float	force;
@@ -6280,6 +6413,7 @@ enum ParameterCustomDataType : int32_t
 {
 	None = 0,
 	Fixed2D = 20,
+	Random2D = 21,
 	Easing2D = 22,
 	FCurve2D = 23,
 	Fixed4D = 40,
@@ -6290,6 +6424,11 @@ enum ParameterCustomDataType : int32_t
 struct ParameterCustomDataFixed
 {
 	vector2d Values;
+};
+
+struct ParameterCustomDataRandom
+{
+	random_vector2d Values;
 };
 
 struct ParameterCustomDataEasing
@@ -6313,6 +6452,7 @@ struct ParameterCustomData
 
 	union {
 		ParameterCustomDataFixed Fixed;
+		ParameterCustomDataRandom Random;
 		ParameterCustomDataEasing Easing;
 		ParameterCustomDataFCurve FCurve;
 		std::array<float, 4> Fixed4D;
@@ -6346,6 +6486,11 @@ struct ParameterCustomData
 		{
 			memcpy(&Fixed.Values, pos, sizeof(Fixed));
 			pos += sizeof(Fixed);
+		}
+		else if (Type == ParameterCustomDataType::Random2D)
+		{
+			memcpy(&Random.Values, pos, sizeof(Random));
+			pos += sizeof(Random);
 		}
 		else if (Type == ParameterCustomDataType::Easing2D)
 		{
@@ -6386,6 +6531,11 @@ struct ParameterRendererCommon
 	//! texture index except a file
 	int32_t Texture2Index = -1;
 
+#ifdef __EFFEKSEER_BUILD_VERSION16__
+	//! texture index except a file
+	int32_t AlphaTextureIndex = -1;
+#endif
+
 	//! material index in MaterialType::File
 	MaterialParameter Material;
 
@@ -6398,6 +6548,12 @@ struct ParameterRendererCommon
 	TextureFilterType Filter2Type = TextureFilterType::Nearest;
 
 	TextureWrapType Wrap2Type = TextureWrapType::Repeat;
+
+#ifdef __EFFEKSEER_BUILD_VERSION16__
+	TextureFilterType Filter3Type = TextureFilterType::Nearest;
+
+	TextureWrapType Wrap3Type = TextureWrapType::Repeat;
+#endif
 
 	bool				ZWrite = false;
 
@@ -6453,8 +6609,11 @@ struct ParameterRendererCommon
 		UV_FCURVE = 4,
 
 		UV_DWORD = 0x7fffffff,
+#ifdef __EFFEKSEER_BUILD_VERSION16__
+	} UVTypes[2];
+#else
 	} UVType;
-
+#endif
 
 	/**
 	@brief	UV Parameter
@@ -6511,22 +6670,46 @@ struct ParameterRendererCommon
 			FCurveVector2D* Size;
 		} FCurve;
 
+#ifdef __EFFEKSEER_BUILD_VERSION16__
+	} UVs[2];
+#else
 	} UV;
+#endif
 
 	ParameterRendererCommon()
 	{
 		FadeInType = FADEIN_OFF;
 		FadeOutType = FADEOUT_OFF;
+#ifdef __EFFEKSEER_BUILD_VERSION16__
+		const int32_t ArraySize = sizeof(UVTypes) / sizeof(UVTypes[0]);
+		for (int32_t i = 0; i < ArraySize; i++)
+		{
+			UVTypes[i] = UV_DEFAULT;
+		}
+#else
 		UVType = UV_DEFAULT;
+#endif
 	}
 
 	~ParameterRendererCommon()
 	{
+#ifdef __EFFEKSEER_BUILD_VERSION16__
+		const int32_t ArraySize = sizeof(UVTypes) / sizeof(UVTypes[0]);
+		for (int32_t i = 0; i < ArraySize; i++)
+		{
+			if (UVTypes[i] == UV_FCURVE)
+			{
+				ES_SAFE_DELETE(UVs[i].FCurve.Position);
+				ES_SAFE_DELETE(UVs[i].FCurve.Size);
+			}
+		}
+#else
 		if (UVType == UV_FCURVE)
 		{
 			ES_SAFE_DELETE(UV.FCurve.Position);
 			ES_SAFE_DELETE(UV.FCurve.Size);
 		}
+#endif
 	}
 
 	void reset()
@@ -6553,6 +6736,11 @@ struct ParameterRendererCommon
 
 				memcpy(&Texture2Index, pos, sizeof(int));
 				pos += sizeof(int);
+
+#ifdef __EFFEKSEER_BUILD_VERSION16__
+				memcpy(&AlphaTextureIndex, pos, sizeof(int));
+				pos += sizeof(int);
+#endif
 			}
 			else
 			{
@@ -6607,6 +6795,22 @@ struct ParameterRendererCommon
 			Wrap2Type = WrapType;
 		}
 
+#ifdef __EFFEKSEER_BUILD_VERSION16__
+		if (version >= 16)
+		{
+			memcpy(&Filter3Type, pos, sizeof(int));
+			pos += sizeof(int);
+
+			memcpy(&Wrap3Type, pos, sizeof(int));
+			pos += sizeof(int);
+		}
+		else
+		{
+			Filter3Type = FilterType;
+			Wrap3Type = WrapType;
+		}
+#endif
+
 		if (version >= 5)
 		{
 			int32_t zwrite, ztest = 0;
@@ -6644,9 +6848,57 @@ struct ParameterRendererCommon
 			pos += sizeof(FadeOut);
 		}
 
+#ifdef __EFFEKSEER_BUILD_VERSION16__
+		memcpy(&UVTypes[0], pos, sizeof(int));
+#else
 		memcpy(&UVType, pos, sizeof(int));
+#endif
 		pos += sizeof(int);
 
+#ifdef __EFFEKSEER_BUILD_VERSION16__
+		if (version >= 16)
+		{
+			auto LoadUVParameter = [&](const int UVIndex)
+			{
+				const auto& UVType = UVTypes[UVIndex];
+				auto& UV = UVs[UVIndex];
+
+				if (UVType == UV_DEFAULT)
+				{
+				}
+				else if (UVType == UV_FIXED)
+				{
+					memcpy(&UV.Fixed, pos, sizeof(UV.Fixed));
+					pos += sizeof(UV.Fixed);
+				}
+				else if (UVType == UV_ANIMATION)
+				{
+					memcpy(&UV.Animation, pos, sizeof(UV.Animation));
+					pos += sizeof(UV.Animation);
+				}
+				else if (UVType == UV_SCROLL)
+				{
+					memcpy(&UV.Scroll, pos, sizeof(UV.Scroll));
+					pos += sizeof(UV.Scroll);
+				}
+				else if (UVType == UV_FCURVE)
+				{
+					UV.FCurve.Position = new FCurveVector2D();
+					UV.FCurve.Size = new FCurveVector2D();
+					pos += UV.FCurve.Position->Load(pos, version);
+					pos += UV.FCurve.Size->Load(pos, version);
+				}
+			};
+
+			LoadUVParameter(0);
+
+			memcpy(&UVTypes[1], pos, sizeof(int));
+			pos += sizeof(int);
+
+			LoadUVParameter(1);
+		}
+
+#else
 		if (UVType == UV_DEFAULT)
 		{
 		}
@@ -6705,6 +6957,7 @@ struct ParameterRendererCommon
 			pos += UV.FCurve.Position->Load(pos, version);
 			pos += UV.FCurve.Size->Load(pos, version);
 		}
+#endif
 
 		if (version >= 10)
 		{
@@ -6747,13 +7000,22 @@ struct ParameterRendererCommon
 		BasicParameter.AlphaBlend = AlphaBlend;
 		BasicParameter.TextureFilter1 = FilterType;
 		BasicParameter.TextureFilter2 = Filter2Type;
+#ifdef __EFFEKSEER_BUILD_VERSION16__
+		BasicParameter.TextureFilter3 = Filter3Type;
+#endif
 		BasicParameter.TextureWrap1 = WrapType;
 		BasicParameter.TextureWrap2 = Wrap2Type;
+#ifdef __EFFEKSEER_BUILD_VERSION16__
+		BasicParameter.TextureWrap3 = Wrap3Type;
+#endif
 
 		BasicParameter.DistortionIntensity = DistortionIntensity;
 		BasicParameter.MaterialType = MaterialType;
 		BasicParameter.Texture1Index = ColorTextureIndex;
 		BasicParameter.Texture2Index = Texture2Index;
+#ifdef __EFFEKSEER_BUILD_VERSION16__
+		BasicParameter.Texture3Index = AlphaTextureIndex;
+#endif
 
 		if (BasicParameter.MaterialType == RendererMaterialType::File)
 		{
@@ -6851,6 +7113,7 @@ enum eRenderingOrder
 */
 class EffectNodeImplemented
 	: public EffectNode
+	, public AlignedAllocationPolicy<16>
 {
 	friend class Manager;
 	friend class EffectImplemented;
@@ -6904,6 +7167,7 @@ public:
 	ParameterTranslationEasing TranslationEasing;
 	FCurveVector3D*				TranslationFCurve;
 
+	std::array<LocalForceFieldParameter, LocalFieldSlotMax> LocalForceFields;
 	LocationAbsParameter		LocationAbs;
 
 	ParameterRotationType		RotationType;
@@ -7453,7 +7717,8 @@ struct RingSingleValues
 //----------------------------------------------------------------------------------
 struct RingLocationValues
 {
-	vector2d	current;
+	Vec2f	current;
+
 	union
 	{
 		struct
@@ -7463,15 +7728,15 @@ struct RingLocationValues
 
 		struct
 		{
-			vector2d  start;
-			vector2d  velocity;
-			vector2d  acceleration;
+			Vec2f  start;
+			Vec2f  velocity;
+			Vec2f  acceleration;
 		} pva;
 
 		struct
 		{
-			vector2d  start;
-			vector2d  end;
+			Vec2f  start;
+			Vec2f  end;
 		} easing;
 	};
 };
@@ -7728,10 +7993,10 @@ struct SpritePositionParameter
 
 		struct
 		{
-			vector2d ll;
-			vector2d lr;
-			vector2d ul;
-			vector2d ur;
+			Vec2f ll;
+			Vec2f lr;
+			Vec2f ul;
+			Vec2f ur;
 		} fixed;
 	};
 };
@@ -8414,9 +8679,8 @@ private:
 		bool				GoingToStopRoot;
 		EffectInstanceRemovingCallback	RemovingCallback;
 		
-		Matrix43			BaseMatrix;
-
-		Matrix43			GlobalMatrix;
+		Mat43f				BaseMatrix;
+		Mat43f				GlobalMatrix;
 
 		float				Speed;
 
@@ -8464,7 +8728,7 @@ private:
 		
 		}
 
-		Matrix43* GetEnabledGlobalMatrix();
+		Mat43f* GetEnabledGlobalMatrix();
 
 		void CopyMatrixFromInstanceToRoot();
 	};
@@ -8608,7 +8872,7 @@ public:
 	InstanceGroup* CreateInstanceGroup( EffectNode* pEffectNode, InstanceContainer* pContainer, InstanceGlobal* pGlobal );
 	void ReleaseGroup( InstanceGroup* group );
 
-	InstanceContainer* CreateInstanceContainer( EffectNode* pEffectNode, InstanceGlobal* pGlobal, bool isRoot, const Matrix43& rootMatrix, Instance* pParent );
+	InstanceContainer* CreateInstanceContainer( EffectNode* pEffectNode, InstanceGlobal* pGlobal, bool isRoot, const Mat43f& rootMatrix, Instance* pParent );
 	void ReleaseInstanceContainer( InstanceContainer* container );
 
 	/**
@@ -9312,7 +9576,7 @@ public:
 
 	void Update( bool recursive, bool shown );
 
-	void SetBaseMatrix( bool recursive, const Matrix43& mat );
+	void SetBaseMatrix( bool recursive, const Mat43f& mat );
 
 	void RemoveForcibly( bool recursive );
 
@@ -9346,6 +9610,7 @@ public:
 
 
 
+
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
@@ -9357,13 +9622,18 @@ struct InstanceCustomData
 	union {
 		struct
 		{
-			vector2d start;
-			vector2d end;
+			Vec2f start;
+			Vec2f end;
 		} easing;
 
 		struct
 		{
-			vector2d offset;
+			Vec2f value;
+		} random;
+
+		struct
+		{
+			Vec2f offset;
 		} fcruve;
 
 		struct
@@ -9411,13 +9681,16 @@ public:
 	Instance*	m_pParent;
 	
 	// グローバル位置
-	Vector3D	m_GlobalPosition;
-	Vector3D	m_GlobalVelocity;
+	Vec3f	m_GlobalPosition;
+	Vec3f	m_GlobalVelocity;
 	
 	// グローバル位置補正
-	Vector3D	m_GlobalRevisionLocation;
-	Vector3D	m_GlobalRevisionVelocity;
+	Vec3f	m_GlobalRevisionLocation;
+	Vec3f	m_GlobalRevisionVelocity;
 	
+	//! for noise
+	Vec3f modifyWithNoise_;
+
 	// Color for binding
 	Color		ColorInheritance;
 
@@ -9433,20 +9706,20 @@ public:
 
 		struct
 		{
-			vector3d location;
-			vector3d velocity;
-			vector3d acceleration;
+			Vec3f location;
+			Vec3f velocity;
+			Vec3f acceleration;
 		} random;
 
 		struct
 		{
-			vector3d	start;
-			vector3d	end;
+			Vec3f	start;
+			Vec3f	end;
 		} easing;
 
 		struct
 		{
-			vector3d	offset;
+			Vec3f	offset;
 		} fcruve;
 
 	} translation_values;
@@ -9460,21 +9733,21 @@ public:
 
 		struct
 		{
-			vector3d rotation;
-			vector3d velocity;
-			vector3d acceleration;
+			Vec3f rotation;
+			Vec3f velocity;
+			Vec3f acceleration;
 		} random;
 
 		struct
 		{
-			vector3d start;
-			vector3d end;
+			Vec3f start;
+			Vec3f end;
 		} easing;
 		
 		struct
 		{
 			float rotation;
-			vector3d axis;
+			Vec3f axis;
 
 			union
 			{
@@ -9495,7 +9768,7 @@ public:
 
 		struct
 		{
-			vector3d offset;
+			Vec3f offset;
 		} fcruve;
 
 	} rotation_values;
@@ -9509,15 +9782,15 @@ public:
 
 		struct
 		{
-			vector3d  scale;
-			vector3d  velocity;
-			vector3d  acceleration;
+			Vec3f  scale;
+			Vec3f  velocity;
+			Vec3f  acceleration;
 		} random;
 
 		struct
 		{
-			vector3d  start;
-			vector3d  end;
+			Vec3f  start;
+			Vec3f  end;
 		} easing;
 		
 		struct
@@ -9535,7 +9808,7 @@ public:
 
 		struct
 		{
-			vector3d offset;
+			Vec3f offset;
 		} fcruve;
 
 	} scaling_values;
@@ -9572,7 +9845,7 @@ public:
 	RectF		uvAreaOffset;
 
 	// Scroll speed for UV
-	Vector2D	uvScrollSpeed;
+	Vec2f	uvScrollSpeed;
 
 	// The number of generated chiledren. (fixed size)
 	int32_t		m_fixedGeneratedChildrenCount[ChildrenMax];
@@ -9602,13 +9875,13 @@ public:
 	float*			m_nextGenerationTime;
 
 	// Spawning Method matrix
-	Matrix43		m_GenerationLocation;
+	Mat43f			m_GenerationLocation;
 
 	// 変換用行列
-	Matrix43		m_GlobalMatrix43;
+	Mat43f			m_GlobalMatrix43;
 
 	// 親の変換用行列
-	Matrix43		m_ParentMatrix;
+	Mat43f			m_ParentMatrix;
 
 	// 変換用行列が計算済かどうか
 	bool			m_GlobalMatrix43Calculated;
@@ -9628,7 +9901,7 @@ public:
 
 	//! calculate dynamic equation and return a result
 	template <typename S> 
-	Vector3D ApplyEq(const int& dpInd, Vector3D originalParam, const S& scale, const S& scaleInv);
+	Vec3f ApplyEq(const int& dpInd, const Vec3f& originalParam, const S& scale, const S& scaleInv);
 
 	//! calculate dynamic equation and return a result
 	random_float ApplyEq(const RefMinMax& dpInd, random_float originalParam);
@@ -9663,12 +9936,12 @@ public:
 	/**
 		@brief	行列の取得
 	*/
-	const Matrix43& GetGlobalMatrix43() const;
+	const Mat43f& GetGlobalMatrix43() const;
 
 	/**
 		@brief	初期化
 	*/
-	void Initialize( Instance* parent, int32_t instanceNumber, int32_t parentTime, const Matrix43& globalMatrix);
+	void Initialize( Instance* parent, int32_t instanceNumber, int32_t parentTime, const Mat43f& globalMatrix);
 
 	/**
 		@brief	更新
@@ -9688,7 +9961,11 @@ public:
 	/**
 		@brief	UVの位置取得
 	*/
+#ifdef __EFFEKSEER_BUILD_VERSION16__
+	RectF GetUV(const int32_t index) const;
+#else
 	RectF GetUV() const;
+#endif
 
 	//! get custom data
 	std::array<float,4> GetCustomData(int32_t index) const;
@@ -9803,7 +10080,7 @@ private:
 	float		m_updatedFrame;
 
 	InstanceContainer*	m_rootContainer;
-	Vector3D			m_targetLocation;
+	Vec3f				m_targetLocation;
 
 	int64_t				m_seed = 0;
 
@@ -9858,7 +10135,7 @@ public:
 	InstanceContainer* GetRootContainer() const;
 	void SetRootContainer( InstanceContainer* container );
 
-	const Vector3D& GetTargetLocation() const;
+	const Vec3f& GetTargetLocation() const;
 	void SetTargetLocation( const Vector3D& location );
 
 	static float Rand(void* userData);
@@ -9908,10 +10185,10 @@ private:
 	InstanceGlobal*		m_global;
 	int32_t				m_time;
 
-	Matrix43 parentMatrix_;
-	Matrix43 parentRotation_;
-	Vector3D parentTranslation_;
-	Vector3D parentScale_;
+	Mat43f parentMatrix_;
+	Mat43f parentRotation_;
+	Vec3f parentTranslation_;
+	Vec3f parentScale_;
 
 	// インスタンスの実体
 	IntrusiveList<Instance> m_instances;
@@ -9942,9 +10219,9 @@ public:
 
 	void Update(bool shown);
 
-	void SetBaseMatrix( const Matrix43& mat );
+	void SetBaseMatrix( const Mat43f& mat );
 
-	void SetParentMatrix( const Matrix43& mat );
+	void SetParentMatrix( const Mat43f& mat );
 
 	void RemoveForcibly();
 
@@ -9969,10 +10246,10 @@ public:
 
 	InstanceGlobal* GetRootInstance() const { return m_global; }
 
-	const Matrix43& GetParentMatrix() const { return parentMatrix_; }
-	const Vector3D& GetParentTranslation() const { return parentTranslation_; }
-	const Matrix43& GetParentRotation() const { return parentRotation_; }
-	const Vector3D& GetParentScale() const { return parentScale_; }
+	const Mat43f& GetParentMatrix() const { return parentMatrix_; }
+	const Vec3f& GetParentTranslation() const { return parentTranslation_; }
+	const Mat43f& GetParentRotation() const { return parentRotation_; }
+	const Vec3f& GetParentScale() const { return parentScale_; }
 };
 //----------------------------------------------------------------------------------
 //
@@ -10161,18 +10438,18 @@ int32_t FCurveVector2D::Load(void* data, int32_t version)
 	return size;
 }
 
-std::array<float, 2> FCurveVector2D::GetValues(float living, float life) const
+Vec2f FCurveVector2D::GetValues(float living, float life) const
 {
 	auto x = X.GetValue(living, life, Timeline);
 	auto y = Y.GetValue(living, life, Timeline);
-	return std::array<float, 2>{x, y};
+	return Vec2f{x, y};
 }
 
-std::array<float, 2> FCurveVector2D::GetOffsets(InstanceGlobal& g) const
+Vec2f FCurveVector2D::GetOffsets(InstanceGlobal& g) const
 {
 	auto x = X.GetOffset(g);
 	auto y = Y.GetOffset(g);
-	return std::array<float, 2>{x, y};
+	return Vec2f{x, y};
 }
 
 int32_t FCurveVector3D::Load(void* data, int32_t version)
@@ -10202,20 +10479,20 @@ int32_t FCurveVector3D::Load(void* data, int32_t version)
 	return size;
 }
 
-std::array<float, 3> FCurveVector3D::GetValues(float living, float life) const
+Vec3f FCurveVector3D::GetValues(float living, float life) const
 {
 	auto x = X.GetValue(living, life, Timeline);
 	auto y = Y.GetValue(living, life, Timeline);
 	auto z = Z.GetValue(living, life, Timeline);
-	return std::array<float, 3>{x, y, z};
+	return {x, y, z};
 }
 
-std::array<float, 3> FCurveVector3D::GetOffsets(InstanceGlobal& g) const
+Vec3f FCurveVector3D::GetOffsets(InstanceGlobal& g) const
 {
 	auto x = X.GetOffset(g);
 	auto y = Y.GetOffset(g);
 	auto z = Z.GetOffset(g);
-	return std::array<float, 3>{x, y, z};
+	return {x, y, z};
 }
 
 int32_t FCurveVectorColor::Load(void* data, int32_t version)
@@ -10279,12 +10556,48 @@ std::array<float, 4> FCurveVectorColor::GetOffsets(InstanceGlobal& gl) const
 
 
 
-
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
 namespace Effekseer
 {
+
+LocalForceFieldTurbulenceParameter::LocalForceFieldTurbulenceParameter(int32_t seed, float scale, float strength, int octave) : Noise(seed)
+{
+	Noise.Octave = octave;
+	Noise.Scale = scale;
+	Strength = strength;
+}
+
+bool LocalForceFieldParameter::Load(uint8_t*& pos, int32_t version)
+{
+	auto br = BinaryReader<false>(pos, std::numeric_limits<int>::max());
+
+	LocalForceFieldType type{};
+	br.Read(type);
+
+	if (type == LocalForceFieldType::Turbulence)
+	{
+		int32_t seed{};
+		float scale{};
+		float strength{};
+		int octave{};
+
+		br.Read(seed);
+		br.Read(scale);
+		br.Read(strength);
+		br.Read(octave);
+
+		scale = 1.0f / scale;
+
+		Turbulence =
+			std::unique_ptr<LocalForceFieldTurbulenceParameter>(new LocalForceFieldTurbulenceParameter(seed, scale, strength, octave));
+	}
+
+	pos += br.GetOffset();
+
+	return true;
+}
 
 //----------------------------------------------------------------------------------
 //
@@ -10311,9 +10624,12 @@ void EffectNodeImplemented::LoadParameter(unsigned char*& pos, EffectNode* paren
 	int node_type = 0;
 	auto ef = (EffectImplemented*)m_effect;
 
-	if (parent) {
+	if (parent)
+	{
 		generation_ = parent->GetGeneration() + 1;
-	} else {
+	}
+	else
+	{
 		generation_ = 0;
 	}
 
@@ -10495,6 +10811,19 @@ void EffectNodeImplemented::LoadParameter(unsigned char*& pos, EffectNode* paren
 				TranslationFCurve->X.Maginify(m_effect->GetMaginification());
 				TranslationFCurve->Y.Maginify(m_effect->GetMaginification());
 				TranslationFCurve->Z.Maginify(m_effect->GetMaginification());
+			}
+		}
+
+		// Local force field
+		if (ef->GetVersion() >= 1500)
+		{
+			int32_t count = 0;
+			memcpy(&count, pos, sizeof(int));
+			pos += sizeof(int);
+
+			for (int32_t i = 0; i < count; i++)
+			{
+				LocalForceFields[i].Load(pos, ef->GetVersion());
 			}
 		}
 
@@ -10921,8 +11250,10 @@ void EffectNodeImplemented::LoadParameter(unsigned char*& pos, EffectNode* paren
 		LoadRendererParameter(pos, m_effect->GetSetting());
 
 		// rescale intensity after 1.5
+#ifndef __EFFEKSEER_FOR_UE4__ // Hack for EffekseerForUE4
 		RendererCommon.BasicParameter.DistortionIntensity *= m_effect->GetMaginification();
 		RendererCommon.DistortionIntensity *= m_effect->GetMaginification();
+#endif // !__EFFEKSEER_FOR_UE4__
 
 		if (m_effect->GetVersion() >= 1)
 		{
@@ -11163,7 +11494,7 @@ void EffectNodeImplemented::PlaySound_(Instance& instance, SoundTag tag, Manager
 		parameter.Pan = Sound.Pan.getValue(*instanceGlobal);
 
 		parameter.Mode3D = (Sound.PanType == ParameterSoundPanType_3D);
-		Vector3D::Transform(parameter.Position, Vector3D(0.0f, 0.0f, 0.0f), instance.GetGlobalMatrix43());
+		parameter.Position = ToStruct(instance.GetGlobalMatrix43().GetTranslation());
 		parameter.Distance = Sound.Distance;
 
 		player->Play(tag, parameter);
@@ -11498,7 +11829,12 @@ void EffectNodeModel::Rendering(const Instance& instance, const Instance* next_i
 		instanceParameter.SRTMatrix43 = instance.GetGlobalMatrix43();
 		instanceParameter.Time = (int32_t)instance.m_LivingTime;
 
+#ifdef __EFFEKSEER_BUILD_VERSION16__
+		instanceParameter.UV = instance.GetUV(0);
+		instanceParameter.AlphaUV = instance.GetUV(1);
+#else
 		instanceParameter.UV = instance.GetUV();
+#endif
 		CalcCustomData(&instance, instanceParameter.CustomData1, instanceParameter.CustomData2);
 
 		Color _color;
@@ -11829,7 +12165,12 @@ void EffectNodeRibbon::BeginRenderingGroup(InstanceGroup* group, Manager* manage
 
 		if (group->GetFirst() != nullptr)
 		{
+#ifdef __EFFEKSEER_BUILD_VERSION16__
+			m_instanceParameter.UV = group->GetFirst()->GetUV(0);
+			m_instanceParameter.AlphaUV = group->GetFirst()->GetUV(1);
+#else
 			m_instanceParameter.UV = group->GetFirst()->GetUV();
+#endif
 			CalcCustomData(group->GetFirst(), m_instanceParameter.CustomData1, m_instanceParameter.CustomData2);
 		}
 
@@ -12327,8 +12668,8 @@ void EffectNodeRing::Rendering(const Instance& instance, const Instance* next_in
 		instanceParameter.ViewingAngleStart = instValues.startingAngle.current;
 		instanceParameter.ViewingAngleEnd = instValues.endingAngle.current;
 		
-		instValues.outerLocation.current.setValueToArg( instanceParameter.OuterLocation );
-		instValues.innerLocation.current.setValueToArg( instanceParameter.InnerLocation );
+		instanceParameter.OuterLocation = instValues.outerLocation.current;
+		instanceParameter.InnerLocation = instValues.innerLocation.current;
 
 		instanceParameter.CenterRatio = instValues.centerRatio.current;
 
@@ -12344,7 +12685,12 @@ void EffectNodeRing::Rendering(const Instance& instance, const Instance* next_in
 		instanceParameter.CenterColor = _centerColor;
 		instanceParameter.InnerColor  = _innerColor;
 		
+#ifdef __EFFEKSEER_BUILD_VERSION16__
+		instanceParameter.UV = instance.GetUV(0);
+		instanceParameter.AlphaUV = instance.GetUV(1);
+#else
 		instanceParameter.UV = instance.GetUV();
+#endif
 		
 		CalcCustomData(&instance, instanceParameter.CustomData1, instanceParameter.CustomData2);
 
@@ -12590,10 +12936,8 @@ void EffectNodeRing::UpdateSingleValues( Instance& instance, const RingSinglePar
 {
 	if( param.type == RingSingleParameter::Easing )
 	{
-		param.easing.setValueToArg(
-			values.current,
-			values.easing.start,
-			values.easing.end,
+		values.current = param.easing.getValue(
+			values.easing.start, values.easing.end,
 			instance.m_LivingTime / instance.m_LivedTime );
 	}
 }
@@ -12611,10 +12955,8 @@ void EffectNodeRing::UpdateLocationValues( Instance& instance, const RingLocatio
 	}
 	else if( param.type == RingLocationParameter::Easing )
 	{
-		param.easing.setValueToArg(
-			values.current,
-			values.easing.start,
-			values.easing.end,
+		values.current = param.easing.getValue(
+			values.easing.start, values.easing.end,
 			instance.m_LivingTime / instance.m_LivedTime );
 	}
 }
@@ -12754,27 +13096,39 @@ namespace Effekseer
 	{
 		if (m_effect->GetVersion() >= 8)
 		{
-			memcpy(&SpritePosition.fixed, pos, sizeof(SpritePosition.fixed));
-			pos += sizeof(SpritePosition.fixed);
+			std::array<Vector2D, 4> fixed;
+			memcpy(fixed.data(), pos, sizeof(Vector2D) * 4);
+
+			// This code causes bugs on asmjs
+			// const Vector2D* fixed = (const Vector2D*)pos;
+			SpritePosition.fixed.ll = fixed[0];
+			SpritePosition.fixed.lr = fixed[1];
+			SpritePosition.fixed.ul = fixed[2];
+			SpritePosition.fixed.ur = fixed[3];
+			pos += sizeof(Vector2D) * 4;
 			SpritePosition.type = SpritePosition.Fixed;
 		}
 		else
 		{
-			SpritePosition.fixed.ll.x = -0.5f;
-			SpritePosition.fixed.ll.y = -0.5f;
-			SpritePosition.fixed.lr.x = 0.5f;
-			SpritePosition.fixed.lr.y = -0.5f;
-			SpritePosition.fixed.ul.x = -0.5f;
-			SpritePosition.fixed.ul.y = 0.5f;
-			SpritePosition.fixed.ur.x = 0.5f;
-			SpritePosition.fixed.ur.y = 0.5f;
+			SpritePosition.fixed.ll = {-0.5f, -0.5f};
+			SpritePosition.fixed.lr = {0.5f, -0.5f};
+			SpritePosition.fixed.ul = {-0.5f, 0.5f};
+			SpritePosition.fixed.ur = {0.5f, 0.5f};
 			SpritePosition.type = SpritePosition.Fixed;
 		}
 	}
 	else if (SpritePosition.type == SpritePosition.Fixed)
 	{
-		memcpy(&SpritePosition.fixed, pos, sizeof(SpritePosition.fixed));
-		pos += sizeof(SpritePosition.fixed);
+		std::array<Vector2D, 4> fixed;
+		memcpy(fixed.data(), pos, sizeof(Vector2D) * 4);
+		
+		// This code causes bugs on asmjs
+		// const Vector2D* fixed = (const Vector2D*)pos;
+		SpritePosition.fixed.ll = fixed[0];
+		SpritePosition.fixed.lr = fixed[1];
+		SpritePosition.fixed.ul = fixed[2];
+		SpritePosition.fixed.ur = fixed[3];
+		pos += sizeof(Vector2D) * 4;
 	}
 
 	if (m_effect->GetVersion() >= 3)
@@ -12909,24 +13263,25 @@ void EffectNodeSprite::Rendering(const Instance& instance, const Instance* next_
 
 		if( SpritePosition.type == SpritePosition.Default )
 		{
-			instanceParameter.Positions[0].X = -0.5f;
-			instanceParameter.Positions[0].Y = -0.5f;
-			instanceParameter.Positions[1].X = 0.5f;
-			instanceParameter.Positions[1].Y = -0.5f;
-			instanceParameter.Positions[2].X = -0.5f;
-			instanceParameter.Positions[2].Y = 0.5f;
-			instanceParameter.Positions[3].X = 0.5f;
-			instanceParameter.Positions[3].Y = 0.5f;
+			instanceParameter.Positions[0] = {-0.5f, -0.5f};
+			instanceParameter.Positions[1] = {0.5f, -0.5f};
+			instanceParameter.Positions[2] = {-0.5f, 0.5f};
+			instanceParameter.Positions[3] = {0.5f, 0.5f};
 		}
 		else if( SpritePosition.type == SpritePosition.Fixed )
 		{
-			SpritePosition.fixed.ll.setValueToArg( instanceParameter.Positions[0] );
-			SpritePosition.fixed.lr.setValueToArg( instanceParameter.Positions[1] );
-			SpritePosition.fixed.ul.setValueToArg( instanceParameter.Positions[2] );
-			SpritePosition.fixed.ur.setValueToArg( instanceParameter.Positions[3] );
+			instanceParameter.Positions[0] = SpritePosition.fixed.ll;
+			instanceParameter.Positions[1] = SpritePosition.fixed.lr;
+			instanceParameter.Positions[2] = SpritePosition.fixed.ul;
+			instanceParameter.Positions[3] = SpritePosition.fixed.ur;
 		}
 
+#ifdef __EFFEKSEER_BUILD_VERSION16__
+		instanceParameter.UV = instance.GetUV(0);
+		instanceParameter.AlphaUV = instance.GetUV(1);
+#else
 		instanceParameter.UV = instance.GetUV();
+#endif
 		CalcCustomData(&instance, instanceParameter.CustomData1, instanceParameter.CustomData2);
 
 		renderer->Rendering( nodeParameter, instanceParameter, m_userData );
@@ -13186,7 +13541,12 @@ void EffectNodeTrack::BeginRenderingGroup(InstanceGroup* group, Manager* manager
 		
 		if (group->GetFirst() != nullptr)
 		{
+#ifdef __EFFEKSEER_BUILD_VERSION16__
+			m_instanceParameter.UV = group->GetFirst()->GetUV(0);
+			m_instanceParameter.AlphaUV = group->GetFirst()->GetUV(1);
+#else
 			m_instanceParameter.UV = group->GetFirst()->GetUV();
+#endif
 			CalcCustomData(group->GetFirst(), m_instanceParameter.CustomData1, m_instanceParameter.CustomData2);
 		}
 
@@ -14825,7 +15185,7 @@ Manager* Manager::Create( int instance_max, bool autoFlip )
 	return new ManagerImplemented( instance_max, autoFlip );
 }
 
-Matrix43* ManagerImplemented::DrawSet::GetEnabledGlobalMatrix()
+Mat43f* ManagerImplemented::DrawSet::GetEnabledGlobalMatrix()
 {
 	if (IsPreupdated)
 	{
@@ -15006,7 +15366,7 @@ void ManagerImplemented::GCDrawSet( bool isRemovingManager )
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-InstanceContainer* ManagerImplemented::CreateInstanceContainer( EffectNode* pEffectNode, InstanceGlobal* pGlobal, bool isRoot, const Matrix43& rootMatrix, Instance* pParent )
+InstanceContainer* ManagerImplemented::CreateInstanceContainer( EffectNode* pEffectNode, InstanceGlobal* pGlobal, bool isRoot, const Mat43f& rootMatrix, Instance* pParent )
 {
 	if( pooledContainers_.empty() )
 	{
@@ -15666,7 +16026,7 @@ Matrix43 ManagerImplemented::GetMatrix( Handle handle )
 
 		if (mat != nullptr)
 		{
-			return *mat;
+			return ToStruct(*mat);
 		}
 	}
 
@@ -15706,9 +16066,9 @@ Vector3D ManagerImplemented::GetLocation( Handle handle )
 
 		if (mat_ != nullptr)
 		{
-			location.X = mat_->Value[3][0];
-			location.Y = mat_->Value[3][1];
-			location.Z = mat_->Value[3][2];
+			location.X = mat_->X.GetW();
+			location.Y = mat_->Y.GetW();
+			location.Z = mat_->Z.GetW();
 		}
 	}
 
@@ -15727,9 +16087,9 @@ void ManagerImplemented::SetLocation( Handle handle, float x, float y, float z )
 
 		if (mat_ != nullptr)
 		{
-			mat_->Value[3][0] = x;
-			mat_->Value[3][1] = y;
-			mat_->Value[3][2] = z;
+			mat_->X.SetW( x );
+			mat_->Y.SetW( y );
+			mat_->Z.SetW( z );
 
 			drawSet.CopyMatrixFromInstanceToRoot();
 			drawSet.IsParameterChanged = true;
@@ -15757,9 +16117,9 @@ void ManagerImplemented::AddLocation( Handle handle, const Vector3D& location )
 
 		if (mat_ != nullptr)
 		{
-			mat_->Value[3][0] += location.X;
-			mat_->Value[3][1] += location.Y;
-			mat_->Value[3][2] += location.Z;
+			mat_->X.SetW( mat_->X.GetW() + location.X );
+			mat_->Y.SetW( mat_->Y.GetW() + location.Y );
+			mat_->Z.SetW( mat_->Z.GetW() + location.Z );
 			drawSet.CopyMatrixFromInstanceToRoot();
 			drawSet.IsParameterChanged = true;
 		}
@@ -15779,23 +16139,14 @@ void ManagerImplemented::SetRotation( Handle handle, float x, float y, float z )
 
 		if (mat_ != nullptr)
 		{
-			Matrix43 MatRotX, MatRotY, MatRotZ;
-
-			MatRotX.RotationX(x);
-			MatRotY.RotationY(y);
-			MatRotZ.RotationZ(z);
-
-			Matrix43 r;
-			Vector3D s, t;
+			Mat43f r;
+			Vec3f s, t;
 
 			mat_->GetSRT(s, r, t);
 
-			r.Indentity();
-			Matrix43::Multiple(r, r, MatRotZ);
-			Matrix43::Multiple(r, r, MatRotX);
-			Matrix43::Multiple(r, r, MatRotY);
+			r = Mat43f::RotationZXY(z, x, y);
 
-			mat_->SetSRT(s, r, t);
+			*mat_ = Mat43f::SRT(s, r, t);
 
 			drawSet.CopyMatrixFromInstanceToRoot();
 			drawSet.IsParameterChanged = true;
@@ -15816,14 +16167,14 @@ void ManagerImplemented::SetRotation( Handle handle, const Vector3D& axis, float
 
 		if (mat_ != nullptr)
 		{
-			Matrix43 r;
-			Vector3D s, t;
+			Mat43f r;
+			Vec3f s, t;
 
 			mat_->GetSRT(s, r, t);
 
-			r.RotationAxis(axis, angle);
+			r = Mat43f::RotationAxis(axis, angle);
 
-			mat_->SetSRT(s, r, t);
+			*mat_ = Mat43f::SRT(s, r, t);
 
 			drawSet.CopyMatrixFromInstanceToRoot();
 			drawSet.IsParameterChanged = true;
@@ -15844,16 +16195,14 @@ void ManagerImplemented::SetScale( Handle handle, float x, float y, float z )
 
 		if (mat_ != nullptr)
 		{
-			Matrix43 r;
-			Vector3D s, t;
+			Mat43f r;
+			Vec3f s, t;
 
 			mat_->GetSRT(s, r, t);
 
-			s.X = x;
-			s.Y = y;
-			s.Z = z;
+			s = Vec3f(x, y, z);
 
-			mat_->SetSRT(s, r, t);
+			*mat_ = Mat43f::SRT(s, r, t);
 
 			drawSet.CopyMatrixFromInstanceToRoot();
 			drawSet.IsParameterChanged = true;
@@ -15934,7 +16283,7 @@ Matrix43 ManagerImplemented::GetBaseMatrix( Handle handle )
 {
 	if( m_DrawSets.count( handle ) > 0 )
 	{
-		return m_DrawSets[handle].BaseMatrix;
+		return ToStruct(m_DrawSets[handle].BaseMatrix);
 	}
 
 	return Matrix43();
@@ -16138,44 +16487,35 @@ void ManagerImplemented::Flip()
 					InstanceContainer* pContainer = ds.InstanceContainerPointer;
 					Instance* pInstance = pContainer->GetFirstGroup()->GetFirst();
 
-					Vector3D pos(
+					Vec3f pos(
 						ds.CullingObjectPointer->GetPosition().X,
 						ds.CullingObjectPointer->GetPosition().Y,
 						ds.CullingObjectPointer->GetPosition().Z);
 
-					Matrix43 pos_;
-					pos_.Translation(pos.X, pos.Y, pos.Z);
-
-					Matrix43::Multiple(pos_, pos_,  pInstance->m_GlobalMatrix43);
+					Mat43f pos_ = Mat43f::Translation(pos);
+					pos_ *= pInstance->m_GlobalMatrix43;
 
 					if(ds.DoUseBaseMatrix)
 					{
-						Matrix43::Multiple(pos_, pos_,  ds.BaseMatrix);
+						pos_ *= ds.BaseMatrix;
 					}
 
-					Culling3D::Vector3DF position;
-					position.X = pos_.Value[3][0];
-					position.Y = pos_.Value[3][1];
-					position.Z = pos_.Value[3][2];
-					ds.CullingObjectPointer->SetPosition(position);
+					Vec3f position = pos_.GetTranslation();
+					ds.CullingObjectPointer->SetPosition(Culling3D::Vector3DF(position.GetX(), position.GetY(), position.GetZ()));
 
 					if(effect->Culling.Shape == CullingShape::Sphere)
 					{
 						float radius = effect->Culling.Sphere.Radius;
 
 						{
-							Vector3D s;
-							pInstance->GetGlobalMatrix43().GetScale(s);
-						
-							radius = radius * sqrt(s.X * s.X + s.Y * s.Y + s.Z * s.Z);
+							Vec3f s = pInstance->GetGlobalMatrix43().GetScale();
+							radius *= s.GetLength();
 						}
 
 						if(ds.DoUseBaseMatrix)
 						{
-							Vector3D s;
-							ds.BaseMatrix.GetScale(s);
-						
-							radius = radius * sqrt(s.X * s.X + s.Y * s.Y + s.Z * s.Z);
+							Vec3f s = ds.BaseMatrix.GetScale();
+							radius *= s.GetLength();
 						}
 
 						ds.CullingObjectPointer->ChangeIntoSphere(radius);
@@ -16388,9 +16728,8 @@ bool ManagerImplemented::IsClippedWithDepth(DrawSet& drawSet, InstanceContainer*
 	if (container->m_pEffectNode->DepthValues.DepthParameter.DepthClipping > FLT_MAX / 10)
 		return false;
 
-	Vector3D pos;
-	drawSet.GlobalMatrix.GetTranslation(pos);
-	auto distance = Vector3D::Dot(drawParameter.CameraPosition - pos, drawParameter.CameraDirection);
+	Vec3f pos = drawSet.GlobalMatrix.GetTranslation();
+	auto distance = Vec3f::Dot(Vec3f(drawParameter.CameraPosition) - pos, Vec3f(drawParameter.CameraDirection));
 	if (container->m_pEffectNode->DepthValues.DepthParameter.DepthClipping < distance)
 	{
 		return true;
@@ -16614,10 +16953,7 @@ Handle ManagerImplemented::Play(Effect* effect, const Vector3D& position, int32_
 
 	auto& drawSet = m_DrawSets[handle];
 
-	drawSet.GlobalMatrix.Indentity();
-	drawSet.GlobalMatrix.Value[3][0] = position.X;
-	drawSet.GlobalMatrix.Value[3][1] = position.Y;
-	drawSet.GlobalMatrix.Value[3][2] = position.Z;
+	drawSet.GlobalMatrix = Mat43f::Translation(position);
 
 	drawSet.IsParameterChanged = true;
 	drawSet.StartFrame = startFrame;
@@ -17133,7 +17469,7 @@ void InstanceContainer::Update(bool recursive, bool shown)
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-void InstanceContainer::SetBaseMatrix(bool recursive, const Matrix43& mat)
+void InstanceContainer::SetBaseMatrix(bool recursive, const Mat43f& mat)
 {
 	if (m_pEffectNode->GetType() != EFFECT_NODE_TYPE_ROOT)
 	{
@@ -17362,24 +17698,21 @@ void Instance::ApplyEq(T& dstParam, Effect* e, InstanceGlobal* instg, int dpInd,
 	}
 }
 
-template <typename S> Vector3D Instance::ApplyEq(const int& dpInd, Vector3D originalParam, const S& scale, const S& scaleInv)
+template <typename S> Vec3f Instance::ApplyEq(const int& dpInd, const Vec3f& originalParam, const S& scale, const S& scaleInv)
 {
 	const auto& e = this->m_pEffectNode->m_effect;
 	const auto& instg = this->m_pContainer->GetRootInstance();
 
+	Vec3f param = originalParam;
 	if (dpInd >= 0)
 	{
-		originalParam.X *= scaleInv[0];
-		originalParam.Y *= scaleInv[1];
-		originalParam.Z *= scaleInv[2];
+		param *= Vec3f(scaleInv[0], scaleInv[1], scaleInv[2]);
 
-		ApplyEq(originalParam, e, instg, dpInd, originalParam);
+		ApplyEq(param, e, instg, dpInd, param);
 
-		originalParam.X *= scale[0];
-		originalParam.Y *= scale[1];
-		originalParam.Z *= scale[2];
+		param *= Vec3f(scale[0], scale[1], scale[2]);
 	}
-	return originalParam;
+	return param;
 }
 
 random_float Instance::ApplyEq(const RefMinMax& dpInd, random_float originalParam)
@@ -17576,8 +17909,7 @@ void Instance::GenerateChildrenInRequired(float currentTime)
 				auto newInstance = group->CreateInstance();
 				if (newInstance != nullptr)
 				{
-					Matrix43 rootMatrix;
-					rootMatrix.Indentity();
+					Mat43f rootMatrix = Mat43f::Identity;
 
 					newInstance->Initialize(this, m_generatedChildrenCount[i], (int32_t)std::max(0.0f, this->m_LivingTime), rootMatrix);
 				}
@@ -17622,7 +17954,7 @@ eInstanceState Instance::GetState() const
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-const Matrix43& Instance::GetGlobalMatrix43() const
+const Mat43f& Instance::GetGlobalMatrix43() const
 {
 	return m_GlobalMatrix43;
 }
@@ -17630,7 +17962,7 @@ const Matrix43& Instance::GetGlobalMatrix43() const
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-void Instance::Initialize( Instance* parent, int32_t instanceNumber, int32_t parentTime, const Matrix43& globalMatrix)
+void Instance::Initialize( Instance* parent, int32_t instanceNumber, int32_t parentTime, const Mat43f& globalMatrix)
 {
 	assert(this->m_pContainer != nullptr);
 	
@@ -17696,12 +18028,12 @@ void Instance::Initialize( Instance* parent, int32_t instanceNumber, int32_t par
 		m_LivedTime = FLT_MAX;
 
 		// SRTの初期化
-		m_GenerationLocation.Indentity();
+		m_GenerationLocation = Mat43f::Identity;
 		m_GlobalMatrix43 = globalMatrix;
 		assert(m_GlobalMatrix43.IsValid());
 
 		// 親の初期化
-		m_ParentMatrix.Indentity();
+		m_ParentMatrix = Mat43f::Identity;
 
 		// Generate zero frame effect
 
@@ -17727,11 +18059,12 @@ void Instance::Initialize( Instance* parent, int32_t instanceNumber, int32_t par
 	// calculate parent matrixt to get matrix
 	m_pParent->CalculateMatrix(0);
 	
-	const Matrix43& parentMatrix = m_pParent->GetGlobalMatrix43();
-	parentMatrix.GetTranslation( m_GlobalPosition );
-	m_GlobalRevisionLocation = Vector3D(0.0f, 0.0f, 0.0f);
-	m_GlobalRevisionVelocity = Vector3D(0.0f, 0.0f, 0.0f);
-	m_GenerationLocation.Indentity();
+	const Mat43f& parentMatrix = m_pParent->GetGlobalMatrix43();
+	m_GlobalPosition = parentMatrix.GetTranslation();
+	m_GlobalRevisionLocation = Vec3f(0.0f, 0.0f, 0.0f);
+	m_GlobalRevisionVelocity = Vec3f(0.0f, 0.0f, 0.0f);
+	modifyWithNoise_ = Vec3f(0.0f, 0.0f, 0.0f);
+	m_GenerationLocation = Mat43f::Identity;
 	m_GlobalMatrix43 = globalMatrix;
 	assert(m_GlobalMatrix43.IsValid());
 
@@ -17797,9 +18130,7 @@ void Instance::Initialize( Instance* parent, int32_t instanceNumber, int32_t par
 	{
 		assert( m_pEffectNode->TranslationFCurve != NULL );
 
-		translation_values.fcruve.offset.x = m_pEffectNode->TranslationFCurve->X.GetOffset( *instanceGlobal );
-		translation_values.fcruve.offset.y = m_pEffectNode->TranslationFCurve->Y.GetOffset( *instanceGlobal );
-		translation_values.fcruve.offset.z = m_pEffectNode->TranslationFCurve->Z.GetOffset( *instanceGlobal );
+		translation_values.fcruve.offset = m_pEffectNode->TranslationFCurve->GetOffsets( *instanceGlobal );
 	}
 	
 	// Rotation
@@ -17845,24 +18176,20 @@ void Instance::Initialize( Instance* parent, int32_t instanceNumber, int32_t par
 		rotation_values.axis.random.velocity = m_pEffectNode->RotationAxisPVA.velocity.getValue(*instanceGlobal);
 		rotation_values.axis.random.acceleration = m_pEffectNode->RotationAxisPVA.acceleration.getValue(*instanceGlobal);
 		rotation_values.axis.rotation = rotation_values.axis.random.rotation;
-		rotation_values.axis.axis = m_pEffectNode->RotationAxisPVA.axis.getValue(*instanceGlobal);
-		rotation_values.axis.axis.normalize();
+		rotation_values.axis.axis = m_pEffectNode->RotationAxisPVA.axis.getValue(*instanceGlobal).Normalize();
 	}
 	else if( m_pEffectNode->RotationType == ParameterRotationType_AxisEasing )
 	{
 		rotation_values.axis.easing.start = m_pEffectNode->RotationAxisEasing.easing.start.getValue(*instanceGlobal);
 		rotation_values.axis.easing.end = m_pEffectNode->RotationAxisEasing.easing.end.getValue(*instanceGlobal);
 		rotation_values.axis.rotation = rotation_values.axis.easing.start;
-		rotation_values.axis.axis = m_pEffectNode->RotationAxisEasing.axis.getValue(*instanceGlobal);
-		rotation_values.axis.axis.normalize();
+		rotation_values.axis.axis = m_pEffectNode->RotationAxisEasing.axis.getValue(*instanceGlobal).Normalize();
 	}
 	else if( m_pEffectNode->RotationType == ParameterRotationType_FCurve )
 	{
 		assert( m_pEffectNode->RotationFCurve != NULL );
 
-		rotation_values.fcruve.offset.x = m_pEffectNode->RotationFCurve->X.GetOffset( *instanceGlobal );
-		rotation_values.fcruve.offset.y = m_pEffectNode->RotationFCurve->Y.GetOffset( *instanceGlobal );
-		rotation_values.fcruve.offset.z = m_pEffectNode->RotationFCurve->Z.GetOffset( *instanceGlobal );
+		rotation_values.fcruve.offset = m_pEffectNode->RotationFCurve->GetOffsets( *instanceGlobal );
 	}
 
 	// Scaling
@@ -17914,34 +18241,31 @@ void Instance::Initialize( Instance* parent, int32_t instanceNumber, int32_t par
 	{
 		assert( m_pEffectNode->ScalingFCurve != NULL );
 
-		scaling_values.fcruve.offset.x = m_pEffectNode->ScalingFCurve->X.GetOffset( *instanceGlobal );
-		scaling_values.fcruve.offset.y = m_pEffectNode->ScalingFCurve->Y.GetOffset( *instanceGlobal );
-		scaling_values.fcruve.offset.z = m_pEffectNode->ScalingFCurve->Z.GetOffset( *instanceGlobal );
+		scaling_values.fcruve.offset = m_pEffectNode->ScalingFCurve->GetOffsets( *instanceGlobal );
 	}
 
 	// Spawning Method
 	if( m_pEffectNode->GenerationLocation.type == ParameterGenerationLocation::TYPE_POINT )
 	{
-		vector3d p = m_pEffectNode->GenerationLocation.point.location.getValue(*instanceGlobal);
-		m_GenerationLocation.Translation( p.x, p.y, p.z );
+		Vec3f p = m_pEffectNode->GenerationLocation.point.location.getValue(*instanceGlobal);
+		m_GenerationLocation = Mat43f::Translation( p.GetX(), p.GetY(), p.GetZ() );
 	}
 	else if (m_pEffectNode->GenerationLocation.type == ParameterGenerationLocation::TYPE_LINE)
 	{
-		vector3d s = m_pEffectNode->GenerationLocation.line.position_start.getValue(*instanceGlobal);
-		vector3d e = m_pEffectNode->GenerationLocation.line.position_end.getValue(*instanceGlobal);
+		Vec3f s = m_pEffectNode->GenerationLocation.line.position_start.getValue(*instanceGlobal);
+		Vec3f e = m_pEffectNode->GenerationLocation.line.position_end.getValue(*instanceGlobal);
 		auto noize = m_pEffectNode->GenerationLocation.line.position_noize.getValue(*instanceGlobal);
 		auto division = Max(1, m_pEffectNode->GenerationLocation.line.division);
 
-		Vector3D dir;
-		(e - s).setValueToArg(dir);
+		Vec3f dir = e - s;
 
-		if (Vector3D::LengthSq(dir) < 0.001)
+		if (dir.IsZero())
 		{
-			m_GenerationLocation.Translation(0 ,0, 0);
+			m_GenerationLocation = Mat43f::Translation(0 ,0, 0);
 		}
 		else
 		{
-			auto len = Vector3D::Length(dir);
+			auto len = dir.GetLength();
 			dir /= len;
 		
 			int32_t target = 0;
@@ -17958,73 +18282,64 @@ void Instance::Initialize( Instance* parent, int32_t instanceNumber, int32_t par
 			auto d = 0.0f;
 			if (division > 1)
 			{
-				d = (len / (float)(division-1)) * target;
+				d = (len / (float)(division - 1)) * target;
 			}
 
 			d += noize;
 		
-			s.x += dir.X * d;
-			s.y += dir.Y * d;
-			s.z += dir.Z * d;
+			s += dir * d;
 
-			Vector3D xdir;
-			Vector3D ydir;
-			Vector3D zdir;
+			Vec3f xdir;
+			Vec3f ydir;
+			Vec3f zdir;
 
-			if (fabs(dir.Y) > 0.999f)
+			if (fabs(dir.GetY()) > 0.999f)
 			{
 				xdir = dir;
-				Vector3D::Cross(zdir, xdir, Vector3D(-1, 0, 0));
-				Vector3D::Normal(zdir, zdir);
-				Vector3D::Cross(ydir, zdir, xdir);
-				Vector3D::Normal(ydir, ydir);
+				zdir = Vec3f::Cross(xdir, Vec3f(-1, 0, 0)).Normalize();
+				ydir = Vec3f::Cross(zdir, xdir).Normalize();
 			}
 			else
 			{
 				xdir = dir;
-				Vector3D::Cross(ydir, Vector3D(0, 0, 1), xdir);
-				Vector3D::Normal(ydir, ydir);
-				Vector3D::Cross(zdir, xdir, ydir);
-				Vector3D::Normal(zdir, zdir);
+				ydir = Vec3f::Cross(Vec3f(0, 0, 1), xdir).Normalize();
+				zdir = Vec3f::Cross(xdir, ydir).Normalize();
 			}
 
 			if (m_pEffectNode->GenerationLocation.EffectsRotation)
 			{
-				m_GenerationLocation.Value[0][0] = xdir.X;
-				m_GenerationLocation.Value[0][1] = xdir.Y;
-				m_GenerationLocation.Value[0][2] = xdir.Z;
+				m_GenerationLocation.X.SetX(xdir.GetX());
+				m_GenerationLocation.Y.SetX(xdir.GetY());
+				m_GenerationLocation.Z.SetX(xdir.GetZ());
 
-				m_GenerationLocation.Value[1][0] = ydir.X;
-				m_GenerationLocation.Value[1][1] = ydir.Y;
-				m_GenerationLocation.Value[1][2] = ydir.Z;
+				m_GenerationLocation.X.SetY(ydir.GetX());
+				m_GenerationLocation.Y.SetY(ydir.GetY());
+				m_GenerationLocation.Z.SetY(ydir.GetZ());
 
-				m_GenerationLocation.Value[2][0] = zdir.X;
-				m_GenerationLocation.Value[2][1] = zdir.Y;
-				m_GenerationLocation.Value[2][2] = zdir.Z;
+				m_GenerationLocation.X.SetZ(zdir.GetX());
+				m_GenerationLocation.Y.SetZ(zdir.GetY());
+				m_GenerationLocation.Z.SetZ(zdir.GetZ());
 			}
 			else
 			{
-				m_GenerationLocation.Indentity();
+				m_GenerationLocation = Mat43f::Identity;
 			}
 
-			m_GenerationLocation.Value[3][0] = s.x;
-			m_GenerationLocation.Value[3][1] = s.y;
-			m_GenerationLocation.Value[3][2] = s.z;
+			m_GenerationLocation.X.SetW(s.GetX());
+			m_GenerationLocation.Y.SetW(s.GetY());
+			m_GenerationLocation.Z.SetW(s.GetZ());
 		}
 	}
 	else if( m_pEffectNode->GenerationLocation.type == ParameterGenerationLocation::TYPE_SPHERE )
 	{
-		Matrix43 mat_x, mat_y;
-		mat_x.RotationX( m_pEffectNode->GenerationLocation.sphere.rotation_x.getValue( *instanceGlobal ) );
-		mat_y.RotationY( m_pEffectNode->GenerationLocation.sphere.rotation_y.getValue( *instanceGlobal ) );
+		Mat43f mat_x = Mat43f::RotationX( m_pEffectNode->GenerationLocation.sphere.rotation_x.getValue( *instanceGlobal ) );
+		Mat43f mat_y = Mat43f::RotationY( m_pEffectNode->GenerationLocation.sphere.rotation_y.getValue( *instanceGlobal ) );
 		float r = m_pEffectNode->GenerationLocation.sphere.radius.getValue(*instanceGlobal);
-		m_GenerationLocation.Translation( 0, r, 0 );
-		Matrix43::Multiple( m_GenerationLocation, m_GenerationLocation, mat_x );
-		Matrix43::Multiple( m_GenerationLocation, m_GenerationLocation, mat_y );
+		m_GenerationLocation = Mat43f::Translation( 0, r, 0 ) * mat_x * mat_y;
 	}
 	else if( m_pEffectNode->GenerationLocation.type == ParameterGenerationLocation::TYPE_MODEL )
 	{
-		m_GenerationLocation.Indentity();
+		m_GenerationLocation = Mat43f::Identity;
 
 		int32_t modelIndex = m_pEffectNode->GenerationLocation.model.index;
 		if( modelIndex >= 0 )
@@ -18075,31 +18390,28 @@ void Instance::Initialize( Instance* parent, int32_t instanceNumber, int32_t par
 						((EffectImplemented*)m_pEffectNode->GetEffect())->GetMaginification() );
 				}
 
-				m_GenerationLocation.Translation( 
-					emitter.Position.X, 
-					emitter.Position.Y,
-					emitter.Position.Z );
+				m_GenerationLocation = Mat43f::Translation( emitter.Position );
 
 				if( m_pEffectNode->GenerationLocation.EffectsRotation )
 				{
-					m_GenerationLocation.Value[0][0] = emitter.Binormal.X;
-					m_GenerationLocation.Value[0][1] = emitter.Binormal.Y;
-					m_GenerationLocation.Value[0][2] = emitter.Binormal.Z;
+					m_GenerationLocation.X.SetX(emitter.Binormal.X);
+					m_GenerationLocation.Y.SetX(emitter.Binormal.Y);
+					m_GenerationLocation.Z.SetX(emitter.Binormal.Z);
 
-					m_GenerationLocation.Value[1][0] = emitter.Tangent.X;
-					m_GenerationLocation.Value[1][1] = emitter.Tangent.Y;
-					m_GenerationLocation.Value[1][2] = emitter.Tangent.Z;
+					m_GenerationLocation.X.SetY(emitter.Tangent.X);
+					m_GenerationLocation.Y.SetY(emitter.Tangent.Y);
+					m_GenerationLocation.Z.SetY(emitter.Tangent.Z);
 
-					m_GenerationLocation.Value[2][0] = emitter.Normal.X;
-					m_GenerationLocation.Value[2][1] = emitter.Normal.Y;
-					m_GenerationLocation.Value[2][2] = emitter.Normal.Z;
+					m_GenerationLocation.X.SetZ(emitter.Normal.X);
+					m_GenerationLocation.Y.SetZ(emitter.Normal.Y);
+					m_GenerationLocation.Z.SetZ(emitter.Normal.Z);
 				}
 			}
 		}
 	}
 	else if( m_pEffectNode->GenerationLocation.type == ParameterGenerationLocation::TYPE_CIRCLE )
 	{
-		m_GenerationLocation.Indentity();
+		m_GenerationLocation = Mat43f::Identity;
 		float radius = m_pEffectNode->GenerationLocation.circle.radius.getValue(*instanceGlobal);
 		float start = m_pEffectNode->GenerationLocation.circle.angle_start.getValue(*instanceGlobal);
 		float end = m_pEffectNode->GenerationLocation.circle.angle_end.getValue(*instanceGlobal);
@@ -18124,25 +18436,18 @@ void Instance::Initialize( Instance* parent, int32_t instanceNumber, int32_t par
 
 		angle += m_pEffectNode->GenerationLocation.circle.angle_noize.getValue(*instanceGlobal);
 
-		Matrix43 mat;
-		if (m_pEffectNode->GenerationLocation.circle.axisDirection == ParameterGenerationLocation::AxisType::X)
+		switch (m_pEffectNode->GenerationLocation.circle.axisDirection)
 		{
-			mat.RotationX(angle);
-			m_GenerationLocation.Translation(0, 0, radius);
+			case ParameterGenerationLocation::AxisType::X:
+				m_GenerationLocation = Mat43f::Translation(0, 0, radius) * Mat43f::RotationX(angle);
+				break;
+			case ParameterGenerationLocation::AxisType::Y:
+				m_GenerationLocation = Mat43f::Translation(radius, 0, 0) * Mat43f::RotationY(angle);
+				break;
+			case ParameterGenerationLocation::AxisType::Z:
+				m_GenerationLocation = Mat43f::Translation(0, radius, 0) * Mat43f::RotationZ(angle);
+				break;
 		}
-		if (m_pEffectNode->GenerationLocation.circle.axisDirection == ParameterGenerationLocation::AxisType::Y)
-		{
-			mat.RotationY(angle);
-			m_GenerationLocation.Translation(radius, 0, 0);
-		}
-		if (m_pEffectNode->GenerationLocation.circle.axisDirection == ParameterGenerationLocation::AxisType::Z)
-		{
-			mat.RotationZ(angle);
-			m_GenerationLocation.Translation(0, radius, 0);
-		}
-
-		
-		Matrix43::Multiple( m_GenerationLocation, m_GenerationLocation, mat );
 	}
 
 	if( m_pEffectNode->SoundType == ParameterSoundType_Use )
@@ -18151,6 +18456,39 @@ void Instance::Initialize( Instance* parent, int32_t instanceNumber, int32_t par
 	}
 
 	// UV
+#ifdef __EFFEKSEER_BUILD_VERSION16__
+	const int32_t ArraySize = sizeof(m_pEffectNode->RendererCommon.UVTypes) / sizeof(m_pEffectNode->RendererCommon.UVTypes[0]);
+	for (int32_t i = 0; i < ArraySize; i++)
+	{
+		const auto& UVType = m_pEffectNode->RendererCommon.UVTypes[i];
+		const auto& UV = m_pEffectNode->RendererCommon.UVs[i];
+
+		if (UVType == ParameterRendererCommon::UV_ANIMATION)
+		{
+			uvTimeOffset = (int32_t)UV.Animation.StartFrame.getValue(*instanceGlobal);
+			uvTimeOffset *= UV.Animation.FrameLength;
+		}
+		else if (UVType == ParameterRendererCommon::UV_SCROLL)
+		{
+			auto xy = UV.Scroll.Position.getValue(*instanceGlobal);
+			auto zw = UV.Scroll.Size.getValue(*instanceGlobal);
+
+			uvAreaOffset.X = xy.GetX();
+			uvAreaOffset.Y = xy.GetY();
+			uvAreaOffset.Width = zw.GetX();
+			uvAreaOffset.Height = zw.GetY();
+
+			uvScrollSpeed = UV.Scroll.Speed.getValue(*instanceGlobal);
+		}
+		else if (UVType == ParameterRendererCommon::UV_FCURVE)
+		{
+			uvAreaOffset.X = UV.FCurve.Position->X.GetOffset(*instanceGlobal);
+			uvAreaOffset.Y = UV.FCurve.Position->Y.GetOffset(*instanceGlobal);
+			uvAreaOffset.Width = UV.FCurve.Size->X.GetOffset(*instanceGlobal);
+			uvAreaOffset.Height = UV.FCurve.Size->Y.GetOffset(*instanceGlobal);
+		}
+	}
+#else
 	if (m_pEffectNode->RendererCommon.UVType == ParameterRendererCommon::UV_ANIMATION)
 	{
 		uvTimeOffset = (int32_t)m_pEffectNode->RendererCommon.UV.Animation.StartFrame.getValue(*instanceGlobal);
@@ -18162,12 +18500,12 @@ void Instance::Initialize( Instance* parent, int32_t instanceNumber, int32_t par
 		auto xy = m_pEffectNode->RendererCommon.UV.Scroll.Position.getValue(*instanceGlobal);
 		auto zw = m_pEffectNode->RendererCommon.UV.Scroll.Size.getValue(*instanceGlobal);
 
-		uvAreaOffset.X = xy.x;
-		uvAreaOffset.Y = xy.y;
-		uvAreaOffset.Width = zw.x;
-		uvAreaOffset.Height = zw.y;
+		uvAreaOffset.X = xy.GetX();
+		uvAreaOffset.Y = xy.GetY();
+		uvAreaOffset.Width = zw.GetX();
+		uvAreaOffset.Height = zw.GetY();
 
-		m_pEffectNode->RendererCommon.UV.Scroll.Speed.getValue(*instanceGlobal).setValueToArg(uvScrollSpeed);
+		uvScrollSpeed = m_pEffectNode->RendererCommon.UV.Scroll.Speed.getValue(*instanceGlobal);
 	}
 
 	if (m_pEffectNode->RendererCommon.UVType == ParameterRendererCommon::UV_FCURVE)
@@ -18177,6 +18515,7 @@ void Instance::Initialize( Instance* parent, int32_t instanceNumber, int32_t par
 		uvAreaOffset.Width = m_pEffectNode->RendererCommon.UV.FCurve.Size->X.GetOffset(*instanceGlobal);
 		uvAreaOffset.Height = m_pEffectNode->RendererCommon.UV.FCurve.Size->Y.GetOffset(*instanceGlobal);
 	}
+#endif
 
 	// CustomData
 	for (int32_t index = 0; index < 2; index++)
@@ -18204,17 +18543,17 @@ void Instance::Initialize( Instance* parent, int32_t instanceNumber, int32_t par
 			instanceCustomData->easing.start = parameterCustomData->Easing.Values.start.getValue(*instanceGlobal);
 			instanceCustomData->easing.end = parameterCustomData->Easing.Values.end.getValue(*instanceGlobal);
 		}
+		else if (parameterCustomData->Type == ParameterCustomDataType::Random2D)
+		{
+			instanceCustomData->random.value = parameterCustomData->Random.Values.getValue(*instanceGlobal);
+		}
 		else if (parameterCustomData->Type == ParameterCustomDataType::FCurve2D)
 		{
-			instanceCustomData->fcruve.offset.x = parameterCustomData->FCurve.Values->X.GetOffset(*instanceGlobal);
-			instanceCustomData->fcruve.offset.y = parameterCustomData->FCurve.Values->Y.GetOffset(*instanceGlobal);
+			instanceCustomData->fcruve.offset = parameterCustomData->FCurve.Values->GetOffsets(*instanceGlobal);
 		}
 		else if (parameterCustomData->Type == ParameterCustomDataType::FCurveColor)
 		{
-			instanceCustomData->fcurveColor.offset[0] = parameterCustomData->FCurveColor.Values->R.GetOffset(*instanceGlobal);
-			instanceCustomData->fcurveColor.offset[1] = parameterCustomData->FCurveColor.Values->G.GetOffset(*instanceGlobal);
-			instanceCustomData->fcurveColor.offset[2] = parameterCustomData->FCurveColor.Values->B.GetOffset(*instanceGlobal);
-			instanceCustomData->fcurveColor.offset[3] = parameterCustomData->FCurveColor.Values->A.GetOffset(*instanceGlobal);
+			instanceCustomData->fcurveColor.offset = parameterCustomData->FCurveColor.Values->GetOffsets(*instanceGlobal);
 		}
 	}
 
@@ -18273,7 +18612,10 @@ void Instance::Update( float deltaFrame, bool shown )
 	{
 		CalculateMatrix( deltaFrame );
 	}
-	else if( m_pEffectNode->LocationAbs.type != LocationAbsType::None )
+	else if (m_pEffectNode->LocationAbs.type != LocationAbsType::None 
+		|| m_pEffectNode->LocalForceFields[0].Turbulence != nullptr 
+		|| m_pEffectNode->LocalForceFields[1].Turbulence != nullptr 
+		|| m_pEffectNode->LocalForceFields[2].Turbulence != nullptr)
 	{
 		// If attraction forces are not default, updating is needed in each frame.
 		CalculateMatrix( deltaFrame );
@@ -18406,16 +18748,14 @@ void Instance::CalculateMatrix( float deltaFrame )
 	/* 更新処理 */
 	if( m_pEffectNode->GetType() != EFFECT_NODE_TYPE_ROOT )
 	{
-		Vector3D localPosition;
-		Vector3D localAngle;
-		Vector3D localScaling;
+		Vec3f localPosition;
+		Vec3f localAngle;
+		Vec3f localScaling;
 
 		/* 位置の更新(時間から直接求めれるよう対応済み) */
 		if( m_pEffectNode->TranslationType == ParameterTranslationType_None )
 		{
-			localPosition.X = 0;
-			localPosition.Y = 0;
-			localPosition.Z = 0;
+			localPosition = {0, 0, 0};
 		}
 		else if( m_pEffectNode->TranslationType == ParameterTranslationType_Fixed )
 		{
@@ -18427,49 +18767,32 @@ void Instance::CalculateMatrix( float deltaFrame )
 		else if( m_pEffectNode->TranslationType == ParameterTranslationType_PVA )
 		{
 			/* 現在位置 = 初期座標 + (初期速度 * t) + (初期加速度 * t * t * 0.5)*/
-			localPosition.X = translation_values.random.location.x +
-				(translation_values.random.velocity.x * m_LivingTime) +
-				(translation_values.random.acceleration.x * m_LivingTime * m_LivingTime * 0.5f);
-
-			localPosition.Y = translation_values.random.location.y +
-				(translation_values.random.velocity.y * m_LivingTime) +
-				(translation_values.random.acceleration.y * m_LivingTime * m_LivingTime * 0.5f);
-
-			localPosition.Z = translation_values.random.location.z +
-				(translation_values.random.velocity.z * m_LivingTime) +
-				(translation_values.random.acceleration.z * m_LivingTime * m_LivingTime * 0.5f);
-
+			localPosition = translation_values.random.location +
+				(translation_values.random.velocity * m_LivingTime) +
+				(translation_values.random.acceleration * (m_LivingTime * m_LivingTime * 0.5f));
 		}
 		else if( m_pEffectNode->TranslationType == ParameterTranslationType_Easing )
 		{
-			m_pEffectNode->TranslationEasing.location.setValueToArg(
-				localPosition,
-				translation_values.easing.start,
-				translation_values.easing.end,
+			localPosition = m_pEffectNode->TranslationEasing.location.getValue(
+				translation_values.easing.start, translation_values.easing.end,
 				m_LivingTime / m_LivedTime );
 		}
 		else if( m_pEffectNode->TranslationType == ParameterTranslationType_FCurve )
 		{
 			assert( m_pEffectNode->TranslationFCurve != NULL );
 			auto fcurve = m_pEffectNode->TranslationFCurve->GetValues(m_LivingTime, m_LivedTime);
-			localPosition.X = fcurve[0] + translation_values.fcruve.offset.x;
-			localPosition.Y = fcurve[1] + translation_values.fcruve.offset.y;
-			localPosition.Z = fcurve[2] + translation_values.fcruve.offset.z;
+			localPosition = fcurve + translation_values.fcruve.offset;
 		}
 
 		if( !m_pEffectNode->GenerationLocation.EffectsRotation )
 		{
-			localPosition.X += m_GenerationLocation.Value[3][0];
-			localPosition.Y += m_GenerationLocation.Value[3][1];
-			localPosition.Z += m_GenerationLocation.Value[3][2];
+			localPosition += m_GenerationLocation.GetTranslation();
 		}
 
 		/* 回転の更新(時間から直接求めれるよう対応済み) */
 		if( m_pEffectNode->RotationType == ParameterRotationType_None )
 		{
-			localAngle.X = 0;
-			localAngle.Y = 0;
-			localAngle.Z = 0;
+			localAngle = {0, 0, 0};
 		}
 		else if( m_pEffectNode->RotationType == ParameterRotationType_Fixed )
 		{
@@ -18481,25 +18804,14 @@ void Instance::CalculateMatrix( float deltaFrame )
 		else if( m_pEffectNode->RotationType == ParameterRotationType_PVA )
 		{
 			/* 現在位置 = 初期座標 + (初期速度 * t) + (初期加速度 * t * t * 0.5)*/
-			localAngle.X = rotation_values.random.rotation.x +
-				(rotation_values.random.velocity.x * m_LivingTime) +
-				(rotation_values.random.acceleration.x * m_LivingTime * m_LivingTime * 0.5f);
-
-			localAngle.Y = rotation_values.random.rotation.y +
-				(rotation_values.random.velocity.y * m_LivingTime) +
-				(rotation_values.random.acceleration.y * m_LivingTime * m_LivingTime * 0.5f);
-
-			localAngle.Z = rotation_values.random.rotation.z +
-				(rotation_values.random.velocity.z * m_LivingTime) +
-				(rotation_values.random.acceleration.z * m_LivingTime * m_LivingTime * 0.5f);
-
+			localAngle = rotation_values.random.rotation +
+				(rotation_values.random.velocity * m_LivingTime) +
+				(rotation_values.random.acceleration * (m_LivingTime * m_LivingTime * 0.5f));
 		}
 		else if( m_pEffectNode->RotationType == ParameterRotationType_Easing )
 		{
-			m_pEffectNode->RotationEasing.rotation.setValueToArg(
-				localAngle,
-				rotation_values.easing.start,
-				rotation_values.easing.end,
+			localAngle = m_pEffectNode->RotationEasing.rotation.getValue(
+				rotation_values.easing.start, rotation_values.easing.end,
 				m_LivingTime / m_LivedTime );
 		}
 		else if( m_pEffectNode->RotationType == ParameterRotationType_AxisPVA )
@@ -18507,31 +18819,25 @@ void Instance::CalculateMatrix( float deltaFrame )
 			rotation_values.axis.rotation = 
 				rotation_values.axis.random.rotation +
 				rotation_values.axis.random.velocity * m_LivingTime +
-				rotation_values.axis.random.acceleration * m_LivingTime * m_LivingTime * 0.5f;
+				rotation_values.axis.random.acceleration * (m_LivingTime * m_LivingTime * 0.5f);
 		}
 		else if( m_pEffectNode->RotationType == ParameterRotationType_AxisEasing )
 		{
-			m_pEffectNode->RotationAxisEasing.easing.setValueToArg(
-				rotation_values.axis.rotation,
-				rotation_values.axis.easing.start,
-				rotation_values.axis.easing.end,
+			rotation_values.axis.rotation = m_pEffectNode->RotationAxisEasing.easing.getValue(
+				rotation_values.axis.easing.start, rotation_values.axis.easing.end,
 				m_LivingTime / m_LivedTime );
 		}
 		else if( m_pEffectNode->RotationType == ParameterRotationType_FCurve )
 		{
 			assert( m_pEffectNode->RotationFCurve != NULL );
 			auto fcurve = m_pEffectNode->RotationFCurve->GetValues(m_LivingTime, m_LivedTime);
-			localAngle.X = fcurve[0] + rotation_values.fcruve.offset.x;
-			localAngle.Y = fcurve[1] + rotation_values.fcruve.offset.y;
-			localAngle.Z = fcurve[2] + rotation_values.fcruve.offset.z;
+			localAngle = fcurve + rotation_values.fcruve.offset;
 		}
 
 		/* 拡大の更新(時間から直接求めれるよう対応済み) */
 		if( m_pEffectNode->ScalingType == ParameterScalingType_None )
 		{
-			localScaling.X = 1.0f;
-			localScaling.Y = 1.0f;
-			localScaling.Z = 1.0f;
+			localScaling = {1.0f, 1.0f, 1.0f};
 		}
 		else if( m_pEffectNode->ScalingType == ParameterScalingType_Fixed )
 		{
@@ -18543,24 +18849,14 @@ void Instance::CalculateMatrix( float deltaFrame )
 		else if( m_pEffectNode->ScalingType == ParameterScalingType_PVA )
 		{
 			/* 現在位置 = 初期座標 + (初期速度 * t) + (初期加速度 * t * t * 0.5)*/
-			localScaling.X = scaling_values.random.scale.x +
-				(scaling_values.random.velocity.x * m_LivingTime) +
-				(scaling_values.random.acceleration.x * m_LivingTime * m_LivingTime * 0.5f);
-
-			localScaling.Y = scaling_values.random.scale.y +
-				(scaling_values.random.velocity.y * m_LivingTime) +
-				(scaling_values.random.acceleration.y * m_LivingTime * m_LivingTime * 0.5f);
-
-			localScaling.Z = scaling_values.random.scale.z +
-				(scaling_values.random.velocity.z * m_LivingTime) +
-				(scaling_values.random.acceleration.z * m_LivingTime * m_LivingTime * 0.5f);
+			localScaling = scaling_values.random.scale +
+				(scaling_values.random.velocity * m_LivingTime) +
+				(scaling_values.random.acceleration * (m_LivingTime * m_LivingTime * 0.5f));
 		}
 		else if( m_pEffectNode->ScalingType == ParameterScalingType_Easing )
 		{
-			m_pEffectNode->ScalingEasing.Position.setValueToArg(
-				localScaling,
-				scaling_values.easing.start,
-				scaling_values.easing.end,
+			localScaling = m_pEffectNode->ScalingEasing.Position.getValue(
+				scaling_values.easing.start, scaling_values.easing.end,
 				m_LivingTime / m_LivedTime );
 		}
 		else if( m_pEffectNode->ScalingType == ParameterScalingType_SinglePVA )
@@ -18568,75 +18864,75 @@ void Instance::CalculateMatrix( float deltaFrame )
 			float s = scaling_values.single_random.scale +
 				scaling_values.single_random.velocity * m_LivingTime +
 				scaling_values.single_random.acceleration * m_LivingTime * m_LivingTime * 0.5f;
-			localScaling.X = s;
-			localScaling.Y = s;
-			localScaling.Z = s;
+			localScaling = {s, s, s};
 		}
 		else if( m_pEffectNode->ScalingType == ParameterScalingType_SingleEasing )
 		{
-			float scale;
-			m_pEffectNode->ScalingSingleEasing.setValueToArg(
-				scale,
-				scaling_values.single_easing.start,
-				scaling_values.single_easing.end,
+			float s = m_pEffectNode->ScalingSingleEasing.getValue(
+				scaling_values.single_easing.start, scaling_values.single_easing.end,
 				m_LivingTime / m_LivedTime );
-			localScaling.X = scale;
-			localScaling.Y = scale;
-			localScaling.Z = scale;
+			localScaling = {s, s, s};
 		}
 		else if( m_pEffectNode->ScalingType == ParameterScalingType_FCurve )
 		{
 			assert( m_pEffectNode->ScalingFCurve != NULL );
 			auto fcurve = m_pEffectNode->ScalingFCurve->GetValues(m_LivingTime, m_LivedTime);
-			localScaling.X = fcurve[0] + scaling_values.fcruve.offset.x;
-			localScaling.Y = fcurve[1] + scaling_values.fcruve.offset.y;
-			localScaling.Z = fcurve[2] + scaling_values.fcruve.offset.z;
+			localScaling = fcurve + scaling_values.fcruve.offset;
 		}
+
+		// update local fields
+		auto currentPosition = localPosition + modifyWithNoise_;
+		for (const auto& field : m_pEffectNode->LocalForceFields)
+		{
+			if (field.Turbulence != nullptr)
+			{
+				auto mag = static_cast<EffectImplemented*>(m_pEffectNode->GetEffect())->GetMaginification();
+				modifyWithNoise_ += field.Turbulence->Noise.Get(currentPosition / mag) * field.Turbulence->Strength * mag;
+			}
+
+		}
+		localPosition += modifyWithNoise_;
 
 		/* 描画部分の更新 */
 		m_pEffectNode->UpdateRenderedInstance( *this, m_pManager );
 
 		// 回転行列の作成
-		Matrix43 MatRot;
+		Mat43f MatRot;
 		if( m_pEffectNode->RotationType == ParameterRotationType_Fixed ||
 			m_pEffectNode->RotationType == ParameterRotationType_PVA ||
 			m_pEffectNode->RotationType == ParameterRotationType_Easing ||
 			m_pEffectNode->RotationType == ParameterRotationType_FCurve )
 		{
-			MatRot.RotationZXY( localAngle.Z, localAngle.X, localAngle.Y );
+			MatRot = Mat43f::RotationZXY( localAngle.GetZ(), localAngle.GetX(), localAngle.GetY() );
 		}
 		else if( m_pEffectNode->RotationType == ParameterRotationType_AxisPVA ||
 				 m_pEffectNode->RotationType == ParameterRotationType_AxisEasing )
 		{
-			Vector3D axis;
-			axis.X = rotation_values.axis.axis.x;
-			axis.Y = rotation_values.axis.axis.y;
-			axis.Z = rotation_values.axis.axis.z;
+			Vec3f axis = rotation_values.axis.axis;
 
-			MatRot.RotationAxis( axis, rotation_values.axis.rotation );
+			MatRot = Mat43f::RotationAxis( axis, rotation_values.axis.rotation );
 		}
 		else
 		{
-			MatRot.Indentity();
+			MatRot = Mat43f::Identity;
 		}
 
 		// 行列の更新
-		m_GlobalMatrix43.SetSRT( localScaling, MatRot, localPosition );
+		m_GlobalMatrix43 = Mat43f::SRT( localScaling, MatRot, localPosition );
 		assert(m_GlobalMatrix43.IsValid());
 
 		if( m_pEffectNode->GenerationLocation.EffectsRotation )
 		{
-			Matrix43::Multiple( m_GlobalMatrix43, m_GlobalMatrix43, m_GenerationLocation );
+			m_GlobalMatrix43 *= m_GenerationLocation;
 			assert(m_GlobalMatrix43.IsValid());
 		}
 
-		Matrix43::Multiple( m_GlobalMatrix43, m_GlobalMatrix43, m_ParentMatrix );
+		m_GlobalMatrix43 *= m_ParentMatrix;
 		assert(m_GlobalMatrix43.IsValid());
 
 		if( m_pEffectNode->LocationAbs.type != LocationAbsType::None )
 		{
-			Vector3D currentPosition;
-			m_GlobalMatrix43.GetTranslation( currentPosition );
+			Vec3f currentPosition = m_GlobalMatrix43.GetTranslation();
 			assert(m_GlobalMatrix43.IsValid());
 
 			m_GlobalVelocity = currentPosition - m_GlobalPosition;
@@ -18674,25 +18970,25 @@ void Instance::CalculateParentMatrix( float deltaFrame )
 		}
 		else
 		{
-			Vector3D s, t;
-			Matrix43 r;
+			Vec3f s, t;
+			Mat43f r;
 
 			if (tType == BindType::WhenCreating)
-				m_ParentMatrix.GetTranslation(t);
+				t = m_ParentMatrix.GetTranslation();
 			else
 				t = ownGroup_->GetParentTranslation();
 
 			if (rType == BindType::WhenCreating)
-				m_ParentMatrix.GetRotation(r);
+				r = m_ParentMatrix.GetRotation();
 			else
 				r = ownGroup_->GetParentRotation();
 
 			if (sType == BindType::WhenCreating)
-				m_ParentMatrix.GetScale(s);
+				s = m_ParentMatrix.GetScale();
 			else
 				s = ownGroup_->GetParentScale();
 
-			m_ParentMatrix.SetSRT(s, r, t);
+			m_ParentMatrix = Mat43f::SRT(s, r, t);
 			assert(m_ParentMatrix.IsValid());
 		}
 	}
@@ -18713,12 +19009,8 @@ void Instance::ModifyMatrixFromLocationAbs( float deltaFrame )
 	}
 	else if( m_pEffectNode->LocationAbs.type == LocationAbsType::Gravity )
 	{
-		m_GlobalRevisionLocation.X = m_pEffectNode->LocationAbs.gravity.x *
-			m_LivingTime * m_LivingTime * 0.5f;
-		m_GlobalRevisionLocation.Y = m_pEffectNode->LocationAbs.gravity.y *
-			m_LivingTime * m_LivingTime * 0.5f;
-		m_GlobalRevisionLocation.Z = m_pEffectNode->LocationAbs.gravity.z *
-			m_LivingTime * m_LivingTime * 0.5f;
+		m_GlobalRevisionLocation = m_pEffectNode->LocationAbs.gravity *
+			(m_LivingTime * m_LivingTime * 0.5f);
 	}
 	else if( m_pEffectNode->LocationAbs.type == LocationAbsType::AttractiveForce )
 	{
@@ -18727,13 +19019,13 @@ void Instance::ModifyMatrixFromLocationAbs( float deltaFrame )
 		float minRange = m_pEffectNode->LocationAbs.attractiveForce.minRange;
 		float maxRange = m_pEffectNode->LocationAbs.attractiveForce.maxRange;
 		
-		Vector3D position = m_GlobalPosition - m_GlobalVelocity + m_GlobalRevisionLocation;
+		Vec3f position = m_GlobalPosition - m_GlobalVelocity + m_GlobalRevisionLocation;
 
-		Vector3D targetDifference = instanceGlobal->GetTargetLocation() - position;
-		float targetDistance = Vector3D::Length( targetDifference );
+		Vec3f targetDifference = instanceGlobal->GetTargetLocation() - position;
+		float targetDistance = targetDifference.GetLength();
 		if( targetDistance > 0.0f )
 		{
-			Vector3D targetDirection = targetDifference / targetDistance;
+			Vec3f targetDirection = targetDifference / targetDistance;
 		
 			if( minRange > 0.0f || maxRange > 0.0f )
 			{
@@ -18751,8 +19043,8 @@ void Instance::ModifyMatrixFromLocationAbs( float deltaFrame )
 			{
 				float eps = 0.0001f;
 				m_GlobalRevisionVelocity += targetDirection * force * deltaFrame;
-				float currentVelocity = Vector3D::Length(m_GlobalRevisionVelocity) + eps;
-				Vector3D currentDirection = m_GlobalRevisionVelocity / currentVelocity;
+				float currentVelocity = m_GlobalRevisionVelocity.GetLength() + eps;
+				Vec3f currentDirection = m_GlobalRevisionVelocity / currentVelocity;
 
 				m_GlobalRevisionVelocity = (targetDirection * control + currentDirection * (1.0f - control)) * currentVelocity;
 				m_GlobalRevisionLocation += m_GlobalRevisionVelocity * deltaFrame;
@@ -18760,9 +19052,8 @@ void Instance::ModifyMatrixFromLocationAbs( float deltaFrame )
 		}
 	}
 
-	Matrix43 MatTraGlobal;
-	MatTraGlobal.Translation( m_GlobalRevisionLocation.X, m_GlobalRevisionLocation.Y, m_GlobalRevisionLocation.Z );
-	Matrix43::Multiple( m_GlobalMatrix43, m_GlobalMatrix43, MatTraGlobal );
+	Mat43f MatTraGlobal = Mat43f::Translation( m_GlobalRevisionLocation );
+	m_GlobalMatrix43 *= MatTraGlobal;
 	assert(m_GlobalMatrix43.IsValid());
 }
 
@@ -18802,6 +19093,112 @@ void Instance::Kill()
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
+#ifdef __EFFEKSEER_BUILD_VERSION16__
+RectF Instance::GetUV(const int32_t index) const
+{
+	RectF uv(0.0f, 0.0f, 1.0f, 1.0f);
+
+	const auto& UVType = m_pEffectNode->RendererCommon.UVTypes[index];
+	const auto& UV = m_pEffectNode->RendererCommon.UVs[index];
+
+	if( UVType == ParameterRendererCommon::UV_DEFAULT )
+	{
+		return RectF( 0.0f, 0.0f, 1.0f, 1.0f );
+	}
+	else if( UVType == ParameterRendererCommon::UV_FIXED )
+	{
+		uv = RectF(
+			UV.Fixed.Position.x,
+			UV.Fixed.Position.y,
+			UV.Fixed.Position.w,
+			UV.Fixed.Position.h );
+	}
+	else if( UVType == ParameterRendererCommon::UV_ANIMATION )
+	{
+		auto time = m_LivingTime + uvTimeOffset;
+
+		int32_t frameNum = (int32_t)(time / UV.Animation.FrameLength);
+		int32_t frameCount = UV.Animation.FrameCountX * UV.Animation.FrameCountY;
+
+		if( UV.Animation.LoopType == UV.Animation.LOOPTYPE_ONCE )
+		{
+			if( frameNum >= frameCount )
+			{
+				frameNum = frameCount - 1;
+			}
+		}
+		else if ( UV.Animation.LoopType == UV.Animation.LOOPTYPE_LOOP )
+		{
+			frameNum %= frameCount;
+		}
+		else if ( UV.Animation.LoopType == UV.Animation.LOOPTYPE_REVERSELOOP )
+		{
+			bool rev = (frameNum / frameCount) % 2 == 1;
+			frameNum %= frameCount;
+			if( rev )
+			{
+				frameNum = frameCount - 1 - frameNum;
+			}
+		}
+
+		int32_t frameX = frameNum % UV.Animation.FrameCountX;
+		int32_t frameY = frameNum / UV.Animation.FrameCountX;
+
+		uv = RectF(
+			UV.Animation.Position.x + UV.Animation.Position.w * frameX,
+			UV.Animation.Position.y + UV.Animation.Position.h * frameY,
+			UV.Animation.Position.w,
+			UV.Animation.Position.h );
+	}
+	else if( UVType == ParameterRendererCommon::UV_SCROLL )
+	{
+		auto time = (int32_t)m_LivingTime;
+
+		uv = RectF(
+			uvAreaOffset.X + uvScrollSpeed.GetX() * time,
+			uvAreaOffset.Y + uvScrollSpeed.GetY() * time,
+			uvAreaOffset.Width,
+			uvAreaOffset.Height);
+	}
+	else if ( UVType == ParameterRendererCommon::UV_FCURVE)
+	{
+		auto time = (int32_t)m_LivingTime;
+
+		auto fcurvePos = UV.FCurve.Position->GetValues(m_LivingTime, m_LivedTime);
+		auto fcurveSize = UV.FCurve.Size->GetValues(m_LivingTime, m_LivedTime);
+
+		uv = RectF(uvAreaOffset.X + fcurvePos.GetX(),
+				   uvAreaOffset.Y + fcurvePos.GetY(),
+				   uvAreaOffset.Width + fcurveSize.GetX(),
+				   uvAreaOffset.Height + fcurveSize.GetY());
+	}
+
+	// For webgl bug (it makes slow if sampling points are too far on WebGL)
+	float far = 4.0;
+
+	if (uv.X < -far && uv.X + uv.Width < -far)
+	{
+		uv.X += (-static_cast<int32_t>(uv.X) - far);
+	}
+
+	if (uv.X > far && uv.X + uv.Width > far)
+	{
+		uv.X -= (static_cast<int32_t>(uv.X) - far);
+	}
+
+	if (uv.Y < -far && uv.Y + uv.Height < -far)
+	{
+		uv.Y += (-static_cast<int32_t>(uv.Y) - far);
+	}
+
+	if (uv.Y > far && uv.Y + uv.Height > far)
+	{
+		uv.Y -= (static_cast<int32_t>(uv.Y) - far);
+	}
+
+	return uv;
+}
+#else
 RectF Instance::GetUV() const
 {
 	RectF uv(0.0f, 0.0f, 1.0f, 1.0f);
@@ -18860,8 +19257,8 @@ RectF Instance::GetUV() const
 		auto time = (int32_t)m_LivingTime;
 
 		uv = RectF(
-			uvAreaOffset.X + uvScrollSpeed.X * time,
-			uvAreaOffset.Y + uvScrollSpeed.Y * time,
+			uvAreaOffset.X + uvScrollSpeed.GetX() * time,
+			uvAreaOffset.Y + uvScrollSpeed.GetY() * time,
 			uvAreaOffset.Width,
 			uvAreaOffset.Height);
 	}
@@ -18872,10 +19269,10 @@ RectF Instance::GetUV() const
 		auto fcurvePos = m_pEffectNode->RendererCommon.UV.FCurve.Position->GetValues(m_LivingTime, m_LivedTime);
 		auto fcurveSize = m_pEffectNode->RendererCommon.UV.FCurve.Size->GetValues(m_LivingTime, m_LivedTime);
 
-		uv = RectF(uvAreaOffset.X + fcurvePos[0],
-					 uvAreaOffset.Y + fcurvePos[1],
-					 uvAreaOffset.Width + fcurveSize[0],
-					 uvAreaOffset.Height + fcurveSize[1]);
+		uv = RectF(uvAreaOffset.X + fcurvePos.GetX(),
+					 uvAreaOffset.Y + fcurvePos.GetY(),
+					 uvAreaOffset.Width + fcurveSize.GetX(),
+					 uvAreaOffset.Height + fcurveSize.GetY());
 	}
 
 	// For webgl bug (it makes slow if sampling points are too far on WebGL)
@@ -18903,6 +19300,7 @@ RectF Instance::GetUV() const
 
 	return uv;
 }
+#endif
 
 std::array<float, 4> Instance::GetCustomData(int32_t index) const
 {
@@ -18935,17 +19333,22 @@ std::array<float, 4> Instance::GetCustomData(int32_t index) const
 		auto v = parameterCustomData->Fixed.Values;
 		return std::array<float, 4>{v.x, v.y, 0, 0};
 	}
+	else if (parameterCustomData->Type == ParameterCustomDataType::Random2D)
+	{
+		auto v = instanceCustomData->random.value;
+		return std::array<float, 4>{v.GetX(), v.GetY(), 0, 0};
+	}
 	else if (parameterCustomData->Type == ParameterCustomDataType::Easing2D)
 	{
-		vector2d v;
-		parameterCustomData->Easing.Values.setValueToArg(
-			v, instanceCustomData->easing.start, instanceCustomData->easing.end, m_LivingTime / m_LivedTime);
-		return std::array<float, 4>{v.x, v.y, 0, 0};
+		Vec2f v = parameterCustomData->Easing.Values.getValue(
+			instanceCustomData->easing.start, instanceCustomData->easing.end, 
+			m_LivingTime / m_LivedTime);
+		return std::array<float, 4>{v.GetX(), v.GetY(), 0, 0};
 	}
 	else if (parameterCustomData->Type == ParameterCustomDataType::FCurve2D)
 	{
 		auto values = parameterCustomData->FCurve.Values->GetValues(m_LivingTime, m_LivedTime);
-		return std::array<float, 4>{values[0] + instanceCustomData->fcruve.offset.x, values[1] + instanceCustomData->fcruve.offset.y, 0, 0};
+		return std::array<float, 4>{values.GetX() + instanceCustomData->fcruve.offset.GetX(), values.GetY() + instanceCustomData->fcruve.offset.GetY(), 0, 0};
 	}
 	else if (parameterCustomData->Type == ParameterCustomDataType::Fixed4D)
 	{
@@ -19186,7 +19589,7 @@ void InstanceGlobal::SetRootContainer( InstanceContainer* container )
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-const Vector3D& InstanceGlobal::GetTargetLocation() const
+const Vec3f& InstanceGlobal::GetTargetLocation() const
 {
 	return m_targetLocation;
 }
@@ -19249,7 +19652,7 @@ InstanceGroup::InstanceGroup( Manager* manager, EffectNode* effectNode, Instance
 	, NextUsedByInstance	( NULL )
 	, NextUsedByContainer	( NULL )
 {
-	parentMatrix_.Indentity();
+	parentMatrix_ = Mat43f::Identity;
 }
 
 //----------------------------------------------------------------------------------
@@ -19323,19 +19726,19 @@ void InstanceGroup::Update(bool shown)
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-void InstanceGroup::SetBaseMatrix( const Matrix43& mat )
+void InstanceGroup::SetBaseMatrix( const Mat43f& mat )
 {
 	for (auto instance : m_instances)
 	{
 		if (instance->m_State == INSTANCE_STATE_ACTIVE)
 		{
-			Matrix43::Multiple(instance->m_GlobalMatrix43, instance->m_GlobalMatrix43, mat);
+			instance->m_GlobalMatrix43 *= mat;
 			assert(instance->m_GlobalMatrix43.IsValid());
 		}
 	}
 }
 
-void InstanceGroup::SetParentMatrix(const Matrix43& mat)
+void InstanceGroup::SetParentMatrix(const Mat43f& mat)
 {
 	BindType tType = m_effectNode->CommonValues.TranslationBindType;
 	BindType rType = m_effectNode->CommonValues.RotationBindType;
@@ -19357,8 +19760,8 @@ void InstanceGroup::SetParentMatrix(const Matrix43& mat)
 	}
 	else
 	{
-		Vector3D s, t;
-		Matrix43 r;
+		Vec3f s, t;
+		Mat43f r;
 		mat.GetSRT(s, r, t);
 
 		if (tType == BindType::Always)
@@ -19371,7 +19774,7 @@ void InstanceGroup::SetParentMatrix(const Matrix43& mat)
 		}
 		else if (tType == BindType::NotBind)
 		{
-			parentTranslation_ = Vector3D(0.0f, 0.0f, 0.0f);
+			parentTranslation_ = Vec3f(0.0f, 0.0f, 0.0f);
 		}
 
 		if (rType == BindType::Always)
@@ -19384,7 +19787,7 @@ void InstanceGroup::SetParentMatrix(const Matrix43& mat)
 		}
 		else if (rType == BindType::NotBind)
 		{
-			parentRotation_.Indentity();
+			parentRotation_ = Mat43f::Identity;
 		}
 
 		if (sType == BindType::Always)
@@ -19397,7 +19800,7 @@ void InstanceGroup::SetParentMatrix(const Matrix43& mat)
 		}
 		else if (sType == BindType::NotBind)
 		{
-			parentScale_ = Vector3D(1.0f, 1.0f, 1.0f);
+			parentScale_ = Vec3f(1.0f, 1.0f, 1.0f);
 		}
 	}
 }
@@ -19878,6 +20281,818 @@ int32_t Setting::GetEffectFactoryCount() const {
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
+
+namespace Effekseer
+{
+	
+//----------------------------------------------------------------------------------
+//
+//----------------------------------------------------------------------------------
+const Mat43f Mat43f::Identity = Mat43f(
+	1, 0, 0, 
+	0, 1, 0, 
+	0, 0, 1, 
+	0, 0, 0
+);
+
+//----------------------------------------------------------------------------------
+//
+//----------------------------------------------------------------------------------
+Mat43f::Mat43f(const Matrix43& mat)
+{
+	X = SIMD4f::Load3(mat.Value[0]);
+	Y = SIMD4f::Load3(mat.Value[1]);
+	Z = SIMD4f::Load3(mat.Value[2]);
+	SIMD4f W = SIMD4f::Load3(mat.Value[3]);
+	SIMD4f::Transpose(X, Y, Z, W);
+}
+
+//----------------------------------------------------------------------------------
+//
+//----------------------------------------------------------------------------------
+bool Mat43f::IsValid() const
+{
+	const SIMD4f nan{NAN};
+	const SIMD4f inf{INFINITY};
+	SIMD4f res = 
+		SIMD4f::Equal(X, nan) | 
+		SIMD4f::Equal(Y, nan) | 
+		SIMD4f::Equal(Z, nan) |
+		SIMD4f::Equal(X, inf) | 
+		SIMD4f::Equal(Y, inf) | 
+		SIMD4f::Equal(Z, inf);
+	return SIMD4f::MoveMask(res) == 0;
+}
+
+//----------------------------------------------------------------------------------
+//
+//----------------------------------------------------------------------------------
+Vec3f Mat43f::GetScale() const
+{
+	SIMD4f x2 = X * X;
+	SIMD4f y2 = Y * Y;
+	SIMD4f z2 = Z * Z;
+	SIMD4f s2 = x2 + y2 + z2;
+	SIMD4f sq = SIMD4f::Sqrt(s2);
+	return Vec3f{sq};
+}
+
+//----------------------------------------------------------------------------------
+//
+//----------------------------------------------------------------------------------
+Mat43f Mat43f::GetRotation() const
+{
+	SIMD4f x2 = X * X;
+	SIMD4f y2 = Y * Y;
+	SIMD4f z2 = Z * Z;
+	SIMD4f s2 = x2 + y2 + z2;
+	SIMD4f rsq = SIMD4f::Rsqrt(s2);
+	rsq.SetW(0.0f);
+
+	Mat43f ret;
+	ret.X = X * rsq;
+	ret.Y = Y * rsq;
+	ret.Z = Z * rsq;
+	return ret;
+}
+
+//----------------------------------------------------------------------------------
+//
+//----------------------------------------------------------------------------------
+Vec3f Mat43f::GetTranslation() const
+{
+	return Vec3f(X.GetW(), Y.GetW(), Z.GetW());
+}
+
+//----------------------------------------------------------------------------------
+//
+//----------------------------------------------------------------------------------
+void Mat43f::GetSRT(Vec3f& s, Mat43f& r, Vec3f& t) const
+{
+	SIMD4f x2 = X * X;
+	SIMD4f y2 = Y * Y;
+	SIMD4f z2 = Z * Z;
+	SIMD4f s2 = x2 + y2 + z2;
+	SIMD4f rsq = SIMD4f::Rsqrt(s2);
+	rsq.SetW(0.0f);
+
+	s = SIMD4f(1.0f) / rsq;
+	r.X = X * rsq;
+	r.Y = Y * rsq;
+	r.Z = Z * rsq;
+	t = Vec3f(X.GetW(), Y.GetW(), Z.GetW());
+}
+
+//----------------------------------------------------------------------------------
+//
+//----------------------------------------------------------------------------------
+void Mat43f::SetTranslation(const Vec3f& t)
+{
+	X.SetW(t.GetX());
+	Y.SetW(t.GetY());
+	Z.SetW(t.GetZ());
+}
+
+//----------------------------------------------------------------------------------
+//
+//----------------------------------------------------------------------------------
+bool Mat43f::Equal(const Mat43f& lhs, const Mat43f& rhs, float epsilon)
+{
+	SIMD4f ret =
+		SIMD4f::NearEqual(lhs.X, rhs.X, epsilon) &
+		SIMD4f::NearEqual(lhs.Y, rhs.Y, epsilon) &
+		SIMD4f::NearEqual(lhs.Z, rhs.Z, epsilon);
+	return (SIMD4f::MoveMask(ret) & 0xf) == 0xf;
+
+}
+
+//----------------------------------------------------------------------------------
+//
+//----------------------------------------------------------------------------------
+Mat43f Mat43f::SRT(const Vec3f& s, const Mat43f& r, const Vec3f& t)
+{
+	Mat43f ret;
+	ret.X = r.X * s.s;
+	ret.Y = r.Y * s.s;
+	ret.Z = r.Z * s.s;
+	ret.X.SetW(t.GetX());
+	ret.Y.SetW(t.GetY());
+	ret.Z.SetW(t.GetZ());
+	return ret;
+}
+
+//----------------------------------------------------------------------------------
+//
+//----------------------------------------------------------------------------------
+Mat43f Mat43f::Scaling(float x, float y, float z)
+{
+	Mat43f ret;
+	ret.X = {x, 0.0f, 0.0f, 0.0f};
+	ret.Y = {0.0f, y, 0.0f, 0.0f};
+	ret.Z = {0.0f, 0.0f, z, 0.0f};
+	return ret;
+}
+
+//----------------------------------------------------------------------------------
+//
+//----------------------------------------------------------------------------------
+Mat43f Mat43f::Scaling(const Vec3f& scale)
+{
+	Mat43f ret;
+	ret.X = {scale.GetX(), 0.0f, 0.0f, 0.0f};
+	ret.Y = {0.0f, scale.GetY(), 0.0f, 0.0f};
+	ret.Z = {0.0f, 0.0f, scale.GetZ(), 0.0f};
+	return ret;
+}
+
+//----------------------------------------------------------------------------------
+//
+//----------------------------------------------------------------------------------
+Mat43f Mat43f::RotationX(float angle)
+{
+	float c, s;
+	::Effekseer::SinCos(angle, s, c);
+
+	Mat43f ret;
+	ret.X = {1.0f, 0.0f, 0.0f, 0.0f};
+	ret.Y = {0.0f, c, -s, 0.0f};
+	ret.Z = {0.0f, s,  c, 0.0f};
+	return ret;
+}
+
+//----------------------------------------------------------------------------------
+//
+//----------------------------------------------------------------------------------
+Mat43f Mat43f::RotationY(float angle)
+{
+	float c, s;
+	::Effekseer::SinCos(angle, s, c);
+
+	Mat43f ret;
+	ret.X = { c, 0.0f, s, 0.0f};
+	ret.Y = {0.0f, 1.0f, 0.0f, 0.0f};
+	ret.Z = {-s, 0.0f, c, 0.0f};
+	return ret;
+}
+
+//----------------------------------------------------------------------------------
+//
+//----------------------------------------------------------------------------------
+Mat43f Mat43f::RotationZ(float angle)
+{
+	float c, s;
+	::Effekseer::SinCos(angle, s, c);
+
+	Mat43f ret;
+	ret.X = {c, -s, 0.0f, 0.0f};
+	ret.Y = {s,  c, 0.0f, 0.0f};
+	ret.Z = {0.0f, 0.0f, 1.0f, 0.0f};
+	return ret;
+}
+
+//----------------------------------------------------------------------------------
+//
+//----------------------------------------------------------------------------------
+Mat43f Mat43f::RotationXYZ(float rx, float ry, float rz)
+{
+	float cx, sx, cy, sy, cz, sz;
+
+	if (rx != 0.0f)
+	{
+		::Effekseer::SinCos(rx, sx, cx);
+	}
+	else
+	{
+		sx = 0.0f;
+		cx = 1.0f;
+	}
+	if (ry != 0.0f)
+	{
+		::Effekseer::SinCos(ry, sy, cy);
+	}
+	else
+	{
+		sy = 0.0f;
+		cy = 1.0f;
+	}
+	if (rz != 0.0f)
+	{
+		::Effekseer::SinCos(rz, sz, cz);
+	}
+	else
+	{
+		sz = 0.0f;
+		cz = 1.0f;
+	}
+
+	float m00 = cy * cz;
+	float m01 = cy * sz;
+	float m02 = -sy;
+
+	float m10 = sx * sy * -sz + cx * -sz;
+	float m11 = sx * sy *  sz + cx *  cz;
+	float m12 = sx * cy;
+
+	float m20 = cx * sy * cz + sx * sz;
+	float m21 = cx * sy * sz - sx * cz;
+	float m22 = cx * cy;
+
+	Mat43f ret;
+	ret.X = {m00, m10, m20, 0.0f};
+	ret.Y = {m01, m11, m21, 0.0f};
+	ret.Z = {m02, m12, m22, 0.0f};
+	return ret;
+}
+
+//----------------------------------------------------------------------------------
+//
+//----------------------------------------------------------------------------------
+Mat43f Mat43f::RotationZXY(float rz, float rx, float ry)
+{
+	float cx, sx, cy, sy, cz, sz;
+
+	if (rx != 0.0f)
+	{
+		::Effekseer::SinCos(rx, sx, cx);
+	}
+	else
+	{
+		sx = 0.0f;
+		cx = 1.0f;
+	}
+	if (ry != 0.0f)
+	{
+		::Effekseer::SinCos(ry, sy, cy);
+	}
+	else
+	{
+		sy = 0.0f;
+		cy = 1.0f;
+	}
+	if (rz != 0.0f)
+	{
+		::Effekseer::SinCos(rz, sz, cz);
+	}
+	else
+	{
+		sz = 0.0f;
+		cz = 1.0f;
+	}
+
+	float m00 = cz * cy + sz * sx * sy;
+	float m01 = sz * cx;
+	float m02 = cz * -sy + sz * sx * cy;
+
+	float m10 = -sz * cy + cz * sx * sy;
+	float m11 = cz * cx;
+	float m12 = -sz * -sy + cz * sx * cy;
+
+	float m20 = cx * sy;
+	float m21 = -sx;
+	float m22 = cx * cy;
+
+	Mat43f ret;
+	ret.X = {m00, m10, m20, 0.0f};
+	ret.Y = {m01, m11, m21, 0.0f};
+	ret.Z = {m02, m12, m22, 0.0f};
+	return ret;
+}
+
+//----------------------------------------------------------------------------------
+//
+//----------------------------------------------------------------------------------
+Mat43f Mat43f::RotationAxis(const Vec3f& axis, float angle)
+{
+	const float c = cosf( angle );
+	const float s = sinf( angle );
+	return RotationAxis(axis, s, c);
+}
+
+//----------------------------------------------------------------------------------
+//
+//----------------------------------------------------------------------------------
+Mat43f Mat43f::RotationAxis(const Vec3f& axis, float s, float c)
+{
+	const float cc = 1.0f - c;
+
+	float m00 = cc * (axis.GetX() * axis.GetX()) + c;
+	float m01 = cc * (axis.GetX() * axis.GetY()) + (axis.GetZ() * s);
+	float m02 = cc * (axis.GetZ() * axis.GetX()) - (axis.GetY() * s);
+
+	float m10 = cc * (axis.GetX() * axis.GetY()) - (axis.GetZ() * s);
+	float m11 = cc * (axis.GetY() * axis.GetY()) + c;
+	float m12 = cc * (axis.GetY() * axis.GetZ()) + (axis.GetX() * s);
+
+	float m20 = cc * (axis.GetZ() * axis.GetX()) + (axis.GetY() * s);
+	float m21 = cc * (axis.GetY() * axis.GetZ()) - (axis.GetX() * s);
+	float m22 = cc * (axis.GetZ() * axis.GetZ()) + c;
+
+	Mat43f ret;
+	ret.X = {m00, m10, m20, 0.0f};
+	ret.Y = {m01, m11, m21, 0.0f};
+	ret.Z = {m02, m12, m22, 0.0f};
+	return ret;
+}
+
+//----------------------------------------------------------------------------------
+//
+//----------------------------------------------------------------------------------
+Mat43f Mat43f::Translation(float x, float y, float z)
+{
+	Mat43f ret;
+	ret.X = {1.0f, 0.0f, 0.0f, x};
+	ret.Y = {0.0f, 1.0f, 0.0f, y};
+	ret.Z = {0.0f, 0.0f, 1.0f, z};
+	return ret;
+}
+
+//----------------------------------------------------------------------------------
+//
+//----------------------------------------------------------------------------------
+Mat43f Mat43f::Translation(const Vec3f& pos)
+{
+	Mat43f ret;
+	ret.X = {1.0f, 0.0f, 0.0f, pos.GetX()};
+	ret.Y = {0.0f, 1.0f, 0.0f, pos.GetY()};
+	ret.Z = {0.0f, 0.0f, 1.0f, pos.GetZ()};
+	return ret;
+}
+
+}
+
+
+namespace Effekseer
+{
+	
+//----------------------------------------------------------------------------------
+//
+//----------------------------------------------------------------------------------
+const Mat44f Mat44f::Identity = Mat44f(
+	1, 0, 0, 0, 
+	0, 1, 0, 0, 
+	0, 0, 1, 0, 
+	0, 0, 0, 1
+);
+
+//----------------------------------------------------------------------------------
+//
+//----------------------------------------------------------------------------------
+Mat44f::Mat44f(const Matrix44& mat)
+{
+	X = SIMD4f::Load4(mat.Values[0]);
+	Y = SIMD4f::Load4(mat.Values[1]);
+	Z = SIMD4f::Load4(mat.Values[2]);
+	W = SIMD4f::Load4(mat.Values[3]);
+	SIMD4f::Transpose(X, Y, Z, W);
+}
+
+//----------------------------------------------------------------------------------
+//
+//----------------------------------------------------------------------------------
+bool Mat44f::IsValid() const
+{
+	const SIMD4f nan{NAN};
+	const SIMD4f inf{INFINITY};
+	SIMD4f res = 
+		SIMD4f::Equal(X, nan) | 
+		SIMD4f::Equal(Y, nan) | 
+		SIMD4f::Equal(Z, nan) |
+		SIMD4f::Equal(W, nan) |
+		SIMD4f::Equal(X, inf) | 
+		SIMD4f::Equal(Y, inf) | 
+		SIMD4f::Equal(Z, inf) | 
+		SIMD4f::Equal(W, inf);
+	return SIMD4f::MoveMask(res) == 0;
+}
+
+//----------------------------------------------------------------------------------
+//
+//----------------------------------------------------------------------------------
+Vec3f Mat44f::GetScale() const
+{
+	SIMD4f x2 = X * X;
+	SIMD4f y2 = Y * Y;
+	SIMD4f z2 = Z * Z;
+	SIMD4f s2 = x2 + y2 + z2;
+	SIMD4f sq = SIMD4f::Sqrt(s2);
+	return Vec3f{sq};
+}
+
+//----------------------------------------------------------------------------------
+//
+//----------------------------------------------------------------------------------
+Mat44f Mat44f::GetRotation() const
+{
+	SIMD4f x2 = X * X;
+	SIMD4f y2 = Y * Y;
+	SIMD4f z2 = Z * Z;
+	SIMD4f s2 = x2 + y2 + z2;
+	SIMD4f rsq = SIMD4f::Rsqrt(s2);
+	rsq.SetW(0.0f);
+
+	Mat44f ret;
+	ret.X = X * rsq;
+	ret.Y = Y * rsq;
+	ret.Z = Z * rsq;
+	return ret;
+}
+
+//----------------------------------------------------------------------------------
+//
+//----------------------------------------------------------------------------------
+Vec3f Mat44f::GetTranslation() const
+{
+	return Vec3f(X.GetW(), Y.GetW(), Z.GetW());
+}
+
+//----------------------------------------------------------------------------------
+//
+//----------------------------------------------------------------------------------
+void Mat44f::GetSRT(Vec3f& s, Mat44f& r, Vec3f& t) const
+{
+	SIMD4f x2 = X * X;
+	SIMD4f y2 = Y * Y;
+	SIMD4f z2 = Z * Z;
+	SIMD4f s2 = x2 + y2 + z2;
+	SIMD4f rsq = SIMD4f::Rsqrt(s2);
+	rsq.SetW(0.0f);
+
+	s = SIMD4f(1.0f) / rsq;
+	r.X = X * rsq;
+	r.Y = Y * rsq;
+	r.Z = Z * rsq;
+	t = Vec3f(X.GetW(), Y.GetW(), Z.GetW());
+}
+
+//----------------------------------------------------------------------------------
+//
+//----------------------------------------------------------------------------------
+void Mat44f::SetTranslation(const Vec3f& t)
+{
+	X.SetW(t.GetX());
+	Y.SetW(t.GetY());
+	Z.SetW(t.GetZ());
+}
+
+//----------------------------------------------------------------------------------
+//
+//----------------------------------------------------------------------------------
+Mat44f Mat44f::Transpose() const
+{
+	Mat44f ret = *this;
+	SIMD4f::Transpose(ret.X, ret.Y, ret.Z, ret.W);
+	return ret;
+}
+
+//----------------------------------------------------------------------------------
+//
+//----------------------------------------------------------------------------------
+bool Mat44f::Equal(const Mat44f& lhs, const Mat44f& rhs, float epsilon)
+{
+	SIMD4f ret =
+		SIMD4f::NearEqual(lhs.X, rhs.X, epsilon) &
+		SIMD4f::NearEqual(lhs.Y, rhs.Y, epsilon) &
+		SIMD4f::NearEqual(lhs.Z, rhs.Z, epsilon) &
+		SIMD4f::NearEqual(lhs.W, rhs.W, epsilon);
+	return (SIMD4f::MoveMask(ret) & 0xf) == 0xf;
+
+}
+
+//----------------------------------------------------------------------------------
+//
+//----------------------------------------------------------------------------------
+Mat44f Mat44f::SRT(const Vec3f& s, const Mat44f& r, const Vec3f& t)
+{
+	Mat44f ret;
+	ret.X = r.X * s.s;
+	ret.Y = r.Y * s.s;
+	ret.Z = r.Z * s.s;
+	ret.X.SetW(t.GetX());
+	ret.Y.SetW(t.GetY());
+	ret.Z.SetW(t.GetZ());
+	ret.W = {0.0f, 0.0f, 0.0f, 1.0f};
+	return ret;
+}
+
+//----------------------------------------------------------------------------------
+//
+//----------------------------------------------------------------------------------
+Mat44f Mat44f::Scaling(float x, float y, float z)
+{
+	Mat44f ret;
+	ret.X = {x, 0.0f, 0.0f, 0.0f};
+	ret.Y = {0.0f, y, 0.0f, 0.0f};
+	ret.Z = {0.0f, 0.0f, z, 0.0f};
+	ret.W = {0.0f, 0.0f, 0.0f, 1.0f};
+	return ret;
+}
+
+//----------------------------------------------------------------------------------
+//
+//----------------------------------------------------------------------------------
+Mat44f Mat44f::Scaling(const Vec3f& scale)
+{
+	Mat44f ret;
+	ret.X = {scale.GetX(), 0.0f, 0.0f, 0.0f};
+	ret.Y = {0.0f, scale.GetY(), 0.0f, 0.0f};
+	ret.Z = {0.0f, 0.0f, scale.GetZ(), 0.0f};
+	ret.W = {0.0f, 0.0f, 0.0f, 1.0f};
+	return ret;
+}
+
+//----------------------------------------------------------------------------------
+//
+//----------------------------------------------------------------------------------
+Mat44f Mat44f::RotationX(float angle)
+{
+	float c, s;
+	::Effekseer::SinCos(angle, s, c);
+
+	Mat44f ret;
+	ret.X = {1.0f, 0.0f, 0.0f, 0.0f};
+	ret.Y = {0.0f, c, -s, 0.0f};
+	ret.Z = {0.0f, s,  c, 0.0f};
+	ret.W = {0.0f, 0.0f, 0.0f, 1.0f};
+	return ret;
+}
+
+//----------------------------------------------------------------------------------
+//
+//----------------------------------------------------------------------------------
+Mat44f Mat44f::RotationY(float angle)
+{
+	float c, s;
+	::Effekseer::SinCos(angle, s, c);
+
+	Mat44f ret;
+	ret.X = { c, 0.0f, s, 0.0f};
+	ret.Y = {0.0f, 1.0f, 0.0f, 0.0f};
+	ret.Z = {-s, 0.0f, c, 0.0f};
+	ret.W = {0.0f, 0.0f, 0.0f, 1.0f};
+	return ret;
+}
+
+//----------------------------------------------------------------------------------
+//
+//----------------------------------------------------------------------------------
+Mat44f Mat44f::RotationZ(float angle)
+{
+	float c, s;
+	::Effekseer::SinCos(angle, s, c);
+
+	Mat44f ret;
+	ret.X = {c, -s, 0.0f, 0.0f};
+	ret.Y = {s,  c, 0.0f, 0.0f};
+	ret.Z = {0.0f, 0.0f, 1.0f, 0.0f};
+	ret.W = {0.0f, 0.0f, 0.0f, 1.0f};
+	return ret;
+}
+
+//----------------------------------------------------------------------------------
+//
+//----------------------------------------------------------------------------------
+Mat44f Mat44f::RotationXYZ(float rx, float ry, float rz)
+{
+	float cx, sx, cy, sy, cz, sz;
+
+	if (rx != 0.0f)
+	{
+		::Effekseer::SinCos(rx, sx, cx);
+	}
+	else
+	{
+		sx = 0.0f;
+		cx = 1.0f;
+	}
+	if (ry != 0.0f)
+	{
+		::Effekseer::SinCos(ry, sy, cy);
+	}
+	else
+	{
+		sy = 0.0f;
+		cy = 1.0f;
+	}
+	if (rz != 0.0f)
+	{
+		::Effekseer::SinCos(rz, sz, cz);
+	}
+	else
+	{
+		sz = 0.0f;
+		cz = 1.0f;
+	}
+
+	float m00 = cy * cz;
+	float m01 = cy * sz;
+	float m02 = -sy;
+
+	float m10 = sx * sy * -sz + cx * -sz;
+	float m11 = sx * sy *  sz + cx *  cz;
+	float m12 = sx * cy;
+
+	float m20 = cx * sy * cz + sx * sz;
+	float m21 = cx * sy * sz - sx * cz;
+	float m22 = cx * cy;
+
+	Mat44f ret;
+	ret.X = {m00, m10, m20, 0.0f};
+	ret.Y = {m01, m11, m21, 0.0f};
+	ret.Z = {m02, m12, m22, 0.0f};
+	ret.W = {0.0f, 0.0f, 0.0f, 1.0f};
+	return ret;
+}
+
+//----------------------------------------------------------------------------------
+//
+//----------------------------------------------------------------------------------
+Mat44f Mat44f::RotationZXY(float rz, float rx, float ry)
+{
+	float cx, sx, cy, sy, cz, sz;
+
+	if (rx != 0.0f)
+	{
+		::Effekseer::SinCos(rx, sx, cx);
+	}
+	else
+	{
+		sx = 0.0f;
+		cx = 1.0f;
+	}
+	if (ry != 0.0f)
+	{
+		::Effekseer::SinCos(ry, sy, cy);
+	}
+	else
+	{
+		sy = 0.0f;
+		cy = 1.0f;
+	}
+	if (rz != 0.0f)
+	{
+		::Effekseer::SinCos(rz, sz, cz);
+	}
+	else
+	{
+		sz = 0.0f;
+		cz = 1.0f;
+	}
+
+	float m00 = cz * cy + sz * sx * sy;
+	float m01 = sz * cx;
+	float m02 = cz * -sy + sz * sx * cy;
+
+	float m10 = -sz * cy + cz * sx * sy;
+	float m11 = cz * cx;
+	float m12 = -sz * -sy + cz * sx * cy;
+
+	float m20 = cx * sy;
+	float m21 = -sx;
+	float m22 = cx * cy;
+
+	Mat44f ret;
+	ret.X = {m00, m10, m20, 0.0f};
+	ret.Y = {m01, m11, m21, 0.0f};
+	ret.Z = {m02, m12, m22, 0.0f};
+	ret.W = {0.0f, 0.0f, 0.0f, 1.0f};
+	return ret;
+}
+
+//----------------------------------------------------------------------------------
+//
+//----------------------------------------------------------------------------------
+Mat44f Mat44f::RotationAxis(const Vec3f& axis, float angle)
+{
+	const float c = cosf( angle );
+	const float s = sinf( angle );
+	return RotationAxis(axis, s, c);
+}
+
+//----------------------------------------------------------------------------------
+//
+//----------------------------------------------------------------------------------
+Mat44f Mat44f::RotationAxis(const Vec3f& axis, float s, float c)
+{
+	const float cc = 1.0f - c;
+
+	float m00 = cc * (axis.GetX() * axis.GetX()) + c;
+	float m01 = cc * (axis.GetX() * axis.GetY()) + (axis.GetZ() * s);
+	float m02 = cc * (axis.GetZ() * axis.GetX()) - (axis.GetY() * s);
+
+	float m10 = cc * (axis.GetX() * axis.GetY()) - (axis.GetZ() * s);
+	float m11 = cc * (axis.GetY() * axis.GetY()) + c;
+	float m12 = cc * (axis.GetY() * axis.GetZ()) + (axis.GetX() * s);
+
+	float m20 = cc * (axis.GetZ() * axis.GetX()) + (axis.GetY() * s);
+	float m21 = cc * (axis.GetY() * axis.GetZ()) - (axis.GetX() * s);
+	float m22 = cc * (axis.GetZ() * axis.GetZ()) + c;
+
+	Mat44f ret;
+	ret.X = {m00, m10, m20, 0.0f};
+	ret.Y = {m01, m11, m21, 0.0f};
+	ret.Z = {m02, m12, m22, 0.0f};
+	ret.W = {0.0f, 0.0f, 0.0f, 1.0f};
+	return ret;
+}
+
+//----------------------------------------------------------------------------------
+//
+//----------------------------------------------------------------------------------
+Mat44f Mat44f::Translation(float x, float y, float z)
+{
+	Mat44f ret;
+	ret.X = {1.0f, 0.0f, 0.0f, x};
+	ret.Y = {0.0f, 1.0f, 0.0f, y};
+	ret.Z = {0.0f, 0.0f, 1.0f, z};
+	ret.W = {0.0f, 0.0f, 0.0f, 1.0f};
+	return ret;
+}
+
+//----------------------------------------------------------------------------------
+//
+//----------------------------------------------------------------------------------
+Mat44f Mat44f::Translation(const Vec3f& pos)
+{
+	Mat44f ret;
+	ret.X = {1.0f, 0.0f, 0.0f, pos.GetX()};
+	ret.Y = {0.0f, 1.0f, 0.0f, pos.GetY()};
+	ret.Z = {0.0f, 0.0f, 1.0f, pos.GetZ()};
+	ret.W = {0.0f, 0.0f, 0.0f, 1.0f};
+	return ret;
+}
+
+}
+
+
+namespace Effekseer
+{
+	
+//----------------------------------------------------------------------------------
+// Temporary implementation
+//----------------------------------------------------------------------------------
+Vec2f::Vec2f(const vector2d& vec)
+	: s(vec.x, vec.y, 0.0f, 0.0f)
+{
+}
+
+Vec2f::Vec2f(const Vector2D& vec)
+	: s(vec.X, vec.Y, 0.0f, 0.0f)
+{
+}
+
+Vec3f::Vec3f(const vector3d& vec)
+	: s(vec.x, vec.y, vec.z, 0.0f)
+{
+}
+
+Vec3f::Vec3f(const Vector3D& vec)
+	: s(vec.X, vec.Y, vec.Z, 0.0f)
+{
+}
+
+
+} // namespace Effekseer
+
 
 #ifndef	__EFFEKSEER_SOCKET_H__
 #define	__EFFEKSEER_SOCKET_H__

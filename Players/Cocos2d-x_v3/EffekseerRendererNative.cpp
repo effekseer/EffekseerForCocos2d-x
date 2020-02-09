@@ -24,50 +24,49 @@ namespace EffekseerRenderer
 {
 
 void CalcBillboard(::Effekseer::BillboardType billboardType,
-				   Effekseer::Matrix43& dst,
-				   ::Effekseer::Vector3D& s,
-				   ::Effekseer::Vector3D& R,
-				   ::Effekseer::Vector3D& F,
-				   const ::Effekseer::Matrix43& src,
-				   const ::Effekseer::Vector3D& frontDirection)
+				   Effekseer::Mat43f& dst,
+				   ::Effekseer::Vec3f& s,
+				   ::Effekseer::Vec3f& R,
+				   ::Effekseer::Vec3f& F,
+				   const ::Effekseer::Mat43f& src,
+				   const ::Effekseer::Vec3f& frontDirection)
 {
 	auto frontDir = frontDirection;
 
 	if (billboardType == ::Effekseer::BillboardType::Billboard || billboardType == ::Effekseer::BillboardType::RotatedBillboard ||
 		billboardType == ::Effekseer::BillboardType::YAxisFixed)
 	{
-		::Effekseer::Matrix43 r;
-		::Effekseer::Vector3D t;
+		::Effekseer::Mat43f r;
+		::Effekseer::Vec3f t;
 		src.GetSRT(s, r, t);
 
-		::Effekseer::Vector3D U;
+		::Effekseer::Vec3f U;
 
 		if (billboardType == ::Effekseer::BillboardType::Billboard)
 		{
-			::Effekseer::Vector3D Up(0.0f, 1.0f, 0.0f);
+			::Effekseer::Vec3f Up(0.0f, 1.0f, 0.0f);
 
-			::Effekseer::Vector3D::Normal(F, frontDir);
-			::Effekseer::Vector3D::Normal(R, ::Effekseer::Vector3D::Cross(R, Up, F));
-			::Effekseer::Vector3D::Normal(U, ::Effekseer::Vector3D::Cross(U, F, R));
+			F = frontDir.Normalize();
+			R = ::Effekseer::Vec3f::Cross(Up, F).Normalize();
+			U = ::Effekseer::Vec3f::Cross(F, R).Normalize();
 		}
 		else if (billboardType == ::Effekseer::BillboardType::RotatedBillboard)
 		{
-			::Effekseer::Vector3D Up(0.0f, 1.0f, 0.0f);
+			::Effekseer::Vec3f Up(0.0f, 1.0f, 0.0f);
 
-			::Effekseer::Vector3D::Normal(F, frontDir);
+			F = frontDir.Normalize();
+			R = ::Effekseer::Vec3f::Cross(Up, F).Normalize();
+			U = ::Effekseer::Vec3f::Cross(F, R).Normalize();
 
-			::Effekseer::Vector3D::Normal(R, ::Effekseer::Vector3D::Cross(R, Up, F));
-			::Effekseer::Vector3D::Normal(U, ::Effekseer::Vector3D::Cross(U, F, R));
-
-			float c_zx = sqrt(1.0f - r.Value[2][1] * r.Value[2][1]);
+			float c_zx = sqrt(1.0f - r.Y.GetZ() * r.Y.GetZ());
 			float s_z = 0.0f;
 			float c_z = 0.0f;
 
 			if (fabsf(c_zx) > 0.05f)
 			{
-				s_z = r.Value[0][1] / c_zx;
+				s_z = r.Y.GetX() / c_zx;
 				c_z = sqrt(1.0f - s_z * s_z);
-				if (r.Value[1][1] < 0.0f)
+				if (r.Y.GetY() < 0.0f)
 					c_z = -c_z;
 			}
 			else
@@ -76,43 +75,27 @@ void CalcBillboard(::Effekseer::BillboardType billboardType,
 				c_z = 1.0f;
 			}
 
-			::Effekseer::Vector3D r_temp = R;
-			::Effekseer::Vector3D u_temp = U;
+			::Effekseer::Vec3f r_temp = R;
+			::Effekseer::Vec3f u_temp = U;
 
-			R.X = r_temp.X * c_z + u_temp.X * s_z;
-			R.Y = r_temp.Y * c_z + u_temp.Y * s_z;
-			R.Z = r_temp.Z * c_z + u_temp.Z * s_z;
-
-			U.X = u_temp.X * c_z - r_temp.X * s_z;
-			U.Y = u_temp.Y * c_z - r_temp.Y * s_z;
-			U.Z = u_temp.Z * c_z - r_temp.Z * s_z;
+			R = r_temp * c_z + u_temp * s_z;
+			U = u_temp * c_z - r_temp * s_z;
 		}
 		else if (billboardType == ::Effekseer::BillboardType::YAxisFixed)
 		{
-			U = ::Effekseer::Vector3D(r.Value[1][0], r.Value[1][1], r.Value[1][2]);
-
-			::Effekseer::Vector3D::Normal(F, frontDir);
-
-			::Effekseer::Vector3D::Normal(R, ::Effekseer::Vector3D::Cross(R, U, F));
-			::Effekseer::Vector3D::Normal(F, ::Effekseer::Vector3D::Cross(F, R, U));
+			U = ::Effekseer::Vec3f(r.X.GetY(), r.Y.GetY(), r.Z.GetY());
+			F = frontDir.Normalize();
+			R = ::Effekseer::Vec3f::Cross(U, F).Normalize();
+			F = ::Effekseer::Vec3f::Cross(R, U).Normalize();
 		}
 
-		dst.Value[0][0] = R.X;
-		dst.Value[0][1] = R.Y;
-		dst.Value[0][2] = R.Z;
-		dst.Value[1][0] = U.X;
-		dst.Value[1][1] = U.Y;
-		dst.Value[1][2] = U.Z;
-		dst.Value[2][0] = F.X;
-		dst.Value[2][1] = F.Y;
-		dst.Value[2][2] = F.Z;
-		dst.Value[3][0] = t.X;
-		dst.Value[3][1] = t.Y;
-		dst.Value[3][2] = t.Z;
+		dst.X = {R.GetX(), U.GetX(), F.GetX(), t.GetX()};
+		dst.Y = {R.GetY(), U.GetY(), F.GetY(), t.GetY()};
+		dst.Z = {R.GetZ(), U.GetZ(), F.GetZ(), t.GetZ()};
 	}
 }
 
-void SplineGenerator::AddVertex(const Effekseer::Vector3D& v)
+void SplineGenerator::AddVertex(const Effekseer::Vec3f& v)
 {
 	a.push_back(v);
 	if (a.size() >= 2)
@@ -135,9 +118,9 @@ void SplineGenerator::Calculate()
 
 	for (size_t i = 1; i < a.size() - 1; i++)
 	{
-		auto tmp = Effekseer::Vector3D(4.0, 4.0, 4.0) - w[i - 1];
+		auto tmp = Effekseer::Vec3f(4.0, 4.0, 4.0) - w[i - 1];
 		c[i] = (c[i] - c[i - 1]) / tmp;
-		w[i] = Effekseer::Vector3D(1.0, 1.0, 1.0) / tmp;
+		w[i] = Effekseer::Vec3f(1.0, 1.0, 1.0) / tmp;
 	}
 
 	for (size_t i = (a.size() - 1) - 1; i > 0; i--)
@@ -162,7 +145,7 @@ void SplineGenerator::Reset()
 	isSame.clear();
 }
 
-Effekseer::Vector3D SplineGenerator::GetValue(float t) const
+Effekseer::Vec3f SplineGenerator::GetValue(float t) const
 {
 	int32_t j = (int32_t)floorf(t);
 
@@ -184,9 +167,9 @@ Effekseer::Vector3D SplineGenerator::GetValue(float t) const
 	return a[j] + (b[j] + (c[j] + d[j] * dt) * dt) * dt;
 }
 
-void ApplyDepthParameters(::Effekseer::Matrix43& mat,
-	const ::Effekseer::Vector3D& cameraFront,
-	const ::Effekseer::Vector3D& cameraPos,
+void ApplyDepthParameters(::Effekseer::Mat43f& mat,
+	const ::Effekseer::Vec3f& cameraFront,
+	const ::Effekseer::Vec3f& cameraPos,
 	::Effekseer::NodeRendererDepthParameter* depthParameter,
 	bool isRightHand)
 {
@@ -200,95 +183,61 @@ void ApplyDepthParameters(::Effekseer::Matrix43& mat,
 
 		if (isDepthOffsetScaledWithEffect)
 		{
-			std::array<float, 3> scales;
-			scales.fill(0.0);
-
-			for (auto r = 0; r < 3; r++)
-			{
-				for (auto c = 0; c < 3; c++)
-				{
-					scales[c] += mat.Value[c][r] * mat.Value[c][r];
-				}
-			}
-
-			for (auto c = 0; c < 3; c++)
-			{
-				scales[c] = sqrt(scales[c]);
-			}
-
-			auto scale = (scales[0] + scales[1] + scales[2]) / 3.0f;
+			auto scales = mat.GetScale();
+			auto scale = (scales.GetX() + scales.GetY() + scales.GetZ()) / 3.0f;
 
 			offset *= scale;
 		}
 
 		if (isDepthOffsetScaledWithCamera)
 		{
-			auto cx = mat.Value[3][0] - cameraPos.X;
-			auto cy = mat.Value[3][1] - cameraPos.Y;
-			auto cz = mat.Value[3][2] - cameraPos.Z;
-			auto cl = sqrt(cx * cx + cy * cy + cz * cz);
+			auto t = mat.GetTranslation();
+			auto c = t - cameraPos;
+			auto cl = c.GetLength();
 
 			if (cl != 0.0)
 			{
 				auto scale = (cl - offset) / cl;
-
-				for (auto r = 0; r < 3; r++)
-				{
-					for (auto c = 0; c < 3; c++)
-					{
-						mat.Value[c][r] *= scale;
-					}
-				}
+				mat *= scale;
+				mat.SetTranslation(c);
 			}
 		}
 
-		auto objPos = ::Effekseer::Vector3D(mat.Value[3][0], mat.Value[3][1], mat.Value[3][2]);
+		auto objPos = mat.GetTranslation();
 		auto dir = cameraPos - objPos;
-		Effekseer::Vector3D::Normal(dir, dir);
+		dir = dir.Normalize();
 
 		if (isRightHand)
 		{
-			mat.Value[3][0] += dir.X * offset;
-			mat.Value[3][1] += dir.Y * offset;
-			mat.Value[3][2] += dir.Z * offset;
+			mat.SetTranslation(mat.GetTranslation() + dir * offset);
 		}
 		else
 		{
-			mat.Value[3][0] += dir.X * offset;
-			mat.Value[3][1] += dir.Y * offset;
-			mat.Value[3][2] += dir.Z * offset;
+			mat.SetTranslation(mat.GetTranslation() + dir * offset);
 		}
 	}
 
 	if (depthParameter->SuppressionOfScalingByDepth < 1.0f)
 	{
-		auto cx = mat.Value[3][0] - cameraPos.X;
-		auto cy = mat.Value[3][1] - cameraPos.Y;
-		auto cz = mat.Value[3][2] - cameraPos.Z;
-		auto cl = sqrt(cx * cx + cy * cy + cz * cz);
+		auto t = mat.GetTranslation();
+		auto c = t - cameraPos;
+		auto cl = c.GetLength();
 		//auto cl = cameraFront.X * cx + cameraFront.Y * cy * cameraFront.Z * cz;
-
 
 		if (cl != 0.0)
 		{
 			auto scale = cl / 32.0f * (1.0f - depthParameter->SuppressionOfScalingByDepth) + depthParameter->SuppressionOfScalingByDepth;
-
-			for (auto r = 0; r < 3; r++)
-			{
-				for (auto c = 0; c < 3; c++)
-				{
-					mat.Value[c][r] *= scale;
-				}
-			}
+			mat *= scale;
+			mat.SetTranslation(t);
 		}
 	}
 }
 
-void ApplyDepthParameters(::Effekseer::Matrix43& mat,
-						  ::Effekseer::Vector3D& translationValues,
-						  ::Effekseer::Vector3D& scaleValues,
-						  const ::Effekseer::Vector3D& cameraFront,
-						  const ::Effekseer::Vector3D& cameraPos,
+void ApplyDepthParameters(::Effekseer::Mat43f& mat,
+						  ::Effekseer::Vec3f& translationValues,
+						  ::Effekseer::Vec3f& scaleValues,
+						  const ::Effekseer::Vec3f& cameraFront,
+						  const ::Effekseer::Vec3f& cameraPos,
 						  ::Effekseer::NodeRendererDepthParameter* depthParameter,
 						  bool isRightHand)
 {
@@ -302,74 +251,60 @@ void ApplyDepthParameters(::Effekseer::Matrix43& mat,
 
 		if (isDepthOffsetScaledWithEffect)
 		{
-			auto scale = (scaleValues.X + scaleValues.Y + scaleValues.Z) / 3.0f;
-
+			auto scale = (scaleValues.GetX() + scaleValues.GetY() + scaleValues.GetZ()) / 3.0f;
 			offset *= scale;
 		}
 
 		if (isDepthOffsetScaledWithCamera)
 		{
-			auto cx = translationValues.X - cameraPos.X;
-			auto cy = translationValues.Y - cameraPos.Y;
-			auto cz = translationValues.Z - cameraPos.Z;
-			auto cl = sqrt(cx * cx + cy * cy + cz * cz);
+			auto c = translationValues - cameraPos;
+			auto cl = c.GetLength();
 
 			if (cl != 0.0)
 			{
 				auto scale = (cl - offset) / cl;
 
-				scaleValues.X *= scale;
-				scaleValues.Y *= scale;
-				scaleValues.Z *= scale;
+				scaleValues *= scale;
 			}
 		}
 
 		auto objPos = translationValues;
 		auto dir = cameraPos - objPos;
-		Effekseer::Vector3D::Normal(dir, dir);
+		dir = dir.Normalize();
 
 		if (isRightHand)
 		{
-			translationValues.X += dir.X * offset;
-			translationValues.Y += dir.Y * offset;
-			translationValues.Z += dir.Z * offset;
+			translationValues += dir * offset;
 		}
 		else
 		{
-			translationValues.X += dir.X * offset;
-			translationValues.Y += dir.Y * offset;
-			translationValues.Z += dir.Z * offset;
+			translationValues += dir * offset;
 		}
 	}
 
 	if (depthParameter->SuppressionOfScalingByDepth < 1.0f)
 	{
-		auto cx = translationValues.X - cameraPos.X;
-		auto cy = translationValues.Y - cameraPos.Y;
-		auto cz = translationValues.Z - cameraPos.Z;
-		auto cl = sqrt(cx * cx + cy * cy + cz * cz);
+		auto c = translationValues - cameraPos;
+		auto cl = c.GetLength();
 
 		if (cl != 0.0)
 		{
 			auto scale = cl / 32.0f * (1.0f - depthParameter->SuppressionOfScalingByDepth) + depthParameter->SuppressionOfScalingByDepth;
-
 			for (auto r = 0; r < 3; r++)
 			{
 				for (auto c = 0; c < 3; c++)
 				{
-					scaleValues.X *= scale;
-					scaleValues.Y *= scale;
-					scaleValues.Z *= scale;
+					scaleValues *= scale;
 				}
 			}
 		}
 	}
 }
 
-void ApplyDepthParameters(::Effekseer::Matrix43& mat,
-					  const ::Effekseer::Vector3D& cameraFront,
-					  const ::Effekseer::Vector3D& cameraPos,
-					  ::Effekseer::Vector3D& scaleValues,
+void ApplyDepthParameters(::Effekseer::Mat43f& mat,
+					  const ::Effekseer::Vec3f& cameraFront,
+					  const ::Effekseer::Vec3f& cameraPos,
+					  ::Effekseer::Vec3f& scaleValues,
 						  ::Effekseer::NodeRendererDepthParameter* depthParameter,
 						  bool isRightHand)
 {
@@ -383,75 +318,56 @@ void ApplyDepthParameters(::Effekseer::Matrix43& mat,
 
 		if (isDepthOffsetScaledWithEffect)
 		{
-			auto scale = (scaleValues.X + scaleValues.Y + scaleValues.Z) / 3.0f;
-
+			auto scale = (scaleValues.GetX() + scaleValues.GetY() + scaleValues.GetZ()) / 3.0f;
 			offset *= scale;
 		}
 
 		if (isDepthOffsetScaledWithCamera)
 		{
-			auto cx = mat.Value[3][0] - cameraPos.X;
-			auto cy = mat.Value[3][1] - cameraPos.Y;
-			auto cz = mat.Value[3][2] - cameraPos.Z;
-			auto cl = sqrt(cx * cx + cy * cy + cz * cz);
+			auto t = mat.GetTranslation();
+			auto c = t - cameraPos;
+			auto cl = c.GetLength();
 
 			if (cl != 0.0)
 			{
 				auto scale = (cl - offset) / cl;
-
-				for (auto r = 0; r < 3; r++)
-				{
-					for (auto c = 0; c < 3; c++)
-					{
-						mat.Value[c][r] *= scale;
-					}
-				}
+				mat *= scale;
+				mat.SetTranslation(t);
 			}
 		}
 
-		auto objPos = ::Effekseer::Vector3D(mat.Value[3][0], mat.Value[3][1], mat.Value[3][2]);
+		auto objPos = mat.GetTranslation();
 		auto dir = cameraPos - objPos;
-		Effekseer::Vector3D::Normal(dir, dir);
+		dir = dir.Normalize();
 
 		if (isRightHand)
 		{
-			mat.Value[3][0] += dir.X * offset;
-			mat.Value[3][1] += dir.Y * offset;
-			mat.Value[3][2] += dir.Z * offset;
+			mat.SetTranslation(mat.GetTranslation() + dir * offset);
 		}
 		else
 		{
-			mat.Value[3][0] += dir.X * offset;
-			mat.Value[3][1] += dir.Y * offset;
-			mat.Value[3][2] += dir.Z * offset;
+			mat.SetTranslation(mat.GetTranslation() + dir * offset);
 		}
 	}
 
 	if (depthParameter->SuppressionOfScalingByDepth < 1.0f)
 	{
-		auto cx = mat.Value[3][0] - cameraPos.X;
-		auto cy = mat.Value[3][1] - cameraPos.Y;
-		auto cz = mat.Value[3][2] - cameraPos.Z;
-		auto cl = sqrt(cx * cx + cy * cy + cz * cz);
+		auto t = mat.GetTranslation();
+		auto c = t - cameraPos;
+		auto cl = c.GetLength();
 
 		if (cl != 0.0)
 		{
 			auto scale = cl / 32.0f * (1.0f - depthParameter->SuppressionOfScalingByDepth) + depthParameter->SuppressionOfScalingByDepth;
-
-			for (auto r = 0; r < 3; r++)
-			{
-				for (auto c = 0; c < 3; c++)
-				{
-					mat.Value[c][r] *= scale;
-				}
-			}
+			mat *= scale;
+			mat.SetTranslation(t);
 		}
 	}
 }
 
-void ApplyDepthParameters(::Effekseer::Matrix44& mat,
-						  const ::Effekseer::Vector3D& cameraFront,
-						  const ::Effekseer::Vector3D& cameraPos,
+void ApplyDepthParameters(::Effekseer::Mat44f& mat,
+						  const ::Effekseer::Vec3f& cameraFront,
+						  const ::Effekseer::Vec3f& cameraPos,
 						  ::Effekseer::NodeRendererDepthParameter* depthParameter,
 						  bool isRightHand)
 {
@@ -465,84 +381,51 @@ void ApplyDepthParameters(::Effekseer::Matrix44& mat,
 
 		if (isDepthOffsetScaledWithEffect)
 		{
-			std::array<float, 3> scales;
-			scales.fill(0.0);
-
-			for (auto r = 0; r < 3; r++)
-			{
-				for (auto c = 0; c < 3; c++)
-				{
-					scales[c] += mat.Values[c][r] * mat.Values[c][r];
-				}
-			}
-
-			for (auto c = 0; c < 3; c++)
-			{
-				scales[c] = sqrt(scales[c]);
-			}
-
-			auto scale = (scales[0] + scales[1] + scales[2]) / 3.0f;
+			auto scales = mat.GetScale();
+			auto scale = (scales.GetX() + scales.GetY() + scales.GetZ()) / 3.0f;
 
 			offset *= scale;
 		}
 
 		if (isDepthOffsetScaledWithCamera)
 		{
-			auto cx = mat.Values[3][0] - cameraPos.X;
-			auto cy = mat.Values[3][1] - cameraPos.Y;
-			auto cz = mat.Values[3][2] - cameraPos.Z;
-			auto cl = sqrt(cx * cx + cy * cy + cz * cz);
+			auto t = mat.GetTranslation();
+			auto c = t - cameraPos;
+			auto cl = c.GetLength();
 
 			if (cl != 0.0)
 			{
 				auto scale = (cl - offset) / cl;
-
-				for (auto r = 0; r < 3; r++)
-				{
-					for (auto c = 0; c < 3; c++)
-					{
-						mat.Values[c][r] *= scale;
-					}
-				}
+				mat *= scale;
+				mat.SetTranslation(t);
 			}
 		}
 
-		auto objPos = ::Effekseer::Vector3D(mat.Values[3][0], mat.Values[3][1], mat.Values[3][2]);
+		auto objPos = mat.GetTranslation();
 		auto dir = cameraPos - objPos;
-		Effekseer::Vector3D::Normal(dir, dir);
+		dir = dir.Normalize();
 
 		if (isRightHand)
 		{
-			mat.Values[3][0] += dir.X * offset;
-			mat.Values[3][1] += dir.Y * offset;
-			mat.Values[3][2] += dir.Z * offset;
+			mat.SetTranslation(mat.GetTranslation() + dir * offset);
 		}
 		else
 		{
-			mat.Values[3][0] += dir.X * offset;
-			mat.Values[3][1] += dir.Y * offset;
-			mat.Values[3][2] += dir.Z * offset;
+			mat.SetTranslation(mat.GetTranslation() + dir * offset);
 		}
 	}
 
 	if (depthParameter->SuppressionOfScalingByDepth < 1.0f)
 	{
-		auto cx = mat.Values[3][0] - cameraPos.X;
-		auto cy = mat.Values[3][1] - cameraPos.Y;
-		auto cz = mat.Values[3][2] - cameraPos.Z;
-		auto cl = sqrt(cx * cx + cy * cy + cz * cz);
+		auto t = mat.GetTranslation();
+		auto c = t - cameraPos;
+		auto cl = c.GetLength();
 
 		if (cl != 0.0)
 		{
 			auto scale = cl / 32.0f * (1.0f - depthParameter->SuppressionOfScalingByDepth) + depthParameter->SuppressionOfScalingByDepth;
-
-			for (auto r = 0; r < 3; r++)
-			{
-				for (auto c = 0; c < 3; c++)
-				{
-					mat.Values[c][r] *= scale;
-				}
-			}
+			mat *= scale;
+			mat.SetTranslation(t);
 		}
 	}
 }
@@ -658,15 +541,15 @@ Renderer::~Renderer() { ES_SAFE_DELETE(impl); }
 
 Renderer::Impl* Renderer::GetImpl() { return impl; }
 
-const ::Effekseer::Matrix44& Renderer::GetProjectionMatrix() const { return impl->GetProjectionMatrix(); }
+::Effekseer::Matrix44 Renderer::GetProjectionMatrix() const { return impl->GetProjectionMatrix(); }
 
 void Renderer::SetProjectionMatrix(const ::Effekseer::Matrix44& mat) { impl->SetProjectionMatrix(mat); }
 
-const ::Effekseer::Matrix44& Renderer::GetCameraMatrix() const { return impl->GetCameraMatrix(); }
+::Effekseer::Matrix44 Renderer::GetCameraMatrix() const { return impl->GetCameraMatrix(); }
 
 void Renderer::SetCameraMatrix(const ::Effekseer::Matrix44& mat) { impl->SetCameraMatrix(mat); }
 
-::Effekseer::Matrix44& Renderer::GetCameraProjectionMatrix() { return impl->GetCameraProjectionMatrix(); }
+::Effekseer::Matrix44 Renderer::GetCameraProjectionMatrix() const { return impl->GetCameraProjectionMatrix(); }
 
 ::Effekseer::Vector3D Renderer::GetCameraFrontDirection() const { return impl->GetCameraFrontDirection(); }
 
@@ -711,32 +594,33 @@ void Renderer::SetBackgroundTexture(::Effekseer::TextureData* textureData)
 
 namespace EffekseerRenderer
 {
+void Renderer::Impl::CalculateCameraProjectionMatrix() { cameraProjMat_ = cameraMat_ * projectionMat_; }
 
-const ::Effekseer::Matrix44& Renderer::Impl::GetProjectionMatrix() const { return projectionMat_; }
+::Effekseer::Matrix44 Renderer::Impl::GetProjectionMatrix() const { return ToStruct(projectionMat_); }
 
 void Renderer::Impl::SetProjectionMatrix(const ::Effekseer::Matrix44& mat) { projectionMat_ = mat; }
 
-const ::Effekseer::Matrix44& Renderer::Impl::GetCameraMatrix() const { return cameraMat_; }
+::Effekseer::Matrix44 Renderer::Impl::GetCameraMatrix() const { return ToStruct(cameraMat_); }
 
 void Renderer::Impl::SetCameraMatrix(const ::Effekseer::Matrix44& mat)
 {
-	cameraFrontDirection_ = ::Effekseer::Vector3D(mat.Values[0][2], mat.Values[1][2], mat.Values[2][2]);
+	cameraFrontDirection_ = ::Effekseer::Vec3f(mat.Values[0][2], mat.Values[1][2], mat.Values[2][2]);
 
-	auto localPos = ::Effekseer::Vector3D(-mat.Values[3][0], -mat.Values[3][1], -mat.Values[3][2]);
+	auto localPos = ::Effekseer::Vec3f(-mat.Values[3][0], -mat.Values[3][1], -mat.Values[3][2]);
 	auto f = cameraFrontDirection_;
-	auto r = ::Effekseer::Vector3D(mat.Values[0][0], mat.Values[1][0], mat.Values[2][0]);
-	auto u = ::Effekseer::Vector3D(mat.Values[0][1], mat.Values[1][1], mat.Values[2][1]);
+	auto r = ::Effekseer::Vec3f(mat.Values[0][0], mat.Values[1][0], mat.Values[2][0]);
+	auto u = ::Effekseer::Vec3f(mat.Values[0][1], mat.Values[1][1], mat.Values[2][1]);
 
-	cameraPosition_ = r * localPos.X + u * localPos.Y + f * localPos.Z;
+	cameraPosition_ = r * localPos.GetX() + u * localPos.GetY() + f * localPos.GetZ();
 
 	cameraMat_ = mat;
 }
 
-::Effekseer::Matrix44& Renderer::Impl::GetCameraProjectionMatrix() { return cameraProjMat_; }
+::Effekseer::Matrix44 Renderer::Impl::GetCameraProjectionMatrix() const { return ToStruct(cameraProjMat_); }
 
-::Effekseer::Vector3D Renderer::Impl::GetCameraFrontDirection() const { return cameraFrontDirection_; }
+::Effekseer::Vector3D Renderer::Impl::GetCameraFrontDirection() const { return ToStruct(cameraFrontDirection_); }
 
-::Effekseer::Vector3D Renderer::Impl::GetCameraPosition() const { return cameraPosition_; }
+::Effekseer::Vector3D Renderer::Impl::GetCameraPosition() const { return ToStruct(cameraPosition_); }
 
 void Renderer::Impl::SetCameraParameter(const ::Effekseer::Vector3D& front, const ::Effekseer::Vector3D& position)
 {
@@ -1598,7 +1482,7 @@ public:
 	/**
 		@brief	ライトの方向を取得する。
 	*/
-	const ::Effekseer::Vector3D& GetLightDirection() const override;
+	::Effekseer::Vector3D GetLightDirection() const override;
 
 	/**
 		@brief	ライトの方向を設定する。
@@ -1671,7 +1555,7 @@ public:
 		return &m_background;
 	}
 
-	void SetBackground(GLuint background) override;
+	void SetBackground(GLuint background, bool hasMipmap) override;
 
 	void SetBackgroundTexture(::Effekseer::TextureData* textureData) override;
 
@@ -3928,11 +3812,14 @@ namespace EffekseerRendererGL
 		shader->AddVertexConstantLayout(
 			CONSTANT_TYPE_VECTOR4, shader->GetUniformId("predefined_uniform"), parameterGenerator.VertexPredefinedOffset);
 
+		shader->AddVertexConstantLayout(
+			CONSTANT_TYPE_VECTOR4, shader->GetUniformId("cameraPosition"), parameterGenerator.VertexCameraPositionOffset);
+
 		for (int32_t ui = 0; ui < material.GetUniformCount(); ui++)
 		{
 			shader->AddVertexConstantLayout(CONSTANT_TYPE_VECTOR4,
-										   shader->GetUniformId(material.GetUniformName(ui)),
-										   parameterGenerator.VertexUserUniformOffset + sizeof(float) * 4 * ui);
+											shader->GetUniformId(material.GetUniformName(ui)),
+											parameterGenerator.VertexUserUniformOffset + sizeof(float) * 4 * ui);
 		}
 
 		shader->SetVertexConstantBufferSize(parameterGenerator.VertexShaderUniformBufferSize);
@@ -3943,11 +3830,12 @@ namespace EffekseerRendererGL
 		shader->AddPixelConstantLayout(
 			CONSTANT_TYPE_VECTOR4, shader->GetUniformId("predefined_uniform"), parameterGenerator.PixelPredefinedOffset);
 
+		shader->AddPixelConstantLayout(
+			CONSTANT_TYPE_VECTOR4, shader->GetUniformId("cameraPosition"), parameterGenerator.PixelCameraPositionOffset);
+
 		// shiding model
 		if (material.GetShadingModel() == ::Effekseer::ShadingModelType::Lit)
 		{
-			shader->AddPixelConstantLayout(
-				CONSTANT_TYPE_VECTOR4, shader->GetUniformId("cameraPosition"), parameterGenerator.PixelCameraPositionOffset);
 			shader->AddPixelConstantLayout(
 				CONSTANT_TYPE_VECTOR4, shader->GetUniformId("lightDirection"), parameterGenerator.PixelLightDirectionOffset);
 			shader->AddPixelConstantLayout(
@@ -4055,6 +3943,9 @@ namespace EffekseerRendererGL
 		shader->AddVertexConstantLayout(
 			CONSTANT_TYPE_VECTOR4, shader->GetUniformId("predefined_uniform"), parameterGenerator.VertexPredefinedOffset);
 
+		shader->AddVertexConstantLayout(
+			CONSTANT_TYPE_VECTOR4, shader->GetUniformId("cameraPosition"), parameterGenerator.VertexCameraPositionOffset);
+
 		if (material.GetCustomData1Count() > 0)
 		{
 			shader->AddVertexConstantLayout(
@@ -4076,18 +3967,18 @@ namespace EffekseerRendererGL
 
 		shader->SetVertexConstantBufferSize(parameterGenerator.VertexShaderUniformBufferSize);
 
-
 		shader->AddPixelConstantLayout(
 			CONSTANT_TYPE_VECTOR4, shader->GetUniformId("mUVInversedBack"), parameterGenerator.PixelInversedFlagOffset);
 
 		shader->AddPixelConstantLayout(
 			CONSTANT_TYPE_VECTOR4, shader->GetUniformId("predefined_uniform"), parameterGenerator.PixelPredefinedOffset);
 
+		shader->AddPixelConstantLayout(
+			CONSTANT_TYPE_VECTOR4, shader->GetUniformId("cameraPosition"), parameterGenerator.PixelCameraPositionOffset);
+
 		// shiding model
 		if (material.GetShadingModel() == ::Effekseer::ShadingModelType::Lit)
 		{
-			shader->AddPixelConstantLayout(
-				CONSTANT_TYPE_VECTOR4, shader->GetUniformId("cameraPosition"), parameterGenerator.PixelCameraPositionOffset);
 			shader->AddPixelConstantLayout(
 				CONSTANT_TYPE_VECTOR4, shader->GetUniformId("lightDirection"), parameterGenerator.PixelLightDirectionOffset);
 			shader->AddPixelConstantLayout(
@@ -4662,6 +4553,7 @@ RendererImplemented::RendererImplemented(int32_t squareMaxCount,
 	SetLightAmbientColor( lightAmbient );
 
 	m_background.UserID = 0;
+	m_background.HasMipmap = false;
 
 	if (deviceObjectCollection == nullptr)
 	{
@@ -4969,7 +4861,7 @@ bool RendererImplemented::BeginRendering()
 {
 	GLCheckError();
 
-	::Effekseer::Matrix44::Mul(GetCameraProjectionMatrix(), GetCameraMatrix(), GetProjectionMatrix());
+	impl->CalculateCameraProjectionMatrix();
 
 	// store state
 	if(m_restorationOfStates)
@@ -5157,7 +5049,7 @@ void RendererImplemented::SetSquareMaxCount(int32_t count)
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-const ::Effekseer::Vector3D& RendererImplemented::GetLightDirection() const
+::Effekseer::Vector3D RendererImplemented::GetLightDirection() const
 {
 	return m_lightDirection;
 }
@@ -5274,9 +5166,10 @@ void RendererImplemented::SetLightAmbientColor( const ::Effekseer::Color& color 
 #endif
 }
 
-void RendererImplemented::SetBackground(GLuint background)
+void RendererImplemented::SetBackground(GLuint background, bool hasMipmap)
 {
 	m_background.UserID = background;
+	m_background.HasMipmap = hasMipmap;
 }
 
 void RendererImplemented::SetBackgroundTexture(::Effekseer::TextureData* textureData) { m_background = *textureData; }
@@ -5679,12 +5572,16 @@ bool Model::InternalModel::TryDelayLoad()
 {
 	if(VertexBuffer > 0) return false;
 	
+	int arrayBufferBinding = 0;
+	int elementArrayBufferBinding = 0;
+	glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &arrayBufferBinding);
+	glGetIntegerv(GL_ELEMENT_ARRAY_BUFFER_BINDING, &elementArrayBufferBinding);
+
 	GLExt::glGenBuffers(1, &VertexBuffer);
 	if (VertexBuffer > 0)
 	{
 		GLExt::glBindBuffer(GL_ARRAY_BUFFER, VertexBuffer);
 		GLExt::glBufferData(GL_ARRAY_BUFFER, delayVertexBuffer.size(), delayVertexBuffer.data(), GL_STATIC_DRAW);
-		GLExt::glBindBuffer(GL_ARRAY_BUFFER, 0);
 	}
 	
 	GLExt::glGenBuffers(1, &IndexBuffer);
@@ -5692,8 +5589,10 @@ bool Model::InternalModel::TryDelayLoad()
 	{
 		GLExt::glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IndexBuffer);
 		GLExt::glBufferData(GL_ELEMENT_ARRAY_BUFFER, delayIndexBuffer.size(), delayIndexBuffer.data(), GL_STATIC_DRAW);
-		GLExt::glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 	}
+
+	GLExt::glBindBuffer(GL_ARRAY_BUFFER, arrayBufferBinding);
+	GLExt::glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementArrayBufferBinding);
 
 	return true;
 }
@@ -5717,11 +5616,16 @@ Model::Model(void* data, int32_t size)
 		
 		GLExt::glGenBuffers(1, &InternalModels[f].VertexBuffer);
 		size_t vertexSize = vertexCount * sizeof(::Effekseer::Model::Vertex);
+
+		int arrayBufferBinding = 0;
+		int elementArrayBufferBinding = 0;
+		glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &arrayBufferBinding);
+		glGetIntegerv(GL_ELEMENT_ARRAY_BUFFER_BINDING, &elementArrayBufferBinding);
+
 		if (InternalModels[f].VertexBuffer > 0)
 		{
 			GLExt::glBindBuffer(GL_ARRAY_BUFFER, InternalModels[f].VertexBuffer);
 			GLExt::glBufferData(GL_ARRAY_BUFFER, vertexSize, vertexData, GL_STATIC_DRAW);
-			GLExt::glBindBuffer(GL_ARRAY_BUFFER, 0);
 		}
 		InternalModels[f].delayVertexBuffer.resize(vertexSize);
 		memcpy(InternalModels[f].delayVertexBuffer.data(), vertexData, vertexSize);
@@ -5733,8 +5637,11 @@ Model::Model(void* data, int32_t size)
 		{
 			GLExt::glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, InternalModels[f].IndexBuffer);
 			GLExt::glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexSize, faceData, GL_STATIC_DRAW);
-			GLExt::glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 		}
+
+		GLExt::glBindBuffer(GL_ARRAY_BUFFER, arrayBufferBinding);
+		GLExt::glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementArrayBufferBinding);
+
 		InternalModels[f].delayIndexBuffer.resize(indexSize);
 		memcpy(InternalModels[f].delayIndexBuffer.data(), faceData, indexSize);
 	}
@@ -7318,6 +7225,7 @@ uniform vec4 ModelColor;
 	R"(
 uniform vec4 mUVInversed;
 uniform vec4 predefined_uniform;
+uniform vec4 cameraPosition;
 
 vec2 GetUV(vec2 uv)
 {
@@ -7358,6 +7266,12 @@ void main()
 	vec3 worldNormal = normalize(modelMatRot * a_Normal);
 	vec3 worldBinormal = normalize(modelMatRot * a_Binormal);
 	vec3 worldTangent = normalize(modelMatRot * a_Tangent);
+	vec3 objectScale = vec3(1.0, 1.0, 1.0);
+
+	// Calculate ObjectScale
+	objectScale.x = length(modelMatRot * vec3(1.0, 0.0, 0.0));
+	objectScale.y = length(modelMatRot * vec3(0.0, 1.0, 0.0));
+	objectScale.z = length(modelMatRot * vec3(0.0, 0.0, 1.0));
 
 	// UV
 	vec2 uv1 = a_TexCoord.xy * uvOffset.zw + uvOffset.xy;
@@ -7411,6 +7325,7 @@ uniform mat4 uMatCamera;
 uniform mat4 uMatProjection;
 uniform vec4 mUVInversed;
 uniform vec4 predefined_uniform;
+uniform vec4 cameraPosition;
 
 vec2 GetUV(vec2 uv)
 {
@@ -7456,6 +7371,7 @@ uniform mat4 uMatCamera;
 uniform mat4 uMatProjection;
 uniform vec4 mUVInversed;
 uniform vec4 predefined_uniform;
+uniform vec4 cameraPosition;
 
 vec2 GetUV(vec2 uv)
 {
@@ -7477,6 +7393,7 @@ static const char g_material_sprite_vs_src_suf1_simple[] =
 
 void main() {
 	vec3 worldPos = atPosition.xyz;
+	vec3 objectScale = vec3(1.0, 1.0, 1.0);
 
 	// UV
 	vec2 uv1 = atTexCoord.xy;
@@ -7501,6 +7418,7 @@ static const char g_material_sprite_vs_src_suf1[] =
 
 void main() {
 	vec3 worldPos = atPosition.xyz;
+	vec3 objectScale = vec3(1.0, 1.0, 1.0);
 
 	// UV
 	vec2 uv1 = atTexCoord.xy;
@@ -7557,6 +7475,7 @@ IN mediump vec2 v_ScreenUV;
 
 uniform vec4 mUVInversedBack;
 uniform vec4 predefined_uniform;
+uniform vec4 cameraPosition;
 
 vec2 GetUV(vec2 uv)
 {
@@ -7650,7 +7569,7 @@ void main()
 	vec3 worldBinormal = v_WorldB;
 	vec3 pixelNormalDir = worldNormal;
 	vec4 vcolor = v_VColor;
-
+	vec3 objectScale = vec3(1.0, 1.0, 1.0);
 )";
 
 static const char g_material_fs_src_suf2_lit[] =
@@ -7900,7 +7819,6 @@ ShaderData GenerateShader(Material* material, MaterialShaderType shaderType, int
 
 		if (material->GetShadingModel() == ::Effekseer::ShadingModelType::Lit && stage == 1)
 		{
-			ExportUniform(maincode, 4, "cameraPosition");
 			ExportUniform(maincode, 4, "lightDirection");
 			ExportUniform(maincode, 4, "lightColor");
 			ExportUniform(maincode, 4, "lightAmbientColor");

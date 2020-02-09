@@ -184,11 +184,11 @@ void PipelineState_Impl::Compile(PipelineState* self, Graphics_Impl* graphics)
 		blendFuncs[static_cast<int>(BlendFuncType::SrcColor)] = MTLBlendFactorSourceColor;
 		blendFuncs[static_cast<int>(BlendFuncType::OneMinusSrcColor)] = MTLBlendFactorOneMinusSourceColor;
 		blendFuncs[static_cast<int>(BlendFuncType::SrcAlpha)] = MTLBlendFactorSourceAlpha;
-		blendFuncs[static_cast<int>(BlendFuncType::OneMinusSrcAlpha)] = MTLBlendFactorSourceAlpha;
+        blendFuncs[static_cast<int>(BlendFuncType::OneMinusSrcAlpha)] = MTLBlendFactorOneMinusSourceAlpha;
 		blendFuncs[static_cast<int>(BlendFuncType::DstColor)] = MTLBlendFactorDestinationColor;
 		blendFuncs[static_cast<int>(BlendFuncType::OneMinusDstColor)] = MTLBlendFactorOneMinusDestinationColor;
 		blendFuncs[static_cast<int>(BlendFuncType::DstAlpha)] = MTLBlendFactorDestinationAlpha;
-		blendFuncs[static_cast<int>(BlendFuncType::OneMinusDstAlpha)] = MTLBlendFactorDestinationAlpha;
+        blendFuncs[static_cast<int>(BlendFuncType::OneMinusDstAlpha)] = MTLBlendFactorOneMinusDestinationAlpha;
 
 		colorAttachment.sourceRGBBlendFactor = blendFuncs[static_cast<int>(self_->BlendSrcFunc)];
 		colorAttachment.destinationRGBBlendFactor = blendFuncs[static_cast<int>(self_->BlendDstFunc)];

@@ -33,6 +33,10 @@ struct DynamicVertex
 
 	float UV2[2];
 
+#ifdef __EFFEKSEER_BUILD_VERSION16__
+	float AlphaUV[2];
+#endif
+
 	void SetColor(const VertexColor& color) { Col = color; }
 };
 
@@ -46,6 +50,10 @@ struct SimpleVertex
 		//! dummy for template
 		float UV2[2];
 	};
+
+#ifdef __EFFEKSEER_BUILD_VERSION16__
+	float AlphaUV[2];
+#endif
 
 	void SetColor(const ::Effekseer::Color& color)
 	{
@@ -66,6 +74,10 @@ struct SimpleVertexDX9
 		//! dummy for template
 		float UV2[2];
 	};
+
+#ifdef __EFFEKSEER_BUILD_VERSION16__
+	float AlphaUV[2];
+#endif
 
 	void SetColor(const ::Effekseer::Color& color)
 	{
@@ -89,6 +101,10 @@ struct VertexDistortion
 
 	VertexFloat3 Binormal;
 	VertexFloat3 Tangent;
+
+#ifdef __EFFEKSEER_BUILD_VERSION16__
+	float AlphaUV[2];
+#endif
 	
 	void SetColor(const ::Effekseer::Color& color)
 	{
@@ -113,6 +129,10 @@ struct VertexDistortionDX9
 	VertexFloat3 Binormal;
 	VertexFloat3 Tangent;
 	
+#ifdef __EFFEKSEER_BUILD_VERSION16__
+	float AlphaUV[2];
+#endif
+
 	void SetColor(const ::Effekseer::Color& color)
 	{
 		Col[0] = color.B;
@@ -445,6 +465,7 @@ struct MaterialShaderParameterGenerator
 	int32_t VertexProjectionMatrixOffset = -1;
 	int32_t VertexInversedFlagOffset = -1;
 	int32_t VertexPredefinedOffset = -1;
+	int32_t VertexCameraPositionOffset = -1;
 	int32_t VertexUserUniformOffset = -1;
 
 	int32_t PixelInversedFlagOffset = -1;
@@ -500,6 +521,9 @@ struct MaterialShaderParameterGenerator
 			VertexPredefinedOffset = vsOffset;
 			vsOffset += sizeof(float) * 4;
 
+			VertexCameraPositionOffset = vsOffset;
+			vsOffset += sizeof(float) * 4;
+
 			if (material.GetCustomData1Count() > 0)
 			{
 				VertexModelCustomData1Offset = vsOffset;
@@ -532,6 +556,9 @@ struct MaterialShaderParameterGenerator
 			VertexPredefinedOffset = vsOffset;
 			vsOffset += sizeof(float) * 4;
 
+			VertexCameraPositionOffset = vsOffset;
+			vsOffset += sizeof(float) * 4;
+
 			VertexUserUniformOffset = vsOffset;
 			vsOffset += sizeof(float) * 4 * material.GetUniformCount();
 
@@ -546,11 +573,11 @@ struct MaterialShaderParameterGenerator
 		PixelPredefinedOffset = psOffset;
 		psOffset += sizeof(float) * 4;
 
+		PixelCameraPositionOffset = psOffset;
+		psOffset += sizeof(float) * 4;
+
 		if (material.GetShadingModel() == ::Effekseer::ShadingModelType::Lit)
 		{
-			PixelCameraPositionOffset = psOffset;
-			psOffset += sizeof(float) * 4;
-
 			PixelLightDirectionOffset = psOffset;
 			psOffset += sizeof(float) * 4;
 

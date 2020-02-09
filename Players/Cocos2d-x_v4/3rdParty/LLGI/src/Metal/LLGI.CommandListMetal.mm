@@ -204,6 +204,22 @@ void CommandListMetal::Draw(int32_t pritimiveCount)
 	auto vb = static_cast<VertexBufferMetal*>(vb_.vertexBuffer);
 	auto ib = static_cast<IndexBufferMetal*>(ib_.indexBuffer);
 	auto pip = static_cast<PipelineStateMetal*>(pip_);
+    
+    // set cull mode
+    if (pip->Culling == LLGI::CullingMode::Clockwise)
+    {
+        [impl->renderEncoder setCullMode:MTLCullModeFront];
+    }
+    else if (pip->Culling == LLGI::CullingMode::CounterClockwise)
+    {
+        [impl->renderEncoder setCullMode:MTLCullModeBack];
+    }
+    else
+    {
+        [impl->renderEncoder setCullMode:MTLCullModeNone];
+    }
+    
+    [impl->renderEncoder setFrontFacingWinding:MTLWindingCounterClockwise];
 
 	if (isVBDirtied)
 	{
