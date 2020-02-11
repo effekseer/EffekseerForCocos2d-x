@@ -23,6 +23,7 @@ endif()
 target_include_directories(${PROJECT_NAME} 
     PUBLIC ../Effekseer/
     PUBLIC ../EffekseerRendererCommon/
+    PUBLIC ../
     PUBLIC ./
     PRIVATE ../3rdParty/LLGI/src/)
 
