@@ -3,6 +3,8 @@
 
 #include "../EffekseerForCocos2d-x.h"
 #include "../../EffekseerRendererGL/EffekseerRendererGL.h"
+#include "../../EffekseerRendererGL/EffekseerRenderer/EffekseerRendererGL.ModelLoader.h"
+#include "../../EffekseerRendererGL/EffekseerRenderer/EffekseerRendererGL.MaterialLoader.h"
 #include "../../EffekseerRendererGL/EffekseerRenderer/EffekseerRendererGL.DeviceObjectCollection.h"
 #include "renderer/backend/opengl/TextureGL.h"
 
@@ -196,7 +198,8 @@ void EffectManager::CreateRenderer(int32_t spriteSize)
 
 void ResetBackground(::EffekseerRenderer::Renderer* renderer)
 {
-    renderer2d->SetBackground(0);
+    auto r = static_cast<::EffekseerRendererGL::Renderer*>(renderer);
+    r->SetBackground(0);
 }
 
 }
