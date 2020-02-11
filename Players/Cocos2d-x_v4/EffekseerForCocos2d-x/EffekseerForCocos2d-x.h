@@ -3,7 +3,7 @@
 
 #include "cocos2d.h"
 #include <Effekseer.h>
-#include <EffekseerRenderer.Renderer.h>
+#include <EffekseerRendererCommon/EffekseerRenderer.Renderer.h>
 
 //#ifdef CC_USE_METAL
 //#include <EffekseerRendererMetal.h>

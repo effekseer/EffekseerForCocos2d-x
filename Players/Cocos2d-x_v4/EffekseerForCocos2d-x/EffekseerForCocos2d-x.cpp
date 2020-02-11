@@ -1,5 +1,6 @@
 
 #include "EffekseerForCocos2d-x.h"
+#include "renderer/backend/Device.h"
 
 #ifdef CC_USE_METAL
 #include "cocos/renderer/backend/Device.h"
