@@ -51,6 +51,22 @@ TextureDX12::~TextureDX12()
 	SafeRelease(commandQueue_);
 }
 
+bool TextureDX12::Initialize(ID3D12Resource* textureResource) {
+	type_ = TextureType::Color;
+	texture_ = textureResource;
+
+	SafeAddRef(texture_);
+
+	auto desc = texture_->GetDesc();
+	dxgiFormat_ = desc.Format;
+
+	format_ = ConvertFormat(desc.Format);
+	textureSize_ = Vec2I(desc.Width, desc.Height);
+	memorySize_ = GetTextureMemorySize(format_, textureSize_);
+
+	return true;
+}
+
 bool TextureDX12::Initialize(const Vec2I& size, TextureType type, const TextureFormatType formatType)
 {
 	type_ = type;

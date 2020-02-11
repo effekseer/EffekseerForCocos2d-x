@@ -103,6 +103,12 @@ public:
 	virtual void SetIndexBuffer(IndexBuffer* indexBuffer, int32_t offset = 0);
 	virtual void SetPipelineState(PipelineState* pipelineState);
 	virtual void SetConstantBuffer(ConstantBuffer* constantBuffer, ShaderStageType shaderStage);
+
+	/**
+		@brief specify textures
+		@note
+		shaderStage is ignored in DirectX12 (common textures are used on all stages)
+	*/
 	virtual void
 	SetTexture(Texture* texture, TextureWrapMode wrapMode, TextureMinMagFilter minmagFilter, int32_t unit, ShaderStageType shaderStage);
 	virtual void BeginRenderPass(RenderPass* renderPass);

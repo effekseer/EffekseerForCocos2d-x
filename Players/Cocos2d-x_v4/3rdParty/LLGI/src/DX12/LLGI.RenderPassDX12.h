@@ -6,12 +6,16 @@
 namespace LLGI
 {
 
+namespace DX12
+{
+class DescriptorHeapAllocator;
+}
+
 class GraphicsDX12;
 class TextureDX12;
 class RenderPassPipelineStateDX12;
 class RenderTargetDX12;
 class CommandListDX12;
-class DescriptorHeapDX12;
 
 class RenderPassDX12 : public RenderPass
 {
@@ -36,14 +40,15 @@ public:
 	const RenderTargetDX12* GetRenderTarget(int idx) const { return &renderTargets_[idx]; }
 	int32_t GetCount() const { return numRenderTarget_; }
 
-	bool
-	ReinitializeRenderTargetViews(CommandListDX12* commandList, DescriptorHeapDX12* rtDescriptorHeap, DescriptorHeapDX12* dtDescriptorHeap);
+	bool ReinitializeRenderTargetViews(CommandListDX12* commandList,
+									   std::shared_ptr<DX12::DescriptorHeapAllocator> rtDescriptorHeap,
+									   std::shared_ptr<DX12::DescriptorHeapAllocator> dtDescriptorHeap);
 
 	const D3D12_CPU_DESCRIPTOR_HANDLE* GetHandleDSV() const
 	{
 		if (GetHasDepthTexture())
 		{
-			return &handleDSV_;	
+			return &handleDSV_;
 		}
 
 		return nullptr;

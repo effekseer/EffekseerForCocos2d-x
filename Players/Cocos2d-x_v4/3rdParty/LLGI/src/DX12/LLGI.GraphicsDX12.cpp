@@ -104,6 +104,13 @@ PipelineState* GraphicsDX12::CreatePiplineState() { return new PipelineStateDX12
 
 SingleFrameMemoryPool* GraphicsDX12::CreateSingleFrameMemoryPool(int32_t constantBufferPoolSize, int32_t drawingCount)
 {
+	// Driver issue
+	if (drawingCount > 512)
+	{
+		Log(LogType::Warning, "drawingCount is too large. It must be lower than 512");
+		//drawingCount = 512;
+	}
+
 	return new SingleFrameMemoryPoolDX12(this, true, swapBufferCount_, constantBufferPoolSize, drawingCount);
 }
 
@@ -131,7 +138,16 @@ RenderPass* GraphicsDX12::CreateRenderPass(const Texture** textures, int32_t tex
 	return renderPass;
 }
 
-Texture* GraphicsDX12::CreateTexture(uint64_t id) { throw "Not implemented"; }
+Texture* GraphicsDX12::CreateTexture(uint64_t id)
+{
+	auto obj = new TextureDX12(this, true);
+	if (!obj->Initialize(reinterpret_cast<ID3D12Resource*>(id)))
+	{
+		SafeRelease(obj);
+		return nullptr;
+	}
+	return obj;
+}
 
 Texture* GraphicsDX12::CreateTexture(const TextureInitializationParameter& parameter)
 {

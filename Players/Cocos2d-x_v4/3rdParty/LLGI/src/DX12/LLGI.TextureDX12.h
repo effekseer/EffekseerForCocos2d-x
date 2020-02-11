@@ -15,7 +15,7 @@ private:
 	bool hasStrongRef_ = false;
 	ID3D12Device* device_ = nullptr;
 	ID3D12CommandQueue* commandQueue_ = nullptr;
-	
+
 	ID3D12Resource* texture_ = nullptr;
 	ID3D12Resource* buffer_ = nullptr;
 	D3D12_PLACED_SUBRESOURCE_FOOTPRINT footprint_;
@@ -38,8 +38,11 @@ public:
 
 	virtual ~TextureDX12();
 
+	//! init as external texture
+	bool Initialize(ID3D12Resource* textureResource);
+
 	bool Initialize(const Vec2I& size, TextureType type, const TextureFormatType formatType);
-	
+
 	void* Lock() override;
 	void Unlock() override;
 	Vec2I GetSizeAs2D() const override;

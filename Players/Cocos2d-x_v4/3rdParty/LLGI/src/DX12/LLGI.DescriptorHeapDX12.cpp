@@ -3,73 +3,133 @@
 namespace LLGI
 {
 
-DescriptorHeapDX12::DescriptorHeapDX12(std::shared_ptr<GraphicsDX12> graphics, D3D12_DESCRIPTOR_HEAP_TYPE type, int size, int stage)
-	: graphics_(graphics), type_(type), size_(size), stage_(stage)
+namespace DX12
 {
-	SafeAddRef(graphics);
 
-	auto heap = CreateHeap(size_ * stage_);
-	assert(heap != nullptr);
-	descriptorHeaps_ = heap;
-	cpuHandles_ = descriptorHeaps_->GetCPUDescriptorHandleForHeapStart();
-	gpuHandles_ = descriptorHeaps_->GetGPUDescriptorHandleForHeapStart();
-}
-
-DescriptorHeapDX12::~DescriptorHeapDX12()
+std::shared_ptr<DescriptorHeapBlock>
+DescriptorHeapBlock::Create(std::shared_ptr<GraphicsDX12> graphics, D3D12_DESCRIPTOR_HEAP_TYPE type, int size)
 {
-	SafeRelease(graphics_);
-	SafeRelease(descriptorHeaps_);
-}
 
-void DescriptorHeapDX12::IncrementCpuHandle(int count)
-{
-	auto size = static_cast<int>(graphics_->GetDevice()->GetDescriptorHandleIncrementSize(type_));
-	cpuHandles_.ptr += static_cast<size_t>(size * count);
-}
-
-void DescriptorHeapDX12::IncrementGpuHandle(int count)
-{
-	auto size = static_cast<int>(graphics_->GetDevice()->GetDescriptorHandleIncrementSize(type_));
-	gpuHandles_.ptr += static_cast<size_t>(size * count);
-}
-
-ID3D12DescriptorHeap* DescriptorHeapDX12::GetHeap()
-{ return descriptorHeaps_; }
-
-D3D12_CPU_DESCRIPTOR_HANDLE DescriptorHeapDX12::GetCpuHandle()
-{ return cpuHandles_; }
-
-D3D12_GPU_DESCRIPTOR_HANDLE DescriptorHeapDX12::GetGpuHandle()
-{
-	return gpuHandles_;
-}
-
-void DescriptorHeapDX12::Reset()
-{
-	cpuHandles_ = descriptorHeaps_->GetCPUDescriptorHandleForHeapStart();
-	gpuHandles_ = descriptorHeaps_->GetGPUDescriptorHandleForHeapStart();
-}
-
-ID3D12DescriptorHeap* DescriptorHeapDX12::CreateHeap(int numDescriptors)
-{
 	D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
 	ID3D12DescriptorHeap* heap = nullptr;
 
-	heapDesc.NumDescriptors = numDescriptors;
-	heapDesc.Type = type_;
-	heapDesc.Flags = (type_ <= D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER)
+	heapDesc.NumDescriptors = size;
+	heapDesc.Type = type;
+	heapDesc.Flags = (type <= D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER)
 						 ? D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE
 						 : D3D12_DESCRIPTOR_HEAP_FLAG_NONE; // Only descriptor heaps for CBV, SRV, UAV, sampler can be shader visible.
 
-	heapDesc.NodeMask = 1; // TODO: set properly for multi-adaptor.
+	heapDesc.NodeMask = 1;
 
-	auto hr = graphics_->GetDevice()->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&heap));
+	auto hr = graphics->GetDevice()->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&heap));
 	if (FAILED(hr))
 	{
 		SafeRelease(heap);
 		return nullptr;
 	}
-	return heap;
+
+	return std::make_shared<DescriptorHeapBlock>(graphics->GetDevice(), heap, type, size);
 }
 
+DescriptorHeapBlock::DescriptorHeapBlock(ID3D12Device* device,
+										 ID3D12DescriptorHeap* descriptorHeap,
+										 D3D12_DESCRIPTOR_HEAP_TYPE type,
+										 int32_t size)
+	: descriptorHeap_(descriptorHeap), type_(type), size_(size)
+{
+	handleSize_ = static_cast<int>(device->GetDescriptorHandleIncrementSize(type_));
+}
+
+DescriptorHeapBlock::~DescriptorHeapBlock() { SafeRelease(descriptorHeap_); }
+
+bool DescriptorHeapBlock::Allocate(std::array<D3D12_CPU_DESCRIPTOR_HANDLE, 16>& cpuDescriptorHandle,
+								   std::array<D3D12_GPU_DESCRIPTOR_HANDLE, 16>& gpuDescriptorHandle,
+								   int32_t requiredHandle)
+{
+	if (requiredHandle > 16)
+	{
+		Log(LogType::Error, "the number of register must be lower than 16.");
+		return false;
+	}
+
+	if (size_ <= offset_ + requiredHandle)
+		return false;
+
+	auto cpuHandle = descriptorHeap_->GetCPUDescriptorHandleForHeapStart();
+	auto gpuHandle = descriptorHeap_->GetGPUDescriptorHandleForHeapStart();
+
+	for (int i = 0; i < requiredHandle; i++)
+	{
+		cpuDescriptorHandle[i] = cpuHandle;
+		gpuDescriptorHandle[i] = gpuHandle;
+
+		cpuDescriptorHandle[i].ptr += handleSize_ * (i + offset_);
+		gpuDescriptorHandle[i].ptr += handleSize_ * (i + offset_);
+	}
+
+	offset_ += requiredHandle;
+
+	return true;
+}
+
+ID3D12DescriptorHeap* DescriptorHeapBlock::GetHeap() const { return descriptorHeap_; }
+
+void DescriptorHeapBlock::Reset() { offset_ = 0; }
+
+DescriptorHeapAllocator::DescriptorHeapAllocator(std::shared_ptr<GraphicsDX12> graphics, D3D12_DESCRIPTOR_HEAP_TYPE type)
+{
+	graphics_ = graphics;
+	type_ = type;
+
+	auto block = DescriptorHeapBlock::Create(graphics_, type, DescriptorPerBlock);
+	if (block == nullptr)
+		throw "Failed to allocate descriptor";
+
+	blocks_.emplace_back(block);
+}
+
+DescriptorHeapAllocator ::~DescriptorHeapAllocator() {}
+
+bool DescriptorHeapAllocator::Allocate(ID3D12DescriptorHeap*& heap,
+									   std::array<D3D12_CPU_DESCRIPTOR_HANDLE, 16>& cpuDescriptorHandle,
+									   std::array<D3D12_GPU_DESCRIPTOR_HANDLE, 16>& gpuDescriptorHandle,
+									   int32_t requiredHandle)
+{
+	if (blocks_[offset_]->Allocate(cpuDescriptorHandle, gpuDescriptorHandle, requiredHandle))
+	{
+		heap = blocks_[offset_]->GetHeap();
+		return true;
+	}
+	else
+	{
+		auto block = DescriptorHeapBlock::Create(graphics_, type_, DescriptorPerBlock);
+		if (block == nullptr)
+		{
+			Log(LogType::Error, "Faled to allocate descriptor block.");
+			return false;
+		}
+
+		blocks_.emplace_back(block);
+		offset_++;
+
+		if (blocks_[offset_]->Allocate(cpuDescriptorHandle, gpuDescriptorHandle, requiredHandle))
+		{
+			heap = blocks_[offset_]->GetHeap();
+			return true;
+		}
+	}
+
+	throw "Failed to allocate descriptor even if it allocates block.";
+}
+
+void DescriptorHeapAllocator::Reset()
+{
+	for (auto& block : blocks_)
+	{
+		block->Reset();
+	}
+	offset_ = 0;
+}
+
+} // namespace DX12
 } // namespace LLGI

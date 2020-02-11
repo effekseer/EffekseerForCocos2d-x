@@ -5,32 +5,53 @@
 
 namespace LLGI
 {
-class DescriptorHeapDX12
+
+namespace DX12
 {
-private:
-	std::shared_ptr<GraphicsDX12> graphics_;
+class DescriptorHeapBlock
+{
+	ID3D12DescriptorHeap* descriptorHeap_ = nullptr;
 	int size_ = 0;
-	int stage_ = 0;
+	D3D12_DESCRIPTOR_HEAP_TYPE type_;
 	int offset_ = 0;
-	D3D12_DESCRIPTOR_HEAP_TYPE type_ = D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
-
-	ID3D12DescriptorHeap* descriptorHeaps_ = nullptr;
-	D3D12_CPU_DESCRIPTOR_HANDLE cpuHandles_;
-	D3D12_GPU_DESCRIPTOR_HANDLE gpuHandles_;
-
-	ID3D12DescriptorHeap* CreateHeap(int numDescriptors);
+	int handleSize_ = 0;
 
 public:
-	DescriptorHeapDX12(std::shared_ptr<GraphicsDX12> graphics, D3D12_DESCRIPTOR_HEAP_TYPE type, int size, int stage);
-	virtual ~DescriptorHeapDX12();
+	static std::shared_ptr<DescriptorHeapBlock> Create(std::shared_ptr<GraphicsDX12> graphics, D3D12_DESCRIPTOR_HEAP_TYPE type, int size);
 
-	void IncrementCpuHandle(int count);
-	void IncrementGpuHandle(int count);
-	ID3D12DescriptorHeap* GetHeap();
-	D3D12_CPU_DESCRIPTOR_HANDLE GetCpuHandle();
-	D3D12_GPU_DESCRIPTOR_HANDLE GetGpuHandle();
+	DescriptorHeapBlock(ID3D12Device* device, ID3D12DescriptorHeap* descriptorHeap, D3D12_DESCRIPTOR_HEAP_TYPE type, int32_t size);
+	~DescriptorHeapBlock();
+
+	bool Allocate(std::array<D3D12_CPU_DESCRIPTOR_HANDLE, 16>& cpuDescriptorHandle,
+				  std::array<D3D12_GPU_DESCRIPTOR_HANDLE, 16>& gpuDescriptorHandle,
+				  int32_t requiredHandle);
+
+	ID3D12DescriptorHeap* GetHeap() const;
 
 	void Reset();
 };
+
+class DescriptorHeapAllocator
+{
+private:
+	static const int DescriptorPerBlock = 128;
+	std::shared_ptr<GraphicsDX12> graphics_;
+	D3D12_DESCRIPTOR_HEAP_TYPE type_;
+	std::vector<std::shared_ptr<DescriptorHeapBlock>> blocks_;
+	int32_t offset_ = 0;
+
+public:
+	DescriptorHeapAllocator(std::shared_ptr<GraphicsDX12> graphics, D3D12_DESCRIPTOR_HEAP_TYPE type);
+	virtual ~DescriptorHeapAllocator();
+
+	bool Allocate(ID3D12DescriptorHeap*& heap,
+				  std::array<D3D12_CPU_DESCRIPTOR_HANDLE, 16>& cpuDescriptorHandle,
+				  std::array<D3D12_GPU_DESCRIPTOR_HANDLE, 16>& gpuDescriptorHandle,
+				  int32_t requiredHandle);
+
+	void Reset();
+};
+
+} // namespace DX12
 
 } // namespace LLGI

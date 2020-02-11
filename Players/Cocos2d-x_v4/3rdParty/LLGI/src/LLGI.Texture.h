@@ -24,9 +24,9 @@ public:
 	*/
 	virtual void* GetBuffer() const;
 
-	[[deprecated("use CommandList::SetImageData2D.")]] virtual void* Lock();
+	/*[[deprecated("use CommandList::SetImageData2D.")]]*/ virtual void* Lock();
 
-	[[deprecated("use CommandList::SetImageData2D.")]] virtual void Unlock();
+	/*[[deprecated("use CommandList::SetImageData2D.")]]*/ virtual void Unlock();
 
 	virtual Vec2I GetSizeAs2D() const;
 	[[deprecated("use GetType.")]] virtual bool IsRenderTexture() const;

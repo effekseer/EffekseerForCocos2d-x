@@ -10,7 +10,6 @@
 
 namespace LLGI
 {
-class DescriptorHeapDX12;
 
 struct PlatformContextDX12
 {
@@ -20,10 +19,13 @@ struct PlatformContextDX12
 class CommandListDX12 : public CommandList
 {
 private:
-	std::shared_ptr<DescriptorHeapDX12> cbreDescriptorHeap_;
-	std::shared_ptr<DescriptorHeapDX12> rtDescriptorHeap_;
-	std::shared_ptr<DescriptorHeapDX12> dtDescriptorHeap_;
-	std::shared_ptr<DescriptorHeapDX12> smpDescriptorHeap_;
+	static const int MaximumRenderTargetChange = 32;
+
+	std::shared_ptr<DX12::DescriptorHeapAllocator> samplerDescriptorHeap_;
+	std::shared_ptr<DX12::DescriptorHeapAllocator> cbDescriptorHeap_;
+	std::shared_ptr<DX12::DescriptorHeapAllocator> rtDescriptorHeap_;
+	std::shared_ptr<DX12::DescriptorHeapAllocator> dtDescriptorHeap_;
+
 	std::shared_ptr<ID3D12GraphicsCommandList> commandList_;
 	std::shared_ptr<ID3D12CommandAllocator> commandAllocator_;
 	ID3D12Fence* fence_ = nullptr;
@@ -34,6 +36,8 @@ private:
 	std::shared_ptr<RenderPassDX12> renderPass_;
 
 	ID3D12GraphicsCommandList* currentCommandList_ = nullptr;
+
+	void BeginInternal();
 
 public:
 	CommandListDX12();

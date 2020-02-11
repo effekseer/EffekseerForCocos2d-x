@@ -178,7 +178,7 @@ public:
 	Graphics() = default;
 	virtual ~Graphics();
 
-	[[deprecated("use Platform::SetWindowSize.")]] virtual void SetWindowSize(const Vec2I& windowSize);
+	/*[[deprecated("use Platform::SetWindowSize.")]]*/ virtual void SetWindowSize(const Vec2I& windowSize);
 
 	/**
 		@brief	Execute commands
@@ -191,15 +191,6 @@ public:
 	@brief	to prevent instances to be disposed before finish rendering, finish all renderings.
 	*/
 	virtual void WaitFinish() {}
-
-	/**
-		@brief get render pass of screen to show on a display.
-		@note
-		Don't release and addref it.
-		Don't use it for the many purposes, please input Clear or SetRenderPass immediately.
-	*/
-	//[[deprecated("use Platform::GetCurrentScreen.")]] virtual RenderPass*
-	// GetCurrentScreen(const Color8& clearColor = Color8(), bool isColorCleared = false, bool isDepthCleared = false);
 
 	/**
 		@brief	create a vertex buffer
@@ -218,7 +209,7 @@ public:
 
 	/**
 		@brief create a memory pool
-        @param  drawingCount    Maximum draw calls in one frame.
+        @param  drawingCount(drawingCount is ignored in DirectX12)
 	*/
 	virtual SingleFrameMemoryPool* CreateSingleFrameMemoryPool(int32_t constantBufferPoolSize, int32_t drawingCount);
 

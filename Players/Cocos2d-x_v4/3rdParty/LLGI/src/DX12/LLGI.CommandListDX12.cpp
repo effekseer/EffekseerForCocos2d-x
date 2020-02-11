@@ -12,6 +12,17 @@
 namespace LLGI
 {
 
+void CommandListDX12::BeginInternal()
+{
+	rtDescriptorHeap_->Reset();
+
+	dtDescriptorHeap_->Reset();
+
+	cbDescriptorHeap_->Reset();
+
+	samplerDescriptorHeap_->Reset();
+}
+
 CommandListDX12::CommandListDX12() {}
 
 CommandListDX12::~CommandListDX12()
@@ -54,16 +65,17 @@ bool CommandListDX12::Initialize(GraphicsDX12* graphics, int32_t drawingCount)
 	commandList->Close();
 	commandList_ = CreateSharedPtr(commandList);
 
-	cbreDescriptorHeap_ = std::make_shared<DescriptorHeapDX12>(
-		graphics_, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, drawingCount * NumTexture + 2, 2);
-
-	// the maximum render target is defined temporary
 	rtDescriptorHeap_ =
-		std::make_shared<DescriptorHeapDX12>(graphics_, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_RTV, drawingCount / 2, 2);
-	smpDescriptorHeap_ = std::make_shared<DescriptorHeapDX12>(
-		graphics_, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, drawingCount * NumTexture, 2);
+		std::make_shared<DX12::DescriptorHeapAllocator>(graphics_, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+
 	dtDescriptorHeap_ =
-		std::make_shared<DescriptorHeapDX12>(graphics_, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_DSV, drawingCount / 2, 2);
+		std::make_shared<DX12::DescriptorHeapAllocator>(graphics_, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
+
+	samplerDescriptorHeap_ =
+		std::make_shared<DX12::DescriptorHeapAllocator>(graphics_, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+
+	cbDescriptorHeap_ =
+		std::make_shared<DX12::DescriptorHeapAllocator>(graphics_, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
 	hr = graphics_->GetDevice()->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence_));
 	if (FAILED(hr))
@@ -82,10 +94,7 @@ void CommandListDX12::Begin()
 	commandAllocator_->Reset();
 	commandList_->Reset(commandAllocator_.get(), nullptr);
 
-	cbreDescriptorHeap_->Reset();
-	rtDescriptorHeap_->Reset();
-	dtDescriptorHeap_->Reset();
-	smpDescriptorHeap_->Reset();
+	BeginInternal();
 
 	currentCommandList_ = commandList_.get();
 
@@ -103,10 +112,7 @@ bool CommandListDX12::BeginWithPlatform(void* platformContextPtr)
 {
 	auto ptr = reinterpret_cast<PlatformContextDX12*>(platformContextPtr);
 
-	cbreDescriptorHeap_->Reset();
-	rtDescriptorHeap_->Reset();
-	dtDescriptorHeap_->Reset();
-	smpDescriptorHeap_->Reset();
+	BeginInternal();
 
 	currentCommandList_ = ptr->commandList;
 
@@ -130,7 +136,11 @@ void CommandListDX12::BeginRenderPass(RenderPass* renderPass)
 	if (renderPass != nullptr)
 	{
 		// Set render target
-		renderPass_->ReinitializeRenderTargetViews(this, rtDescriptorHeap_.get(), dtDescriptorHeap_.get());
+		if (!renderPass_->ReinitializeRenderTargetViews(this, rtDescriptorHeap_, dtDescriptorHeap_))
+		{
+			throw "Failed to start renderPass because of descriptors.";
+		}
+
 		currentCommandList_->OMSetRenderTargets(renderPass_->GetCount(), renderPass_->GetHandleRTV(), FALSE, renderPass_->GetHandleDSV());
 
 		// Reset scissor
@@ -221,17 +231,55 @@ void CommandListDX12::Draw(int32_t pritimiveCount)
 		currentCommandList_->SetPipelineState(p);
 	}
 
+	// count descriptor
+	int32_t requiredCBDescriptorCount = 2;
+	int32_t requiredSamplerDescriptorCount = 1;
+
+	for (int stage_ind = 0; stage_ind < static_cast<int>(ShaderStageType::Max); stage_ind++)
+	{
+		for (int unit_ind = 0; unit_ind < currentTextures[stage_ind].size(); unit_ind++)
+		{
+			if (currentTextures[stage_ind][unit_ind].texture != nullptr)
+			{
+				requiredSamplerDescriptorCount = max(requiredSamplerDescriptorCount, unit_ind + 1);
+			}
+		}
+	}
+
+	requiredCBDescriptorCount += requiredSamplerDescriptorCount;
+
+	ID3D12DescriptorHeap* heapSampler = nullptr;
+	ID3D12DescriptorHeap* heapConstant = nullptr;
+
+	std::array<D3D12_CPU_DESCRIPTOR_HANDLE, 16> cpuDescriptorHandleSampler;
+	std::array<D3D12_GPU_DESCRIPTOR_HANDLE, 16> gpuDescriptorHandleSampler;
+	std::array<D3D12_CPU_DESCRIPTOR_HANDLE, 16> cpuDescriptorHandleConstant;
+	std::array<D3D12_GPU_DESCRIPTOR_HANDLE, 16> gpuDescriptorHandleConstant;
+
+	if (!samplerDescriptorHeap_->Allocate(
+			heapSampler, cpuDescriptorHandleSampler, gpuDescriptorHandleSampler, requiredSamplerDescriptorCount))
+	{
+		Log(LogType::Error, "Failed to draw because of descriptors.");
+		return;
+	}
+
+	if (!cbDescriptorHeap_->Allocate(heapConstant, cpuDescriptorHandleConstant, gpuDescriptorHandleConstant, requiredCBDescriptorCount))
+	{
+		Log(LogType::Error, "Failed to draw because of descriptors.");
+		return;
+	}
+
 	{
 		// set using descriptor heaps
 		ID3D12DescriptorHeap* heaps[] = {
-			cbreDescriptorHeap_->GetHeap(),
-			smpDescriptorHeap_->GetHeap(),
+			heapConstant,
+			heapSampler,
 		};
 		currentCommandList_->SetDescriptorHeaps(2, heaps);
 
 		// set descriptor tables
-		currentCommandList_->SetGraphicsRootDescriptorTable(0, cbreDescriptorHeap_->GetGpuHandle());
-		currentCommandList_->SetGraphicsRootDescriptorTable(1, smpDescriptorHeap_->GetGpuHandle());
+		currentCommandList_->SetGraphicsRootDescriptorTable(0, gpuDescriptorHandleConstant[0]);
+		currentCommandList_->SetGraphicsRootDescriptorTable(1, gpuDescriptorHandleSampler[0]);
 	}
 
 	int increment = NumTexture * static_cast<int>(ShaderStageType::Max);
@@ -247,7 +295,7 @@ void CommandListDX12::Draw(int32_t pritimiveCount)
 				D3D12_CONSTANT_BUFFER_VIEW_DESC desc = {};
 				desc.BufferLocation = _cb->Get()->GetGPUVirtualAddress() + _cb->GetOffset();
 				desc.SizeInBytes = _cb->GetActualSize();
-				auto cpuHandle = cbreDescriptorHeap_->GetCpuHandle();
+				auto cpuHandle = cpuDescriptorHandleConstant[stage_ind];
 				graphics_->GetDevice()->CreateConstantBufferView(&desc, cpuHandle);
 			}
 			else
@@ -256,12 +304,10 @@ void CommandListDX12::Draw(int32_t pritimiveCount)
 				D3D12_CONSTANT_BUFFER_VIEW_DESC desc = {};
 				desc.BufferLocation = D3D12_GPU_VIRTUAL_ADDRESS();
 				desc.SizeInBytes = 0;
-				auto cpuHandle = cbreDescriptorHeap_->GetCpuHandle();
+				auto cpuHandle = cpuDescriptorHandleConstant[stage_ind];
 				graphics_->GetDevice()->CreateConstantBufferView(&desc, cpuHandle);
 			}
-			cbreDescriptorHeap_->IncrementCpuHandle(1);
 		}
-		cbreDescriptorHeap_->IncrementGpuHandle(static_cast<int>(ShaderStageType::Max));
 	}
 
 	{
@@ -297,7 +343,7 @@ void CommandListDX12::Draw(int32_t pritimiveCount)
 						srvDesc.Texture2D.MipLevels = 1;
 						srvDesc.Texture2D.MostDetailedMip = 0;
 
-						auto cpuHandle = cbreDescriptorHeap_->GetCpuHandle();
+						auto cpuHandle = cpuDescriptorHandleConstant[static_cast<int32_t>(ShaderStageType::Max) + unit_ind];
 						graphics_->GetDevice()->CreateShaderResourceView(texture->Get(), &srvDesc, cpuHandle);
 					}
 
@@ -305,8 +351,14 @@ void CommandListDX12::Draw(int32_t pritimiveCount)
 					{
 						D3D12_SAMPLER_DESC samplerDesc = {};
 
-						// TODO
-						samplerDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
+						if (minMagFilter == TextureMinMagFilter::Nearest)
+						{
+							samplerDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
+						}
+						else
+						{
+							samplerDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
+						}
 
 						if (wrapMode == TextureWrapMode::Repeat)
 						{
@@ -326,16 +378,12 @@ void CommandListDX12::Draw(int32_t pritimiveCount)
 						samplerDesc.MinLOD = 0.0f;
 						samplerDesc.MaxLOD = D3D12_FLOAT32_MAX;
 
-						auto cpuHandle = smpDescriptorHeap_->GetCpuHandle();
+						auto cpuHandle = cpuDescriptorHandleSampler[unit_ind];
 						graphics_->GetDevice()->CreateSampler(&samplerDesc, cpuHandle);
 					}
 				}
-				cbreDescriptorHeap_->IncrementCpuHandle(1);
-				smpDescriptorHeap_->IncrementCpuHandle(1);
 			}
 		}
-		cbreDescriptorHeap_->IncrementGpuHandle(increment);
-		smpDescriptorHeap_->IncrementGpuHandle(increment);
 	}
 
 	// setup a topology (triangle)
@@ -371,6 +419,11 @@ void CommandListDX12::ClearDepth()
 	auto rt = renderPass_;
 	if (rt == nullptr)
 		return;
+
+	if (!rt->GetHasDepthTexture())
+	{
+		return;
+	}
 
 	auto handle = rt->GetHandleDSV();
 	for (int i = 0; i < rt->GetCount(); i++)
