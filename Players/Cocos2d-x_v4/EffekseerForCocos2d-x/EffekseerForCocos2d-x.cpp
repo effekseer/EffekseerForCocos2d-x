@@ -850,13 +850,11 @@ EffectManager::EffectManager() {}
 
 EffectManager::~EffectManager()
 {
-	if (distortingCallback != nullptr)
+	if (distortingCallback != nullptr &&
+        renderer2d->GetDistortingCallback() != distortingCallback)
 	{
-        // distortionCallback is destroied in renderer
-		// delete distortingCallback;
+		delete distortingCallback;
 		distortingCallback = nullptr;
-        // ensure no garbage pointer in renderer
-        renderer2d->SetDistortingCallback(nullptr);
 	}
 
 	if (manager2d != nullptr)
@@ -902,10 +900,8 @@ void EffectManager::begin(cocos2d::Renderer* renderer, float globalZOrder)
         ResetBackground(renderer2d);
 	}
 
-    if(memoryPool_ != nullptr)
-    {
-        memoryPool_->NewFrame();
-    }
+    newFrame();
+
 	// TODO Batch render
 	/*
 	beginCommand.init(globalZOrder);

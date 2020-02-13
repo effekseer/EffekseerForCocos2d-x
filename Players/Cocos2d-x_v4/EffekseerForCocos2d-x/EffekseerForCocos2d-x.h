@@ -375,6 +375,12 @@ public:
 	*/
 	void end(cocos2d::Renderer* renderer, float globalZOrder);
 
+    /**
+        @brief
+        \~English    This is called within begin. For special behavioural handling of different graphic device
+    */
+    void newFrame();
+    
 	/**
 		@brief
 		\~English	Update the manager every frame.
