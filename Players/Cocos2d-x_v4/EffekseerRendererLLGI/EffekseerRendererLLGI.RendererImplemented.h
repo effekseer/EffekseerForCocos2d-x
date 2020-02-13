@@ -97,6 +97,8 @@ protected:
 
 	LLGI::PipelineState* GetOrCreatePiplineState();
 
+    virtual void GenerateVertexBuffer();
+    
 public:
 	//! shaders (todo implemented)
 	FixedShader fixedShader_;
