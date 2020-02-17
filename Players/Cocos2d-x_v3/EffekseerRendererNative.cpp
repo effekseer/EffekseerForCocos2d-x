@@ -541,6 +541,18 @@ Renderer::~Renderer() { ES_SAFE_DELETE(impl); }
 
 Renderer::Impl* Renderer::GetImpl() { return impl; }
 
+::Effekseer::Vector3D Renderer::GetLightDirection() const { return impl->GetLightDirection(); }
+
+void Renderer::SetLightDirection(const ::Effekseer::Vector3D& direction) { impl->SetLightDirection(direction); }
+
+const ::Effekseer::Color& Renderer::GetLightColor() const { return impl->GetLightColor(); }
+
+void Renderer::SetLightColor(const ::Effekseer::Color& color) { impl->SetLightColor(color); }
+
+const ::Effekseer::Color& Renderer::GetLightAmbientColor() const { return impl->GetLightAmbientColor(); }
+
+void Renderer::SetLightAmbientColor(const ::Effekseer::Color& color) { impl->SetLightAmbientColor(color); }
+
 ::Effekseer::Matrix44 Renderer::GetProjectionMatrix() const { return impl->GetProjectionMatrix(); }
 
 void Renderer::SetProjectionMatrix(const ::Effekseer::Matrix44& mat) { impl->SetProjectionMatrix(mat); }
@@ -594,6 +606,19 @@ void Renderer::SetBackgroundTexture(::Effekseer::TextureData* textureData)
 
 namespace EffekseerRenderer
 {
+
+::Effekseer::Vector3D Renderer::Impl::GetLightDirection() const {return ToStruct(lightDirection_); }
+
+void Renderer::Impl::SetLightDirection(const ::Effekseer::Vector3D& direction) { lightDirection_ = direction; }
+
+const ::Effekseer::Color& Renderer::Impl::GetLightColor() const { return lightColor_; }
+
+void Renderer::Impl::SetLightColor(const ::Effekseer::Color& color) { lightColor_ = color; }
+
+const ::Effekseer::Color& Renderer::Impl::GetLightAmbientColor() const { return lightAmbient_; }
+
+void Renderer::Impl::SetLightAmbientColor(const ::Effekseer::Color& color) { lightAmbient_ = color; }
+
 void Renderer::Impl::CalculateCameraProjectionMatrix() { cameraProjMat_ = cameraMat_ * projectionMat_; }
 
 ::Effekseer::Matrix44 Renderer::Impl::GetProjectionMatrix() const { return ToStruct(projectionMat_); }
@@ -714,6 +739,7 @@ void RenderStateBase::State::Reset()
 	CullingType = ::Effekseer::CullingType::Double;
 	TextureFilterTypes.fill(::Effekseer::TextureFilterType::Nearest);
 	TextureWrapTypes.fill(::Effekseer::TextureWrapType::Clamp);
+	TextureIDs.fill(0);
 }
 
 //-----------------------------------------------------------------------------------
@@ -727,6 +753,7 @@ void RenderStateBase::State::CopyTo( State& state )
 	state.CullingType = CullingType;
 	state.TextureFilterTypes = TextureFilterTypes;
 	state.TextureWrapTypes = TextureWrapTypes;
+	state.TextureIDs = TextureIDs;
 }
 
 //-----------------------------------------------------------------------------------
@@ -1405,10 +1432,6 @@ private:
 	//! default vao (alsmot for material)
 	GLuint defaultVertexArray_ = 0;
 
-	::Effekseer::Vector3D	m_lightDirection;
-	::Effekseer::Color		m_lightColor;
-	::Effekseer::Color		m_lightAmbient;
-
 	::EffekseerRenderer::RenderStateBase*		m_renderState;
 
 	Effekseer::TextureData	m_background;
@@ -1479,36 +1502,6 @@ public:
 
 	::EffekseerRenderer::RenderStateBase* GetRenderState();
 	
-	/**
-		@brief	ライトの方向を取得する。
-	*/
-	::Effekseer::Vector3D GetLightDirection() const override;
-
-	/**
-		@brief	ライトの方向を設定する。
-	*/
-	void SetLightDirection( const ::Effekseer::Vector3D& direction ) override;
-
-	/**
-		@brief	ライトの色を取得する。
-	*/
-	const ::Effekseer::Color& GetLightColor() const override;
-
-	/**
-		@brief	ライトの色を設定する。
-	*/
-	void SetLightColor( const ::Effekseer::Color& color ) override;
-
-	/**
-		@brief	ライトの環境光の色を取得する。
-	*/
-	const ::Effekseer::Color& GetLightAmbientColor() const override;
-
-	/**
-		@brief	ライトの環境光の色を設定する。
-	*/
-	void SetLightAmbientColor( const ::Effekseer::Color& color ) override;
-
 	/**
 		@brief	スプライトレンダラーを生成する。
 	*/
@@ -3119,24 +3112,13 @@ R"(
 	{
 		mat3 lightMatrix = mat3(modelMatrix[0].xyz, modelMatrix[1].xyz, modelMatrix[2].xyz);
 		vec3 localNormal = normalize( lightMatrix * a_Normal.xyz );
-		float diffuse = 1.0;
-		if (NormalMapEnable)
-		{
-			v_Normal = vec4(localNormal, 1.0);
-			v_Binormal = vec4(normalize( lightMatrix * a_Binormal.xyz ), 1.0);
-			v_Tangent = vec4(normalize( lightMatrix * a_Tangent.xyz ), 1.0);
-		}
-		else
-		{
-			diffuse = max(0.0, dot(localNormal, LightDirection.xyz));
-		}
-		v_Color = modelColor * vec4(diffuse * LightColor.rgb, 1.0);
-	}
-	else
-	{
-		v_Color = modelColor;
+
+		v_Normal = vec4(localNormal, 1.0);
+		v_Binormal = vec4(normalize( lightMatrix * a_Binormal.xyz ), 1.0);
+		v_Tangent = vec4(normalize( lightMatrix * a_Tangent.xyz ), 1.0);
 	}
 
+	v_Color = modelColor;
 	v_TexCoord.y = mUVInversed.x + mUVInversed.y * v_TexCoord.y;
 }
 )";
@@ -3158,27 +3140,15 @@ uniform vec4 LightAmbient;
 
 void main()
 {
-	vec4 diffuse = vec4(1.0);
-	if (LightingEnable && NormalMapEnable)
+	FRAGCOLOR = v_Color * TEX2D(ColorTexture, v_TexCoord.xy);
+
+	if (LightingEnable)
 	{
 		vec3 texNormal = (TEX2D(NormalTexture, v_TexCoord.xy).xyz - 0.5) * 2.0;
 		mat3 normalMatrix = mat3(v_Tangent.xyz, v_Binormal.xyz, v_Normal.xyz );
 		vec3 localNormal = normalize( normalMatrix * texNormal );
-		diffuse = vec4(max(0.0, dot(localNormal, LightDirection.xyz)));
-	}
-	if (TextureEnable)
-	{
-		FRAGCOLOR = v_Color * TEX2D(ColorTexture, v_TexCoord.xy);
-		FRAGCOLOR.xyz = FRAGCOLOR.xyz * diffuse.xyz;
-	} else
-	{
-		FRAGCOLOR = v_Color;
-		FRAGCOLOR.xyz = FRAGCOLOR.xyz * diffuse.xyz;
-	}
-  
-	if (LightingEnable)
-	{
-		FRAGCOLOR.xyz = FRAGCOLOR.xyz + LightAmbient.xyz;
+		float diffuse = max(0.0, dot(localNormal, LightDirection.xyz));
+		FRAGCOLOR.xyz = FRAGCOLOR.xyz * (LightColor.xyz * diffuse + LightAmbient.xyz);
 	}
 }
 
@@ -4472,15 +4442,13 @@ uniform vec4 LightAmbient;
 
 void main()
 {
-	vec4 diffuse = vec4(1.0);
-	
 	vec3 texNormal = (TEX2D(NormalTexture, v_UV1.xy).xyz - 0.5) * 2.0;
 	mat3 normalMatrix = mat3(v_WorldT.xyz, v_WorldB.xyz, v_WorldN.xyz );
 	vec3 localNormal = normalize( normalMatrix * texNormal );
-	diffuse = vec4(max(0.0, dot(localNormal, LightDirection.xyz)));
+	float diffuse = max(0.0, dot(localNormal, LightDirection.xyz));
 	
 	FRAGCOLOR = v_VColor * TEX2D(ColorTexture, v_UV1.xy);
-	FRAGCOLOR.xyz = FRAGCOLOR.xyz * (diffuse.xyz + LightAmbient.xyz);
+	FRAGCOLOR.xyz = FRAGCOLOR.xyz * (LightColor.xyz * diffuse + LightAmbient.xyz);
 }
 
 
@@ -4545,13 +4513,6 @@ RendererImplemented::RendererImplemented(int32_t squareMaxCount,
 	, m_deviceType(deviceType)
 	, deviceObjectCollection_(deviceObjectCollection)
 {
-	::Effekseer::Vector3D direction( 1.0f, 1.0f, 1.0f );
-	SetLightDirection( direction );
-	::Effekseer::Color lightColor( 255, 255, 255, 255 );
-	SetLightColor( lightColor );
-	::Effekseer::Color lightAmbient( 40, 40, 40, 255 );
-	SetLightAmbientColor( lightAmbient );
-
 	m_background.UserID = 0;
 	m_background.HasMipmap = false;
 
@@ -4906,6 +4867,8 @@ bool RendererImplemented::BeginRendering()
 	m_renderState->GetActiveState().Reset();
 	m_renderState->Update( true );
 	
+	m_renderState->GetActiveState().TextureIDs.fill(0);
+
 	// reset renderer
 	m_standardRenderer->ResetAndRenderingIfRequired();
 
@@ -5044,54 +5007,6 @@ void RendererImplemented::SetSquareMaxCount(int32_t count)
 ::EffekseerRenderer::RenderStateBase* RendererImplemented::GetRenderState()
 {
 	return m_renderState;
-}
-
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-::Effekseer::Vector3D RendererImplemented::GetLightDirection() const
-{
-	return m_lightDirection;
-}
-
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-void RendererImplemented::SetLightDirection( const ::Effekseer::Vector3D& direction )
-{
-	m_lightDirection = direction;
-}
-
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-const ::Effekseer::Color& RendererImplemented::GetLightColor() const
-{
-	return m_lightColor;
-}
-
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-void RendererImplemented::SetLightColor( const ::Effekseer::Color& color )
-{
-	m_lightColor = color;
-}
-
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-const ::Effekseer::Color& RendererImplemented::GetLightAmbientColor() const
-{
-	return m_lightAmbient;
-}
-
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-void RendererImplemented::SetLightAmbientColor( const ::Effekseer::Color& color )
-{
-	m_lightAmbient = color;
 }
 
 //----------------------------------------------------------------------------------
@@ -5449,7 +5364,11 @@ void RendererImplemented::SetTextures(Shader* shader, Effekseer::TextureData** t
 {
 	GLCheckError();
 
-	currentTextures_.clear();
+	for (int i = count; i < currentTextures_.size(); i++)
+	{
+		m_renderState->GetActiveState().TextureIDs[i] = 0;
+	}
+
 	currentTextures_.resize(count);
 
 	for (int32_t i = 0; i < count; i++)
@@ -5465,12 +5384,14 @@ void RendererImplemented::SetTextures(Shader* shader, Effekseer::TextureData** t
 		
 		if (textures[i] != nullptr)
 		{
+			m_renderState->GetActiveState().TextureIDs[i] = textures[i]->UserID;
 			currentTextures_[i] = *textures[i];
 		}
 		else
 		{
 			currentTextures_[i].UserID = 0;
 			currentTextures_[i].UserPtr = nullptr;
+			m_renderState->GetActiveState().TextureIDs[i] = 0;
 		}
 		
 		if (shader->GetTextureSlotEnable(i))
@@ -5824,7 +5745,7 @@ void RenderState::Update( bool forced )
 			if (m_renderer->GetCurrentTextures()[i].UserID == 0)
 				continue;
 
-			if (m_active.TextureFilterTypes[i] != m_next.TextureFilterTypes[i] || forced)
+			if (m_active.TextureFilterTypes[i] != m_next.TextureFilterTypes[i] || forced || m_active.TextureIDs[i] != m_next.TextureIDs[i])
 			{
 				GLExt::glActiveTexture(GL_TEXTURE0 + i);
 
@@ -5854,7 +5775,7 @@ void RenderState::Update( bool forced )
 				GLExt::glBindSampler(i, m_samplers[i]);
 			}
 
-			if (m_active.TextureWrapTypes[i] != m_next.TextureWrapTypes[i] || forced)
+			if (m_active.TextureWrapTypes[i] != m_next.TextureWrapTypes[i] || forced || m_active.TextureIDs[i] != m_next.TextureIDs[i])
 			{
 				GLExt::glActiveTexture(GL_TEXTURE0 + i);
 

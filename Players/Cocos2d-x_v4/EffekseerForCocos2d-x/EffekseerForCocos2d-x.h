@@ -78,7 +78,7 @@ private:
 	cocos2d::Vec3 targetPosition_;
 	float speed_ = 1.0f;
 	cocos2d::Color4B color_ = cocos2d::Color4B(255, 255, 255, 255);
-	std::array<float, 4> dynamicInputs;
+	std::array<float, 4> dynamicInputs_;
 
 	EffectManager* manager = nullptr;
 	Effect* effect_ = nullptr;
