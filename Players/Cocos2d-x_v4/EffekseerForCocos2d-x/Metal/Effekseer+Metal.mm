@@ -1,8 +1,8 @@
-#include "cocos2d.h"
+#include "../EffekseerForCocos2d-x.h"
 #ifdef CC_USE_METAL
 
-#include "../EffekseerForCocos2d-x.h"
 #include "../../EffekseerRendererMetal/EffekseerRenderer/EffekseerRendererMetal.RendererImplemented.h"
+#include "../../EffekseerRendererMetal/EffekseerRenderer/EffekseerRendererMetal.VertexBuffer.h"
 #include "../../EffekseerRendererMetal/EffekseerRendererMetal.h"
 #include "../../3rdParty/LLGI/src/Metal/LLGI.GraphicsMetal.h"
 #include "renderer/backend/metal/TextureMTL.h"
@@ -202,6 +202,18 @@ void EffectManager::CreateRenderer(int32_t spriteSize)
     renderer2d->SetBackgroundTextureUVStyle(EffekseerRenderer::UVStyle::VerticalFlipped);
     
     ES_SAFE_RELEASE(device);
+}
+
+void EffectManager::newFrame()
+{
+    if(memoryPool_ != nullptr)
+    {
+        memoryPool_->NewFrame();
+    }
+    
+    auto r = static_cast<::EffekseerRendererMetal::RendererImplemented*>(renderer2d);
+    auto vb = static_cast<::EffekseerRendererMetal::VertexBuffer*>(r->GetVertexBuffer());
+    vb->NewFrame();
 }
 
 void ResetBackground(::EffekseerRenderer::Renderer* renderer)

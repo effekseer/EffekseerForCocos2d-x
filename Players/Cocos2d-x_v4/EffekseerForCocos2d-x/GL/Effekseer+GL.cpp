@@ -1,7 +1,6 @@
-#include "cocos2d.h"
+#include "../EffekseerForCocos2d-x.h"
 #ifndef CC_USE_METAL
 
-#include "../EffekseerForCocos2d-x.h"
 #include "../../EffekseerRendererGL/EffekseerRendererGL.h"
 #include "../../EffekseerRendererGL/EffekseerRenderer/EffekseerRendererGL.ModelLoader.h"
 #include "../../EffekseerRendererGL/EffekseerRenderer/EffekseerRendererGL.MaterialLoader.h"
@@ -195,6 +194,8 @@ void EffectManager::CreateRenderer(int32_t spriteSize)
 	renderer2d = ::EffekseerRendererGL::Renderer::Create(spriteSize, EffekseerRendererGL::OpenGLDeviceType::OpenGL2, EffekseerDeviceObjectCollection::create());
 #endif
 }
+
+void EffectManager::newFrame() {}
 
 void ResetBackground(::EffekseerRenderer::Renderer* renderer)
 {
