@@ -77,6 +77,7 @@ namespace efk
 		cocos2d::Vec3 targetPosition_;
 		float speed_ = 1.0f;
 		cocos2d::Color4B color_ = cocos2d::Color4B(255, 255, 255, 255);
+		std::array<float, 4> dynamicInputs;
 
 		EffectManager* manager = nullptr;
 		Effect* effect_ = nullptr;
@@ -257,6 +258,20 @@ namespace efk
 		\~Japanese	エフェクトが集まる位置を設定する。
 		*/
 		void setTargetPosition(cocos2d::Vec3 position);
+
+		/**
+			@brief
+			\~English get a dynamic parameter, which changes effect parameters dynamically while playing
+			\~Japanese 再生中にエフェクトのパラメーターを変更する動的パラメーターを取得する。
+		*/
+		float getDynamicInput(int32_t index);
+
+		/**
+			@brief
+			\~English specfiy a dynamic parameter, which changes effect parameters dynamically while playing
+			\~Japanese 再生中にエフェクトのパラメーターを変更する動的パラメーターを設定する。
+		*/
+		void setDynamicInput(int32_t index, float value);
 
 		/**
 			@brief	

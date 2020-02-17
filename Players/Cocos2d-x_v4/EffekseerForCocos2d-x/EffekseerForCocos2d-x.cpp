@@ -568,6 +568,8 @@ EffectEmitter::EffectEmitter(EffectManager* manager)
 	}
 
 	autorelease();
+
+	dynamicInputs_.fill(0.0f);
 }
 
 EffectEmitter::~EffectEmitter()
@@ -623,6 +625,11 @@ void EffectEmitter::play(int32_t startTime)
 	setTargetPosition(targetPosition_);
 	setColor(color_);
 	setSpeed(speed_);
+
+	for(size_t i = 0; i < 4; i++)
+	{
+		setDynamicInput(i, dynamicInputs_[i]);
+	}
 }
 
 bool EffectEmitter::getPlayOnEnter() { return playOnEnter; }
@@ -664,6 +671,17 @@ void EffectEmitter::setTargetPosition(cocos2d::Vec3 position)
 {
 	targetPosition_ = position;
 	manager->getInternalManager()->SetTargetLocation(handle, position.x, position.y, position.z);
+}
+
+float EffectEmitter::getDynamicInput(int32_t index)
+{
+	return dynamicInputs_.at(index);
+}
+
+void EffectEmitter::setDynamicInput(int32_t index, float value)
+{
+	dynamicInputs_.at(index) = value;
+	manager->getInternalManager()->SetDynamicInput(handle, index, value);
 }
 
 bool EffectEmitter::isPlaying() { return manager->getInternalManager()->Exists(handle); }
