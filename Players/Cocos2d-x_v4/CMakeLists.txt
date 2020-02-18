@@ -18,6 +18,11 @@ option(USE_OPENGLES2 "Use OpenGL ES2" OFF)
 option(USE_OPENGLES3 "Use OpenGL ES3" OFF)
 option(USE_OPENGL3 "Use OpenGL 3" OFF)
 
+if(_CMAKE_OSX_SYSROOT_PATH MATCHES "/iPhone(OS|Simulator)")
+    set(USE_OPENGLES2 ON)
+endif()
+
+
 if(APPLE)
     set(BUILD_METAL ON)
 endif()

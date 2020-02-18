@@ -1,5 +1,7 @@
 
-#if !(TARGET_OS_IPHONE)
+#include <TargetConditionals.h>
+
+#if !(TARGET_OS_IPHONE) && !(TARGET_OS_SIMULATOR)
 #import <Cocoa/Cocoa.h>
 #endif
 

@@ -3,6 +3,10 @@
 #define __EFFEKSEER_SIMD4F_NEON_H__
 #if defined(__ARM_NEON__) || defined(__ARM_NEON)
 
+#if defined(__APPLE__)
+#include <TargetConditionals.h>
+#endif
+
 #include <stdint.h>
 #include <math.h>
 #include <arm_neon.h>
@@ -15,9 +19,14 @@ inline float Sqrt(float x)
 {
 	return sqrt(x);
 }
+
 inline float Rsqrt(float x)
 {
-	return vrsqrtes_f32(x);
+#if defined(__APPLE__)
+    return 1.0f / sqrt(x);
+#else
+    return vrsqrtes_f32(x);
+#endif
 }
 
 /**

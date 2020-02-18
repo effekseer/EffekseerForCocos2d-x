@@ -1,7 +1,8 @@
 
-#if !(TARGET_OS_IPHONE)
+#include <TargetConditionals.h>
+
+#if !(TARGET_OS_IPHONE) && !(TARGET_OS_SIMULATOR)
 #import <Cocoa/Cocoa.h>
-#endif
 
 #import <MetalKit/MetalKit.h>
 
@@ -122,3 +123,5 @@ RenderPass* PlatformMetal::GetCurrentScreen(const Color8& clearColor, bool isCol
 
 
 }
+
+#endif

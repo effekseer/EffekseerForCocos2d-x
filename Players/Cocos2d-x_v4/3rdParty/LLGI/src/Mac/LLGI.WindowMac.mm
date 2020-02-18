@@ -1,5 +1,8 @@
-#import "LLGI.WindowMac.h"
+#include <TargetConditionals.h>
 
+#if !(TARGET_OS_IPHONE) && !(TARGET_OS_SIMULATOR)
+
+#import "LLGI.WindowMac.h"
 #import <Cocoa/Cocoa.h>
 #import <MetalKit/MetalKit.h>
 
@@ -175,3 +178,5 @@ Vec2I WindowMac::GetWindowSize() const
 }
     
 } // namespace LLGI
+
+#endif
