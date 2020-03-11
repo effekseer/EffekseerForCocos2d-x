@@ -306,9 +306,33 @@ void EFK_STDCALL InternalFree(void* p, unsigned int size)
 	delete[] pData;
 }
 
+void* EFK_STDCALL InternalAlignedMalloc(unsigned int size, unsigned int alignement)
+{
+#ifdef _MSC_VER
+	return _mm_malloc(size, alignement);
+#else
+	void* ptr = nullptr;
+	posix_memalign(&ptr, alignement, size);
+	return ptr;
+#endif
+}
+
+void EFK_STDCALL InternalAlignedFree(void* p, unsigned int size)
+{
+#ifdef _MSC_VER
+	_mm_free(p);
+#else
+	return free(p);
+#endif
+}
+
 MallocFunc mallocFunc_ = InternalMalloc;
 
 FreeFunc freeFunc_ = InternalFree;
+
+AlignedMallocFunc alignedMallocFunc_ = InternalAlignedMalloc;
+
+AlignedFreeFunc alignedFreeFunc_ = InternalAlignedFree;
 
 MallocFunc GetMallocFunc() { return mallocFunc_; }
 
@@ -317,6 +341,14 @@ void SetMallocFunc(MallocFunc func) { mallocFunc_ = func; }
 FreeFunc GetFreeFunc() { return freeFunc_; }
 
 void SetFreeFunc(FreeFunc func) { freeFunc_ = func; }
+
+AlignedMallocFunc GetAlignedMallocFunc() { return alignedMallocFunc_; }
+
+void SetAlignedMallocFunc(AlignedMallocFunc func) { alignedMallocFunc_ = func; }
+
+AlignedFreeFunc GetAlignedFreeFunc() { return alignedFreeFunc_; }
+
+void SetAlignedFreeFunc(AlignedFreeFunc func) { alignedFreeFunc_ = func; }
 
 } // namespace Effekseer
 
@@ -609,7 +641,7 @@ public:
 	int GetRef() override { return ReferenceObject::GetRef(); }
 };
 
-const std::vector<uint8_t>& CompiledMaterial::GetOriginalData() const { return originalData; }
+const std::vector<uint8_t>& CompiledMaterial::GetOriginalData() const { return originalData_; }
 
 bool CompiledMaterial::Load(const uint8_t* data, int32_t size)
 {
@@ -653,8 +685,8 @@ bool CompiledMaterial::Load(const uint8_t* data, int32_t size)
 	memcpy(&originalDataSize, data + offset, 4);
 	offset += sizeof(uint32_t);
 
-	originalData.resize(originalDataSize);
-	memcpy(originalData.data(), data + offset, originalDataSize);
+	originalData_.resize(originalDataSize);
+	memcpy(originalData_.data(), data + offset, originalDataSize);
 
 	offset += originalDataSize;
 
@@ -806,14 +838,14 @@ void CompiledMaterial::Save(std::vector<uint8_t>& dst, uint64_t guid, std::vecto
 
 		for (size_t i = 0; i < 8; i++)
 		{
-			int32_t bodySize = bodySizes[i];
+			int32_t bodySize2 = bodySizes[i];
 
 			dst.resize(dst.size() + sizeof(int));
-			memcpy(dst.data() + offset, &(bodySize), sizeof(int));
+			memcpy(dst.data() + offset, &(bodySize2), sizeof(int));
 			offset = dst.size();
 
-			dst.resize(dst.size() + bodySize);
-			memcpy(dst.data() + offset, bodies[i], bodySize);
+			dst.resize(dst.size() + bodySize2);
+			memcpy(dst.data() + offset, bodies[i], bodySize2);
 			offset = dst.size();
 		}
 	}
@@ -947,16 +979,16 @@ bool EfkEfcProperty::Load(const void* data, int32_t size)
 
 		if (memcmp(&chunk, "INFO", 4) == 0)
 		{
-			int32_t version = 0;
+			int32_t infoVersion = 0;
 
-			auto loadStr = [this, &binaryReader, &version](std::vector<std::u16string>& dst) {
+			auto loadStr = [this, &binaryReader, &infoVersion](std::vector<std::u16string>& dst) {
 				int32_t dataCount = 0;
 				binaryReader.Read(dataCount);
 
 				// compatibility
 				if (dataCount >= 1500)
 				{
-					version = dataCount;
+					infoVersion = dataCount;
 					binaryReader.Read(dataCount);
 				}
 
@@ -980,7 +1012,7 @@ bool EfkEfcProperty::Load(const void* data, int32_t size)
 			loadStr(models_);
 			loadStr(sounds_);
 
-			if (version >= 1500)
+			if (infoVersion >= 1500)
 			{
 				loadStr(materials_);
 			}
@@ -5821,6 +5853,20 @@ public:
 	void Maginify(float value);
 };
 
+#ifdef __EFFEKSEER_BUILD_VERSION16__
+class FCurveScalar
+{
+public:
+	FCurveTimelineType Timeline = FCurveTimelineType::Time;
+	FCurve S = FCurve(0);
+
+	int32_t Load(void* data, int32_t version);
+
+	float GetValues(float living, float life) const;
+	float GetOffsets(InstanceGlobal& g) const;
+};
+#endif
+
 class FCurveVector2D
 {
 public:
@@ -7060,6 +7106,83 @@ struct ParameterRendererCommon
 	}
 };
 
+#ifdef __EFFEKSEER_BUILD_VERSION16__
+struct ParameterAlphaCrunch
+{
+	enum EType : int32_t
+	{
+		FIXED,
+		FOUR_POINT_INTERPOLATION,
+		EASING,
+		F_CURVE,
+
+		FPI = FOUR_POINT_INTERPOLATION,
+	} Type;
+
+	union
+	{
+		struct
+		{
+			int32_t RefEq;
+			float Threshold;
+		} Fixed;
+
+		struct
+		{
+			random_float BeginThreshold;
+			random_int TransitionFrameNum;
+			random_float No2Threshold;
+			random_float No3Threshold;
+			random_int TransitionFrameNum2;
+			random_float EndThreshold;
+		} FourPointInterpolation;
+
+		struct
+		{
+			RefMinMax RefEqS;
+			RefMinMax RefEqE;
+			easing_float Threshold;
+		} Easing;
+
+		struct
+		{
+			FCurveScalar* Threshold;
+		} FCurve;
+	};
+
+	ParameterAlphaCrunch()
+	{}
+
+	~ParameterAlphaCrunch()
+	{
+		if (Type == EType::F_CURVE)
+		{
+			ES_SAFE_DELETE(FCurve.Threshold);
+		}
+	}
+
+	void load(uint8_t*& pos, int32_t version)
+	{
+		memcpy(&Type, pos, sizeof(int32_t));
+		pos += sizeof(int32_t);
+
+		int32_t BufferSize = 0;
+		memcpy(&BufferSize, pos, sizeof(int32_t));
+		pos += sizeof(int32_t);
+
+		switch (Type)
+		{
+		case Effekseer::ParameterAlphaCrunch::EType::FIXED: memcpy(&Fixed, pos, BufferSize); break;
+		case Effekseer::ParameterAlphaCrunch::EType::FPI: memcpy(&FourPointInterpolation, pos, BufferSize); break;
+		case Effekseer::ParameterAlphaCrunch::EType::EASING: memcpy(&Easing, pos, BufferSize); break;
+		case Effekseer::ParameterAlphaCrunch::EType::F_CURVE: FCurve.Threshold = new FCurveScalar();  FCurve.Threshold->Load(pos, version); break;
+		}
+
+		pos += BufferSize;
+	}
+};
+#endif
+
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
@@ -7218,6 +7341,10 @@ public:
 	ParameterDepthValues		DepthValues;
 
 	ParameterRendererCommon		RendererCommon;
+
+#ifdef __EFFEKSEER_BUILD_VERSION16__
+	ParameterAlphaCrunch		AlphaCrunch;
+#endif
 
 	ParameterSoundType			SoundType;
 	ParameterSound				Sound;
@@ -9934,6 +10061,37 @@ public:
 
 #ifdef __EFFEKSEER_BUILD_VERSION16__
 	float			m_flipbookIndexAndNextRate;
+
+	union
+	{
+		struct
+		{
+		} fixed;
+
+		struct
+		{
+			float begin_threshold;
+			int32_t transition_frame;
+			float no2_threshold;
+			float no3_threshold;
+			int32_t transition_frame2;
+			float end_threshold;
+		} four_point_interpolation;
+
+		struct
+		{
+			float start;
+			float end;
+		} easing;
+
+		struct
+		{
+			float offset;
+		} fcurve;
+
+	} alpha_crunch_values;
+
+	float m_AlphaThreshold;
 #endif
 
 	//! calculate dynamic equation and assign a result
@@ -10455,6 +10613,37 @@ void FCurve::Maginify(float value)
 		keys_[i] *= value;
 	}
 }
+
+#ifdef __EFFEKSEER_BUILD_VERSION16__
+int32_t FCurveScalar::Load(void* data, int32_t version)
+{
+	int32_t size = 0;
+	uint8_t* p = (uint8_t*)data;
+
+	if (version >= 1600)
+	{
+		memcpy(&Timeline, p, sizeof(int32_t));
+		size += sizeof(int32_t);
+		p += sizeof(int32_t);
+	}
+
+	int32_t s_size = S.Load(p, version);
+	size += s_size;
+	p += s_size;
+
+	return size;
+}
+
+float FCurveScalar::GetValues(float living, float life) const
+{
+	return S.GetValue(living, life, Timeline);
+}
+
+float FCurveScalar::GetOffsets(InstanceGlobal& g) const
+{
+	return S.GetOffset(g);
+}
+#endif
 
 int32_t FCurveVector2D::Load(void* data, int32_t version)
 {
@@ -11296,6 +11485,10 @@ void EffectNodeImplemented::LoadParameter(unsigned char*& pos, EffectNode* paren
 		RendererCommon.DistortionIntensity *= m_effect->GetMaginification();
 #endif // !__EFFEKSEER_FOR_UE4__
 
+#ifdef __EFFEKSEER_BUILD_VERSION16__
+		AlphaCrunch.load(pos, m_effect->GetVersion());
+#endif
+
 		if (m_effect->GetVersion() >= 1)
 		{
 			// Sound
@@ -11875,6 +12068,8 @@ void EffectNodeModel::Rendering(const Instance& instance, const Instance* next_i
 		instanceParameter.AlphaUV = instance.GetUV(1);
 
 		instanceParameter.FlipbookIndexAndNextRate = instance.m_flipbookIndexAndNextRate;
+
+		instanceParameter.AlphaThreshold = instance.m_AlphaThreshold;
 #else
 		instanceParameter.UV = instance.GetUV();
 #endif
@@ -12213,6 +12408,8 @@ void EffectNodeRibbon::BeginRenderingGroup(InstanceGroup* group, Manager* manage
 			m_instanceParameter.AlphaUV = group->GetFirst()->GetUV(1);
 
 			m_instanceParameter.FlipbookIndexAndNextRate = group->GetFirst()->m_flipbookIndexAndNextRate;
+
+			m_instanceParameter.AlphaThreshold = group->GetFirst()->m_AlphaThreshold;
 #else
 			m_instanceParameter.UV = group->GetFirst()->GetUV();
 #endif
@@ -12735,6 +12932,8 @@ void EffectNodeRing::Rendering(const Instance& instance, const Instance* next_in
 		instanceParameter.AlphaUV = instance.GetUV(1);
 
 		instanceParameter.FlipbookIndexAndNextRate = instance.m_flipbookIndexAndNextRate;
+
+		instanceParameter.AlphaThreshold = instance.m_AlphaThreshold;
 #else
 		instanceParameter.UV = instance.GetUV();
 #endif
@@ -13328,6 +13527,8 @@ void EffectNodeSprite::Rendering(const Instance& instance, const Instance* next_
 		instanceParameter.AlphaUV = instance.GetUV(1);
 
 		instanceParameter.FlipbookIndexAndNextRate = instance.m_flipbookIndexAndNextRate;
+
+		instanceParameter.AlphaThreshold = instance.m_AlphaThreshold;
 #else
 		instanceParameter.UV = instance.GetUV();
 #endif
@@ -13595,6 +13796,8 @@ void EffectNodeTrack::BeginRenderingGroup(InstanceGroup* group, Manager* manager
 			m_instanceParameter.AlphaUV = group->GetFirst()->GetUV(1);
 
 			m_instanceParameter.FlipbookIndexAndNextRate = group->GetFirst()->m_flipbookIndexAndNextRate;
+
+			m_instanceParameter.AlphaThreshold = group->GetFirst()->m_AlphaThreshold;
 #else
 			m_instanceParameter.UV = group->GetFirst()->GetUV();
 #endif
@@ -17862,6 +18065,7 @@ Instance::Instance(Manager* pManager, EffectNode* pEffectNode, InstanceContainer
 	, m_sequenceNumber(0)
 #ifdef __EFFEKSEER_BUILD_VERSION16__
 	, m_flipbookIndexAndNextRate(0)
+	, m_AlphaThreshold(0.0f)
 #endif
 {
 	m_generatedChildrenCount = m_fixedGeneratedChildrenCount;
@@ -18237,14 +18441,24 @@ void Instance::Initialize( Instance* parent, int32_t instanceNumber, int32_t par
 		rotation_values.axis.random.velocity = m_pEffectNode->RotationAxisPVA.velocity.getValue(*instanceGlobal);
 		rotation_values.axis.random.acceleration = m_pEffectNode->RotationAxisPVA.acceleration.getValue(*instanceGlobal);
 		rotation_values.axis.rotation = rotation_values.axis.random.rotation;
-		rotation_values.axis.axis = m_pEffectNode->RotationAxisPVA.axis.getValue(*instanceGlobal).Normalize();
+		rotation_values.axis.axis = m_pEffectNode->RotationAxisPVA.axis.getValue(*instanceGlobal);
+		if (rotation_values.axis.axis.GetLength() < 0.001f)
+		{
+			rotation_values.axis.axis = Vec3f(0, 1, 0);
+		}
+		rotation_values.axis.axis.Normalize();
 	}
 	else if( m_pEffectNode->RotationType == ParameterRotationType_AxisEasing )
 	{
 		rotation_values.axis.easing.start = m_pEffectNode->RotationAxisEasing.easing.start.getValue(*instanceGlobal);
 		rotation_values.axis.easing.end = m_pEffectNode->RotationAxisEasing.easing.end.getValue(*instanceGlobal);
 		rotation_values.axis.rotation = rotation_values.axis.easing.start;
-		rotation_values.axis.axis = m_pEffectNode->RotationAxisEasing.axis.getValue(*instanceGlobal).Normalize();
+		rotation_values.axis.axis = m_pEffectNode->RotationAxisEasing.axis.getValue(*instanceGlobal);
+		if (rotation_values.axis.axis.GetLength() < 0.001f)
+		{
+			rotation_values.axis.axis = Vec3f(0, 1, 0);
+		}
+		rotation_values.axis.axis.Normalize();
 	}
 	else if( m_pEffectNode->RotationType == ParameterRotationType_FCurve )
 	{
@@ -18554,6 +18768,42 @@ void Instance::Initialize( Instance* parent, int32_t instanceNumber, int32_t par
 			uvAreaOffset.Height = UV.FCurve.Size->Y.GetOffset(*instanceGlobal);
 		}
 	}
+
+	// Alpha Crunch
+	if (m_pEffectNode->AlphaCrunch.Type == ParameterAlphaCrunch::EType::FIXED)
+	{
+		if (m_pEffectNode->AlphaCrunch.Fixed.RefEq < 0)
+		{
+			m_AlphaThreshold = m_pEffectNode->AlphaCrunch.Fixed.Threshold;
+		}
+	}
+	else if (m_pEffectNode->AlphaCrunch.Type == ParameterAlphaCrunch::EType::FPI)
+	{
+		auto& fpiValue = alpha_crunch_values.four_point_interpolation;
+		auto& nodeAlphaCrunchValue = m_pEffectNode->AlphaCrunch.FourPointInterpolation;
+
+		fpiValue.begin_threshold	= nodeAlphaCrunchValue.BeginThreshold.getValue(*instanceGlobal);
+		fpiValue.transition_frame	= nodeAlphaCrunchValue.TransitionFrameNum.getValue(*instanceGlobal);
+		fpiValue.no2_threshold		= nodeAlphaCrunchValue.No2Threshold.getValue(*instanceGlobal);
+		fpiValue.no3_threshold		= nodeAlphaCrunchValue.No3Threshold.getValue(*instanceGlobal);
+		fpiValue.transition_frame2	= nodeAlphaCrunchValue.TransitionFrameNum2.getValue(*instanceGlobal);
+		fpiValue.end_threshold		= nodeAlphaCrunchValue.EndThreshold.getValue(*instanceGlobal);
+	}
+	else if (m_pEffectNode->AlphaCrunch.Type == ParameterAlphaCrunch::EType::EASING)
+	{
+		auto& easingValue = alpha_crunch_values.easing;
+		auto& nodeAlphaCrunchValue = m_pEffectNode->AlphaCrunch.Easing;
+
+		easingValue.start = nodeAlphaCrunchValue.Threshold.start.getValue(*instanceGlobal);
+		easingValue.end = nodeAlphaCrunchValue.Threshold.end.getValue(*instanceGlobal);
+	}
+	else if (m_pEffectNode->AlphaCrunch.Type == ParameterAlphaCrunch::EType::F_CURVE)
+	{
+		auto& fcurveValue = alpha_crunch_values.fcurve;
+		auto& nodeAlphaCrunchValue = m_pEffectNode->AlphaCrunch.FCurve;
+
+		fcurveValue.offset = nodeAlphaCrunchValue.Threshold->GetOffsets(*instanceGlobal);
+	}
 #else
 	if (m_pEffectNode->RendererCommon.UVType == ParameterRendererCommon::UV_ANIMATION)
 	{
@@ -18817,6 +19067,61 @@ void Instance::Update( float deltaFrame, bool shown )
 			m_flipbookIndexAndNextRate += fFrameNum - static_cast<float>(frameNum);
 		}
 	}
+
+	{
+		if (m_pEffectNode->AlphaCrunch.Type == ParameterAlphaCrunch::EType::FIXED)
+		{
+			if (m_pEffectNode->AlphaCrunch.Fixed.RefEq >= 0)
+			{
+				auto alphaThreshold = static_cast<float>(m_pEffectNode->AlphaCrunch.Fixed.Threshold);
+				ApplyEq(alphaThreshold,
+						this->m_pEffectNode->m_effect,
+						this->m_pContainer->GetRootInstance(),
+						m_pEffectNode->AlphaCrunch.Fixed.RefEq,
+						alphaThreshold);
+
+				m_AlphaThreshold = alphaThreshold;
+			}
+		}
+		else if (m_pEffectNode->AlphaCrunch.Type == ParameterAlphaCrunch::EType::FPI)
+		{
+			float t = m_LivingTime / m_LivedTime;
+			auto val = alpha_crunch_values.four_point_interpolation;
+
+			float p[4][2] =
+			{
+				0.0f, val.begin_threshold, 
+				float(val.transition_frame) / m_LivedTime, val.no2_threshold,
+				(m_LivedTime - float(val.transition_frame2)) / m_LivedTime, val.no3_threshold,
+				1.0f, val.end_threshold
+			};
+
+			for (int32_t i = 1; i < 4; i++)
+			{
+				if (0 < p[i][0] && p[i - 1][0] <= t && t <= p[i][0])
+				{
+					float r = (t - p[i - 1][0]) / (p[i][0] - p[i - 1][0]);
+					m_AlphaThreshold = p[i - 1][1] + (p[i][1] - p[i - 1][1]) * r;
+					break;
+				}
+			}
+		}
+		else if (m_pEffectNode->AlphaCrunch.Type == ParameterAlphaCrunch::EType::EASING)
+		{
+			m_AlphaThreshold = m_pEffectNode->AlphaCrunch.Easing.Threshold.getValue
+			(
+				alpha_crunch_values.easing.start,
+				alpha_crunch_values.easing.end,
+				m_LivingTime / m_LivedTime
+			);
+		}
+		else if (m_pEffectNode->AlphaCrunch.Type == ParameterAlphaCrunch::EType::F_CURVE)
+		{
+			auto fcurve = m_pEffectNode->AlphaCrunch.FCurve.Threshold->GetValues(m_LivingTime, m_LivedTime);
+			m_AlphaThreshold = fcurve + alpha_crunch_values.fcurve.offset;
+			m_AlphaThreshold /= 100.0f;
+		}
+	}
 #endif
 
 	if(killed)
@@ -18999,13 +19304,13 @@ void Instance::CalculateMatrix( float deltaFrame )
 		}
 
 		// update local fields
-		auto currentPosition = localPosition + modifyWithNoise_;
+		auto currentLocalPosition = localPosition + modifyWithNoise_;
 		for (const auto& field : m_pEffectNode->LocalForceFields)
 		{
 			if (field.Turbulence != nullptr)
 			{
 				auto mag = static_cast<EffectImplemented*>(m_pEffectNode->GetEffect())->GetMaginification();
-				modifyWithNoise_ += field.Turbulence->Noise.Get(currentPosition / mag) * field.Turbulence->Strength * mag;
+				modifyWithNoise_ += field.Turbulence->Noise.Get(currentLocalPosition / mag) * field.Turbulence->Strength * mag;
 			}
 
 		}
@@ -19050,11 +19355,11 @@ void Instance::CalculateMatrix( float deltaFrame )
 
 		if( m_pEffectNode->LocationAbs.type != LocationAbsType::None )
 		{
-			Vec3f currentPosition = m_GlobalMatrix43.GetTranslation();
+			Vec3f currentTranslation = m_GlobalMatrix43.GetTranslation();
 			assert(m_GlobalMatrix43.IsValid());
 
-			m_GlobalVelocity = currentPosition - m_GlobalPosition;
-			m_GlobalPosition = currentPosition;
+			m_GlobalVelocity = currentTranslation - m_GlobalPosition;
+			m_GlobalPosition = currentTranslation;
 
 			ModifyMatrixFromLocationAbs( deltaFrame );
 		}

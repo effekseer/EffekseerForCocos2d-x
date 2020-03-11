@@ -85,19 +85,29 @@ class Model;
 typedef	int	Handle;
 
 /**
-	@brief	メモリ確保関数
+	@brief	Memory Allocation function
 */
-typedef void* ( EFK_STDCALL *MallocFunc ) ( unsigned int size );
+typedef void*(EFK_STDCALL* MallocFunc)(unsigned int size);
 
 /**
-	@brief	メモリ破棄関数
+	@brief	Memory Free function
 */
-typedef	void ( EFK_STDCALL *FreeFunc ) ( void* p, unsigned int size );
+typedef void(EFK_STDCALL* FreeFunc)(void* p, unsigned int size);
 
 /**
-	@brief	ランダム関数
+	@brief	AlignedMemory Allocation function
 */
-typedef	int ( EFK_STDCALL *RandFunc ) (void);
+typedef void*(EFK_STDCALL* AlignedMallocFunc)(unsigned int size, unsigned int alignment);
+
+/**
+	@brief	AlignedMemory Free function
+*/
+typedef void(EFK_STDCALL* AlignedFreeFunc)(void* p, unsigned int size);
+
+/**
+	@brief	Random Function
+*/
+typedef int(EFK_STDCALL* RandFunc)(void);
 
 /**
 	@brief	エフェクトのインスタンス破棄時のコールバックイベント
@@ -645,55 +655,41 @@ struct NodeRendererBasicParameter
 //----------------------------------------------------------------------------------
 #endif	// __EFFEKSEER_BASE_PRE_H__
 
-#ifndef	__EFFEKSEER_BASE_H__
-#define	__EFFEKSEER_BASE_H__
+#ifndef __EFFEKSEER_BASE_H__
+#define __EFFEKSEER_BASE_H__
 
-//----------------------------------------------------------------------------------
-// Include
-//----------------------------------------------------------------------------------
 
-#include <stdio.h>
-#include <math.h>
-#include <float.h>
 #include <assert.h>
-#include <string.h>
-#include <stdlib.h>
+#include <float.h>
+#include <math.h>
 #include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-#include <map>
-#include <vector>
-#include <set>
-#include <list>
-#include <string>
-#include <queue>
-#include <chrono>
-#include <thread>
-#include <mutex>
 #include <array>
 #include <cfloat>
+#include <chrono>
+#include <list>
+#include <map>
+#include <mutex>
+#include <queue>
+#include <set>
+#include <string>
+#include <thread>
+#include <vector>
 
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
 #ifdef _WIN32
-#define	EFK_STDCALL	__stdcall
+#define EFK_STDCALL __stdcall
 #else
-#define	EFK_STDCALL
+#define EFK_STDCALL
 #endif
 
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-typedef char16_t			EFK_CHAR;
+typedef char16_t EFK_CHAR;
 
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
 namespace Effekseer
 {
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
+
 struct Color;
 
 class Manager;
@@ -732,45 +728,36 @@ class MaterialLoader;
 class Model;
 class InternalScript;
 
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
 #ifdef _DEBUG_EFFEKSEER
-#define EffekseerPrintDebug(...)	printf(__VA_ARGS__)
+#define EffekseerPrintDebug(...) printf(__VA_ARGS__)
 #else
 #define EffekseerPrintDebug(...)
 #endif
 
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
 /**
-	@brief	インスタンスの状態
+	@brief	A state of instances
 */
 enum eInstanceState
 {
 	/**
-		@brief	正常動作中
+		@brief	Active
 	*/
 	INSTANCE_STATE_ACTIVE,
 
 	/**
-		@brief	削除中
+		@brief	Removing
 	*/
 	INSTANCE_STATE_REMOVING,
 	/**
-		@brief	削除
+		@brief	Removed
 	*/
 	INSTANCE_STATE_REMOVED,
 
 	INSTANCE_STATE_DWORD = 0x7fffffff,
 };
 
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
 /**
-	@brief	エフェクトに所属するノードの種類
+	@brief	A type of node
 */
 enum eEffectNodeType
 {
@@ -785,14 +772,200 @@ enum eEffectNodeType
 	EFFECT_NODE_TYPE_DWORD = 0x7fffffff,
 };
 
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-}
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-#endif	// __EFFEKSEER_BASE_H__
+class StringHelper
+{
+public:
+	template <typename T> static std::vector<std::basic_string<T>> Split(const std::basic_string<T>& s, T delim)
+	{
+		std::vector<std::basic_string<T>> elems;
+
+		int32_t start = 0;
+
+		for (size_t i = 0; i < s.size(); i++)
+		{
+			if (s[i] == delim)
+			{
+				elems.emplace_back(s.substr(start, i - start));
+				start = i + 1;
+			}
+		}
+
+		if (start == s.size())
+		{
+			elems.emplace_back(std::basic_string<T>());
+		}
+		else
+		{
+			elems.emplace_back(s.substr(start, s.size() - start));
+		}
+
+		return elems;
+	}
+
+	template <typename T>
+	static std::basic_string<T> Replace(std::basic_string<T> target, std::basic_string<T> from_, std::basic_string<T> to_)
+	{
+		auto Pos = target.find(from_);
+
+		while (Pos != std::basic_string<T>::npos)
+		{
+			target.replace(Pos, from_.length(), to_);
+			Pos = target.find(from_, Pos + to_.length());
+		}
+
+		return target;
+	}
+
+	template <typename T, typename U> static std::basic_string<T> To(const U* str)
+	{
+		std::basic_string<T> ret;
+		size_t len = 0;
+		while (str[len] != 0)
+		{
+			len++;
+		}
+
+		ret.resize(len);
+
+		for (size_t i = 0; i < len; i++)
+		{
+			ret[i] = static_cast<T>(str[i]);
+		}
+
+		return ret;
+	}
+};
+
+class PathHelper
+{
+private:
+	template <typename T> static std::basic_string<T> Normalize(const std::vector<std::basic_string<T>>& paths)
+	{
+		std::vector<std::basic_string<T>> elems;
+
+		for (size_t i = 0; i < paths.size(); i++)
+		{
+			if (paths[i] == StringHelper::To<T>(".."))
+			{
+				if (elems.size() > 0 && elems.back() != StringHelper::To<T>(".."))
+				{
+					elems.pop_back();
+				}
+				else
+				{
+					elems.push_back(StringHelper::To<T>(".."));
+				}
+			}
+			else
+			{
+				elems.push_back(paths[i]);
+			}
+		}
+
+		std::basic_string<T> ret;
+
+		for (size_t i = 0; i < elems.size(); i++)
+		{
+			ret += elems[i];
+
+			if (i != elems.size() - 1)
+			{
+				ret += StringHelper::To<T>("/");
+			}
+		}
+
+		return ret;
+	}
+
+public:
+	template <typename T> static std::basic_string<T> Normalize(const std::basic_string<T>& path)
+	{
+		if (path.size() == 0)
+			return path;
+
+		auto paths =
+			StringHelper::Split(StringHelper::Replace(path, StringHelper::To<T>("\\"), StringHelper::To<T>("/")), static_cast<T>('/'));
+
+		return Normalize(paths);
+	}
+
+	template <typename T> static std::basic_string<T> Relative(const std::basic_string<T>& targetPath, const std::basic_string<T>& basePath)
+	{
+		if (basePath.size() == 0 || targetPath.size() == 0)
+		{
+			return targetPath;
+		}
+
+		auto targetPaths = StringHelper::Split(StringHelper::Replace(targetPath, StringHelper::To<T>("\\"), StringHelper::To<T>("/")),
+											   static_cast<T>('/'));
+		auto basePaths =
+			StringHelper::Split(StringHelper::Replace(basePath, StringHelper::To<T>("\\"), StringHelper::To<T>("/")), static_cast<T>('/'));
+
+		if (*(basePath.end() - 1) != static_cast<T>('/') && *(basePath.end() - 1) != static_cast<T>('\\'))
+		{
+			basePaths.pop_back();
+		}
+
+		int32_t offset = 0;
+		while (targetPaths.size() > offset && basePaths.size() > offset)
+		{
+			if (targetPaths[offset] == basePaths[offset])
+			{
+				offset++;
+			}
+			else
+			{
+				break;
+			}
+		}
+
+		std::basic_string<T> ret;
+
+		for (size_t i = offset; i < basePaths.size(); i++)
+		{
+			ret += StringHelper::To<T>("../");
+		}
+
+		for (size_t i = offset; i < targetPaths.size(); i++)
+		{
+			ret += targetPaths[i];
+
+			if (i != targetPaths.size() - 1)
+			{
+				ret += StringHelper::To<T>("/");
+			}
+		}
+
+		return ret;
+	}
+
+	template <typename T> static std::basic_string<T> Absolute(const std::basic_string<T>& targetPath, const std::basic_string<T>& basePath)
+	{
+		if (targetPath == StringHelper::To<T>(""))
+			return StringHelper::To<T>("");
+
+		if (basePath == StringHelper::To<T>(""))
+			return targetPath;
+
+		auto targetPaths = StringHelper::Split(StringHelper::Replace(targetPath, StringHelper::To<T>("\\"), StringHelper::To<T>("/")),
+											   static_cast<T>('/'));
+		auto basePaths =
+			StringHelper::Split(StringHelper::Replace(basePath, StringHelper::To<T>("\\"), StringHelper::To<T>("/")), static_cast<T>('/'));
+
+		if (*(basePath.end() - 1) != static_cast<T>('/') && *(basePath.end() - 1) != static_cast<T>('\\'))
+		{
+			basePaths.pop_back();
+		}
+
+		std::copy(targetPaths.begin(), targetPaths.end(), std::back_inserter(basePaths));
+
+		return Normalize(basePaths);
+	}
+};
+
+} // namespace Effekseer
+
+#endif // __EFFEKSEER_BASE_H__
 
 #ifndef __EFFEKSEER_PARAMETERS_H__
 #define __EFFEKSEER_PARAMETERS_H__
@@ -869,6 +1042,58 @@ FreeFunc GetFreeFunc();
 */
 void SetFreeFunc(FreeFunc func);
 
+/**
+	@brief
+	\~English get an allocator
+	\~Japanese メモリ確保関数を取得する。
+*/
+AlignedMallocFunc GetAlignedMallocFunc();
+
+/**
+	\~English specify an allocator
+	\~Japanese メモリ確保関数を設定する。
+*/
+void SetAlignedMallocFunc(AlignedMallocFunc func);
+
+/**
+	@brief
+	\~English get a deallocator
+	\~Japanese メモリ破棄関数を取得する。
+*/
+AlignedFreeFunc GetAlignedFreeFunc();
+
+/**
+	\~English specify a deallocator
+	\~Japanese メモリ破棄関数を設定する。
+*/
+void SetAlignedFreeFunc(AlignedFreeFunc func);
+
+/**
+	@brief
+	\~English get an allocator
+	\~Japanese メモリ確保関数を取得する。
+*/
+MallocFunc GetMallocFunc();
+
+/**
+	\~English specify an allocator
+	\~Japanese メモリ確保関数を設定する。
+*/
+void SetMallocFunc(MallocFunc func);
+
+/**
+	@brief
+	\~English get a deallocator
+	\~Japanese メモリ破棄関数を取得する。
+*/
+FreeFunc GetFreeFunc();
+
+/**
+	\~English specify a deallocator
+	\~Japanese メモリ破棄関数を設定する。
+*/
+void SetFreeFunc(FreeFunc func);
+
 template <class T> struct CustomAllocator
 {
 	using value_type = T;
@@ -881,11 +1106,24 @@ template <class T> struct CustomAllocator
 	void deallocate(T* p, std::size_t n) { GetFreeFunc()(p, sizeof(T) * n); }
 };
 
+template <class T> struct CustomAlignedAllocator
+{
+	using value_type = T;
+
+	CustomAlignedAllocator() {}
+
+	template <class U> CustomAlignedAllocator(const CustomAlignedAllocator<U>&) {}
+
+	T* allocate(std::size_t n) { return reinterpret_cast<T*>(GetAlignedMallocFunc()(sizeof(T) * n, 16)); }
+	void deallocate(T* p, std::size_t n) { GetAlignedFreeFunc()(p, sizeof(T) * n); }
+};
+
 template <class T, class U> bool operator==(const CustomAllocator<T>&, const CustomAllocator<U>&) { return true; }
 
 template <class T, class U> bool operator!=(const CustomAllocator<T>&, const CustomAllocator<U>&) { return false; }
 
 template <class T> using CustomVector = std::vector<T, CustomAllocator<T>>;
+template <class T> using CustomAlignedVector = std::vector<T, CustomAlignedAllocator<T>>;
 template <class T> using CustomList = std::list<T, CustomAllocator<T>>;
 template <class T> using CustomSet = std::set<T, std::less<T>, CustomAllocator<T>>;
 template <class T, class U> using CustomMap = std::map<T, U, std::less<T>, CustomAllocator<std::pair<const T, U>>>;
@@ -3820,11 +4058,7 @@ inline float Sqrt(float x)
 
 inline float Rsqrt(float x)
 {
-#if defined(__APPLE__)
 	return 1.0f / sqrt(x);
-#else
-	return vrsqrtes_f32(x);
-#endif
 }
 
 /**
@@ -4785,6 +5019,8 @@ struct Vec3f
 	static Vec3f Transform(const Vec3f& lhs, const Mat44f& rhs);
 };
 
+inline Vec3f operator-(const Vec3f& i) { return Vec3f(-i.GetX(), -i.GetY(), -i.GetZ()); }
+
 inline Vec3f operator+(const Vec3f& lhs, const Vec3f& rhs)
 {
 	return Vec3f{lhs.s + rhs.s};
@@ -5675,7 +5911,7 @@ class CompiledMaterial
 	static const int32_t Version = 1;
 
 	std::map<CompiledMaterialPlatformType, std::unique_ptr<CompiledMaterialBinary, ReferenceDeleter<CompiledMaterialBinary>>> platforms;
-	std::vector<uint8_t> originalData;
+	std::vector<uint8_t> originalData_;
 
 public:
 	uint64_t GUID = 0;
@@ -5769,6 +6005,8 @@ public:
 		RectF		AlphaUV;
 
 		float		FlipbookIndexAndNextRate;
+
+		float		AlphaThreshold;
 #endif
 
 		std::array<float, 4> CustomData1;
@@ -5860,6 +6098,8 @@ struct NodeRendererTextureUVTypeParameter;
 			RectF	AlphaUV;
 
 			float	FlipbookIndexAndNextRate;
+
+			float	AlphaThreshold;
 #endif
 			std::array<float, 4> CustomData1;
 			std::array<float, 4> CustomData2;
@@ -5957,6 +6197,8 @@ public:
 		RectF		AlphaUV;
 		
 		float		FlipbookIndexAndNextRate;
+
+		float		AlphaThreshold;
 #endif
 		std::array<float, 4> CustomData1;
 		std::array<float, 4> CustomData2;
@@ -6044,6 +6286,8 @@ public:
 		RectF			AlphaUV;
 
 		float			FlipbookIndexAndNextRate;
+
+		float			AlphaThreshold;
 #endif
 		Color			AllColor;
 		int32_t			Time;
@@ -6148,6 +6392,8 @@ struct NodeRendererTextureUVTypeParameter;
 			RectF	AlphaUV;
 
 			float	FlipbookIndexAndNextRate;
+
+			float	AlphaThreshold;
 #endif
 			std::array<float, 4> CustomData1;
 			std::array<float, 4> CustomData2;

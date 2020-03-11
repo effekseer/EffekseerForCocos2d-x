@@ -43,7 +43,7 @@ namespace EffekseerRenderer
 		uint8_t*						m_ringBufferData;
 
 		efkRibbonNodeParam					innstancesNodeParam;
-		std::vector<efkRibbonInstanceParam>	instances;
+		Effekseer::CustomAlignedVector<efkRibbonInstanceParam> instances;
 		SplineGenerator spline_left;
 		SplineGenerator spline_right;
 
@@ -616,6 +616,11 @@ namespace EffekseerRenderer
 
 					Effekseer::Vec3f normal = Effekseer::Vec3f::Cross(axis, tangent);
 					normal = normal.Normalize();
+
+					if (!parameter.IsRightHand)
+					{
+						normal = -normal;
+					}
 
 					if (isFirst_)
 					{

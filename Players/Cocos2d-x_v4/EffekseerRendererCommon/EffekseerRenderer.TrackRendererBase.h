@@ -41,7 +41,7 @@ namespace EffekseerRenderer
 		uint8_t*						m_ringBufferData;
 
 		efkTrackNodeParam					innstancesNodeParam;
-		std::vector<efkTrackInstanceParam>	instances;
+		Effekseer::CustomAlignedVector<efkTrackInstanceParam> instances;
 		SplineGenerator spline;
 
 		int32_t vertexCount_ = 0;
@@ -606,6 +606,11 @@ namespace EffekseerRenderer
 
 						::Effekseer::Vec3f tangent = Effekseer::Vec3f(vl_->Pos - vr_->Pos).Normalize();
 						Effekseer::Vec3f normal = Effekseer::Vec3f::Cross(tangent, axis).Normalize();
+
+						if (!parameter.IsRightHand)
+						{
+							normal = -normal;
+						}
 
 						Effekseer::Color normal_ = PackVector3DF(normal);
 						Effekseer::Color tangent_ = PackVector3DF(tangent);
