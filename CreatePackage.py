@@ -2,7 +2,8 @@ import shutil
 import os
 
 package_name = 'EffekseerForCocos2d-x/'
-shutil.rmtree(package_name)
+if os.path.exists(package_name):
+    shutil.rmtree(package_name)
 os.makedirs(package_name, exist_ok=False)
 
 shutil.copytree('Players/', package_name + 'Players/')

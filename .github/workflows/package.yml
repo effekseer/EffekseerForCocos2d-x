@@ -1,8 +1,11 @@
 name: package
 
 on:
-  tags:
-　　- v*
+  push:
+    branches:    
+      - master
+    tags:
+      - v*
 
 jobs:
   build:
@@ -10,11 +13,13 @@ jobs:
     runs-on: vs2017-win2016
     
     steps:
+    - uses: actions/checkout@v2
     - name: release
-      run: python CreatePackage.py
-      
-    - name: Upload results
-      uses: actions/upload-artifact@v1
+      shell: bash
+      run: |
+        ls -la
+        python CreatePackage.py
+    - uses: actions/upload-artifact@v1
       with:
         name: EffekseerForCocos2d-x
         path: EffekseerForCocos2d-x
