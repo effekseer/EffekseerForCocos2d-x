@@ -1,0 +1,21 @@
+trigger:
+  branches:
+    include:
+    - refs/tags/v*
+
+jobs:
+  - job: Windows
+    pool:
+      vmImage: 'vs2017-win2016'
+    steps:
+      - task: Bash@3
+        inputs:
+          targetType: 'inline'
+          script: |
+            python CreatePackage.py
+      - task: PublishBuildArtifacts@1
+        inputs:
+          PathtoPublish: 'EffekseerForCocos2d-x'
+          ArtifactName: 'EffekseerForCocos2d-x'
+          publishLocation: 'Container'
+
