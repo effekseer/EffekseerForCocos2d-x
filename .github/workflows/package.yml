@@ -1,0 +1,22 @@
+name: package
+
+on:
+  tags:
+　　- v*
+
+jobs:
+  build:
+
+    runs-on: vs2017-win2016
+    
+    steps:
+    - name: release
+      run: python CreatePackage.py
+      
+    - name: Upload results
+      uses: actions/upload-artifact@v1
+      with:
+        name: EffekseerForCocos2d-x
+        path: EffekseerForCocos2d-x
+  
+
