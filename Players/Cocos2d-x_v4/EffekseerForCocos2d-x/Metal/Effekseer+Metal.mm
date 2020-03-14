@@ -66,6 +66,9 @@ DistortingCallbackMetal::~DistortingCallbackMetal()
 
 bool DistortingCallbackMetal::OnDistorting()
 {
+#if (CC_TARGET_PLATFORM == CC_PLATFORM_IOS || CC_TARGET_PLATFORM == CC_PLATFORM_ANDROID)
+    return false;
+#endif
     // to get viewport
     if(textureLLGI == nullptr)
     {
