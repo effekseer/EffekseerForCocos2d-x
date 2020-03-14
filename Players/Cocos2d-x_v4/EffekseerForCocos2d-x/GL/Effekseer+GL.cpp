@@ -188,7 +188,7 @@ void EffectEmitter::preRender(EffekseerRenderer::Renderer*) {}
 
 void EffectManager::CreateRenderer(int32_t spriteSize)
 {
-#if (CC_TARGET_PLATFORM == CC_PLATFORM_MOBILE)
+#if (CC_TARGET_PLATFORM == CC_PLATFORM_IOS || CC_TARGET_PLATFORM == CC_PLATFORM_ANDROID)
 	renderer2d = ::EffekseerRendererGL::Renderer::Create(spriteSize, EffekseerRendererGL::OpenGLDeviceType::OpenGLES2, EffekseerDeviceObjectCollection::create());
 #else
 	renderer2d = ::EffekseerRendererGL::Renderer::Create(spriteSize, EffekseerRendererGL::OpenGLDeviceType::OpenGL2, EffekseerDeviceObjectCollection::create());

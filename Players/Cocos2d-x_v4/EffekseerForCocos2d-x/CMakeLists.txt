@@ -27,12 +27,6 @@ target_include_directories(${PROJECT_NAME}
     PUBLIC ./
     PRIVATE ../3rdParty/LLGI/src/)
 
-target_link_libraries(${PROJECT_NAME} 
-    PRIVATE cocos2d
-    PUBLIC Effekseer)
-
-add_dependencies(${PROJECT_NAME} Effekseer)
-
 if (APPLE)
     target_include_directories(${PROJECT_NAME} 
         PUBLIC ../EffekseerRendererMetal/)
@@ -52,3 +46,9 @@ else()
 
     add_dependencies(${PROJECT_NAME} EffekseerRendererGL)
 endif()
+
+target_link_libraries(${PROJECT_NAME} 
+    PRIVATE cocos2d
+    PUBLIC Effekseer)
+
+add_dependencies(${PROJECT_NAME} Effekseer)
