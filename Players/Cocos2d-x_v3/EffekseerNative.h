@@ -512,6 +512,9 @@ public:
 class IRandObject
 {
 public:
+	IRandObject() = default;
+	virtual ~IRandObject() = default;
+
 	virtual float GetRand() = 0;
 
 	virtual float GetRand(float min_, float max_) = 0;
@@ -557,8 +560,9 @@ enum class RendererMaterialType : int32_t
 	@brief	\~english	Material data
 			\~japanese	マテリアルデータ
 */
-struct MaterialData
+class MaterialData
 {
+public:
 	ShadingModelType ShadingModel = ShadingModelType::Lit;
 	bool IsSimpleVertex = false;
 	bool IsRefractionRequired = false;
@@ -571,6 +575,9 @@ struct MaterialData
 	void* ModelUserPtr = nullptr;
 	void* RefractionUserPtr = nullptr;
 	void* RefractionModelUserPtr = nullptr;
+
+	MaterialData() = default;
+	virtual ~MaterialData() = default;
 };
 
 /**
@@ -5595,7 +5602,9 @@ template <size_t align>
 class AlignedAllocationPolicy {
 public:
 	static void* operator new(size_t size) {
-#ifdef _MSC_VER
+#if defined(__EMSCRIPTEN__) && __EMSCRIPTEN_minor__ < 38
+		return malloc(size);
+#elif defined(_MSC_VER)
 		return _mm_malloc(size, align);
 #else
 		void *ptr = nullptr;
@@ -5604,7 +5613,9 @@ public:
 #endif
 	}
 	static void operator delete(void* ptr) {
-#ifdef _MSC_VER
+#if defined(__EMSCRIPTEN__) && __EMSCRIPTEN_minor__ < 38
+		free(ptr);
+#elif defined(_MSC_VER)
 		_mm_free(ptr);
 #else
 		return free(ptr);

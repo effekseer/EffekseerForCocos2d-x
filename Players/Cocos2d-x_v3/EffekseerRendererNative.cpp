@@ -4105,7 +4105,10 @@ MaterialLoader ::~MaterialLoader()
 	else
 	{
 		Effekseer::Material material;
-		material.Load((const uint8_t*)data, size);
+		if (!material.Load((const uint8_t*)data, size))
+		{
+			std::cout << "Error : Invalid material is loaded." << std::endl; 
+		}
 		auto compiler = ::Effekseer::CreateUniqueReference(new Effekseer::MaterialCompilerGL());
 		auto binary = ::Effekseer::CreateUniqueReference(compiler->Compile(&material));
 
@@ -5861,7 +5864,15 @@ void RenderState::Update( bool forced )
 //
 //-----------------------------------------------------------------------------------
 
-#if _WIN32
+#ifdef __ANDROID__
+
+#ifdef __ANDROID__DEBUG__
+#define LOG(s) __android_log_print(ANDROID_LOG_DEBUG, "Tag", "%s", s)
+#else
+#define LOG(s) printf("%s", s)
+#endif
+
+#elif defined(_WIN32)
 #define LOG(s)	OutputDebugStringA(s)
 #else
 #define LOG(s)	printf("%s", s)
