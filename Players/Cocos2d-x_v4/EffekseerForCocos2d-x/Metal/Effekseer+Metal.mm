@@ -66,19 +66,17 @@ DistortingCallbackMetal::~DistortingCallbackMetal()
 
 bool DistortingCallbackMetal::OnDistorting()
 {
-#if (CC_TARGET_PLATFORM == CC_PLATFORM_IOS || CC_TARGET_PLATFORM == CC_PLATFORM_ANDROID)
-    return false;
-#endif
     // to get viewport
+    auto drawable = cocos2d::backend::DeviceMTL::getCurrentDrawable();
+
     if(textureLLGI == nullptr)
     {
-        auto v = cocos2d::Director::getInstance()->getRenderer()->getViewport();
         auto deviceMTL = static_cast<cocos2d::backend::DeviceMTL*>(cocos2d::backend::Device::getInstance());
         
         MTLTextureDescriptor* textureDescriptor =
         [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:cocos2d::backend::Utils::getDefaultColorAttachmentPixelFormat()
-                                                           width:v.w
-                                                          height:v.h
+                                                           width:drawable.texture.width
+                                                          height:drawable.texture.height
                                                        mipmapped:NO];
         
         texture = [deviceMTL->getMTLDevice() newTextureWithDescriptor:textureDescriptor];
@@ -87,11 +85,10 @@ bool DistortingCallbackMetal::OnDistorting()
         tex->Reset(texture);
         textureLLGI = tex;
     }
-    
+
     auto commandBuffer = static_cast<cocos2d::backend::CommandBufferMTL*>(cocos2d::Director::getInstance()->getCommandBuffer());
     commandBuffer->endEncoding();
     
-    auto drawable = cocos2d::backend::DeviceMTL::getCurrentDrawable();
     
     MTLRegion region =
     {
@@ -108,6 +105,7 @@ bool DistortingCallbackMetal::OnDistorting()
     SetMTLObjectsFromCocos2d(renderer);
     
     renderer->SetBackground(textureLLGI);
+
     return true;
 }
 #pragma endregion
