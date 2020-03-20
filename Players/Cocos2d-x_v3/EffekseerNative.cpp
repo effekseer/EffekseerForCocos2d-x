@@ -109,40 +109,36 @@ private:
 		return this->MakeGrad(hashnum & 15, x, y, z);
 	}
 
+	float MakeGradFast(const Pint hashnum, const float u, const float v) const noexcept
+	{
+		union {
+			float f;
+			uint32_t i;
+		} u_bits, v_bits;
+
+		u_bits.f = u;
+		v_bits.f = v;
+
+		u_bits.i ^= (hashnum & 1) << 31;
+		v_bits.i ^= (hashnum & 2) << 30;
+
+		return u_bits.f + v_bits.f;
+	}
+	float MakeGradFast(const Pint hashnum, const float x, const float y, const float z) const noexcept
+	{
+		return this->MakeGradFast(hashnum, hashnum < 8 ? x : y, hashnum < 4 ? y : hashnum == 12 || hashnum == 14 ? x : z);
+	}
+	float GetGradFast(const Pint hashnum, const float x, const float y, const float z) const noexcept
+	{
+		return this->MakeGradFast(hashnum & 15, x, y, z);
+	}
+
 public:
 	float SetNoise(float x, float y, float z) const noexcept
 	{
-		// it causes bugs in emscripten
-		//const std::size_t x_int{static_cast<std::size_t>(static_cast<std::size_t>(std::floor(x)) & 255)};
-		//const std::size_t y_int{static_cast<std::size_t>(static_cast<std::size_t>(std::floor(y)) & 255)};
-		//const std::size_t z_int{static_cast<std::size_t>(static_cast<std::size_t>(std::floor(z)) & 255)};
-
-		
-		int64_t x_int{static_cast<int64_t>(std::floor(x))};
-		int64_t y_int{static_cast<int64_t>(std::floor(y))};
-		int64_t z_int{static_cast<int64_t>(std::floor(z))};
-
-		if (x_int < 0)
-			x_int += ((std::abs(x_int) / 256 + 1) * 256);
-
-		if (y_int < 0)
-			y_int += ((std::abs(y_int) / 256 + 1) * 256);
-
-		if (z_int < 0)
-			z_int += ((std::abs(z_int) / 256 + 1) * 256);
-
-		x_int %= 256;
-		y_int %= 256;
-		z_int %= 256;
-
-		// Debug code (it should be removed)
-		//const std::size_t x_int_{static_cast<std::size_t>(static_cast<std::size_t>(std::floor(x)) & 255)};
-		//const std::size_t y_int_{static_cast<std::size_t>(static_cast<std::size_t>(std::floor(y)) & 255)};
-		//const std::size_t z_int_{static_cast<std::size_t>(static_cast<std::size_t>(std::floor(z)) & 255)};
-		//assert(x_int_ == x_int);
-		//assert(y_int_ == y_int);
-		//assert(z_int_ == z_int);
-
+		const int32_t x_int{static_cast<int32_t>(static_cast<int32_t>(std::floor(x)) & 255)};
+		const int32_t y_int{static_cast<int32_t>(static_cast<int32_t>(std::floor(y)) & 255)};
+		const int32_t z_int{static_cast<int32_t>(static_cast<int32_t>(std::floor(z)) & 255)};
 
 		x -= std::floor(x);
 		y -= std::floor(y);
@@ -157,14 +153,14 @@ public:
 		const std::size_t b1{static_cast<std::size_t>(this->p[b0] + z_int)};
 		const std::size_t b2{static_cast<std::size_t>(this->p[b0 + 1] + z_int)};
 
-		const auto v111 = this->GetGrad(this->p[a1], x, y, z);
-		const auto v011 = this->GetGrad(this->p[b1], x - 1, y, z);
-		const auto v101 = this->GetGrad(this->p[a2], x, y - 1, z);
-		const auto v001 = this->GetGrad(this->p[b2], x - 1, y - 1, z);
-		const auto v110 = this->GetGrad(this->p[a1 + 1], x, y, z - 1);
-		const auto v010 = this->GetGrad(this->p[b1 + 1], x - 1, y, z - 1);
-		const auto v100 = this->GetGrad(this->p[a2 + 1], x, y - 1, z - 1);
-		const auto v000 = this->GetGrad(this->p[b2 + 1], x - 1, y - 1, z - 1);
+		const auto v111 = this->GetGradFast(this->p[a1], x, y, z);
+		const auto v011 = this->GetGradFast(this->p[b1], x - 1, y, z);
+		const auto v101 = this->GetGradFast(this->p[a2], x, y - 1, z);
+		const auto v001 = this->GetGradFast(this->p[b2], x - 1, y - 1, z);
+		const auto v110 = this->GetGradFast(this->p[a1 + 1], x, y, z - 1);
+		const auto v010 = this->GetGradFast(this->p[b1 + 1], x - 1, y, z - 1);
+		const auto v100 = this->GetGradFast(this->p[a2 + 1], x, y - 1, z - 1);
+		const auto v000 = this->GetGradFast(this->p[b2 + 1], x - 1, y - 1, z - 1);
 
 		const auto v11 = this->GetLerp(u, v111, v011);
 		const auto v01 = this->GetLerp(u, v101, v001);
@@ -19308,7 +19304,23 @@ void Instance::CalculateMatrix( float deltaFrame )
 		}
 
 		// update local fields
-		auto currentLocalPosition = localPosition + modifyWithNoise_;
+		Vec3f currentLocalPosition;
+
+		if (m_pEffectNode->GenerationLocation.EffectsRotation)
+		{
+			// the center of force field depends Spawn method
+			// It should be used a result of past frame
+			auto location = Mat43f::Translation(localPosition);
+			location *= m_GenerationLocation;
+			currentLocalPosition = location.GetTranslation();
+		}
+		else
+		{
+			currentLocalPosition = localPosition;
+		}
+
+		currentLocalPosition += modifyWithNoise_;
+
 		for (const auto& field : m_pEffectNode->LocalForceFields)
 		{
 			if (field.Turbulence != nullptr)
@@ -19318,7 +19330,6 @@ void Instance::CalculateMatrix( float deltaFrame )
 			}
 
 		}
-		localPosition += modifyWithNoise_;
 
 		/* 描画部分の更新 */
 		m_pEffectNode->UpdateRenderedInstance( *this, m_pManager );
@@ -19344,13 +19355,22 @@ void Instance::CalculateMatrix( float deltaFrame )
 			MatRot = Mat43f::Identity;
 		}
 
-		// 行列の更新
-		m_GlobalMatrix43 = Mat43f::SRT( localScaling, MatRot, localPosition );
-		assert(m_GlobalMatrix43.IsValid());
-
-		if( m_pEffectNode->GenerationLocation.EffectsRotation )
+		// Update matrix
+		if (m_pEffectNode->GenerationLocation.EffectsRotation)
 		{
+			m_GlobalMatrix43 = Mat43f::SRT(localScaling, MatRot, localPosition);
+			assert(m_GlobalMatrix43.IsValid());
+
 			m_GlobalMatrix43 *= m_GenerationLocation;
+			assert(m_GlobalMatrix43.IsValid());
+
+			m_GlobalMatrix43 *= Mat43f::Translation(modifyWithNoise_);
+		}
+		else
+		{
+			localPosition += modifyWithNoise_;
+
+			m_GlobalMatrix43 = Mat43f::SRT(localScaling, MatRot, localPosition);
 			assert(m_GlobalMatrix43.IsValid());
 		}
 
