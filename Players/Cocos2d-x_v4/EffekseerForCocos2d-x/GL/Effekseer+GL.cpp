@@ -172,7 +172,6 @@ void EffectManager::CreateRenderer(int32_t spriteSize)
 void EffectManager::newFrame() {}
 void EffectManager::CreateEfkTexture()
 {
-	//auto v = cocos2d::Director::getInstance()->getRenderer()->getViewport();
 	//auto size = cocos2d::Director::getInstance()->getVisibleSize();
 	//efkTexture = cocos2d::RenderTexture::create(size.width, size.height);
 	//efkTexture->setKeepMatrix(true);
@@ -182,7 +181,7 @@ void EffectManager::CreateEfkTexture()
 	//auto texture2D = efkTexture->getSprite()->getTexture();
 	//auto textureGL = static_cast<cocos2d::backend::Texture2DGL*>(texture2D->getBackendTexture());
 	//textureGL->setTextureInternalFormat(GL_RGBA16F);
-	//textureGL->updateData(NULL, texture2D->getPixelsWide(), texture2D->getPixelsWide(), 0);
+    //textureGL->updateData(NULL, texture2D->getPixelsWide(), texture2D->getPixelsHigh(), 0);
 
 	cocos2d::backend::TextureDescriptor descriptor;
 	auto v = cocos2d::Director::getInstance()->getRenderer()->getViewport();
