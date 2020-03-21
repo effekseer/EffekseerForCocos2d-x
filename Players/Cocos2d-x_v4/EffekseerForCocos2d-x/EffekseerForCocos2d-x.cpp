@@ -764,13 +764,29 @@ void EffectEmitter::draw(cocos2d::Renderer* renderer, const cocos2d::Mat4& paren
 		renderer2d->SetCameraMatrix(mCamera);
 		renderer2d->SetProjectionMatrix(mProj);
 
-#ifdef CC_USE_METAL
-            preRender(renderer2d);
-#endif
+		
+		// predraw
+		auto colorAttachment = renderer->getColorAttachment();
+		auto depthAttachment = renderer->getDepthAttachment();
+		auto stencilAttachment = renderer->getStencilAttachment();
+		auto renderTargetFlag = renderer->getRenderTargetFlag();
+		if (manager->efkTexture) {
+			// set efkTexture as color attachment
+			renderer->setRenderTarget(renderTargetFlag, manager->efkTexture->getTexture(), depthAttachment, stencilAttachment);
+		}
+
+        preRender(renderer2d);
+
 		renderer2d->SetRestorationOfStatesFlag(true);
 		renderer2d->BeginRendering();
 		manager->getInternalManager()->DrawHandle(handle);
 		renderer2d->EndRendering();
+
+		// post draw
+		if (manager->efkTexture) {
+			// set back previous color attachment
+			renderer->setRenderTarget(renderTargetFlag, colorAttachment, depthAttachment, stencilAttachment);
+		}
 
 		// Count drawcall and vertex
 		renderer->addDrawnBatches(renderer2d->GetDrawCallCount());
@@ -779,7 +795,9 @@ void EffectEmitter::draw(cocos2d::Renderer* renderer, const cocos2d::Mat4& paren
 		renderer2d->ResetDrawVertexCount();
 	};
 
+	//manager->efkTexture->begin();
 	renderer->addCommand(&renderCommand);
+	//manager->efkTexture->end();
 
 	cocos2d::Node::draw(renderer, parentTransform, parentFlags);
 }
@@ -820,11 +838,12 @@ bool EffectManager::Initialize(cocos2d::Size visibleSize)
 	// large buffer make application slow on Android
 	int32_t spriteSize = 600;
 
-#if (CC_TARGET_PLATFORM == CC_PLATFORM_IOS)
+#if (CC_TARGET_PLATFORM == CC_PLATFORM_IOS || CC_TARGET_PLATFORM == CC_PLATFORM_MAC)
 	spriteSize = 2400;
 #endif
 
 	CreateRenderer(spriteSize);
+	CreateEfkTexture();
 
 	manager2d = ::Effekseer::Manager::Create(8000);
 
@@ -887,6 +906,8 @@ EffectManager::~EffectManager()
 		renderer2d->Destroy();
 		renderer2d = nullptr;
 	}
+
+	CC_SAFE_RELEASE_NULL(efkTexture);
 
     ES_SAFE_RELEASE(memoryPool_);
     ES_SAFE_RELEASE(commandList_);
@@ -951,6 +972,28 @@ void EffectManager::end(cocos2d::Renderer* renderer, float globalZOrder)
 
 	renderer->addCommand(&endCommand);
 	*/
+	if (efkTexture)
+		efkTexture->draw(renderer, cocos2d::Mat4::IDENTITY, 0);
+
+
+	// clear HDR color attachment
+	//beforeClearCommand.init(globalZOrder);
+	//afterClearCommand.init(globalZOrder);
+
+	//auto colorAttachment = renderer->getColorAttachment();
+	//beforeClearCommand.func = [=]() -> void {
+	//	renderer->setRenderTarget(cocos2d::RenderTargetFlag::COLOR, efkTexture->getTexture(), nullptr, nullptr);
+	//};
+	//renderer->addCommand(&beforeClearCommand);
+
+	//cocos2d::Color4F color(0.f, 0.f, 0.f, 0.f);
+	//renderer->clear(cocos2d::ClearFlag::COLOR, color, 0, 0, globalZOrder);
+
+	//afterClearCommand.func = [=]() -> void {
+	//	//reset
+	//	renderer->setRenderTarget(cocos2d::RenderTargetFlag::COLOR, colorAttachment, nullptr, nullptr);
+	//};
+	//renderer->addCommand(&afterClearCommand);
 }
 
 void EffectManager::setCameraMatrix(const cocos2d::Mat4& mat)

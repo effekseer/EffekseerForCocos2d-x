@@ -205,6 +205,8 @@ void EffectManager::CreateRenderer(int32_t spriteSize)
     ES_SAFE_RELEASE(device);
 }
 
+void EffectManager::CreateEfkTexture() {}
+
 void EffectManager::newFrame()
 {
     if(memoryPool_ != nullptr)

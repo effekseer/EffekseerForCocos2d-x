@@ -326,6 +326,12 @@ private:
 	cocos2d::CustomCommand distortionCommand;
 	cocos2d::CustomCommand beginCommand;
 	cocos2d::CustomCommand endCommand;
+	cocos2d::CallbackCommand beforeClearCommand;
+	cocos2d::CallbackCommand afterClearCommand;
+	// all the effects will be rendered to this layer
+	// this texture will be used as a frame buffer for HDR rendering
+	cocos2d::Sprite* efkTexture = nullptr;
+	//cocos2d::RenderTexture* efkTexture = nullptr;
 
 	::Effekseer::Handle play(Effect* effect, float x, float y, float z);
 
@@ -342,6 +348,8 @@ private:
 	bool Initialize(cocos2d::Size visibleSize);
 
     void CreateRenderer(int32_t spriteSize);
+
+	void CreateEfkTexture();
     
 public:
 	/**
