@@ -1,5 +1,5 @@
 #include "../EffekseerForCocos2d-x.h"
-#ifndef CC_USE_METAL
+#if defined(CC_USE_GL) || defined(CC_USE_GLES)
 
 #include "../../EffekseerRendererGL/EffekseerRendererGL.h"
 #include "../../EffekseerRendererGL/EffekseerRenderer/EffekseerRendererGL.ModelLoader.h"
@@ -38,9 +38,6 @@ DistortingCallbackGL::DistortingCallbackGL(EffekseerRendererGL::Renderer* render
 {
 	this->renderer = renderer;
 	glGenTextures(1, &backGroundTexture);
-#ifndef _WIN32
-	glGenFramebuffers(1, &framebufferForCopy);
-#endif
 }
 
 DistortingCallbackGL::~DistortingCallbackGL()
@@ -50,9 +47,6 @@ DistortingCallbackGL::~DistortingCallbackGL()
 
 void DistortingCallbackGL::ReleaseTexture()
 {
-#ifndef _WIN32
-	glDeleteFramebuffers(1, &framebufferForCopy);
-#endif
 	glDeleteTextures(1, &backGroundTexture);
 }
 
@@ -68,11 +62,6 @@ void DistortingCallbackGL::PrepareTexture(uint32_t width, uint32_t height, GLint
 
 bool DistortingCallbackGL::OnDistorting()
 {
-#ifndef _WIN32
-	GLint backupFramebuffer;
-	glGetIntegerv(GL_FRAMEBUFFER_BINDING, &backupFramebuffer);
-	if (backupFramebuffer <= 0) return false;
-#endif
 	GLint viewport[4];
 	glGetIntegerv(GL_VIEWPORT, viewport);
 	uint32_t width = viewport[2];
@@ -84,38 +73,10 @@ bool DistortingCallbackGL::OnDistorting()
 		PrepareTexture(width, height, GL_RGBA);
 	}
 
-#ifndef _WIN32
-
-	GLint rbtype;
-	glGetFramebufferAttachmentParameteriv(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
-		GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, &rbtype);
-
-	if (rbtype == GL_RENDERBUFFER) {
-		GLint renderbuffer;
-		glGetFramebufferAttachmentParameteriv(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
-			GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, &renderbuffer);
-
-		glBindFramebuffer(GL_FRAMEBUFFER, framebufferForCopy);
-		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, renderbuffer);
-	}
-	else if (rbtype == GL_TEXTURE_2D) {
-		GLint renderTexture;
-		glGetFramebufferAttachmentParameteriv(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
-			GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, &renderTexture);
-
-		glBindFramebuffer(GL_FRAMEBUFFER, framebufferForCopy);
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, renderTexture, 0);
-	}
-#endif
-
 	glBindTexture(GL_TEXTURE_2D, backGroundTexture);
 	//glCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, width, height );
 	glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, viewport[0], viewport[1], width, height);
 	glBindTexture(GL_TEXTURE_2D, 0);
-
-#ifndef _WIN32
-	glBindFramebuffer(GL_FRAMEBUFFER, backupFramebuffer);
-#endif
 
 	renderer->SetBackground(backGroundTexture);
 
