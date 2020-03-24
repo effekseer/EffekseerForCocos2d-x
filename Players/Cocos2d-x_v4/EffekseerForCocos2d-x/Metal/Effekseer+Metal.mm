@@ -12,8 +12,9 @@
 
 namespace efk {
 
-void SetMTLObjectsFromCocos2d(EffekseerRendererMetal::RendererImplemented* renderer)
+void BeginRenderPass(::EffekseerRenderer::Renderer* renderer)
 {
+    auto r = static_cast<EffekseerRendererMetal::RendererImplemented*>(renderer);
     auto d = cocos2d::Director::getInstance();
     auto buffer = d->getCommandBuffer();
     auto bufferM = static_cast<cocos2d::backend::CommandBufferMTL*>(buffer);
@@ -28,8 +29,8 @@ void SetMTLObjectsFromCocos2d(EffekseerRendererMetal::RendererImplemented* rende
     bufferM->setViewport(v.x, v.y, v.w, v.h);
     
     // set Command Buffer and Render Encoder from Cocos
-    renderer->SetExternalCommandBuffer(bufferM->getMTLCommandBuffer());
-    renderer->SetExternalRenderEncoder(bufferM->getRenderCommandEncoder());
+    r->SetExternalCommandBuffer(bufferM->getMTLCommandBuffer());
+    r->SetExternalRenderEncoder(bufferM->getRenderCommandEncoder());
 }
 
 
@@ -182,10 +183,34 @@ void CleanupTextureData(::Effekseer::TextureData* textureData)
 }
 
 
-void EffectEmitter::preRender(EffekseerRenderer::Renderer* renderer)
+void EffectEmitter::preRender()
 {
-    auto r = static_cast<::EffekseerRendererMetal::RendererImplemented*>(renderer);
-    SetMTLObjectsFromCocos2d(r);
+#if EFK_ENABLE_HDR
+    auto rt = manager->hdrRenderTexture;
+    if (rt == nullptr) return;
+    
+    //TODO: OPTIMIZATION - Check if this effect has Distortion for this frame
+    
+    // add commands before actual render command
+    
+    // detach HDR color attachment
+    rt->endSane();
+    
+    auto texture = manager->hdrRenderTexture->getSprite()->getTexture();
+    auto d = cocos2d::Director::getInstance();
+    d->pushMatrix(cocos2d::MATRIX_STACK_TYPE::MATRIX_STACK_PROJECTION);
+    d->pushMatrix(cocos2d::MATRIX_STACK_TYPE::MATRIX_STACK_MODELVIEW);
+    d->loadIdentityMatrix(cocos2d::MATRIX_STACK_TYPE::MATRIX_STACK_PROJECTION);
+    d->loadIdentityMatrix(cocos2d::MATRIX_STACK_TYPE::MATRIX_STACK_MODELVIEW);
+    cocos2d::Rect r(-1, -1, 2, 2);
+    // render color attachment texture to drawable
+    texture->drawInRect(r, _globalZOrder);
+    d->popMatrix(cocos2d::MATRIX_STACK_TYPE::MATRIX_STACK_PROJECTION);
+    d->popMatrix(cocos2d::MATRIX_STACK_TYPE::MATRIX_STACK_MODELVIEW);
+    
+    // re-attach HDR color attachment
+    rt->beginSane();
+#endif
 }
 
 void EffectManager::CreateRenderer(int32_t spriteSize)
@@ -193,7 +218,11 @@ void EffectManager::CreateRenderer(int32_t spriteSize)
     auto device = EffekseerGraphicsDevice::create();
     renderer2d = EffekseerRendererMetal::Create(device,
                                                 spriteSize,
+#if EFK_ENABLE_HDR
+                                                MTLPixelFormatRGBA16Float,
+#else
                                                 cocos2d::backend::Utils::getDefaultColorAttachmentPixelFormat(),
+#endif
                                                 cocos2d::backend::Utils::getDefaultDepthStencilAttachmentPixelFormat(),
                                                 false);
 

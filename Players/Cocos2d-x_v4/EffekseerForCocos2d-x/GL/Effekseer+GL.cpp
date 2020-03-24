@@ -6,6 +6,7 @@
 #include "../../EffekseerRendererGL/EffekseerRenderer/EffekseerRendererGL.MaterialLoader.h"
 #include "../../EffekseerRendererGL/EffekseerRenderer/EffekseerRendererGL.DeviceObjectCollection.h"
 #include "renderer/backend/opengl/TextureGL.h"
+#include "renderer/backend/opengl/CommandBufferGL.h"
 
 namespace efk {
 
@@ -122,7 +123,7 @@ Effekseer::ModelLoader* CreateModelLoader(Effekseer::FileInterface* effectFile)
 
 ::Effekseer::MaterialLoader* CreateMaterialLoader(Effekseer::FileInterface* effectFile)
 {
-    #if (CC_TARGET_PLATFORM == CC_PLATFORM_IOS || CC_TARGET_PLATFORM == CC_PLATFORM_ANDROID)
+    #ifdef CC_PLATFORM_MOBILE
             return new ::EffekseerRendererGL::MaterialLoader(
                 EffekseerRendererGL::OpenGLDeviceType::OpenGLES2, nullptr, EffekseerDeviceObjectCollection::create(), effectFile);
     #else
@@ -139,17 +140,30 @@ void UpdateTextureData(::Effekseer::TextureData* textureData, cocos2d::Texture2D
 
 void CleanupTextureData(::Effekseer::TextureData* textureData) {}
 
+void BeginRenderPass(EffekseerRenderer::Renderer* renderer)
+{
+    auto d = cocos2d::Director::getInstance();
+    auto buffer = d->getCommandBuffer();
+    auto bufferGL = static_cast<cocos2d::backend::CommandBufferGL*>(buffer);
+
+    // use render pass descriptor from Cocos and add depth test
+    auto descriptor = d->getRenderer()->getRenderPassDescriptor();
+    descriptor.depthTestEnabled = true;
+    // using Cocos render pass
+    bufferGL->beginRenderPass(descriptor);
+}
+
 ::EffekseerRenderer::DistortingCallback* CreateDistortingCallback(::EffekseerRenderer::Renderer* renderer)
 {
 	auto renderGL = static_cast<::EffekseerRendererGL::Renderer*>(renderer);
 	return new DistortingCallbackGL(renderGL);
 }
 
-void EffectEmitter::preRender(EffekseerRenderer::Renderer*) {}
+void EffectEmitter::preRender() {}
 
 void EffectManager::CreateRenderer(int32_t spriteSize)
 {
-#if (CC_TARGET_PLATFORM == CC_PLATFORM_IOS || CC_TARGET_PLATFORM == CC_PLATFORM_ANDROID)
+#ifdef CC_PLATFORM_MOBILE
 	renderer2d = ::EffekseerRendererGL::Renderer::Create(spriteSize, EffekseerRendererGL::OpenGLDeviceType::OpenGLES2, EffekseerDeviceObjectCollection::create());
 #else
 	renderer2d = ::EffekseerRendererGL::Renderer::Create(spriteSize, EffekseerRendererGL::OpenGLDeviceType::OpenGL2, EffekseerDeviceObjectCollection::create());

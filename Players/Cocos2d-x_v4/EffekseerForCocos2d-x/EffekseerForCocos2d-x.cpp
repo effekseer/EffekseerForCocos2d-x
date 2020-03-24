@@ -18,6 +18,8 @@ void CleanupTextureData(::Effekseer::TextureData* textureData);
 
 ::EffekseerRenderer::DistortingCallback* CreateDistortingCallback(::EffekseerRenderer::Renderer* renderer);
 
+void BeginRenderPass(::EffekseerRenderer::Renderer* renderer);
+
 void ResetBackground(::EffekseerRenderer::Renderer* renderer);
 
 int ccNextPOT(int x)
@@ -753,6 +755,7 @@ void EffectEmitter::draw(cocos2d::Renderer* renderer, const cocos2d::Mat4& paren
         // allow frame buffer texture to be copied for distortion
         cocos2d::backend::Device::getInstance()->setFrameBufferOnly(false);
     }
+    preRender();
 #endif
     
 	renderCommand.init(_globalZOrder);
@@ -763,10 +766,9 @@ void EffectEmitter::draw(cocos2d::Renderer* renderer, const cocos2d::Mat4& paren
 	renderCommand.func = [=]() -> void {
 		renderer2d->SetCameraMatrix(mCamera);
 		renderer2d->SetProjectionMatrix(mProj);
+        
+        BeginRenderPass(renderer2d);
 
-#ifdef CC_USE_METAL
-            preRender(renderer2d);
-#endif
 		renderer2d->SetRestorationOfStatesFlag(true);
 		renderer2d->BeginRendering();
 		manager->getInternalManager()->DrawHandle(handle);
@@ -820,11 +822,12 @@ bool EffectManager::Initialize(cocos2d::Size visibleSize)
 	// large buffer make application slow on Android
 	int32_t spriteSize = 600;
 
-#if (CC_TARGET_PLATFORM == CC_PLATFORM_IOS)
+#if (CC_TARGET_PLATFORM == CC_PLATFORM_IOS || CC_TARGET_PLATFORM == CC_PLATFORM_MAC)
 	spriteSize = 2400;
 #endif
 
 	CreateRenderer(spriteSize);
+	CreateHdrRenderTexture();
 
 	manager2d = ::Effekseer::Manager::Create(8000);
 
@@ -849,6 +852,32 @@ bool EffectManager::Initialize(cocos2d::Size visibleSize)
 	internalManager_->registerManager(manager2d);
 
 	return true;
+}
+
+void EffectManager::CreateHdrRenderTexture()
+{
+#if EFK_ENABLE_HDR
+    auto d = cocos2d::Director::getInstance();
+
+    // create Frame buffer texture
+    auto v = d->getRenderer()->getViewport();
+    hdrRenderTexture = cocos2d::RenderTexture::create(
+                                                      v.w, v.h, cocos2d::PixelFormat::RGBA16x4
+#if defined(CC_USE_GL) || defined(CC_USE_GLES)
+                                                      , cocos2d::PixelFormat::D24S8
+#endif
+                                                      );
+    hdrRenderTexture->setKeepMatrix(true);
+    CC_SAFE_RETAIN(hdrRenderTexture);
+
+    auto sprite = hdrRenderTexture->getSprite();
+    // set sprite size
+    auto size = d->getVisibleSize();
+    sprite->setContentSize(size);
+    sprite->setIgnoreAnchorPointForPosition(true);
+    sprite->getTexture()->setMaxS(1);
+    sprite->getTexture()->setMaxT(1);
+#endif
 }
 
 EffectManager* EffectManager::create(cocos2d::Size visibleSize)
@@ -888,6 +917,8 @@ EffectManager::~EffectManager()
 		renderer2d = nullptr;
 	}
 
+	CC_SAFE_RELEASE_NULL(hdrRenderTexture);
+
     ES_SAFE_RELEASE(memoryPool_);
     ES_SAFE_RELEASE(commandList_);
 	ES_SAFE_RELEASE(internalManager_);
@@ -920,6 +951,9 @@ void EffectManager::begin(cocos2d::Renderer* renderer, float globalZOrder)
 
     newFrame();
 
+    if (hdrRenderTexture)
+        hdrRenderTexture->begin();
+    
 	// TODO Batch render
 	/*
 	beginCommand.init(globalZOrder);
@@ -940,6 +974,12 @@ void EffectManager::begin(cocos2d::Renderer* renderer, float globalZOrder)
 
 void EffectManager::end(cocos2d::Renderer* renderer, float globalZOrder)
 {
+	if (hdrRenderTexture)
+	{
+		hdrRenderTexture->end();
+		hdrRenderTexture->visit(renderer, cocos2d::Mat4::IDENTITY, 0);
+	}
+
 	// TODO Batch render
 	/*
 	endCommand.init(globalZOrder);
@@ -972,6 +1012,17 @@ void EffectManager::update(float delta)
 	manager2d->Update();
 	time_ += delta;
 	renderer2d->SetTime(time_);
+
+#if EFK_ENABLE_HDR && (defined(CC_USE_GL) || defined(CC_USE_GLES))
+	// clear depth and stencil texture attachments for rendering new frame
+	if (hdrRenderTexture)
+	{
+		hdrRenderTexture->beginSane(); // do not use group command here as it will crash
+        cocos2d::ClearFlag flags = cocos2d::ClearFlag::DEPTH | cocos2d::ClearFlag::STENCIL;
+		cocos2d::Director::getInstance()->getRenderer()->clear(flags, cocos2d::Color4F(0, 0, 0, 0), 1.0, 0, 0);
+		hdrRenderTexture->endSane();
+	}
+#endif
 }
 
 NetworkServer* NetworkServer::create() { return new NetworkServer(); }
