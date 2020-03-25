@@ -857,6 +857,8 @@ bool EffectManager::Initialize(cocos2d::Size visibleSize)
 void EffectManager::CreateHdrRenderTexture()
 {
 #if EFK_ENABLE_HDR
+	if (!cocos2d::Configuration::getInstance()->supportsHdrFbo()) return;
+
     auto d = cocos2d::Director::getInstance();
 
     // create Frame buffer texture
