@@ -11,6 +11,8 @@
 //#include <EffekseerRendererGL.h>
 //#endif
 
+#define EFK_ENABLE_HDR 1
+
 namespace efk
 {
 class EffectManager;
@@ -86,7 +88,7 @@ private:
 
 	cocos2d::CallbackCommand renderCommand;
 	
-    void preRender(EffekseerRenderer::Renderer*);
+    void preRender();
     
 public:
 	/**
@@ -323,9 +325,11 @@ private:
 	float time_ = 0.0f;
 	InternalManager* internalManager_ = nullptr;
 
-	cocos2d::CustomCommand distortionCommand;
-	cocos2d::CustomCommand beginCommand;
-	cocos2d::CustomCommand endCommand;
+	cocos2d::CallbackCommand beginCommand;
+	cocos2d::CallbackCommand endCommand;
+	// all the effects will be rendered to this layer
+	// this texture will be used as a frame buffer for HDR rendering
+	cocos2d::RenderTexture* hdrRenderTexture = nullptr;
 
 	::Effekseer::Handle play(Effect* effect, float x, float y, float z);
 
@@ -342,6 +346,8 @@ private:
 	bool Initialize(cocos2d::Size visibleSize);
 
     void CreateRenderer(int32_t spriteSize);
+    
+	void CreateHdrRenderTexture();
     
 public:
 	/**
