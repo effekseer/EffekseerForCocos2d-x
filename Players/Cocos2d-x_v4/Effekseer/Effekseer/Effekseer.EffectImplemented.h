@@ -95,6 +95,12 @@ class EffectImplemented : public Effect, public ReferenceObject
 	friend class EffectFactory;
 	friend class Instance;
 
+	#ifdef __EFFEKSEER_BUILD_VERSION16__
+	static const int32_t SupportBinaryVersion = 1600;
+#else
+	static const int32_t SupportBinaryVersion = 1500;
+	#endif
+
 protected:
 	ManagerImplemented* m_pManager;
 
@@ -287,6 +293,14 @@ public:
 	int32_t GetMaterialCount() const override;
 
 	const EFK_CHAR* GetMaterialPath(int n) const override;
+
+	void SetTexture(int32_t index, TextureType type, TextureData* data) override;
+
+	void SetSound(int32_t index, void* data) override;
+
+	void SetModel(int32_t index, void* data) override;
+
+	void SetMaterial(int32_t index, MaterialData* data) override;
 
 	/**
 		@brief	エフェクトのリロードを行う。

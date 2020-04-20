@@ -91,6 +91,7 @@ effekseerHeader.readLines(rootEDir + 'Effekseer.Effect.h')
 effekseerHeader.readLines(rootEDir + 'Effekseer.Manager.h')
 
 # SIMD
+effekseerHeader.readLines(rootEDir + 'SIMD/Effekseer.SIMDType.h')
 effekseerHeader.readLines(rootEDir + 'SIMD/Effekseer.SIMD4f_Gen.h')
 effekseerHeader.readLines(rootEDir + 'SIMD/Effekseer.SIMD4f_NEON.h')
 effekseerHeader.readLines(rootEDir + 'SIMD/Effekseer.SIMD4f_SSE.h')

@@ -92,18 +92,43 @@ public:
 	}
 
 private:
-	constexpr float GetFade(const float t) const noexcept { return t * t * t * (t * (t * 6 - 15) + 10); }
+	constexpr float GetFade(const float t) const noexcept
+	{
+		return t * t * t * (t * (t * 6 - 15) + 10);
+	}
 
-	constexpr float GetLerp(const float t, const float a, const float b) const noexcept { return a + t * (b - a); }
+	SIMD4f GetFadeFast(const SIMD4f in) const noexcept
+	{
+		const SIMD4f c6(6.0f);
+		const SIMD4f c15(15.0f);
+		const SIMD4f c10(10.0f);
+
+		SIMD4f t3 = in * in * in;
+		//SIMD4f t6_15_10 = _mm_add_ps(_mm_mul_ps(in, _mm_sub_ps(_mm_mul_ps(in, c6), c15)), c10);
+		SIMD4f t6_15_10 = (in * ((in * c6) - c15)) + c10;
+		return t3 * t6_15_10;
+	}
+
+	constexpr float GetLerp(const float t, const float a, const float b) const noexcept
+	{
+		return a + t * (b - a);
+	}
+
+	SIMD4f GetLerpFast(const SIMD4f t, const SIMD4f a, const SIMD4f b) const noexcept
+	{
+		return a + t * (b - a);
+	}
 
 	constexpr float MakeGrad(const Pint hashnum, const float u, const float v) const noexcept
 	{
 		return (((hashnum & 1) == 0) ? u : -u) + (((hashnum & 2) == 0) ? v : -v);
 	}
+
 	constexpr float MakeGrad(const Pint hashnum, const float x, const float y, const float z) const noexcept
 	{
 		return this->MakeGrad(hashnum, hashnum < 8 ? x : y, hashnum < 4 ? y : hashnum == 12 || hashnum == 14 ? x : z);
 	}
+	
 	constexpr float GetGrad(const Pint hashnum, const float x, const float y, const float z) const noexcept
 	{
 		return this->MakeGrad(hashnum & 15, x, y, z);
@@ -115,89 +140,115 @@ private:
 			float f;
 			uint32_t i;
 		} u_bits, v_bits;
-
+		
 		u_bits.f = u;
 		v_bits.f = v;
 
-		u_bits.i ^= (hashnum & 1) << 31;
-		v_bits.i ^= (hashnum & 2) << 30;
+		u_bits.i ^= ((hashnum & 1) << 31);
+		v_bits.i ^= ((hashnum & 2) << 30);
 
 		return u_bits.f + v_bits.f;
 	}
+	
 	float MakeGradFast(const Pint hashnum, const float x, const float y, const float z) const noexcept
 	{
 		return this->MakeGradFast(hashnum, hashnum < 8 ? x : y, hashnum < 4 ? y : hashnum == 12 || hashnum == 14 ? x : z);
 	}
+
 	float GetGradFast(const Pint hashnum, const float x, const float y, const float z) const noexcept
 	{
 		return this->MakeGradFast(hashnum & 15, x, y, z);
 	}
-
-public:
-	float SetNoise(float x, float y, float z) const noexcept
+	
+	SIMD4f MakeGradFast(const SIMD4i hashnum, const SIMD4f u, const SIMD4f v) const noexcept
 	{
-		const int32_t x_int{static_cast<int32_t>(static_cast<int32_t>(std::floor(x)) & 255)};
-		const int32_t y_int{static_cast<int32_t>(static_cast<int32_t>(std::floor(y)) & 255)};
-		const int32_t z_int{static_cast<int32_t>(static_cast<int32_t>(std::floor(z)) & 255)};
-
-		x -= std::floor(x);
-		y -= std::floor(y);
-		z -= std::floor(z);
-		const float u{this->GetFade(x)};
-		const float v{this->GetFade(y)};
-		const float w{this->GetFade(z)};
-		const std::size_t a0{static_cast<std::size_t>(this->p[x_int] + y_int)};
-		const std::size_t a1{static_cast<std::size_t>(this->p[a0] + z_int)};
-		const std::size_t a2{static_cast<std::size_t>(this->p[a0 + 1] + z_int)};
-		const std::size_t b0{static_cast<std::size_t>(this->p[x_int + 1] + y_int)};
-		const std::size_t b1{static_cast<std::size_t>(this->p[b0] + z_int)};
-		const std::size_t b2{static_cast<std::size_t>(this->p[b0 + 1] + z_int)};
-
-		const auto v111 = this->GetGradFast(this->p[a1], x, y, z);
-		const auto v011 = this->GetGradFast(this->p[b1], x - 1, y, z);
-		const auto v101 = this->GetGradFast(this->p[a2], x, y - 1, z);
-		const auto v001 = this->GetGradFast(this->p[b2], x - 1, y - 1, z);
-		const auto v110 = this->GetGradFast(this->p[a1 + 1], x, y, z - 1);
-		const auto v010 = this->GetGradFast(this->p[b1 + 1], x - 1, y, z - 1);
-		const auto v100 = this->GetGradFast(this->p[a2 + 1], x, y - 1, z - 1);
-		const auto v000 = this->GetGradFast(this->p[b2 + 1], x - 1, y - 1, z - 1);
-
-		const auto v11 = this->GetLerp(u, v111, v011);
-		const auto v01 = this->GetLerp(u, v101, v001);
-		const auto v10 = this->GetLerp(u, v110, v010);
-		const auto v00 = this->GetLerp(u, v100, v000);
-
-		return this->GetLerp(w, this->GetLerp(v, v11, v01), this->GetLerp(v, v10, v00));
+		SIMD4i hashBits1 = hashnum & SIMD4i(1);
+		SIMD4i hashBits2 = hashnum & SIMD4i(2);
+		
+		return (u ^ SIMD4i::ShiftL<31>(hashBits1).Cast4f()) + (v ^ SIMD4i::ShiftL<30>(hashBits2).Cast4f());
 	}
 
-	template <typename... Args> float Noise(const Args... args_) const noexcept { return this->SetNoise(args_...) * 0.5 + 0.5; }
+	SIMD4f MakeGradFast(const SIMD4i hashnum, const SIMD4f x, const SIMD4f y, const SIMD4f z) const noexcept
+	{
+		SIMD4f in1_mask = SIMD4i::LessThan(hashnum, SIMD4i(8)).Cast4f();
+		SIMD4f in1 = SIMD4f::Select(in1_mask, x, y);
 
-private:
-	float SetOctaveNoise(const std::size_t octaves_, float x_, float y_, float z_) const noexcept
+		SIMD4f in2_mask1 = (SIMD4i::LessThan(hashnum, SIMD4i(4))).Cast4f();
+		SIMD4f in2_mask2 = (SIMD4i::Equal(hashnum, SIMD4i(12)) | SIMD4i::Equal(hashnum, SIMD4i(14))).Cast4f();
+		SIMD4f in2 = SIMD4f::Select(in2_mask1, y, SIMD4f::Select(in2_mask2, x, z));
+
+		return this->MakeGradFast(hashnum, in1, in2);
+	}
+
+	SIMD4f GetGradFast(const SIMD4i hashnum, const SIMD4f x, const SIMD4f y, const SIMD4f z) const noexcept
+	{
+		return this->MakeGradFast(hashnum & SIMD4i(15), x, y, z);
+	}
+
+public:
+	float SetNoise(Vec3f position) const noexcept
+	{
+		SIMD4f in = position.s;
+		SIMD4f flin = SIMD4f::Floor(in);
+		
+		SIMD4i xyz_int = flin.Convert4i() & SIMD4i(0xff);
+		uint32_t x_int{(uint32_t)xyz_int.GetX()};
+		uint32_t y_int{(uint32_t)xyz_int.GetY()};
+		uint32_t z_int{(uint32_t)xyz_int.GetZ()};
+
+		in -= flin;
+		
+		SIMD4f uvw = GetFadeFast(in);
+		const float u{uvw.GetX()};
+		const float v{uvw.GetY()};
+		const float w{uvw.GetZ()};
+
+		const uint32_t a0{this->p[x_int] + y_int};
+		const uint32_t a1{this->p[a0] + z_int};
+		const uint32_t a2{this->p[a0 + 1] + z_int};
+		const uint32_t b0{this->p[x_int + 1] + y_int};
+		const uint32_t b1{this->p[b0] + z_int};
+		const uint32_t b2{this->p[b0 + 1] + z_int};
+
+		SIMD4i vp1(p[a1], p[a2], p[a1 + 1], p[a2 + 1]);
+		SIMD4i vp2(p[b1], p[b2], p[b1 + 1], p[b2 + 1]);
+
+		SIMD4f vx1 = in.Dup<0>();
+		SIMD4f vx2 = vx1 - SIMD4f(1.0f);
+		SIMD4f vy = in.Dup<1>() - SIMD4f(0.0f, 1.0f, 0.0f, 1.0f);
+		SIMD4f vz = in.Dup<2>() - SIMD4f(0.0f, 0.0f, 1.0f, 1.0f);
+
+		SIMD4f vv1 = GetGradFast(vp1, vx1, vy, vz);
+		SIMD4f vv2 = GetGradFast(vp2, vx2, vy, vz);
+		SIMD4f vv = GetLerpFast(SIMD4f(u), vv1, vv2);
+
+		return this->GetLerp(w, this->GetLerp(v, vv.GetX(), vv.GetY()), this->GetLerp(v, vv.GetZ(), vv.GetW()));
+	}
+
+	float Noise(Vec3f position) const noexcept
+	{
+		return this->SetNoise(position) * 0.5f + 0.5f;
+	}
+
+public:
+	float OctaveNoise(const std::size_t octaves_, Vec3f position) const noexcept
 	{
 		float noise_value{};
 		float amp{1.0};
 		for (std::size_t i{}; i < octaves_; ++i)
 		{
-			noise_value += this->SetNoise(x_, y_, z_) * amp;
-			x_ *= 2.0;
-			y_ *= 2.0;
-			z_ *= 2.0;
-			amp *= 0.5;
+			noise_value += this->SetNoise(position) * amp;
+			position *= 2.0f;
+			amp *= 0.5f;
 		}
-		return noise_value;
-	}
-
-public:
-	template <typename... Args> float OctaveNoise(const std::size_t octaves_, const Args... args_) const noexcept
-	{
-		return this->SetOctaveNoise(octaves_, args_...) * 0.5 + 0.5;
+		return noise_value * 0.5f + 0.5f;
 	}
 };
 
 } // namespace Effekseer
 
 #endif
+
 
 #ifndef __EFFEKSEER_CURL_NOISE_H__
 #define __EFFEKSEER_CURL_NOISE_H__
@@ -231,19 +282,19 @@ public:
 
 		auto noise_x = [this](Vec3f v) -> Vec3f {
 			return Vec3f(0.0f,
-						 ynoise_.OctaveNoise(Octave, v.GetX(), v.GetY(), v.GetZ()),
-						 znoise_.OctaveNoise(Octave, v.GetX(), v.GetY(), v.GetZ()));
+						 ynoise_.OctaveNoise(Octave, v),
+						 znoise_.OctaveNoise(Octave, v));
 		};
 
 		auto noise_y = [this](Vec3f v) -> Vec3f {
-			return Vec3f(xnoise_.OctaveNoise(Octave, v.GetX(), v.GetY(), v.GetZ()),
+			return Vec3f(xnoise_.OctaveNoise(Octave, v),
 						 0.0f,
-						 znoise_.OctaveNoise(Octave, v.GetX(), v.GetY(), v.GetZ()));
+						 znoise_.OctaveNoise(Octave, v));
 		};
 
 		auto noise_z = [this](Vec3f v) -> Vec3f {
-			return Vec3f(xnoise_.OctaveNoise(Octave, v.GetX(), v.GetY(), v.GetZ()),
-						 ynoise_.OctaveNoise(Octave, v.GetX(), v.GetY(), v.GetZ()),
+			return Vec3f(xnoise_.OctaveNoise(Octave, v),
+						 ynoise_.OctaveNoise(Octave, v),
 						 0.0f);
 		};
 
@@ -932,8 +983,10 @@ bool EfkEfcFactory::OnLoading(Effect* effect, const void* data, int32_t size, fl
 
 		if (memcmp(&chunk, "BIN_", 4) == 0)
 		{
-			return LoadBody(
-				effect, reinterpret_cast<const uint8_t*>(data) + binaryReader.GetOffset(), chunkSize, magnification, materialPath);
+			if (LoadBody(effect, reinterpret_cast<const uint8_t*>(data) + binaryReader.GetOffset(), chunkSize, magnification, materialPath))
+			{
+				return true;
+			}
 		}
 
 		binaryReader.AddOffset(chunkSize);
@@ -8535,6 +8588,12 @@ class EffectImplemented : public Effect, public ReferenceObject
 	friend class EffectFactory;
 	friend class Instance;
 
+	#ifdef __EFFEKSEER_BUILD_VERSION16__
+	static const int32_t SupportBinaryVersion = 1600;
+#else
+	static const int32_t SupportBinaryVersion = 1500;
+	#endif
+
 protected:
 	ManagerImplemented* m_pManager;
 
@@ -8728,6 +8787,14 @@ public:
 
 	const EFK_CHAR* GetMaterialPath(int n) const override;
 
+	void SetTexture(int32_t index, TextureType type, TextureData* data) override;
+
+	void SetSound(int32_t index, void* data) override;
+
+	void SetModel(int32_t index, void* data) override;
+
+	void SetMaterial(int32_t index, MaterialData* data) override;
+
 	/**
 		@brief	エフェクトのリロードを行う。
 	*/
@@ -8844,6 +8911,9 @@ private:
 
 		int32_t Layer = 0;
 
+		//! HACK for GC (Instances must be updated after removing) If you use UpdateHandle, updating instance which is contained removing effects is not called. It makes update called forcibly.
+		int32_t UpdateCountAfterRemoving = 0;
+
 		DrawSet( Effect* effect, InstanceContainer* pContainer, InstanceGlobal* pGlobal )
 			: ParameterPointer			( effect )
 			, InstanceContainerPointer	( pContainer )
@@ -8904,11 +8974,11 @@ private:
 	} cullingCurrent, cullingNext;
 
 private:
-	/* 自動データ入れ替えフラグ */
-	bool m_autoFlip;
+	//! whether does rendering and update handle flipped automatically
+	bool m_autoFlip = true;
 
-	// 次のHandle
-	Handle		m_NextHandle;
+	//! next handle
+	Handle m_NextHandle = 0;
 
 	// 確保済みインスタンス数
 	int m_instance_max;
@@ -8935,7 +9005,7 @@ private:
 	std::map<Handle,DrawSet>	m_DrawSets;
 
 	// 破棄待ちオブジェクト
-	std::map<Handle,DrawSet>	m_RemovingDrawSets[2];
+	std::array<std::map<Handle,DrawSet>, 2> m_RemovingDrawSets;
 
 	//! objects on rendering
 	CustomVector<DrawSet> m_renderingDrawSets;
@@ -8997,8 +9067,10 @@ private:
 	// 描画オブジェクト追加
 	Handle AddDrawSet( Effect* effect, InstanceContainer* pInstanceContainer, InstanceGlobal* pGlobalPointer );
 
-	// 描画オブジェクト破棄処理
-	void GCDrawSet( bool isRemovingManager );
+	void StopStoppingEffects();
+
+	//! GC Draw sets
+	void GCDrawSet(bool isRemovingManager);
 
 	// メモリ確保関数
 	static void* EFK_STDCALL Malloc( unsigned int size );
@@ -14388,6 +14460,12 @@ bool EffectImplemented::LoadBody(const uint8_t* data, int32_t size, float mag)
 
 	binaryReader.Read(m_version);
 
+	// too new version
+	if (m_version > SupportBinaryVersion)
+	{
+		return false;
+	}
+
 	// Image
 	binaryReader.Read(m_ImageCount, 0, elementCountMax);
 
@@ -15076,6 +15154,82 @@ int32_t EffectImplemented::GetMaterialCount() const { return materialCount_; }
 
 const EFK_CHAR* EffectImplemented::GetMaterialPath(int n) const { return materialPaths_[n]; }
 
+void EffectImplemented::SetTexture(int32_t index, TextureType type, TextureData* data)
+{
+	auto textureLoader = GetSetting()->GetTextureLoader();
+
+	if (type == TextureType::Color)
+	{
+		assert(0 <= index && index < m_ImageCount);
+		if (textureLoader != nullptr)
+		{
+			textureLoader->Unload(GetColorImage(index));
+		}
+
+		m_pImages[index] = data;
+	}
+
+	if (type == TextureType::Normal)
+	{
+		assert(0 <= index && index < m_normalImageCount);
+		if (textureLoader != nullptr)
+		{
+			textureLoader->Unload(GetNormalImage(index));
+		}
+
+		m_normalImages[index] = data;
+	}
+
+	if (type == TextureType::Distortion)
+	{
+		assert(0 <= index && index < m_distortionImageCount);
+		if (textureLoader != nullptr)
+		{
+			textureLoader->Unload(GetDistortionImage(index));
+		}
+
+		m_distortionImages[index] = data;
+	}
+}
+
+void EffectImplemented::SetSound(int32_t index, void* data)
+{
+	auto soundLoader = GetSetting()->GetSoundLoader();
+	assert(0 <= index && index < m_WaveCount);
+
+	if (soundLoader != nullptr)
+	{
+		soundLoader->Unload(GetWave(index));
+	}
+
+	m_pWaves[index] = data;
+}
+
+void EffectImplemented::SetModel(int32_t index, void* data)
+{
+	auto modelLoader = GetSetting()->GetModelLoader();
+	assert(0 <= index && index < modelCount_);
+
+	if (modelLoader != nullptr)
+	{
+		modelLoader->Unload(GetModel(index));
+	}
+
+	models_[index] = data;
+}
+
+void EffectImplemented::SetMaterial(int32_t index, MaterialData* data)
+{
+	auto materialLoader = GetSetting()->GetMaterialLoader();
+	assert(0 <= index && index < materialCount_);
+
+	if (materialLoader != nullptr)
+	{
+		materialLoader->Unload(GetMaterial(index));
+	}
+
+	materials_[index] = data;
+}
 
 bool EffectImplemented::Reload( void* data, int32_t size, const EFK_CHAR* materialPath, ReloadingThreadType reloadingThreadType)
 {
@@ -15501,16 +15655,83 @@ Handle ManagerImplemented::AddDrawSet( Effect* effect, InstanceContainer* pInsta
 	return Temp;
 }
 
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-void ManagerImplemented::GCDrawSet( bool isRemovingManager )
+void ManagerImplemented::StopStoppingEffects()
 {
-	// インスタンスグループ自体の削除処理
+	for (auto& draw_set_it : m_DrawSets)
+	{
+		DrawSet& draw_set = draw_set_it.second;
+		if (draw_set.IsRemoving)
+			continue;
+		if (draw_set.GoingToStop)
+			continue;
+
+		bool isRemoving = false;
+
+		// Empty
+		if (!isRemoving && draw_set.GlobalPointer->GetInstanceCount() == 0)
+		{
+			isRemoving = true;
+		}
+
+		// Root only exists and none plan to create new instances
+		if (!isRemoving && draw_set.GlobalPointer->GetInstanceCount() == 1)
+		{
+			InstanceContainer* pRootContainer = draw_set.InstanceContainerPointer;
+			InstanceGroup* group = pRootContainer->GetFirstGroup();
+
+			if (group)
+			{
+				Instance* pRootInstance = group->GetFirst();
+
+				if (pRootInstance && pRootInstance->GetState() == INSTANCE_STATE_ACTIVE)
+				{
+					int maxcreate_count = 0;
+					bool canRemoved = true;
+					for (int i = 0; i < pRootInstance->m_pEffectNode->GetChildrenCount(); i++)
+					{
+						auto child = (EffectNodeImplemented*)pRootInstance->m_pEffectNode->GetChild(i);
+
+						if (pRootInstance->maxGenerationChildrenCount[i] > pRootInstance->m_generatedChildrenCount[i])
+						{
+							canRemoved = false;
+							break;
+						}
+					}
+
+					if (canRemoved)
+					{
+						// when a sound is not playing.
+						if (!GetSoundPlayer() || !GetSoundPlayer()->CheckPlayingTag(draw_set.GlobalPointer))
+						{
+							isRemoving = true;
+						}
+					}
+				}
+			}
+		}
+
+		if (isRemoving)
+		{
+			StopEffect(draw_set_it.first);
+		}
+	}
+}
+
+void ManagerImplemented::GCDrawSet(bool isRemovingManager)
+{
+	// dispose instance groups
 	{
 		std::map<Handle,DrawSet>::iterator it = m_RemovingDrawSets[1].begin();
 		while( it != m_RemovingDrawSets[1].end() )
 		{
+			// HACK
+			if (it->second.UpdateCountAfterRemoving < 2)
+			{
+				UpdateInstancesByInstanceGlobal(it->second);
+				UpdateHandleInternal(it->second);
+				it->second.UpdateCountAfterRemoving++;
+			}
+
 			DrawSet& drawset = (*it).second;
 
 			// dispose all instances
@@ -15534,10 +15755,19 @@ void ManagerImplemented::GCDrawSet( bool isRemovingManager )
 		m_RemovingDrawSets[1].clear();
 	}
 
+	// wait next frame to be removed
 	{
 		std::map<Handle,DrawSet>::iterator it = m_RemovingDrawSets[0].begin();
 		while( it != m_RemovingDrawSets[0].end() )
 		{
+			// HACK
+			if (it->second.UpdateCountAfterRemoving < 1)
+			{
+				UpdateInstancesByInstanceGlobal(it->second);
+				UpdateHandleInternal(it->second);
+				it->second.UpdateCountAfterRemoving++;
+			}
+
 			m_RemovingDrawSets[1][ (*it).first ] = (*it).second;
 			m_RemovingDrawSets[0].erase( it++ );
 		}
@@ -15550,60 +15780,11 @@ void ManagerImplemented::GCDrawSet( bool isRemovingManager )
 		{
 			DrawSet& draw_set = (*it).second;
 
-			// 削除フラグが立っている時
-			bool isRemoving = draw_set.IsRemoving;
-
-			// 何も存在しない時
-			if( !isRemoving && draw_set.GlobalPointer->GetInstanceCount() == 0 )
+			if (draw_set.IsRemoving)
 			{
-				isRemoving = true;
-			}
-
-			// ルートのみ存在し、既に新しく生成する見込みがないとき
-			if( !isRemoving && draw_set.GlobalPointer->GetInstanceCount() == 1 )
-			{
-				InstanceContainer* pRootContainer = draw_set.InstanceContainerPointer;
-				InstanceGroup* group = pRootContainer->GetFirstGroup();
-
-				if( group )
-				{
-					Instance* pRootInstance = group->GetFirst();
-
-					if( pRootInstance && pRootInstance->GetState() == INSTANCE_STATE_ACTIVE )
-					{
-						int maxcreate_count = 0;
-						bool canRemoved = true;
-						for( int i = 0; i < pRootInstance->m_pEffectNode->GetChildrenCount(); i++ )
-						{
-							auto child = (EffectNodeImplemented*) pRootInstance->m_pEffectNode->GetChild(i);
-
-							if (pRootInstance->maxGenerationChildrenCount[i] > pRootInstance->m_generatedChildrenCount[i])
-							{
-								canRemoved = false;
-								break;
-							}
-						}
-					
-						if (canRemoved)
-						{
-							// when a sound is not playing.
-							if (!GetSoundPlayer() || !GetSoundPlayer()->CheckPlayingTag(draw_set.GlobalPointer))
-							{
-								isRemoving = true;
-							}
-						}
-					}
-				}
-			}
-
-			if( isRemoving )
-			{
-				// 消去処理
-				StopEffect( (*it).first );
-
 				if( (*it).second.RemovingCallback != NULL )
 				{
-					(*it).second.RemovingCallback( this, (*it).first, isRemovingManager );
+					(*it).second.RemovingCallback(this, (*it).first, isRemovingManager);
 				}
 
 				m_RemovingDrawSets[0][ (*it).first ] = (*it).second;
@@ -15806,7 +15987,7 @@ ManagerImplemented::~ManagerImplemented()
 
 	for( int i = 0; i < 5; i++ )
 	{
-		GCDrawSet( true );
+		GCDrawSet(true);
 	}
 
 	//assert( m_reserved_instances.size() == m_instance_max ); 
@@ -15889,7 +16070,7 @@ void ManagerImplemented::Destroy()
 
 	for( int i = 0; i < 5; i++ )
 	{
-		GCDrawSet( true );
+		GCDrawSet(true);
 	}
 
 	Release();
@@ -16677,10 +16858,11 @@ void ManagerImplemented::Flip()
 		Preupdate(drawSet.second);
 	}
 
+	StopStoppingEffects();
+
 	ExecuteEvents();
 
-	// DrawSet削除処理
-	GCDrawSet( false );
+	GCDrawSet(false);
 
 	m_renderingDrawSets.clear();
 	m_renderingDrawSetMaps.clear();
@@ -16812,6 +16994,15 @@ void ManagerImplemented::Update( float deltaFrame )
 	// start to measure time
 	int64_t beginTime = ::Effekseer::GetTime();
 
+	// Hack for GC
+	for (size_t i = 0; i < m_RemovingDrawSets.size(); i++)
+	{
+		for (auto& ds : m_RemovingDrawSets[i])
+		{
+			ds.second.UpdateCountAfterRemoving++;
+		}
+	}
+
 	BeginUpdate();
 
 	for (auto& drawSet : m_DrawSets)
@@ -16890,19 +17081,21 @@ void ManagerImplemented::EndUpdate()
 //----------------------------------------------------------------------------------
 void ManagerImplemented::UpdateHandle( Handle handle, float deltaFrame )
 {
-	auto it = m_DrawSets.find( handle );
-	if( it != m_DrawSets.end() )
 	{
-		DrawSet& drawSet = it->second;
-
+		auto it = m_DrawSets.find(handle);
+		if (it != m_DrawSets.end())
 		{
-			float df = drawSet.IsPaused ? 0 : deltaFrame * drawSet.Speed;
-			drawSet.GlobalPointer->BeginDeltaFrame(df);
+			DrawSet& drawSet = it->second;
+
+			{
+				float df = drawSet.IsPaused ? 0 : deltaFrame * drawSet.Speed;
+				drawSet.GlobalPointer->BeginDeltaFrame(df);
+			}
+
+			UpdateInstancesByInstanceGlobal(drawSet);
+
+			UpdateHandleInternal(drawSet);
 		}
-
-		UpdateInstancesByInstanceGlobal(drawSet);
-
-		UpdateHandleInternal(drawSet);
 	}
 }
 

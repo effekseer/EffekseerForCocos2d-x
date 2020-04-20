@@ -523,6 +523,13 @@ public:
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
+
+enum class ColorSpaceType : int32_t
+{
+	Gamma,
+	Linear,
+};
+
 /**
 	@brief	\~english	Texture data
 			\~japanese	テクスチャデータ
@@ -2549,6 +2556,36 @@ public:
 
 	/**
 		@brief
+		\~English set texture data into specified index
+		\~Japanese	指定されたインデックスにテクスチャを設定する。
+	*/
+	virtual void SetTexture(int32_t index, TextureType type, TextureData* data) = 0;
+
+	/**
+		@brief
+		\~English set sound data into specified index
+		\~Japanese	指定されたインデックスに音を設定する。
+	*/
+
+	virtual void SetSound(int32_t index, void* data) = 0;
+
+	/**
+		@brief
+		\~English set model data into specified index
+		\~Japanese	指定されたインデックスにモデルを設定する。
+	*/
+	virtual void SetModel(int32_t index, void* data) = 0;
+
+	/**
+		@brief
+		\~English set material data into specified index
+		\~Japanese	指定されたインデックスにマテリアルを設定する。
+	*/
+	virtual void SetMaterial(int32_t index, MaterialData* data) = 0;
+
+
+	/**
+		@brief
 		\~English	Reload this effect
 		\~Japanese	エフェクトのリロードを行う。
 		@param	data
@@ -3487,16 +3524,77 @@ public:
 #endif	// __EFFEKSEER_MANAGER_H__
 
 
+#ifndef __EFFEKSEER_SIMDTYPE_H__
+#define __EFFEKSEER_SIMDTYPE_H__
+
+#include <cstdint>
+#include <cmath>
+
+#if defined(__ARM_NEON__) || defined(__ARM_NEON)
+// ARMv7/ARM64 NEON
+
+#define EFK_SIMD_NEON
+
+#if defined(_M_ARM64) || defined(__aarch64__)
+#define EFK_SIMD_NEON_ARM64
+#endif
+
+#include <arm_neon.h>
+
+#elif (defined(_M_AMD64) || defined(_M_X64)) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2) || defined(__SSE2__)
+// x86/x86-64 SSE2/AVX2
+
+#define EFK_SIMD_SSE2
+
+#if defined(__AVX2__)
+#define EFK_SIMD_AVX2
+#endif
+#if defined(__AVX__) || defined(EFK_SIMD_AVX2)
+#define EFK_SIMD_AVX
+#endif
+#if defined(__SSE4_2__) || defined(EFK_SIMD_AVX)
+#define EFK_SIMD_SSE4_2
+#endif
+#if defined(__SSE4_1__) || defined(EFK_SIMD_SSE4_2)
+#define EFK_SIMD_SSE4_1
+#endif
+#if defined(__SSSE3__) || defined(EFK_SIMD_SSE4_1)
+#define EFK_SIMD_SSSE3
+#endif
+#if defined(__SSE3__) || defined(EFK_SIMD_SSSE3)
+#define EFK_SIMD_SSE3
+#endif
+
+#if defined(EFK_SIMD_AVX) || defined(EFK_SIMD_AVX2)
+#include <immintrin.h>
+#elif defined(EFK_SIMD_SSE4_2)
+#include <nmmintrin.h>
+#elif defined(EFK_SIMD_SSE4_1)
+#include <smmintrin.h>
+#elif defined(EFK_SIMD_SSSE3)
+#include <tmmintrin.h>
+#elif defined(EFK_SIMD_SSE3)
+#include <pmmintrin.h>
+#elif defined(EFK_SIMD_SSE2)
+#include <emmintrin.h>
+#endif
+
+#else
+// C++ Generic Implementation (Pseudo SIMD)
+
+#define EFK_SIMD_GEN
+
+#endif
+
+#endif // __EFFEKSEER_SIMDTYPE_H__
+
 #ifndef __EFFEKSEER_SIMD4F_GEN_H__
 #define __EFFEKSEER_SIMD4F_GEN_H__
 
-#if defined(__ARM_NEON__) || defined(__ARM_NEON)
-// not arm
-#elif (defined(_M_AMD64) || defined(_M_X64)) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2) || defined(__SSE__)
-// not x86
-#else
 
-#include <stdint.h>
+#if defined(EFK_SIMD_GEN)
+
+#include <cstring>
 #include <algorithm>
 
 namespace Effekseer
@@ -3511,36 +3609,45 @@ inline float Rsqrt(float x)
 	return 1.0f / std::sqrt(x);
 }
 
+struct SIMD4i;
+
 /**
 	@brief	simd class for generic
 */
 struct alignas(16) SIMD4f
 {
 	union {
-		float f[4];
-		uint32_t i[4];
+		float vf[4];
+		int32_t vi[4];
+		uint32_t vu[4];
 	};
 
 	SIMD4f() = default;
 	SIMD4f(const SIMD4f& rhs) = default;
-	SIMD4f(float x, float y, float z, float w) { f[0] = x; f[1] = y; f[2] = z; f[3] = w; }
-	SIMD4f(float i) { f[0] = i; f[1] = i; f[2] = i; f[3] = i; }
+	SIMD4f(float x, float y, float z, float w) { vf[0] = x; vf[1] = y; vf[2] = z; vf[3] = w; }
+	SIMD4f(float i) { vf[0] = i; vf[1] = i; vf[2] = i; vf[3] = i; }
 
-	float GetX() const { return f[0]; }
-	float GetY() const { return f[1]; }
-	float GetZ() const { return f[2]; }
-	float GetW() const { return f[3]; }
+	float GetX() const { return vf[0]; }
+	float GetY() const { return vf[1]; }
+	float GetZ() const { return vf[2]; }
+	float GetW() const { return vf[3]; }
 
-	void SetX(float o) { f[0] = o; }
-	void SetY(float o) { f[1] = o; }
-	void SetZ(float o) { f[2] = o; }
-	void SetW(float o) { f[3] = o; }
+	void SetX(float o) { vf[0] = o; }
+	void SetY(float o) { vf[1] = o; }
+	void SetZ(float o) { vf[2] = o; }
+	void SetW(float o) { vf[3] = o; }
+
+	template <size_t LANE>
+	SIMD4f Dup() { return SIMD4f(vf[LANE], vf[LANE], vf[LANE], vf[LANE]); }
+
+	SIMD4i Convert4i() const;
+	SIMD4i Cast4i() const;
 
 	SIMD4f& operator+=(const SIMD4f& rhs)
 	{
 		for (size_t i = 0; i < 4; i++)
 		{
-			f[i] += rhs.f[i];
+			vf[i] += rhs.vf[i];
 		}
 		return *this;
 	}
@@ -3549,7 +3656,7 @@ struct alignas(16) SIMD4f
 	{
 		for (size_t i = 0; i < 4; i++)
 		{
-			f[i] -= rhs.f[i];
+			vf[i] -= rhs.vf[i];
 		}
 		return *this;
 	}
@@ -3558,7 +3665,7 @@ struct alignas(16) SIMD4f
 	{
 		for (size_t i = 0; i < 4; i++)
 		{
-			f[i] *= rhs.f[i];
+			vf[i] *= rhs.vf[i];
 		}
 		return *this;
 	}
@@ -3567,7 +3674,7 @@ struct alignas(16) SIMD4f
 	{
 		for (size_t i = 0; i < 4; i++)
 		{
-			f[i] *= rhs;
+			vf[i] *= rhs;
 		}
 		return *this;
 	}
@@ -3576,7 +3683,7 @@ struct alignas(16) SIMD4f
 	{
 		for (size_t i = 0; i < 4; i++)
 		{
-			f[i] /= rhs.f[i];
+			vf[i] /= rhs.vf[i];
 		}
 		return *this;
 	}
@@ -3585,7 +3692,7 @@ struct alignas(16) SIMD4f
 	{
 		for (size_t i = 0; i < 4; i++)
 		{
-			f[i] /= rhs;
+			vf[i] /= rhs;
 		}
 		return *this;
 	}
@@ -3605,6 +3712,8 @@ struct alignas(16) SIMD4f
 	static SIMD4f Abs(const SIMD4f& in);
 	static SIMD4f Min(const SIMD4f& lhs, const SIMD4f& rhs);
 	static SIMD4f Max(const SIMD4f& lhs, const SIMD4f& rhs);
+	static SIMD4f Floor(const SIMD4f& in);
+	static SIMD4f Ceil(const SIMD4f& in);
 	static SIMD4f MulAdd(const SIMD4f& a, const SIMD4f& b, const SIMD4f& c);
 	static SIMD4f MulSub(const SIMD4f& a, const SIMD4f& b, const SIMD4f& c);
 
@@ -3623,6 +3732,7 @@ struct alignas(16) SIMD4f
 	template <uint32_t X, uint32_t Y, uint32_t Z, uint32_t W>
 	static SIMD4f Mask();
 	static uint32_t MoveMask(const SIMD4f& in);
+	static SIMD4f Select(const SIMD4f& mask, const SIMD4f& sel1, const SIMD4f& sel2);
 	static SIMD4f Equal(const SIMD4f& lhs, const SIMD4f& rhs);
 	static SIMD4f NotEqual(const SIMD4f& lhs, const SIMD4f& rhs);
 	static SIMD4f LessThan(const SIMD4f& lhs, const SIMD4f& rhs);
@@ -3634,12 +3744,28 @@ struct alignas(16) SIMD4f
 	static void Transpose(SIMD4f& s0, SIMD4f& s1, SIMD4f& s2, SIMD4f& s3);
 };
 
+} // namespace Effekseer
+
+
+namespace Effekseer
+{
+
+inline SIMD4i SIMD4f::Convert4i() const
+{
+	return SIMD4i((int32_t)vf[0], (int32_t)vf[1], (int32_t)vf[2], (int32_t)vf[3]);
+}
+
+inline SIMD4i SIMD4f::Cast4i() const
+{
+	return SIMD4i(vu[0], vu[1], vu[2], vu[3]);
+}
+
 inline SIMD4f operator+(const SIMD4f& lhs, const SIMD4f& rhs)
 {
 	SIMD4f ret;
 	for (size_t i = 0; i < 4; i++)
 	{
-		ret.f[i] = lhs.f[i] + rhs.f[i];
+		ret.vf[i] = lhs.vf[i] + rhs.vf[i];
 	}
 	return ret;
 }
@@ -3649,7 +3775,7 @@ inline SIMD4f operator-(const SIMD4f& lhs, const SIMD4f& rhs)
 	SIMD4f ret;
 	for (size_t i = 0; i < 4; i++)
 	{
-		ret.f[i] = lhs.f[i] - rhs.f[i];
+		ret.vf[i] = lhs.vf[i] - rhs.vf[i];
 	}
 	return ret;
 }
@@ -3659,7 +3785,7 @@ inline SIMD4f operator*(const SIMD4f& lhs, const SIMD4f& rhs)
 	SIMD4f ret;
 	for (size_t i = 0; i < 4; i++)
 	{
-		ret.f[i] = lhs.f[i] * rhs.f[i];
+		ret.vf[i] = lhs.vf[i] * rhs.vf[i];
 	}
 	return ret;
 }
@@ -3669,7 +3795,7 @@ inline SIMD4f operator*(const SIMD4f& lhs, float rhs)
 	SIMD4f ret;
 	for (size_t i = 0; i < 4; i++)
 	{
-		ret.f[i] = lhs.f[i] * rhs;
+		ret.vf[i] = lhs.vf[i] * rhs;
 	}
 	return ret;
 }
@@ -3679,7 +3805,7 @@ inline SIMD4f operator/(const SIMD4f& lhs, const SIMD4f& rhs)
 	SIMD4f ret;
 	for (size_t i = 0; i < 4; i++)
 	{
-		ret.f[i] = lhs.f[i] / rhs.f[i];
+		ret.vf[i] = lhs.vf[i] / rhs.vf[i];
 	}
 	return ret;
 }
@@ -3689,7 +3815,7 @@ inline SIMD4f operator/(const SIMD4f& lhs, float rhs)
 	SIMD4f ret;
 	for (size_t i = 0; i < 4; i++)
 	{
-		ret.f[i] = lhs.f[i] / rhs;
+		ret.vf[i] = lhs.vf[i] / rhs;
 	}
 	return ret;
 }
@@ -3699,7 +3825,7 @@ inline SIMD4f operator&(const SIMD4f& lhs, const SIMD4f& rhs)
 	SIMD4f ret;
 	for (size_t i = 0; i < 4; i++)
 	{
-		ret.i[i] = lhs.i[i] & rhs.i[i];
+		ret.vu[i] = lhs.vu[i] & rhs.vu[i];
 	}
 	return ret;
 }
@@ -3709,7 +3835,17 @@ inline SIMD4f operator|(const SIMD4f& lhs, const SIMD4f& rhs)
 	SIMD4f ret;
 	for (size_t i = 0; i < 4; i++)
 	{
-		ret.i[i] = lhs.i[i] | rhs.i[i];
+		ret.vu[i] = lhs.vu[i] | rhs.vu[i];
+	}
+	return ret;
+}
+
+inline SIMD4f operator^(const SIMD4f& lhs, const SIMD4f& rhs)
+{
+	SIMD4f ret;
+	for (size_t i = 0; i < 4; i++)
+	{
+		ret.vu[i] = lhs.vu[i] ^ rhs.vu[i];
 	}
 	return ret;
 }
@@ -3719,7 +3855,7 @@ inline bool operator==(const SIMD4f& lhs, const SIMD4f& rhs)
 	bool ret = true;
 	for (size_t i = 0; i < 4; i++)
 	{
-		ret &= lhs.f[i] == rhs.f[i];
+		ret &= lhs.vf[i] == rhs.vf[i];
 	}
 	return ret;
 }
@@ -3729,7 +3865,7 @@ inline bool operator!=(const SIMD4f& lhs, const SIMD4f& rhs)
 	bool ret = true;
 	for (size_t i = 0; i < 4; i++)
 	{
-		ret &= lhs.f[i] == rhs.f[i];
+		ret &= lhs.vf[i] == rhs.vf[i];
 	}
 	return !ret;
 }
@@ -3737,90 +3873,90 @@ inline bool operator!=(const SIMD4f& lhs, const SIMD4f& rhs)
 inline SIMD4f SIMD4f::Load2(const void* mem)
 {
 	SIMD4f ret;
-	memcpy(ret.f, mem, sizeof(float) * 2);
+	memcpy(ret.vf, mem, sizeof(float) * 2);
 	// This code causes bugs in asmjs
-	// ret.f[0] = *((float*)mem + 0);
-	// ret.f[1] = *((float*)mem + 1);
+	// ret.vf[0] = *((float*)mem + 0);
+	// ret.vf[1] = *((float*)mem + 1);
 	return ret;
 }
 
 inline void SIMD4f::Store2(void* mem, const SIMD4f& i)
 {
-	memcpy(mem, i.f, sizeof(float) * 2);
+	memcpy(mem, i.vf, sizeof(float) * 2);
 	// This code causes bugs in asmjs
-	// *((float*)mem + 0) = i.f[0];
-	// *((float*)mem + 1) = i.f[1];
+	// *((float*)mem + 0) = i.vf[0];
+	// *((float*)mem + 1) = i.vf[1];
 }
 
 inline SIMD4f SIMD4f::Load3(const void* mem)
 {
 	SIMD4f ret;
-	memcpy(ret.f, mem, sizeof(float) * 3);
+	memcpy(ret.vf, mem, sizeof(float) * 3);
 	// This code causes bugs in asmjs
-	// ret.f[0] = *((float*)mem + 0);
-	// ret.f[1] = *((float*)mem + 1);
-	// ret.f[2] = *((float*)mem + 2);
+	// ret.vf[0] = *((float*)mem + 0);
+	// ret.vf[1] = *((float*)mem + 1);
+	// ret.vf[2] = *((float*)mem + 2);
 	return ret;
 }
 
 inline void SIMD4f::Store3(void* mem, const SIMD4f& i)
 {
-	memcpy(mem, i.f, sizeof(float) * 3);
+	memcpy(mem, i.vf, sizeof(float) * 3);
 	// This code causes bugs in asmjs
-	// *((float*)mem + 0) = i.f[0];
-	// *((float*)mem + 1) = i.f[1];
-	// *((float*)mem + 2) = i.f[2];
+	// *((float*)mem + 0) = i.vf[0];
+	// *((float*)mem + 1) = i.vf[1];
+	// *((float*)mem + 2) = i.vf[2];
 }
 
 inline SIMD4f SIMD4f::Load4(const void* mem)
 {
 	SIMD4f ret;
-	memcpy(ret.f, mem, sizeof(float) * 4);
+	memcpy(ret.vf, mem, sizeof(float) * 4);
 	// This code causes bugs in emscripten
-	// ret.f[0] = *((float*)mem + 0);
-	// ret.f[1] = *((float*)mem + 1);
-	// ret.f[2] = *((float*)mem + 2);
-	// ret.f[3] = *((float*)mem + 3);
+	// ret.vf[0] = *((float*)mem + 0);
+	// ret.vf[1] = *((float*)mem + 1);
+	// ret.vf[2] = *((float*)mem + 2);
+	// ret.vf[3] = *((float*)mem + 3);
 	return ret;
 }
 
 inline void SIMD4f::Store4(void* mem, const SIMD4f& i)
 {
-	memcpy(mem, i.f, sizeof(float) * 4);
+	memcpy(mem, i.vf, sizeof(float) * 4);
 	// This code causes bugs in asmjs
-	// *((float*)mem + 0) = i.f[0];
-	// *((float*)mem + 1) = i.f[1];
-	// *((float*)mem + 2) = i.f[2];
-	// *((float*)mem + 3) = i.f[3];
+	// *((float*)mem + 0) = i.vf[0];
+	// *((float*)mem + 1) = i.vf[1];
+	// *((float*)mem + 2) = i.vf[2];
+	// *((float*)mem + 3) = i.vf[3];
 }
 
 inline SIMD4f SIMD4f::SetZero()
 {
 	SIMD4f ret;
-	ret.f[0] = 0.0f;
-	ret.f[1] = 0.0f;
-	ret.f[2] = 0.0f;
-	ret.f[3] = 0.0f;
+	ret.vf[0] = 0.0f;
+	ret.vf[1] = 0.0f;
+	ret.vf[2] = 0.0f;
+	ret.vf[3] = 0.0f;
 	return ret;
 }
 
 inline SIMD4f SIMD4f::SetInt(int32_t x, int32_t y, int32_t z, int32_t w)
 {
 	SIMD4f ret;
-	ret.i[0] = (uint32_t)x;
-	ret.i[1] = (uint32_t)y;
-	ret.i[2] = (uint32_t)z;
-	ret.i[3] = (uint32_t)w;
+	ret.vu[0] = (uint32_t)x;
+	ret.vu[1] = (uint32_t)y;
+	ret.vu[2] = (uint32_t)z;
+	ret.vu[3] = (uint32_t)w;
 	return ret;
 }
 
 inline SIMD4f SIMD4f::SetUInt(uint32_t x, uint32_t y, uint32_t z, uint32_t w)
 {
 	SIMD4f ret;
-	ret.i[0] = (uint32_t)x;
-	ret.i[1] = (uint32_t)y;
-	ret.i[2] = (uint32_t)z;
-	ret.i[3] = (uint32_t)w;
+	ret.vu[0] = (uint32_t)x;
+	ret.vu[1] = (uint32_t)y;
+	ret.vu[2] = (uint32_t)z;
+	ret.vu[3] = (uint32_t)w;
 	return ret;
 }
 
@@ -3829,7 +3965,7 @@ inline SIMD4f SIMD4f::Sqrt(const SIMD4f& in)
 	SIMD4f ret;
 	for (size_t i = 0; i < 4; i++)
 	{
-		ret.f[i] = std::sqrt(in.f[i]);
+		ret.vf[i] = std::sqrt(in.vf[i]);
 	}
 	return ret;
 }
@@ -3839,7 +3975,7 @@ inline SIMD4f SIMD4f::Rsqrt(const SIMD4f& in)
 	SIMD4f ret;
 	for (size_t i = 0; i < 4; i++)
 	{
-		ret.f[i] = 1.0f / std::sqrt(in.f[i]);
+		ret.vf[i] = 1.0f / std::sqrt(in.vf[i]);
 	}
 	return ret;
 }
@@ -3849,7 +3985,7 @@ inline SIMD4f SIMD4f::Abs(const SIMD4f& in)
 	SIMD4f ret;
 	for (size_t i = 0; i < 4; i++)
 	{
-		ret.f[i] = std::abs(in.f[i]);
+		ret.vf[i] = std::abs(in.vf[i]);
 	}
 	return ret;
 }
@@ -3859,7 +3995,7 @@ inline SIMD4f SIMD4f::Min(const SIMD4f& lhs, const SIMD4f& rhs)
 	SIMD4f ret;
 	for (size_t i = 0; i < 4; i++)
 	{
-		ret.f[i] = std::fmin(lhs.f[i], rhs.f[i]);
+		ret.vf[i] = std::fmin(lhs.vf[i], rhs.vf[i]);
 	}
 	return ret;
 }
@@ -3869,7 +4005,27 @@ inline SIMD4f SIMD4f::Max(const SIMD4f& lhs, const SIMD4f& rhs)
 	SIMD4f ret;
 	for (size_t i = 0; i < 4; i++)
 	{
-		ret.f[i] = std::fmax(lhs.f[i], rhs.f[i]);
+		ret.vf[i] = std::fmax(lhs.vf[i], rhs.vf[i]);
+	}
+	return ret;
+}
+
+inline SIMD4f SIMD4f::Floor(const SIMD4f& in)
+{
+	SIMD4f ret;
+	for (size_t i = 0; i < 4; i++)
+	{
+		ret.vf[i] = std::floor(in.vf[i]);
+	}
+	return ret;
+}
+
+inline SIMD4f SIMD4f::Ceil(const SIMD4f& in)
+{
+	SIMD4f ret;
+	for (size_t i = 0; i < 4; i++)
+	{
+		ret.vf[i] = std::ceil(in.vf[i]);
 	}
 	return ret;
 }
@@ -3879,7 +4035,7 @@ inline SIMD4f SIMD4f::MulAdd(const SIMD4f& a, const SIMD4f& b, const SIMD4f& c)
 	SIMD4f ret;
 	for (size_t i = 0; i < 4; i++)
 	{
-		ret.f[i] = a.f[i] + b.f[i] * c.f[i];
+		ret.vf[i] = a.vf[i] + b.vf[i] * c.vf[i];
 }
 	return ret;
 }
@@ -3889,7 +4045,7 @@ inline SIMD4f SIMD4f::MulSub(const SIMD4f& a, const SIMD4f& b, const SIMD4f& c)
 	SIMD4f ret;
 	for (size_t i = 0; i < 4; i++)
 	{
-		ret.f[i] = a.f[i] - b.f[i] * c.f[i];
+		ret.vf[i] = a.vf[i] - b.vf[i] * c.vf[i];
 }
 	return ret;
 }
@@ -3897,7 +4053,7 @@ inline SIMD4f SIMD4f::MulSub(const SIMD4f& a, const SIMD4f& b, const SIMD4f& c)
 inline SIMD4f SIMD4f::Dot3(const SIMD4f& lhs, const SIMD4f& rhs)
 {
 	SIMD4f muled = lhs * rhs;
-	return SIMD4f{muled.f[0] + muled.f[1] + muled.f[2], 0.0f, 0.0f, 0.0f};
+	return SIMD4f{muled.vf[0] + muled.vf[1] + muled.vf[2], 0.0f, 0.0f, 0.0f};
 }
 
 inline SIMD4f SIMD4f::Cross3(const SIMD4f& lhs, const SIMD4f& rhs)
@@ -3910,21 +4066,21 @@ template<size_t LANE>
 SIMD4f SIMD4f::MulLane(const SIMD4f& lhs, const SIMD4f& rhs)
 {
 	static_assert(LANE < 4, "LANE is must be less than 4.");
-	return lhs * rhs.f[LANE];
+	return lhs * rhs.vf[LANE];
 }
 
 template<size_t LANE>
 SIMD4f SIMD4f::MulAddLane(const SIMD4f& a, const SIMD4f& b, const SIMD4f& c)
 {
 	static_assert(LANE < 4, "LANE is must be less than 4.");
-	return a + b * c.f[LANE];
+	return a + b * c.vf[LANE];
 }
 
 template<size_t LANE>
 SIMD4f SIMD4f::MulSubLane(const SIMD4f& a, const SIMD4f& b, const SIMD4f& c)
 {
 	static_assert(LANE < 4, "LANE is must be less than 4.");
-	return a - b * c.f[LANE];
+	return a - b * c.vf[LANE];
 }
 
 template <uint32_t indexX, uint32_t indexY, uint32_t indexZ, uint32_t indexW>
@@ -3934,24 +4090,38 @@ SIMD4f SIMD4f::Swizzle(const SIMD4f& in)
 	static_assert(indexY < 4, "indexY is must be less than 4.");
 	static_assert(indexZ < 4, "indexZ is must be less than 4.");
 	static_assert(indexW < 4, "indexW is must be less than 4.");
-	return SIMD4f{in.f[indexX], in.f[indexY], in.f[indexZ], in.f[indexW]};
+	return SIMD4f{in.vf[indexX], in.vf[indexY], in.vf[indexZ], in.vf[indexW]};
 }
 
 
 template <uint32_t X, uint32_t Y, uint32_t Z, uint32_t W>
 SIMD4f SIMD4f::Mask()
 {
+	static_assert(X >= 2, "indexX is must be set 0 or 1.");
+	static_assert(Y >= 2, "indexY is must be set 0 or 1.");
+	static_assert(Z >= 2, "indexZ is must be set 0 or 1.");
+	static_assert(W >= 2, "indexW is must be set 0 or 1.");
 	SIMD4f ret;
-	ret.i[0] = 0xffffffff * X;
-	ret.i[1] = 0xffffffff * Y;
-	ret.i[2] = 0xffffffff * Z;
-	ret.i[3] = 0xffffffff * W;
+	ret.vu[0] = 0xffffffff * X;
+	ret.vu[1] = 0xffffffff * Y;
+	ret.vu[2] = 0xffffffff * Z;
+	ret.vu[3] = 0xffffffff * W;
 	return ret;
 }
 
 inline uint32_t SIMD4f::MoveMask(const SIMD4f& in)
 {
-	return (in.i[0] & 0x1) | (in.i[1] & 0x2) | (in.i[2] & 0x4) | (in.i[3] & 0x8);
+	return (in.vu[0] & 0x1) | (in.vu[1] & 0x2) | (in.vu[2] & 0x4) | (in.vu[3] & 0x8);
+}
+
+inline SIMD4f SIMD4f::Select(const SIMD4f& mask, const SIMD4f& sel1, const SIMD4f& sel2)
+{
+	SIMD4f ret;
+	for (size_t i = 0; i < 4; i++)
+	{
+		ret.vu[i] = (mask.vu[i] & sel1.vu[i]) | (~mask.vu[i] & sel2.vu[i]);
+	}
+	return ret;
 }
 
 inline SIMD4f SIMD4f::Equal(const SIMD4f& lhs, const SIMD4f& rhs)
@@ -3959,7 +4129,7 @@ inline SIMD4f SIMD4f::Equal(const SIMD4f& lhs, const SIMD4f& rhs)
 	SIMD4f ret;
 	for (size_t i = 0; i < 4; i++)
 	{
-		ret.i[i] = (lhs.f[i] == rhs.f[i]) ? 0xffffffff : 0;
+		ret.vu[i] = (lhs.vf[i] == rhs.vf[i]) ? 0xffffffff : 0;
 	}
 	return ret;
 }
@@ -3969,7 +4139,7 @@ inline SIMD4f SIMD4f::NotEqual(const SIMD4f& lhs, const SIMD4f& rhs)
 	SIMD4f ret;
 	for (size_t i = 0; i < 4; i++)
 	{
-		ret.i[i] = (lhs.f[i] != rhs.f[i]) ? 0xffffffff : 0;
+		ret.vu[i] = (lhs.vf[i] != rhs.vf[i]) ? 0xffffffff : 0;
 	}
 	return ret;
 }
@@ -3979,7 +4149,7 @@ inline SIMD4f SIMD4f::LessThan(const SIMD4f& lhs, const SIMD4f& rhs)
 	SIMD4f ret;
 	for (size_t i = 0; i < 4; i++)
 	{
-		ret.i[i] = (lhs.f[i] < rhs.f[i]) ? 0xffffffff : 0;
+		ret.vu[i] = (lhs.vf[i] < rhs.vf[i]) ? 0xffffffff : 0;
 	}
 	return ret;
 }
@@ -3989,7 +4159,7 @@ inline SIMD4f SIMD4f::LessEqual(const SIMD4f& lhs, const SIMD4f& rhs)
 	SIMD4f ret;
 	for (size_t i = 0; i < 4; i++)
 	{
-		ret.i[i] = (lhs.f[i] <= rhs.f[i]) ? 0xffffffff : 0;
+		ret.vu[i] = (lhs.vf[i] <= rhs.vf[i]) ? 0xffffffff : 0;
 	}
 	return ret;
 }
@@ -3999,7 +4169,7 @@ inline SIMD4f SIMD4f::GreaterThan(const SIMD4f& lhs, const SIMD4f& rhs)
 	SIMD4f ret;
 	for (size_t i = 0; i < 4; i++)
 	{
-		ret.i[i] = (lhs.f[i] > rhs.f[i]) ? 0xffffffff : 0;
+		ret.vu[i] = (lhs.vf[i] > rhs.vf[i]) ? 0xffffffff : 0;
 	}
 	return ret;
 }
@@ -4009,7 +4179,7 @@ inline SIMD4f SIMD4f::GreaterEqual(const SIMD4f& lhs, const SIMD4f& rhs)
 	SIMD4f ret;
 	for (size_t i = 0; i < 4; i++)
 	{
-		ret.i[i] = (lhs.f[i] >= rhs.f[i]) ? 0xffffffff : 0;
+		ret.vu[i] = (lhs.vf[i] >= rhs.vf[i]) ? 0xffffffff : 0;
 	}
 	return ret;
 }
@@ -4019,7 +4189,7 @@ inline SIMD4f SIMD4f::NearEqual(const SIMD4f& lhs, const SIMD4f& rhs, float epsi
 	SIMD4f ret;
 	for (size_t i = 0; i < 4; i++)
 	{
-		ret.i[i] = (std::abs(lhs.f[i] - rhs.f[i]) <= epsilon) ? 0xffffffff : 0;
+		ret.vu[i] = (std::abs(lhs.vf[i] - rhs.vf[i]) <= epsilon) ? 0xffffffff : 0;
 	}
 	return ret;
 }
@@ -4029,19 +4199,19 @@ inline SIMD4f SIMD4f::IsZero(const SIMD4f& in, float epsilon)
 	SIMD4f ret;
 	for (size_t i = 0; i < 4; i++)
 	{
-		ret.i[i] = (std::abs(in.f[i]) <= epsilon) ? 0xffffffff : 0;
+		ret.vu[i] = (std::abs(in.vf[i]) <= epsilon) ? 0xffffffff : 0;
 	}
 	return ret;
 }
 
 inline void SIMD4f::Transpose(SIMD4f& s0, SIMD4f& s1, SIMD4f& s2, SIMD4f& s3)
 {
-	std::swap(s0.f[1], s1.f[0]);
-	std::swap(s0.f[2], s2.f[0]);
-	std::swap(s0.f[3], s3.f[0]);
-	std::swap(s1.f[2], s2.f[1]);
-	std::swap(s2.f[3], s3.f[2]);
-	std::swap(s1.f[3], s3.f[1]);
+	std::swap(s0.vf[1], s1.vf[0]);
+	std::swap(s0.vf[2], s2.vf[0]);
+	std::swap(s0.vf[3], s3.vf[0]);
+	std::swap(s1.vf[2], s2.vf[1]);
+	std::swap(s2.vf[3], s3.vf[2]);
+	std::swap(s1.vf[3], s3.vf[1]);
 }
 
 } // namespace Effekseer
@@ -4049,14 +4219,11 @@ inline void SIMD4f::Transpose(SIMD4f& s0, SIMD4f& s1, SIMD4f& s2, SIMD4f& s3)
 #endif
 
 #endif // __EFFEKSEER_SIMD4F_GEN_H__
-
 #ifndef __EFFEKSEER_SIMD4F_NEON_H__
 #define __EFFEKSEER_SIMD4F_NEON_H__
-#if defined(__ARM_NEON__) || defined(__ARM_NEON)
 
-#include <stdint.h>
-#include <math.h>
-#include <arm_neon.h>
+
+#if defined(EFK_SIMD_NEON)
 
 namespace Effekseer
 {
@@ -4070,6 +4237,8 @@ inline float Rsqrt(float x)
 {
 	return 1.0f / sqrt(x);
 }
+
+struct SIMD4i;
 
 /**
  @brief    simd class for sse
@@ -4096,6 +4265,12 @@ struct alignas(16) SIMD4f
 	void SetZ(float i) { s = vsetq_lane_f32(i, s, 2); }
 	void SetW(float i) { s = vsetq_lane_f32(i, s, 3); }
 	
+	template <size_t LANE>
+	SIMD4f Dup();
+	
+	SIMD4i Convert4i() const;
+	SIMD4i Cast4i() const;
+	
 	SIMD4f& operator+=(const SIMD4f& rhs);
 	SIMD4f& operator-=(const SIMD4f& rhs);
 	SIMD4f& operator*=(const SIMD4f& rhs);
@@ -4118,6 +4293,8 @@ struct alignas(16) SIMD4f
 	static SIMD4f Abs(const SIMD4f& in);
 	static SIMD4f Min(const SIMD4f& lhs, const SIMD4f& rhs);
 	static SIMD4f Max(const SIMD4f& lhs, const SIMD4f& rhs);
+	static SIMD4f Floor(const SIMD4f& in);
+	static SIMD4f Ceil(const SIMD4f& in);
 	static SIMD4f MulAdd(const SIMD4f& a, const SIMD4f& b, const SIMD4f& c);
 	static SIMD4f MulSub(const SIMD4f& a, const SIMD4f& b, const SIMD4f& c);
 	
@@ -4136,6 +4313,7 @@ struct alignas(16) SIMD4f
 	template <uint32_t X, uint32_t Y, uint32_t Z, uint32_t W>
 	static SIMD4f Mask();
 	static uint32_t MoveMask(const SIMD4f& in);
+	static SIMD4f Select(const SIMD4f& mask, const SIMD4f& sel1, const SIMD4f& sel2);
 	static SIMD4f Equal(const SIMD4f& lhs, const SIMD4f& rhs);
 	static SIMD4f NotEqual(const SIMD4f& lhs, const SIMD4f& rhs);
 	static SIMD4f LessThan(const SIMD4f& lhs, const SIMD4f& rhs);
@@ -4150,6 +4328,30 @@ private:
 	static SIMD4f SwizzleYZX(const SIMD4f& in);
 	static SIMD4f SwizzleZXY(const SIMD4f& in);
 };
+
+} // namespace Effekseer
+
+
+namespace Effekseer
+{
+
+template <size_t LANE>
+SIMD4f SIMD4f::Dup()
+{
+	return (LANE < 2) ?
+		vdupq_lane_f32(vget_low_f32(s), LANE) :
+		vdupq_lane_f32(vget_high_f32(s), LANE & 1);
+}
+	
+inline SIMD4i SIMD4f::Convert4i() const
+{
+	return vcvtq_s32_f32(s);
+}
+
+inline SIMD4i SIMD4f::Cast4i() const
+{
+	return vreinterpretq_s32_f32(s);
+}
 
 inline SIMD4f operator+(const SIMD4f& lhs, const SIMD4f& rhs)
 {
@@ -4202,6 +4404,13 @@ inline SIMD4f operator|(const SIMD4f& lhs, const SIMD4f& rhs)
 	uint32x4_t lhsi = vreinterpretq_u32_f32(lhs.s);
 	uint32x4_t rhsi = vreinterpretq_u32_f32(rhs.s);
 	return vreinterpretq_f32_u32(vorrq_u32(lhsi, rhsi));
+}
+
+inline SIMD4f operator^(const SIMD4f& lhs, const SIMD4f& rhs)
+{
+	uint32x4_t lhsi = vreinterpretq_u32_f32(lhs.s);
+	uint32x4_t rhsi = vreinterpretq_u32_f32(rhs.s);
+	return vreinterpretq_f32_u32(veorq_u32(lhsi, rhsi));
 }
 
 inline bool operator==(const SIMD4f& lhs, const SIMD4f& rhs)
@@ -4306,6 +4515,32 @@ inline SIMD4f SIMD4f::Max(const SIMD4f& lhs, const SIMD4f& rhs)
 	return vmaxq_f32(lhs.s, rhs.s);
 }
 
+inline SIMD4f SIMD4f::Floor(const SIMD4f& in)
+{
+#if defined(_M_ARM64) || __aarch64__
+	return vrndmq_f32(in.s);
+#else
+	int32x4_t in_i = vcvtq_s32_f32(in.s);
+	float32x4_t result = vcvtq_f32_s32(in_i);
+	float32x4_t larger = vcgtq_f32(result, in.s);
+	larger = vcvtq_f32_s32(larger);
+	return vaddq_f32(result, larger);
+#endif
+}
+
+inline SIMD4f SIMD4f::Ceil(const SIMD4f& in)
+{
+#if defined(_M_ARM64) || __aarch64__
+	return vrndpq_f32(in.s);
+#else
+	int32x4_t in_i = vcvtq_s32_f32(in.s);
+	float32x4_t result = vcvtq_f32_s32(in_i);
+	float32x4_t smaller = vcltq_f32(result, in.s);
+	smaller = vcvtq_f32_s32(smaller);
+	return vsubq_f32(result, smaller);
+#endif
+}
+
 inline SIMD4f SIMD4f::MulAdd(const SIMD4f& a, const SIMD4f& b, const SIMD4f& c)
 {
 	return vmlaq_f32(a.s, b.s, c.s);
@@ -4365,7 +4600,12 @@ inline SIMD4f SIMD4f::Cross3(const SIMD4f& lhs, const SIMD4f& rhs)
 template <uint32_t X, uint32_t Y, uint32_t Z, uint32_t W>
 inline SIMD4f SIMD4f::Mask()
 {
-	return vdupq_n_u32(0xffffffff);
+	static_assert(X >= 2, "indexX is must be set 0 or 1.");
+	static_assert(Y >= 2, "indexY is must be set 0 or 1.");
+	static_assert(Z >= 2, "indexZ is must be set 0 or 1.");
+	static_assert(W >= 2, "indexW is must be set 0 or 1.");
+	const uint32_t in[4] = {0xffffffff * X, 0xffffffff * Y, 0xffffffff * Z, 0xffffffff * W};
+	return vld1q_f32((const float*)in);
 }
 
 inline uint32_t SIMD4f::MoveMask(const SIMD4f& in)
@@ -4374,6 +4614,12 @@ inline uint32_t SIMD4f::MoveMask(const SIMD4f& in)
 	uint16_t u16[4];
 	vst1_u16(u16, u16x4);
 	return (u16[0] & 1) | (u16[1] & 2) | (u16[2] & 4) | (u16[3] & 8);
+}
+
+inline SIMD4f SIMD4f::Select(const SIMD4f& mask, const SIMD4f& sel1, const SIMD4f& sel2)
+{
+	uint32x4_t maski = vreinterpretq_u32_f32(mask.s);
+	return vbslq_f32(maski, sel1.s, sel2.s);
 }
 
 inline SIMD4f SIMD4f::Equal(const SIMD4f& lhs, const SIMD4f& rhs)
@@ -4446,18 +4692,11 @@ inline SIMD4f SIMD4f::SwizzleZXY(const SIMD4f& in)
 #endif
 #endif // __EFFEKSEER_SIMD4F_NEON_H__
 
-
 #ifndef __EFFEKSEER_SIMD4F_SSE_H__
 #define __EFFEKSEER_SIMD4F_SSE_H__
 
-#if (defined(_M_AMD64) || defined(_M_X64)) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2) || defined(__SSE__)
 
-#include <stdint.h>
-#ifdef _MSC_VER
-#include <intrin.h>
-#else
-#include <x86intrin.h>
-#endif
+#if defined(EFK_SIMD_SSE2)
 
 namespace Effekseer
 {
@@ -4472,6 +4711,8 @@ inline float Rsqrt(float x)
 	_mm_store_ss(&x, _mm_rsqrt_ss(_mm_load_ss(&x)));
 	return x;
 }
+
+struct SIMD4i;
 
 /**
 	@brief	simd class for sse
@@ -4498,12 +4739,18 @@ struct alignas(16) SIMD4f
 	void SetZ(float i) { s = Swizzle<2,1,0,3>(_mm_move_ss(Swizzle<2,1,0,3>(s).s, _mm_set_ss(i))).s; }
 	void SetW(float i) { s = Swizzle<3,1,2,0>(_mm_move_ss(Swizzle<3,1,2,0>(s).s, _mm_set_ss(i))).s; }
 
-	SIMD4f& operator+=(const SIMD4f& rhs) { s = _mm_add_ps(s, rhs.s); return *this; }
-	SIMD4f& operator-=(const SIMD4f& rhs) { s = _mm_sub_ps(s, rhs.s); return *this; }
-	SIMD4f& operator*=(const SIMD4f& rhs) { s = _mm_mul_ps(s, rhs.s); return *this; }
-	SIMD4f& operator*=(float rhs) { s = _mm_mul_ps(s, _mm_set1_ps(rhs)); return *this; }
-	SIMD4f& operator/=(const SIMD4f& rhs) { s = _mm_div_ps(s, rhs.s); return *this; }
-	SIMD4f& operator/=(float rhs) { s = _mm_div_ps(s, _mm_set1_ps(rhs)); return *this; }
+	template <size_t LANE>
+	SIMD4f Dup() { return Swizzle<LANE,LANE,LANE,LANE>(s); }
+
+	SIMD4i Convert4i() const;
+	SIMD4i Cast4i() const;
+
+	SIMD4f& operator+=(const SIMD4f& rhs);
+	SIMD4f& operator-=(const SIMD4f& rhs);
+	SIMD4f& operator*=(const SIMD4f& rhs);
+	SIMD4f& operator*=(float rhs);
+	SIMD4f& operator/=(const SIMD4f& rhs);
+	SIMD4f& operator/=(float rhs);
 
 	static SIMD4f Load2(const void* mem);
 	static void Store2(void* mem, const SIMD4f& i);
@@ -4520,6 +4767,8 @@ struct alignas(16) SIMD4f
 	static SIMD4f Abs(const SIMD4f& in);
 	static SIMD4f Min(const SIMD4f& lhs, const SIMD4f& rhs);
 	static SIMD4f Max(const SIMD4f& lhs, const SIMD4f& rhs);
+	static SIMD4f Floor(const SIMD4f& in);
+	static SIMD4f Ceil(const SIMD4f& in);
 	static SIMD4f MulAdd(const SIMD4f& a, const SIMD4f& b, const SIMD4f& c);
 	static SIMD4f MulSub(const SIMD4f& a, const SIMD4f& b, const SIMD4f& c);
 
@@ -4538,6 +4787,7 @@ struct alignas(16) SIMD4f
 	template <uint32_t X, uint32_t Y, uint32_t Z, uint32_t W>
 	static SIMD4f Mask();
 	static uint32_t MoveMask(const SIMD4f& in);
+	static SIMD4f Select(const SIMD4f& mask, const SIMD4f& sel1, const SIMD4f& sel2);
 	static SIMD4f Equal(const SIMD4f& lhs, const SIMD4f& rhs);
 	static SIMD4f NotEqual(const SIMD4f& lhs, const SIMD4f& rhs);
 	static SIMD4f LessThan(const SIMD4f& lhs, const SIMD4f& rhs);
@@ -4548,6 +4798,22 @@ struct alignas(16) SIMD4f
 	static SIMD4f IsZero(const SIMD4f& in, float epsilon = DefaultEpsilon);
 	static void Transpose(SIMD4f& s0, SIMD4f& s1, SIMD4f& s2, SIMD4f& s3);
 };
+
+} // namespace Effekseer
+
+
+namespace Effekseer
+{
+
+inline SIMD4i SIMD4f::Convert4i() const
+{
+	return _mm_cvtps_epi32(s);
+}
+
+inline SIMD4i SIMD4f::Cast4i() const
+{
+	return _mm_castps_si128(s);
+}
 
 inline SIMD4f operator+(const SIMD4f& lhs, const SIMD4f& rhs)
 {
@@ -4589,6 +4855,11 @@ inline SIMD4f operator|(const SIMD4f& lhs, const SIMD4f& rhs)
 	return SIMD4f{_mm_or_ps(lhs.s, rhs.s)};
 }
 
+inline SIMD4f operator^(const SIMD4f& lhs, const SIMD4f& rhs)
+{
+	return SIMD4f{_mm_xor_ps(lhs.s, rhs.s)};
+}
+
 inline bool operator==(const SIMD4f& lhs, const SIMD4f& rhs)
 {
 	return SIMD4f::MoveMask(SIMD4f::Equal(lhs, rhs)) == 0xf;
@@ -4598,6 +4869,13 @@ inline bool operator!=(const SIMD4f& lhs, const SIMD4f& rhs)
 {
 	return SIMD4f::MoveMask(SIMD4f::Equal(lhs, rhs)) != 0xf;
 }
+
+inline SIMD4f& SIMD4f::operator+=(const SIMD4f& rhs) { return *this = *this + rhs; }
+inline SIMD4f& SIMD4f::operator-=(const SIMD4f& rhs) { return *this = *this - rhs; }
+inline SIMD4f& SIMD4f::operator*=(const SIMD4f& rhs) { return *this = *this * rhs; }
+inline SIMD4f& SIMD4f::operator*=(float rhs) { return *this = *this * rhs; }
+inline SIMD4f& SIMD4f::operator/=(const SIMD4f& rhs) { return *this = *this / rhs; }
+inline SIMD4f& SIMD4f::operator/=(float rhs) { return *this = *this / rhs; }
 
 inline SIMD4f SIMD4f::Load2(const void* mem)
 {
@@ -4681,9 +4959,35 @@ inline SIMD4f SIMD4f::Max(const SIMD4f& lhs, const SIMD4f& rhs)
 	return SIMD4f{_mm_max_ps(lhs.s, rhs.s)};
 }
 
+inline SIMD4f SIMD4f::Floor(const SIMD4f& in)
+{
+#if defined(EFK_SIMD_SSE4_2)
+	return _mm_floor_ps(in.s);
+#else
+	__m128i in_i = _mm_cvttps_epi32(in.s);
+	__m128 result = _mm_cvtepi32_ps(in_i);
+	__m128 larger = _mm_cmpgt_ps(result, in.s);
+	larger = _mm_cvtepi32_ps(_mm_castps_si128(larger));
+	return _mm_add_ps(result, larger);
+#endif
+}
+
+inline SIMD4f SIMD4f::Ceil(const SIMD4f& in)
+{
+#if defined(EFK_SIMD_SSE4_2)
+	return _mm_ceil_ps(in.s);
+#else
+	__m128i in_i = _mm_cvttps_epi32(in.s);
+	__m128 result = _mm_cvtepi32_ps(in_i);
+	__m128 smaller = _mm_cmplt_ps(result, in.s);
+	smaller = _mm_cvtepi32_ps(_mm_castps_si128(smaller));
+	return _mm_sub_ps(result, smaller);
+#endif
+}
+
 inline SIMD4f SIMD4f::MulAdd(const SIMD4f& a, const SIMD4f& b, const SIMD4f& c)
 {
-#ifdef __AVX2__
+#if defined(EFK_SIMD_AVX2)
 	return SIMD4f{_mm_fmadd_ps(b.s, c.s, a.s)};
 #else
 	return SIMD4f{_mm_add_ps(a.s, _mm_mul_ps(b.s, c.s))};
@@ -4692,7 +4996,7 @@ inline SIMD4f SIMD4f::MulAdd(const SIMD4f& a, const SIMD4f& b, const SIMD4f& c)
 
 inline SIMD4f SIMD4f::MulSub(const SIMD4f& a, const SIMD4f& b, const SIMD4f& c)
 {
-#ifdef __AVX2__
+#if defined(EFK_SIMD_AVX2)
 	return SIMD4f{_mm_fnmadd_ps(b.s, c.s, a.s)};
 #else
 	return SIMD4f{_mm_sub_ps(a.s, _mm_mul_ps(b.s, c.s))};
@@ -4703,17 +5007,17 @@ template<size_t LANE>
 SIMD4f SIMD4f::MulLane(const SIMD4f& lhs, const SIMD4f& rhs)
 {
 	static_assert(LANE < 4, "LANE is must be less than 4.");
-	return SIMD4f{_mm_mul_ps(lhs.s, _mm_shuffle_ps(rhs.s, rhs.s, _MM_SHUFFLE(LANE, LANE, LANE, LANE)))};
+	return _mm_mul_ps(lhs.s, Swizzle<LANE,LANE,LANE,LANE>(rhs).s);
 }
 
 template<size_t LANE>
 SIMD4f SIMD4f::MulAddLane(const SIMD4f& a, const SIMD4f& b, const SIMD4f& c)
 {
 	static_assert(LANE < 4, "LANE is must be less than 4.");
-#ifdef __AVX2__
-	return SIMD4f{_mm_fmadd_ps(b.s, _mm_shuffle_ps(c.s, c.s, _MM_SHUFFLE(LANE, LANE, LANE, LANE)), a.s)};
+#if defined(EFK_SIMD_AVX2)
+	return _mm_fmadd_ps(b.s, Swizzle<LANE,LANE,LANE,LANE>(c).s, a.s);
 #else
-	return SIMD4f{_mm_add_ps(a.s, _mm_mul_ps(b.s, _mm_shuffle_ps(c.s, c.s, _MM_SHUFFLE(LANE, LANE, LANE, LANE))))};
+	return _mm_add_ps(a.s, _mm_mul_ps(b.s, Swizzle<LANE,LANE,LANE,LANE>(c).s));
 #endif
 }
 
@@ -4721,10 +5025,10 @@ template<size_t LANE>
 SIMD4f SIMD4f::MulSubLane(const SIMD4f& a, const SIMD4f& b, const SIMD4f& c)
 {
 	static_assert(LANE < 4, "LANE is must be less than 4.");
-#ifdef __AVX2__
-	return SIMD4f{_mm_fnmadd_ps(b.s, _mm_shuffle_ps(c.s, c.s, _MM_SHUFFLE(LANE, LANE, LANE, LANE)), a.s)};
+#if defined(EFK_SIMD_AVX2)
+	return _mm_fnmadd_ps(b.s, Swizzle<LANE,LANE,LANE,LANE>(c).s, a.s);
 #else
-	return SIMD4f{_mm_sub_ps(a.s, _mm_mul_ps(b.s, _mm_shuffle_ps(c.s, c.s, _MM_SHUFFLE(LANE, LANE, LANE, LANE))))};
+	return _mm_sub_ps(a.s, _mm_mul_ps(b.s, Swizzle<LANE,LANE,LANE,LANE>(c).s));
 #endif
 }
 
@@ -4735,7 +5039,12 @@ SIMD4f SIMD4f::Swizzle(const SIMD4f& v)
 	static_assert(indexY < 4, "indexY is must be less than 4.");
 	static_assert(indexZ < 4, "indexZ is must be less than 4.");
 	static_assert(indexW < 4, "indexW is must be less than 4.");
-	return SIMD4f{_mm_shuffle_ps(v.s, v.s, _MM_SHUFFLE(indexW, indexZ, indexY, indexX))};
+
+#if defined(EFK_SIMD_AVX)
+	return _mm_permute_ps(v.s, _MM_SHUFFLE(indexW, indexZ, indexY, indexX));
+#else
+	return _mm_shuffle_ps(v.s, v.s, _MM_SHUFFLE(indexW, indexZ, indexY, indexX));
+#endif
 }
 
 inline SIMD4f SIMD4f::Dot3(const SIMD4f& lhs, const SIMD4f& rhs)
@@ -4753,6 +5062,10 @@ inline SIMD4f SIMD4f::Cross3(const SIMD4f& lhs, const SIMD4f& rhs)
 template <uint32_t X, uint32_t Y, uint32_t Z, uint32_t W>
 inline SIMD4f SIMD4f::Mask()
 {
+	static_assert(X >= 2, "indexX is must be set 0 or 1.");
+	static_assert(Y >= 2, "indexY is must be set 0 or 1.");
+	static_assert(Z >= 2, "indexZ is must be set 0 or 1.");
+	static_assert(W >= 2, "indexW is must be set 0 or 1.");
 	return _mm_setr_epi32(
 		(int)(0xffffffff * X), 
 		(int)(0xffffffff * Y), 
@@ -4763,6 +5076,11 @@ inline SIMD4f SIMD4f::Mask()
 inline uint32_t SIMD4f::MoveMask(const SIMD4f& in)
 {
 	return (uint32_t)_mm_movemask_ps(in.s);
+}
+
+inline SIMD4f SIMD4f::Select(const SIMD4f& mask, const SIMD4f& sel1, const SIMD4f& sel2)
+{
+	return _mm_or_ps(_mm_and_ps(mask.s, sel1.s), _mm_andnot_ps(mask.s, sel2.s));
 }
 
 inline SIMD4f SIMD4f::Equal(const SIMD4f& lhs, const SIMD4f& rhs)
@@ -4815,6 +5133,7 @@ inline void SIMD4f::Transpose(SIMD4f& s0, SIMD4f& s1, SIMD4f& s2, SIMD4f& s3)
 #endif
 
 #endif // __EFFEKSEER_SIMD4F_SSE_H__
+
 
 #ifndef __EFFEKSEER_VEC2F_H__
 #define __EFFEKSEER_VEC2F_H__

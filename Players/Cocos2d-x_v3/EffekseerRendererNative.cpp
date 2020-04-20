@@ -1126,6 +1126,7 @@ namespace GLExt
 #define GL_COMPRESSED_RGBA_S3TC_DXT1_EXT 0x83F1
 #define GL_COMPRESSED_RGBA_S3TC_DXT3_EXT 0x83F2
 #define GL_COMPRESSED_RGBA_S3TC_DXT5_EXT 0x83F3
+#define GL_SRGB8_ALPHA8 0x8C43
 
 #define GL_FRAMEBUFFER_SRGB 0x8DB9
 
@@ -1883,6 +1884,7 @@ class TextureLoader
 private:
 	::Effekseer::FileInterface* m_fileInterface;
 	::Effekseer::DefaultFileInterface m_defaultFileInterface;
+	::Effekseer::ColorSpaceType colorSpaceType_;
 
 #ifdef __EFFEKSEER_RENDERER_INTERNAL_LOADER__
 	::EffekseerRenderer::PngTextureLoader pngTextureLoader;
@@ -1890,7 +1892,8 @@ private:
 #endif
 
 public:
-	TextureLoader(::Effekseer::FileInterface* fileInterface = NULL);
+	TextureLoader(::Effekseer::FileInterface* fileInterface = nullptr,
+				  ::Effekseer::ColorSpaceType colorSpaceType = ::Effekseer::ColorSpaceType::Gamma);
 	virtual ~TextureLoader();
 
 public:
@@ -4460,10 +4463,10 @@ void main()
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
-::Effekseer::TextureLoader* CreateTextureLoader(::Effekseer::FileInterface* fileInterface)
+::Effekseer::TextureLoader* CreateTextureLoader(::Effekseer::FileInterface* fileInterface, ::Effekseer::ColorSpaceType colorSpaceType)
 {
 #ifdef __EFFEKSEER_RENDERER_INTERNAL_LOADER__
-	return new TextureLoader(fileInterface);
+	return new TextureLoader(fileInterface, colorSpaceType);
 #else
 	return NULL;
 #endif
@@ -4980,8 +4983,8 @@ void RendererImplemented::SetSquareMaxCount(int32_t count)
 
 	// generate a vertex buffer
 	{
-		// assume max vertex size is smaller than float * 10
-		m_vertexBuffer = VertexBuffer::Create(this, sizeof(Vertex) * m_squareMaxCount * 4, true, false);
+		m_vertexBuffer =
+			VertexBuffer::Create(this, EffekseerRenderer::GetMaximumVertexSizeInAllTypes() * m_squareMaxCount * 4, true, false);
 		if (m_vertexBuffer == NULL) return;
 	}
 
@@ -6529,8 +6532,8 @@ namespace EffekseerRendererGL
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-TextureLoader::TextureLoader( ::Effekseer::FileInterface* fileInterface )
-	: m_fileInterface	( fileInterface )
+TextureLoader::TextureLoader(::Effekseer::FileInterface* fileInterface, ::Effekseer::ColorSpaceType colorSpaceType)
+	: m_fileInterface	( fileInterface ), colorSpaceType_(colorSpaceType)
 {
 	if( m_fileInterface == NULL )
 	{
@@ -6588,12 +6591,16 @@ Effekseer::TextureData* TextureLoader::Load(const void* data, int32_t size, Effe
 	{
 		pngTextureLoader.Load(data_texture, size_texture, false);
 
+		GLuint colorFormat = GL_RGBA;
+		if (colorSpaceType_ == ::Effekseer::ColorSpaceType::Linear && textureType == Effekseer::TextureType::Color)
+			colorFormat = GL_SRGB8_ALPHA8;
+
 		GLuint texture = 0;
 		glGenTextures(1, &texture);
 		glBindTexture(GL_TEXTURE_2D, texture);
 		glTexImage2D(GL_TEXTURE_2D,
 					 0,
-					 GL_RGBA,
+					 colorFormat,
 					 pngTextureLoader.GetWidth(),
 					 pngTextureLoader.GetHeight(),
 					 0,
@@ -7094,11 +7101,12 @@ bool VertexBuffer::IsValid()
 
 
 
+
 namespace Effekseer
 {
 namespace GL
 {
-
+/*
 static char* material_common_define = R"(
 #define MOD mod
 #define FRAC fract
@@ -7870,7 +7878,7 @@ ShaderData GenerateShader(Material* material, MaterialShaderType shaderType, int
 
 	return shaderData;
 }
-
+*/
 } // namespace GL
 
 } // namespace Effekseer
@@ -7925,7 +7933,9 @@ CompiledMaterialBinary* MaterialCompilerGL::Compile(Material* material, int32_t 
 	};
 
 	auto saveBinary = [&material, &binary, &convertToVector, &maximumTextureCount](MaterialShaderType type) {
-		auto shader = GL::GenerateShader(material, type, maximumTextureCount);
+
+		GLSL::ShaderGenerator generator;
+		auto shader = generator.GenerateShader(material, type, maximumTextureCount, false, false, false, false, 0);
 		binary->SetVertexShaderData(type, convertToVector(shader.CodeVS));
 		binary->SetPixelShaderData(type, convertToVector(shader.CodePS));
 	};
