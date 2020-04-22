@@ -11,3 +11,5 @@ copy_tree("../Effekseer/Dev/Cpp/EffekseerRendererMetal", "./Players/Cocos2d-x_v4
 
 os.makedirs("./Players/Cocos2d-x_v4/LLGI/", exist_ok=True)
 copy_tree("../Effekseer/Dev/Cpp/3rdParty/LLGI/src", "./Players/Cocos2d-x_v4/3rdParty/LLGI/src")
+
+copy_tree("../Effekseer/cmake", "./Players/Cocos2d-x_v4/cmake")

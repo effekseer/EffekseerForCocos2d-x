@@ -821,7 +821,7 @@ bool EffectManager::Initialize(cocos2d::Size visibleSize)
 	int32_t spriteSize = 600;
 
 #if (CC_TARGET_PLATFORM == CC_PLATFORM_IOS)
-	spriteSize = 2400;
+	spriteSize = 4000;
 #endif
 
 	CreateRenderer(spriteSize);
