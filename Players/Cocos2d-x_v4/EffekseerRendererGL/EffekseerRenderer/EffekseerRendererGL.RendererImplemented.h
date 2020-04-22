@@ -75,7 +75,7 @@ private:
 
 	OpenGLDeviceType		m_deviceType;
 
-	// ステート保存用
+	// for restoring states
 	RenderStateSet m_originalState;
 
 	bool	m_restorationOfStates;
@@ -87,23 +87,21 @@ private:
 
 	VertexArray*	m_currentVertexArray;
 
+	int32_t indexBufferStride_ = 2;
+	
+	int32_t indexBufferCurrentStride_ = 0;
+
+	//! because gleDrawElements has only index offset
+	int32_t GetIndexSpriteCount() const;
+
 public:
-	/**
-		@brief	コンストラクタ
-	*/
 	RendererImplemented(int32_t squareMaxCount, OpenGLDeviceType deviceType, DeviceObjectCollection* deviceObjectCollection);
 
-	/**
-		@brief	デストラクタ
-	*/
 	~RendererImplemented();
 
 	void OnLostDevice() override;
 	void OnResetDevice() override;
 
-	/**
-		@brief	初期化
-	*/
 	bool Initialize();
 
 	void Destroy() override;
@@ -239,6 +237,9 @@ public:
 
 private:
 	void GenerateIndexData();
+
+	template <typename T>
+	void GenerateIndexDataStride();
 };
 
 //----------------------------------------------------------------------------------

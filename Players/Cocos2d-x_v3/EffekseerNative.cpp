@@ -39,6 +39,7 @@
 #define __EFFEKSEER_PERLIN_NOISE_H__
 
 
+
 namespace Effekseer
 {
 
@@ -84,18 +85,15 @@ public:
 		for (std::size_t i{}; i < 256; ++i)
 		{
 			auto target = GetRand(0, 255);
-			std::swap(p[i], p[target]);			
+			std::swap(p[i], p[target]);
 		}
-		
+
 		for (std::size_t i{}; i < 256; ++i)
 			this->p[256 + i] = this->p[i];
 	}
 
 private:
-	constexpr float GetFade(const float t) const noexcept
-	{
-		return t * t * t * (t * (t * 6 - 15) + 10);
-	}
+	constexpr float GetFade(const float t) const noexcept { return t * t * t * (t * (t * 6 - 15) + 10); }
 
 	SIMD4f GetFadeFast(const SIMD4f in) const noexcept
 	{
@@ -104,20 +102,14 @@ private:
 		const SIMD4f c10(10.0f);
 
 		SIMD4f t3 = in * in * in;
-		//SIMD4f t6_15_10 = _mm_add_ps(_mm_mul_ps(in, _mm_sub_ps(_mm_mul_ps(in, c6), c15)), c10);
+		// SIMD4f t6_15_10 = _mm_add_ps(_mm_mul_ps(in, _mm_sub_ps(_mm_mul_ps(in, c6), c15)), c10);
 		SIMD4f t6_15_10 = (in * ((in * c6) - c15)) + c10;
 		return t3 * t6_15_10;
 	}
 
-	constexpr float GetLerp(const float t, const float a, const float b) const noexcept
-	{
-		return a + t * (b - a);
-	}
+	constexpr float GetLerp(const float t, const float a, const float b) const noexcept { return a + t * (b - a); }
 
-	SIMD4f GetLerpFast(const SIMD4f t, const SIMD4f a, const SIMD4f b) const noexcept
-	{
-		return a + t * (b - a);
-	}
+	SIMD4f GetLerpFast(const SIMD4f t, const SIMD4f a, const SIMD4f b) const noexcept { return a + t * (b - a); }
 
 	constexpr float MakeGrad(const Pint hashnum, const float u, const float v) const noexcept
 	{
@@ -128,7 +120,7 @@ private:
 	{
 		return this->MakeGrad(hashnum, hashnum < 8 ? x : y, hashnum < 4 ? y : hashnum == 12 || hashnum == 14 ? x : z);
 	}
-	
+
 	constexpr float GetGrad(const Pint hashnum, const float x, const float y, const float z) const noexcept
 	{
 		return this->MakeGrad(hashnum & 15, x, y, z);
@@ -140,7 +132,7 @@ private:
 			float f;
 			uint32_t i;
 		} u_bits, v_bits;
-		
+
 		u_bits.f = u;
 		v_bits.f = v;
 
@@ -149,7 +141,7 @@ private:
 
 		return u_bits.f + v_bits.f;
 	}
-	
+
 	float MakeGradFast(const Pint hashnum, const float x, const float y, const float z) const noexcept
 	{
 		return this->MakeGradFast(hashnum, hashnum < 8 ? x : y, hashnum < 4 ? y : hashnum == 12 || hashnum == 14 ? x : z);
@@ -159,12 +151,12 @@ private:
 	{
 		return this->MakeGradFast(hashnum & 15, x, y, z);
 	}
-	
+
 	SIMD4f MakeGradFast(const SIMD4i hashnum, const SIMD4f u, const SIMD4f v) const noexcept
 	{
 		SIMD4i hashBits1 = hashnum & SIMD4i(1);
 		SIMD4i hashBits2 = hashnum & SIMD4i(2);
-		
+
 		return (u ^ SIMD4i::ShiftL<31>(hashBits1).Cast4f()) + (v ^ SIMD4i::ShiftL<30>(hashBits2).Cast4f());
 	}
 
@@ -190,14 +182,14 @@ public:
 	{
 		SIMD4f in = position.s;
 		SIMD4f flin = SIMD4f::Floor(in);
-		
+
 		SIMD4i xyz_int = flin.Convert4i() & SIMD4i(0xff);
 		uint32_t x_int{(uint32_t)xyz_int.GetX()};
 		uint32_t y_int{(uint32_t)xyz_int.GetY()};
 		uint32_t z_int{(uint32_t)xyz_int.GetZ()};
 
 		in -= flin;
-		
+
 		SIMD4f uvw = GetFadeFast(in);
 		const float u{uvw.GetX()};
 		const float v{uvw.GetY()};
@@ -225,10 +217,7 @@ public:
 		return this->GetLerp(w, this->GetLerp(v, vv.GetX(), vv.GetY()), this->GetLerp(v, vv.GetZ(), vv.GetW()));
 	}
 
-	float Noise(Vec3f position) const noexcept
-	{
-		return this->SetNoise(position) * 0.5f + 0.5f;
-	}
+	float Noise(Vec3f position) const noexcept { return this->SetNoise(position) * 0.5f + 0.5f; }
 
 public:
 	float OctaveNoise(const std::size_t octaves_, Vec3f position) const noexcept

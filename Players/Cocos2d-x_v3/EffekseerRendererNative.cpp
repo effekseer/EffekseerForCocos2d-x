@@ -466,9 +466,8 @@ IndexBufferBase::~IndexBufferBase()
 //-----------------------------------------------------------------------------------
 void IndexBufferBase::Push( const void* buffer, int count )
 {
-	assert( m_isLock );
-
-	memcpy( GetBufferDirect( count ), buffer, count * sizeof(uint16_t) );
+	assert(m_isLock);
+	memcpy(GetBufferDirect(count), buffer, count * stride_);
 }
 
 //-----------------------------------------------------------------------------------
@@ -497,7 +496,7 @@ void* IndexBufferBase::GetBufferDirect( int count )
 
 	uint8_t* pBuffer = NULL;
 
-	pBuffer = (uint8_t*)m_resource + ( m_indexCount * sizeof(uint16_t) );
+	pBuffer = (uint8_t*)m_resource + (m_indexCount * stride_);
 	m_indexCount += count;
 
 	return pBuffer;
@@ -1235,13 +1234,13 @@ class IndexBuffer
 {
 private:
 	GLuint					m_buffer;
-
-	IndexBuffer(RendererImplemented* renderer, GLuint buffer, int maxCount, bool isDynamic, bool hasRefCount);
+	
+	IndexBuffer(RendererImplemented* renderer, GLuint buffer, int maxCount, bool isDynamic, int32_t stride, bool hasRefCount);
 
 public:
 	virtual ~IndexBuffer();
 
-	static IndexBuffer* Create(RendererImplemented* renderer, int maxCount, bool isDynamic, bool hasRefCount);
+	static IndexBuffer* Create(RendererImplemented* renderer, int maxCount, bool isDynamic, int32_t stride, bool hasRefCount);
 
 	GLuint GetInterface() { return m_buffer; }
 
@@ -1254,6 +1253,8 @@ public:
 	void Unlock() override;
 
 	bool IsValid();
+
+	int32_t GetStride() const { return stride_; }
 };
 
 //-----------------------------------------------------------------------------------
@@ -1439,7 +1440,7 @@ private:
 
 	OpenGLDeviceType		m_deviceType;
 
-	// ステート保存用
+	// for restoring states
 	RenderStateSet m_originalState;
 
 	bool	m_restorationOfStates;
@@ -1451,23 +1452,21 @@ private:
 
 	VertexArray*	m_currentVertexArray;
 
+	int32_t indexBufferStride_ = 2;
+	
+	int32_t indexBufferCurrentStride_ = 0;
+
+	//! because gleDrawElements has only index offset
+	int32_t GetIndexSpriteCount() const;
+
 public:
-	/**
-		@brief	コンストラクタ
-	*/
 	RendererImplemented(int32_t squareMaxCount, OpenGLDeviceType deviceType, DeviceObjectCollection* deviceObjectCollection);
 
-	/**
-		@brief	デストラクタ
-	*/
 	~RendererImplemented();
 
 	void OnLostDevice() override;
 	void OnResetDevice() override;
 
-	/**
-		@brief	初期化
-	*/
 	bool Initialize();
 
 	void Destroy() override;
@@ -1603,6 +1602,9 @@ public:
 
 private:
 	void GenerateIndexData();
+
+	template <typename T>
+	void GenerateIndexDataStride();
 };
 
 //----------------------------------------------------------------------------------
@@ -2410,8 +2412,12 @@ bool Initialize(OpenGLDeviceType deviceType)
 	{
 		g_isSupportedVertexArray = true;
 		g_isSurrpotedBufferRange = true;
+	}
+	if (deviceType == OpenGLDeviceType::OpenGL3)
+	{
 		g_isSurrpotedMapBuffer = true;
 	}
+
 #endif
 
 	g_isInitialized = true;
@@ -2793,6 +2799,8 @@ void* glMapBuffer(GLenum target, GLenum access)
 	return g_glMapBuffer(target, access);
 #elif defined(__EFFEKSEER_RENDERER_GLES2__)
 	return g_glMapBufferOES(target, access);
+#elif defined(__EFFEKSEER_RENDERER_GLES3__)
+	return nullptr;
 #else
 	return ::glMapBuffer(target, access);
 #endif
@@ -2861,10 +2869,13 @@ namespace EffekseerRendererGL
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
-IndexBuffer::IndexBuffer(RendererImplemented* renderer, GLuint buffer, int maxCount, bool isDynamic, bool hasRefCount)
-	: DeviceObject(renderer, renderer->GetDeviceObjectCollection(), hasRefCount), IndexBufferBase(maxCount, isDynamic), m_buffer(buffer)
+IndexBuffer::IndexBuffer(RendererImplemented* renderer, GLuint buffer, int maxCount, bool isDynamic, int32_t stride, bool hasRefCount)
+	: DeviceObject(renderer, renderer->GetDeviceObjectCollection(), hasRefCount)
+	, IndexBufferBase(maxCount, isDynamic)
+	, m_buffer(buffer)
 {
-	m_resource = new uint8_t[m_indexMaxCount * sizeof(uint16_t)];
+	stride_ = stride;
+	m_resource = new uint8_t[m_indexMaxCount * stride_];
 }
 
 //-----------------------------------------------------------------------------------
@@ -2879,11 +2890,11 @@ IndexBuffer::~IndexBuffer()
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
-IndexBuffer* IndexBuffer::Create(RendererImplemented* renderer, int maxCount, bool isDynamic, bool hasRefCount)
+IndexBuffer* IndexBuffer::Create(RendererImplemented* renderer, int maxCount, bool isDynamic, int32_t stride, bool hasRefCount)
 {
 	GLuint ib;
 	GLExt::glGenBuffers(1, &ib);
-	return new IndexBuffer(renderer, ib, maxCount, isDynamic, hasRefCount);
+	return new IndexBuffer(renderer, ib, maxCount, isDynamic, stride, hasRefCount);
 }
 
 //-----------------------------------------------------------------------------------
@@ -2925,7 +2936,7 @@ void IndexBuffer::Unlock()
 	assert( m_isLock );
 
 	GLExt::glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_buffer);
-	GLExt::glBufferData(GL_ELEMENT_ARRAY_BUFFER, m_indexCount * sizeof(uint16_t), m_resource, GL_DYNAMIC_DRAW);
+	GLExt::glBufferData(GL_ELEMENT_ARRAY_BUFFER, m_indexCount * stride_, m_resource, GL_DYNAMIC_DRAW);
 	GLExt::glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
 	m_isLock = false;
@@ -4493,6 +4504,12 @@ Renderer* Renderer::Create(int32_t squareMaxCount, OpenGLDeviceType deviceType, 
 	return NULL;
 }
 
+int32_t RendererImplemented::GetIndexSpriteCount() const
+{
+	int vsSize = EffekseerRenderer::GetMaximumVertexSizeInAllTypes() * m_squareMaxCount * 4;
+	return (vsSize / sizeof(Vertex) / 4 + 1);
+}
+
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
@@ -4583,43 +4600,55 @@ void RendererImplemented::OnResetDevice()
 
 void RendererImplemented::GenerateIndexData()
 {
+	if (indexBufferStride_ == 2)
+	{
+		GenerateIndexDataStride<uint16_t>();
+	}
+	else if (indexBufferStride_ == 4)
+	{
+		GenerateIndexDataStride<uint32_t>();
+	}
+}
+
+template <typename T> void RendererImplemented::GenerateIndexDataStride()
+{
 	// generate an index buffer
-	if( m_indexBuffer != NULL )
+	if (m_indexBuffer != nullptr)
 	{
 		m_indexBuffer->Lock();
 
-		// ( 標準設定で　DirectX 時計周りが表, OpenGLは反時計回りが表 )
-		for( int i = 0; i < m_squareMaxCount; i++ )
+		for (int i = 0; i < GetIndexSpriteCount(); i++)
 		{
-			uint16_t* buf = (uint16_t*) m_indexBuffer->GetBufferDirect(6);
-			buf[0] = (uint16_t) (3 + 4 * i);
-			buf[1] = (uint16_t) (1 + 4 * i);
-			buf[2] = (uint16_t) (0 + 4 * i);
-			buf[3] = (uint16_t) (3 + 4 * i);
-			buf[4] = (uint16_t) (0 + 4 * i);
-			buf[5] = (uint16_t) (2 + 4 * i);
+			std::array<T, 6> buf;
+			buf[0] = (T)(3 + 4 * i);
+			buf[1] = (T)(1 + 4 * i);
+			buf[2] = (T)(0 + 4 * i);
+			buf[3] = (T)(3 + 4 * i);
+			buf[4] = (T)(0 + 4 * i);
+			buf[5] = (T)(2 + 4 * i);
+			memcpy(m_indexBuffer->GetBufferDirect(6), buf.data(), sizeof(T) * 6);
 		}
 
 		m_indexBuffer->Unlock();
 	}
 
 	// generate an index buffer for a wireframe
-	if( m_indexBufferForWireframe != NULL )
+	if (m_indexBufferForWireframe != nullptr)
 	{
 		m_indexBufferForWireframe->Lock();
 
-		// ( 標準設定で　DirectX 時計周りが表, OpenGLは反時計回りが表 )
-		for( int i = 0; i < m_squareMaxCount; i++ )
+		for (int i = 0; i < GetIndexSpriteCount(); i++)
 		{
-			uint16_t* buf = (uint16_t*)m_indexBufferForWireframe->GetBufferDirect( 8 );
-			buf[0] = (uint16_t)(0 + 4 * i);
-			buf[1] = (uint16_t)(1 + 4 * i);
-			buf[2] = (uint16_t)(2 + 4 * i);
-			buf[3] = (uint16_t)(3 + 4 * i);
-			buf[4] = (uint16_t)(0 + 4 * i);
-			buf[5] = (uint16_t)(2 + 4 * i);
-			buf[6] = (uint16_t)(1 + 4 * i);
-			buf[7] = (uint16_t)(3 + 4 * i);
+			std::array<T, 8> buf;
+			buf[0] = (T)(0 + 4 * i);
+			buf[1] = (T)(1 + 4 * i);
+			buf[2] = (T)(2 + 4 * i);
+			buf[3] = (T)(3 + 4 * i);
+			buf[4] = (T)(0 + 4 * i);
+			buf[5] = (T)(2 + 4 * i);
+			buf[6] = (T)(1 + 4 * i);
+			buf[7] = (T)(3 + 4 * i);
+			memcpy(m_indexBufferForWireframe->GetBufferDirect(8), buf.data(), sizeof(T) * 8);
 		}
 
 		m_indexBufferForWireframe->Unlock();
@@ -4643,7 +4672,12 @@ bool RendererImplemented::Initialize()
 	glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &arrayBufferBinding);
 	glGetIntegerv(GL_ELEMENT_ARRAY_BUFFER_BINDING, &elementArrayBufferBinding);
 
-	SetSquareMaxCount( m_squareMaxCount );
+	if (GetIndexSpriteCount() * 4 > 65536)
+	{
+		indexBufferStride_ = 4;
+	}
+
+	SetSquareMaxCount(m_squareMaxCount);
 
 	m_renderState = new RenderState( this );
 
@@ -4990,13 +5024,13 @@ void RendererImplemented::SetSquareMaxCount(int32_t count)
 
 	// generate an index buffer
 	{
-		m_indexBuffer = IndexBuffer::Create(this, m_squareMaxCount * 6, false, false);
+		m_indexBuffer = IndexBuffer::Create(this, GetIndexSpriteCount() * 6, false, indexBufferStride_, false);
 		if (m_indexBuffer == nullptr) return;
 	}
 
 	// generate an index buffer for a wireframe
 	{
-		m_indexBufferForWireframe = IndexBuffer::Create( this, m_squareMaxCount * 8, false, false);
+		m_indexBufferForWireframe = IndexBuffer::Create(this, GetIndexSpriteCount() * 8, false, indexBufferStride_, false);
 		if( m_indexBufferForWireframe == nullptr) return;
 	}
 
@@ -5137,6 +5171,11 @@ void RendererImplemented::SetIndexBuffer( IndexBuffer* indexBuffer )
 	if (m_currentVertexArray == nullptr || m_currentVertexArray->GetIndexBuffer() == nullptr)
 	{
 		GLExt::glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffer->GetInterface());
+		indexBufferCurrentStride_ = indexBuffer->GetStride();
+	}
+	else
+	{
+		indexBufferCurrentStride_ = m_currentVertexArray->GetIndexBuffer()->GetStride();
 	}
 }
 
@@ -5148,6 +5187,11 @@ void RendererImplemented::SetIndexBuffer(GLuint indexBuffer)
 	if (m_currentVertexArray == nullptr || m_currentVertexArray->GetIndexBuffer() == nullptr)
 	{
 		GLExt::glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffer);
+		indexBufferCurrentStride_ = 4;
+	}
+	else
+	{
+		indexBufferCurrentStride_ = m_currentVertexArray->GetIndexBuffer()->GetStride();
 	}
 }
 
@@ -5185,13 +5229,19 @@ void RendererImplemented::DrawSprites( int32_t spriteCount, int32_t vertexOffset
 	impl->drawcallCount++;
 	impl->drawvertexCount += spriteCount * 4;
 
+	GLsizei stride = GL_UNSIGNED_SHORT;
+	if (indexBufferCurrentStride_ == 4)
+	{
+		stride = GL_UNSIGNED_INT;
+	}
+
 	if (GetRenderMode() == ::Effekseer::RenderMode::Normal)
 	{
-		glDrawElements(GL_TRIANGLES, spriteCount * 6, GL_UNSIGNED_SHORT, (void*) (vertexOffset / 4 * 6 * sizeof(GLushort)));
+		glDrawElements(GL_TRIANGLES, spriteCount * 6, stride, (void*)(vertexOffset / 4 * 6 * indexBufferCurrentStride_));
 	}
 	else if (GetRenderMode() == ::Effekseer::RenderMode::Wireframe)
 	{
-		glDrawElements(GL_LINES, spriteCount * 8, GL_UNSIGNED_SHORT, (void*) (vertexOffset / 4 * 8 * sizeof(GLushort)));
+		glDrawElements(GL_LINES, spriteCount * 8, stride, (void*)(vertexOffset / 4 * 8 * indexBufferCurrentStride_));
 	}
 	
 	GLCheckError();

@@ -92,9 +92,15 @@ effekseerHeader.readLines(rootEDir + 'Effekseer.Manager.h')
 
 # SIMD
 effekseerHeader.readLines(rootEDir + 'SIMD/Effekseer.SIMDType.h')
+effekseerHeader.readLines(rootEDir + 'SIMD/Effekseer.SIMD4i_Gen.h')
+effekseerHeader.readLines(rootEDir + 'SIMD/Effekseer.SIMD4i_NEON.h')
+effekseerHeader.readLines(rootEDir + 'SIMD/Effekseer.SIMD4i_SSE.h')
 effekseerHeader.readLines(rootEDir + 'SIMD/Effekseer.SIMD4f_Gen.h')
 effekseerHeader.readLines(rootEDir + 'SIMD/Effekseer.SIMD4f_NEON.h')
 effekseerHeader.readLines(rootEDir + 'SIMD/Effekseer.SIMD4f_SSE.h')
+effekseerHeader.readLines(rootEDir + 'SIMD/Effekseer.SIMD4Bridge_Gen.h')
+effekseerHeader.readLines(rootEDir + 'SIMD/Effekseer.SIMD4Bridge_NEON.h')
+effekseerHeader.readLines(rootEDir + 'SIMD/Effekseer.SIMD4Bridge_SSE.h')
 effekseerHeader.readLines(rootEDir + 'SIMD/Effekseer.Vec2f.h')
 effekseerHeader.readLines(rootEDir + 'SIMD/Effekseer.Vec3f.h')
 effekseerHeader.readLines(rootEDir + 'SIMD/Effekseer.Vec4f.h')
@@ -319,6 +325,7 @@ rendererHeader.readLines(rootGDir+'EffekseerRendererGL.ModelLoader.h')
 rendererHeader.readLines(rootGDir+'EffekseerRendererGL.MaterialLoader.h')
 rendererHeader.readLines(rootGDir+'EffekseerRendererGL.DeviceObjectCollection.h')
 
+rendererHeader.readLines(rootCGDir+'../GLSL/GLSL.h')
 rendererHeader.readLines(rootCGDir+'EffekseerMaterialCompilerGL.h')
 
 rendererHeader.replace('#include <Effekseer.h>','#include "EffekseerNative.h"')
