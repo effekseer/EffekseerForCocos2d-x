@@ -21,7 +21,5 @@ jobs:
         python CreatePackage.py
     - uses: actions/upload-artifact@v1
       with:
-        name: EffekseerForCocos2d-x
+        name: EffekseerForCocos2d-x151c.zip
         path: EffekseerForCocos2d-x
-  
-
