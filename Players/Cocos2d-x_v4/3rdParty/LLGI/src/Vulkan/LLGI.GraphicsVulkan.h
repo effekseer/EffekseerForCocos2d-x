@@ -69,6 +69,7 @@ public:
 
 	RenderPassPipelineState* CreateRenderPassPipelineState(const RenderPassPipelineStateKey& key) override;
 
+	vk::PhysicalDevice GetPysicalDevice() const { return vkPysicalDevice; }
 	vk::Device GetDevice() const { return vkDevice; }
 	vk::CommandPool GetCommandPool() const { return vkCmdPool; }
 	vk::Queue GetQueue() const { return vkQueue; }

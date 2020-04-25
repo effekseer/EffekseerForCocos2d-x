@@ -27,10 +27,11 @@ public:
 	void End() override;
 	void SetScissor(int32_t x, int32_t y, int32_t width, int32_t height) override;
 	void Draw(int32_t pritimiveCount) override;
+    void CopyTexture(Texture* src, Texture* dst) override;
 	void BeginRenderPass(RenderPass* renderPass) override;
 	void EndRenderPass() override;
-
-	void WaitUntilCompleted();
+    
+	void WaitUntilCompleted() override;
 	
 	CommandList_Impl* GetImpl();
 };

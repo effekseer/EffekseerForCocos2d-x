@@ -64,11 +64,13 @@ bool TextureVulkan::Initialize(GraphicsVulkan* graphics, bool isStrongRef, const
 	if (isRenderPass)
 	{
 		isRenderPass_ = isRenderPass;
-		imageCreateInfo.usage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled;
+		imageCreateInfo.usage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferDst |
+								vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eSampled;
 	}
 	else
 	{
-		imageCreateInfo.usage = vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled;
+		imageCreateInfo.usage =
+			vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eSampled;
 	}
 
 	imageCreateInfo.sharingMode = vk::SharingMode::eExclusive;
@@ -121,6 +123,7 @@ bool TextureVulkan::Initialize(GraphicsVulkan* graphics, bool isStrongRef, const
 		imageViewInfo.subresourceRange.levelCount = 1;
 		imageViewInfo.subresourceRange.baseArrayLayer = 0;
 		imageViewInfo.subresourceRange.layerCount = 1;
+		subresourceRange_ = imageViewInfo.subresourceRange;
 		view_ = device.createImageView(imageViewInfo);
 	}
 
@@ -199,39 +202,10 @@ bool TextureVulkan::InitializeAsDepthStencil(vk::Device device,
 	viewCreateInfo.image = image_;
 	view_ = device.createImageView(viewCreateInfo);
 
+	subresourceRange_ = viewCreateInfo.subresourceRange;
 	vkTextureFormat_ = depthFormat;
 
 	return true;
-	// change layout(nt needed?)
-	/*
-	{
-		vk::CommandBufferBeginInfo cmdBufferBeginInfo;
-		vk::BufferCopy copyRegion;
-
-		// start to store commands
-		vkCmdBuffers[0].begin(cmdBufferBeginInfo);
-
-		vk::ImageSubresourceRange subresourceRange;
-		subresourceRange.aspectMask = aspect;
-		subresourceRange.levelCount = 1;
-		subresourceRange.layerCount = 1;
-		SetImageBarrior(vkCmdBuffers[0],
-						depthStencilBuffer.image,
-						vk::ImageLayout::eUndefined,
-						vk::ImageLayout::eDepthStencilAttachmentOptimal,
-						subresourceRange);
-
-		vkCmdBuffers[0].end();
-
-		// submit and wait
-		std::array<vk::SubmitInfo, 1> copySubmitInfos;
-		copySubmitInfos[0].commandBufferCount = 1;
-		copySubmitInfos[0].pCommandBuffers = &vkCmdBuffers[0];
-
-		vkQueue.submit(copySubmitInfos.size(), copySubmitInfos.data(), vk::Fence());
-		vkQueue.waitIdle();
-	}
-	*/
 }
 
 bool TextureVulkan::InitializeFromExternal(TextureType type, VkImage image, VkImageView imageView, VkFormat format, const Vec2I& size)
@@ -242,6 +216,14 @@ bool TextureVulkan::InitializeFromExternal(TextureType type, VkImage image, VkIm
 	vkTextureFormat_ = vk::Format(format);
 	textureSize = size;
 	isExternalResource_ = true;
+
+	if (type_ == TextureType::Depth)
+	{
+		subresourceRange_.aspectMask = vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil;
+		subresourceRange_.levelCount = 1;
+		subresourceRange_.layerCount = 1;
+	}
+
 	return true;
 }
 
@@ -274,7 +256,6 @@ void TextureVulkan::Unlock()
 
 	copyCommandBuffer.begin(cmdBufferBeginInfo);
 
-	vk::ImageLayout imageLayout = vk::ImageLayout::eTransferDstOptimal;
 	vk::BufferImageCopy imageBufferCopy;
 
 	imageBufferCopy.bufferOffset = 0;
@@ -294,12 +275,10 @@ void TextureVulkan::Unlock()
 	colorSubRange.levelCount = 1;
 	colorSubRange.layerCount = 1;
 
-	SetImageLayout(copyCommandBuffer, image_, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal, colorSubRange);
-
+	vk::ImageLayout imageLayout = vk::ImageLayout::eTransferDstOptimal;
+	ResourceBarrior(copyCommandBuffer, imageLayout);
 	copyCommandBuffer.copyBufferToImage(cpuBuf->buffer(), image_, imageLayout, imageBufferCopy);
-
-	SetImageLayout(copyCommandBuffer, image_, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eShaderReadOnlyOptimal, colorSubRange);
-
+	ResourceBarrior(copyCommandBuffer, vk::ImageLayout::eShaderReadOnlyOptimal);
 	copyCommandBuffer.end();
 
 	// submit and wait to execute command
@@ -314,5 +293,18 @@ void TextureVulkan::Unlock()
 }
 
 Vec2I TextureVulkan::GetSizeAs2D() const { return textureSize; }
+
+vk::ImageLayout TextureVulkan::GetImageLayout() const { return imageLayout_; }
+
+void TextureVulkan::ChangeImageLayout(const vk::ImageLayout& imageLayout) { imageLayout_ = imageLayout; }
+
+void TextureVulkan::ResourceBarrior(vk::CommandBuffer& commandBuffer, const vk::ImageLayout& imageLayout)
+{
+	if (imageLayout == imageLayout_)
+		return;
+
+	SetImageLayout(commandBuffer, image_, imageLayout_, imageLayout, subresourceRange_);
+	ChangeImageLayout(imageLayout);
+}
 
 } // namespace LLGI

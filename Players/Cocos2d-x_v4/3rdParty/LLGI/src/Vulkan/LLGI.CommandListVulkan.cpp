@@ -118,10 +118,7 @@ void CommandListVulkan::BeginExternal(VkCommandBuffer nativeCommandBuffer)
 	CommandList::Begin();
 }
 
-void CommandListVulkan::EndExternal()
-{
-	commandBuffers[currentSwapBufferIndex_] = vk::CommandBuffer();
-}
+void CommandListVulkan::EndExternal() { commandBuffers[currentSwapBufferIndex_] = vk::CommandBuffer(); }
 
 void CommandListVulkan::Begin()
 {
@@ -360,6 +357,43 @@ void CommandListVulkan::Draw(int32_t pritimiveCount)
 	CommandList::Draw(pritimiveCount);
 }
 
+void CommandListVulkan::CopyTexture(Texture* src, Texture* dst)
+{
+	if (isInRenderPass_)
+	{
+		Log(LogType::Error, "Please call CopyTexture outside of RenderPass");
+		return;
+	}
+
+	auto& cmdBuffer = commandBuffers[currentSwapBufferIndex_];
+
+	auto srcTex = static_cast<TextureVulkan*>(src);
+	auto dstTex = static_cast<TextureVulkan*>(dst);
+
+	std::array<vk::ImageCopy, 1> imageCopy;
+	imageCopy[0].dstOffset = vk::Offset3D(0, 0, 0);
+	imageCopy[0].srcOffset = vk::Offset3D(0, 0, 0);
+	imageCopy[0].extent.width = src->GetSizeAs2D().X;
+	imageCopy[0].extent.height = src->GetSizeAs2D().Y;
+	imageCopy[0].extent.depth = 1;
+	imageCopy[0].srcSubresource.aspectMask = srcTex->GetSubresourceRange().aspectMask;
+	imageCopy[0].srcSubresource.layerCount = 1;
+	imageCopy[0].srcSubresource.baseArrayLayer = 0;
+
+	imageCopy[0].dstSubresource.aspectMask = dstTex->GetSubresourceRange().aspectMask;
+	imageCopy[0].dstSubresource.layerCount = 1;
+	imageCopy[0].dstSubresource.baseArrayLayer = 0;
+
+	srcTex->ResourceBarrior(cmdBuffer, vk::ImageLayout::eTransferSrcOptimal);
+	dstTex->ResourceBarrior(cmdBuffer, vk::ImageLayout::eTransferDstOptimal);
+	cmdBuffer.copyImage(srcTex->GetImage(), srcTex->GetImageLayout(), dstTex->GetImage(), dstTex->GetImageLayout(), imageCopy);
+	dstTex->ResourceBarrior(cmdBuffer, vk::ImageLayout::eShaderReadOnlyOptimal);
+	srcTex->ResourceBarrior(cmdBuffer, vk::ImageLayout::eShaderReadOnlyOptimal);
+
+	RegisterReferencedObject(src);
+	RegisterReferencedObject(dst);
+}
+
 void CommandListVulkan::BeginRenderPass(RenderPass* renderPass)
 {
 	auto renderPass_ = static_cast<RenderPassVulkan*>(renderPass);
@@ -382,40 +416,6 @@ void CommandListVulkan::BeginRenderPass(RenderPass* renderPass)
 
 	auto& cmdBuffer = commandBuffers[currentSwapBufferIndex_];
 
-	/*
-	// to make screen clear
-	SetImageLayout(
-		cmdBuffer, renderPass_->colorBuffers[0], vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal, colorSubRange);
-	SetImageLayout(cmdBuffer,
-				   renderPass_->depthBuffer,
-				   vk::ImageLayout::eDepthStencilAttachmentOptimal,
-				   vk::ImageLayout::eTransferDstOptimal,
-				   depthSubRange);
-
-	if (renderPass->GetIsColorCleared())
-	{
-		cmdBuffer.clearColorImage(renderPass_->colorBuffers[0], vk::ImageLayout::eTransferDstOptimal, clearColor, colorSubRange);
-	}
-
-	if (renderPass->GetIsDepthCleared())
-	{
-		cmdBuffer.clearDepthStencilImage(renderPass_->depthBuffer, vk::ImageLayout::eTransferDstOptimal, clearDepth, depthSubRange);
-	}
-
-	// to draw
-	SetImageLayout(cmdBuffer,
-				   renderPass_->colorBuffers[0],
-				   vk::ImageLayout::eTransferDstOptimal,
-				   vk::ImageLayout::eColorAttachmentOptimal,
-				   colorSubRange);
-
-	SetImageLayout(cmdBuffer,
-				   renderPass_->depthBuffer,
-				   vk::ImageLayout::eTransferDstOptimal,
-				   vk::ImageLayout::eDepthStencilAttachmentOptimal,
-				   depthSubRange);
-	*/
-
 	vk::ClearValue clear_values[RenderTargetMax + 1];
 	int clearValueCount = 0;
 
@@ -436,6 +436,12 @@ void CommandListVulkan::BeginRenderPass(RenderPass* renderPass)
 
 	clear_values[renderPass_->GetRenderTextureCount()].depthStencil = clearDepth;
 
+	if (renderPass_->GetHasDepthTexture())
+	{
+		auto t = static_cast<TextureVulkan*>(renderPass_->GetDepthTexture());
+		t->ResourceBarrior(cmdBuffer, vk::ImageLayout::eDepthStencilAttachmentOptimal);
+	}
+
 	// begin renderpass
 	vk::RenderPassBeginInfo renderPassBeginInfo;
 	renderPassBeginInfo.framebuffer = renderPass_->frameBuffer_;
@@ -451,6 +457,20 @@ void CommandListVulkan::BeginRenderPass(RenderPass* renderPass)
 
 	vk::Rect2D scissor = vk::Rect2D(vk::Offset2D(), vk::Extent2D(renderPass_->GetImageSize().X, renderPass_->GetImageSize().Y));
 	cmdBuffer.setScissor(0, scissor);
+
+	for (size_t i = 0; i < renderPass_->GetRenderTextureCount(); i++)
+	{
+		auto t = static_cast<TextureVulkan*>(renderPass_->GetRenderTexture(i));
+		t->ChangeImageLayout(renderPass_->renderPassPipelineState->finalLayouts_.at(i));
+	}
+
+	if (renderPass_->GetHasDepthTexture())
+	{
+		auto t = static_cast<TextureVulkan*>(renderPass_->GetDepthTexture());
+		t->ChangeImageLayout(renderPass_->renderPassPipelineState->finalLayouts_.at(renderPass_->GetRenderTextureCount()));
+	}
+
+	CommandList::BeginRenderPass(renderPass);
 }
 
 void CommandListVulkan::EndRenderPass()
@@ -459,6 +479,8 @@ void CommandListVulkan::EndRenderPass()
 
 	// end renderpass
 	cmdBuffer.endRenderPass();
+
+	CommandList::EndRenderPass();
 }
 
 vk::CommandBuffer CommandListVulkan::GetCommandBuffer() const
@@ -475,7 +497,7 @@ void CommandListVulkan::WaitUntilCompleted()
 	{
 		vk::Result fenceRes =
 			graphics_->GetDevice().waitForFences(fences_[currentSwapBufferIndex_], VK_TRUE, std::numeric_limits<int>::max());
-		assert(fenceRes == vk::Result::eSuccess);	
+		assert(fenceRes == vk::Result::eSuccess);
 	}
 }
 

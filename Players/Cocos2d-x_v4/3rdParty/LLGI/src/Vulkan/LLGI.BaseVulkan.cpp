@@ -28,7 +28,7 @@ const char* VulkanHelper::getResultName(VkResult result)
 		VK_RESULT_VALUE(VK_ERROR_TOO_MANY_OBJECTS);
 		VK_RESULT_VALUE(VK_ERROR_FORMAT_NOT_SUPPORTED);
 		VK_RESULT_VALUE(VK_ERROR_FRAGMENTED_POOL);		   // and VK_RESULT_BEGIN_RANGE
-		VK_RESULT_VALUE(VK_ERROR_OUT_OF_POOL_MEMORY);	  // and VK_ERROR_OUT_OF_POOL_MEMORY_KHR
+		VK_RESULT_VALUE(VK_ERROR_OUT_OF_POOL_MEMORY);	   // and VK_ERROR_OUT_OF_POOL_MEMORY_KHR
 		VK_RESULT_VALUE(VK_ERROR_INVALID_EXTERNAL_HANDLE); // and VK_ERROR_INVALID_EXTERNAL_HANDLE_KHR
 		VK_RESULT_VALUE(VK_ERROR_SURFACE_LOST_KHR);
 		VK_RESULT_VALUE(VK_ERROR_NATIVE_WINDOW_IN_USE_KHR);
@@ -48,31 +48,46 @@ const char* VulkanHelper::getResultName(VkResult result)
 
 struct FormatConversionItem
 {
-    TextureFormatType format;
-    VkFormat vulkanFormat;
+	TextureFormatType format;
+	VkFormat vulkanFormat;
 };
 
-static FormatConversionItem s_formatConversionTable[] =
-{
-    { TextureFormatType::R8G8B8A8_UNORM, VK_FORMAT_R8G8B8A8_UNORM },
-    { TextureFormatType::R32G32B32A32_FLOAT, VK_FORMAT_R32G32B32A32_SFLOAT },
-    { TextureFormatType::R8G8B8A8_UNORM_SRGB, VK_FORMAT_R8G8B8A8_SRGB },
-    { TextureFormatType::R16G16_FLOAT, VK_FORMAT_R16G16_SFLOAT },
-    { TextureFormatType::R8_UNORM, VK_FORMAT_R8_UNORM },
-    { TextureFormatType::BC1, VK_FORMAT_BC1_RGBA_UNORM_BLOCK },
-    { TextureFormatType::BC2, VK_FORMAT_BC2_UNORM_BLOCK },
-    { TextureFormatType::BC3, VK_FORMAT_BC3_UNORM_BLOCK },
-    { TextureFormatType::BC1_SRGB, VK_FORMAT_BC1_RGBA_SRGB_BLOCK },
-    { TextureFormatType::BC2_SRGB, VK_FORMAT_BC2_SRGB_BLOCK },
-    { TextureFormatType::BC3_SRGB, VK_FORMAT_BC3_SRGB_BLOCK },
-    { TextureFormatType::R16G16B16A16_FLOAT, VK_FORMAT_R16G16B16A16_SFLOAT },
+static FormatConversionItem s_formatConversionTable[] = {
+	{TextureFormatType::R8G8B8A8_UNORM, VK_FORMAT_R8G8B8A8_UNORM},
+	{TextureFormatType::R32G32B32A32_FLOAT, VK_FORMAT_R32G32B32A32_SFLOAT},
+	{TextureFormatType::R8G8B8A8_UNORM_SRGB, VK_FORMAT_R8G8B8A8_SRGB},
+	{TextureFormatType::R16G16_FLOAT, VK_FORMAT_R16G16_SFLOAT},
+	{TextureFormatType::R8_UNORM, VK_FORMAT_R8_UNORM},
+	{TextureFormatType::BC1, VK_FORMAT_BC1_RGBA_UNORM_BLOCK},
+	{TextureFormatType::BC2, VK_FORMAT_BC2_UNORM_BLOCK},
+	{TextureFormatType::BC3, VK_FORMAT_BC3_UNORM_BLOCK},
+	{TextureFormatType::BC1_SRGB, VK_FORMAT_BC1_RGBA_SRGB_BLOCK},
+	{TextureFormatType::BC2_SRGB, VK_FORMAT_BC2_SRGB_BLOCK},
+	{TextureFormatType::BC3_SRGB, VK_FORMAT_BC3_SRGB_BLOCK},
+	{TextureFormatType::R16G16B16A16_FLOAT, VK_FORMAT_R16G16B16A16_SFLOAT},
+	{TextureFormatType::B8G8R8A8_UNORM, VK_FORMAT_B8G8R8A8_UNORM},
 };
 
 VkFormat VulkanHelper::TextureFormatToVkFormat(TextureFormatType format)
 {
-    if (format == TextureFormatType::Uknown) return VK_FORMAT_UNDEFINED;
-    assert(s_formatConversionTable[(int)format].format == format);
-    return s_formatConversionTable[(int)format].vulkanFormat;
+	if (format == TextureFormatType::Uknown)
+		return VK_FORMAT_UNDEFINED;
+	if (format == TextureFormatType::B8G8R8A8_UNORM)
+		return VK_FORMAT_B8G8R8A8_UNORM;
+
+	assert(s_formatConversionTable[(int)format].format == format);
+	return s_formatConversionTable[(int)format].vulkanFormat;
+}
+
+TextureFormatType VulkanHelper::VkFormatToTextureFormat(VkFormat format)
+{
+	for (size_t i = 0; i < sizeof(s_formatConversionTable); i++)
+	{
+		if (s_formatConversionTable[i].vulkanFormat == format)
+			return s_formatConversionTable[i].format;
+	}
+
+	return TextureFormatType::Uknown;
 }
 
 Buffer::Buffer(GraphicsVulkan* graphics)
@@ -153,6 +168,29 @@ void VulkanBuffer::Dispose()
 	graphics_ = nullptr;
 }
 
+static vk::PipelineStageFlags GetStageFlag(vk::ImageLayout layout)
+{
+
+	if (layout == vk::ImageLayout::ePreinitialized)
+	{
+		return vk::PipelineStageFlagBits::eHost;
+	}
+	else if (layout == vk::ImageLayout::eTransferDstOptimal || layout == vk::ImageLayout::eTransferSrcOptimal)
+	{
+		return vk::PipelineStageFlagBits::eTransfer;
+	}
+	else if (layout == vk::ImageLayout::eColorAttachmentOptimal)
+	{
+		return vk::PipelineStageFlagBits::eColorAttachmentOutput;
+	}
+	else if (layout == vk::ImageLayout::eShaderReadOnlyOptimal)
+	{
+		return vk::PipelineStageFlagBits::eVertexShader | vk::PipelineStageFlagBits::eFragmentShader;
+	}
+
+	return vk::PipelineStageFlagBits::eTopOfPipe;
+}
+
 void SetImageLayout(vk::CommandBuffer cmdbuffer,
 					vk::Image image,
 					vk::ImageLayout oldImageLayout,
@@ -166,7 +204,6 @@ void SetImageLayout(vk::CommandBuffer cmdbuffer,
 	imageMemoryBarrier.subresourceRange = subresourceRange;
 
 	// current layout
-
 	if (oldImageLayout == vk::ImageLayout::ePreinitialized)
 		imageMemoryBarrier.srcAccessMask = vk::AccessFlagBits::eHostWrite;
 	else if (oldImageLayout == vk::ImageLayout::eTransferDstOptimal)
@@ -178,7 +215,9 @@ void SetImageLayout(vk::CommandBuffer cmdbuffer,
 	else if (oldImageLayout == vk::ImageLayout::eTransferSrcOptimal)
 		imageMemoryBarrier.srcAccessMask = vk::AccessFlagBits::eTransferRead;
 	else if (oldImageLayout == vk::ImageLayout::eShaderReadOnlyOptimal)
+	{
 		imageMemoryBarrier.srcAccessMask = vk::AccessFlagBits::eShaderRead;
+	}
 
 	// next layout
 
@@ -193,19 +232,17 @@ void SetImageLayout(vk::CommandBuffer cmdbuffer,
 	else if (newImageLayout == vk::ImageLayout::eShaderReadOnlyOptimal)
 		imageMemoryBarrier.dstAccessMask = vk::AccessFlagBits::eShaderRead;
 
-	if (imageMemoryBarrier.dstAccessMask == vk::AccessFlagBits::eTransferWrite)
+	if (imageMemoryBarrier.dstAccessMask == vk::AccessFlagBits::eTransferWrite ||
+		imageMemoryBarrier.dstAccessMask == vk::AccessFlagBits::eTransferRead ||
+		imageMemoryBarrier.dstAccessMask == vk::AccessFlagBits::eShaderRead)
+	{
+		cmdbuffer.pipelineBarrier(
+			GetStageFlag(oldImageLayout), GetStageFlag(newImageLayout), vk::DependencyFlags(), nullptr, nullptr, imageMemoryBarrier);
+	}
+	else if (imageMemoryBarrier.dstAccessMask == vk::AccessFlagBits::eDepthStencilAttachmentWrite)
 	{
 		cmdbuffer.pipelineBarrier(vk::PipelineStageFlagBits::eTopOfPipe,
-								  vk::PipelineStageFlagBits::eTransfer,
-								  vk::DependencyFlags(),
-								  nullptr,
-								  nullptr,
-								  imageMemoryBarrier);
-	}
-	else if (imageMemoryBarrier.dstAccessMask == vk::AccessFlagBits::eShaderRead)
-	{
-		cmdbuffer.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer,
-								  vk::PipelineStageFlagBits::eVertexShader | vk::PipelineStageFlagBits::eFragmentShader,
+								  vk::PipelineStageFlagBits::eEarlyFragmentTests,
 								  vk::DependencyFlags(),
 								  nullptr,
 								  nullptr,

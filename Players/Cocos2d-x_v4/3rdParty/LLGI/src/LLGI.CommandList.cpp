@@ -117,12 +117,26 @@ bool CommandList::BeginWithPlatform(void* platformContextPtr)
 		o->Release();
 	}
 	swapObjects[swapIndex_].referencedObjects.clear();
+	doesBeginWithPlatform_ = true;
 	return true;
 }
 
-void CommandList::End() {}
+void CommandList::End() {
 
-void CommandList::EndWithPlatform() {}
+	if (doesBeginWithPlatform_)
+	{
+		Log(LogType::Error, "CommandList begins with platform.");
+	}
+}
+
+void CommandList::EndWithPlatform() {
+
+	if (!doesBeginWithPlatform_)
+	{
+		Log(LogType::Error, "CommandList doesn't begin with platform.");
+	}
+	doesBeginWithPlatform_ = false;
+}
 
 void CommandList::SetScissor(int32_t x, int32_t y, int32_t width, int32_t height) {}
 
@@ -185,6 +199,7 @@ void CommandList::BeginRenderPass(RenderPass* renderPass)
 	isVertexBufferDirtied = true;
 	isCurrentIndexBufferDirtied = true;
 	isPipelineDirtied = true;
+	isInRenderPass_ = true;
 }
 
 bool CommandList::BeginRenderPassWithPlatformPtr(void* platformPtr)
@@ -192,6 +207,7 @@ bool CommandList::BeginRenderPassWithPlatformPtr(void* platformPtr)
 	isVertexBufferDirtied = true;
 	isCurrentIndexBufferDirtied = true;
 	isPipelineDirtied = true;
+	isInRenderPass_ = true;
 	return true;
 }
 

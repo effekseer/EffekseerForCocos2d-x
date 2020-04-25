@@ -47,7 +47,7 @@ public:
 	PlatformDX12();
 	virtual ~PlatformDX12();
 
-	bool Initialize(Window* window);
+	bool Initialize(Window* window, bool waitVSync);
 
 	bool NewFrame() override;
 	void Present() override;

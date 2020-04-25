@@ -10,13 +10,22 @@
 namespace LLGI
 {
 
+struct PlatformParameter
+{
+	DeviceType Device;
+	bool WaitVSync;
+};
+
 Window* CreateWindow(const char* title, Vec2I windowSize);
 
-Platform* CreatePlatform(DeviceType platformDeviceType, Window* window);
+Platform* CreatePlatform(const PlatformParameter& parameter, Window* window);
 
 class Platform : public ReferenceObject
 {
 private:
+protected:
+	bool waitVSync_ = false;
+
 public:
 	Platform() = default;
 	virtual ~Platform() = default;
@@ -27,6 +36,8 @@ public:
 	virtual DeviceType GetDeviceType() const { return DeviceType::Default; }
 
 	virtual void SetWindowSize(const Vec2I& windowSize);
+
+	bool GetWaitVSync() const { return waitVSync_; }
 
 	/**
 		@brief get render pass of screen to show on a display.

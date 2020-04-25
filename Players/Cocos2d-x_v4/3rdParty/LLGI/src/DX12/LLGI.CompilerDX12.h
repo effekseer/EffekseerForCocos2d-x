@@ -17,6 +17,18 @@ enum class CompilerDX12Option : int32_t
 class CompilerDX12 : public Compiler
 {
 private:
+	struct CompileShaderResultDX12
+	{
+		ID3DBlob* shader = nullptr;
+		std::string error;
+	};
+
+	CompileShaderResultDX12 CompileShader(const CompilerDX12Option& option,
+										  const char* text,
+										  const char* fileName,
+										  const char* target,
+										  const std::vector<D3D_SHADER_MACRO>& macro);
+
 	CompilerDX12Option option_;
 
 public:

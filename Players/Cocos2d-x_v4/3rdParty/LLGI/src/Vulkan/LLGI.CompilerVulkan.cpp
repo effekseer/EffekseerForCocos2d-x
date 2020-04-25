@@ -1,13 +1,18 @@
 
 #include <memory>
+
+#if defined(ENABLE_VULKAN_COMPILER)
 #include <glslang/Public/ShaderLang.h>
 #include <glslang/Include/ResourceLimits.h>
 #include <SPIRV/GlslangToSpv.h>
+#endif
+
 #include "LLGI.CompilerVulkan.h"
 
 namespace LLGI
 {
 
+#if defined(ENABLE_VULKAN_COMPILER)
 
 const TBuiltInResource DefaultTBuiltInResource = {
     /* .MaxLights = */ 32,
@@ -115,16 +120,21 @@ const TBuiltInResource DefaultTBuiltInResource = {
         /* .generalConstantMatrixVectorIndexing = */ 1,
     }};
 
+#endif
 
 
 CompilerVulkan::CompilerVulkan()
 {
+#if defined(ENABLE_VULKAN_COMPILER)
     glslang::InitializeProcess();
+#endif
 }
 
 CompilerVulkan::~CompilerVulkan()
 {
+#if defined(ENABLE_VULKAN_COMPILER)
     glslang::FinalizeProcess();
+#endif
 }
 
 void CompilerVulkan::Initialize()
@@ -133,6 +143,7 @@ void CompilerVulkan::Initialize()
 
 void CompilerVulkan::Compile(CompilerResult& result, const char* code, ShaderStageType shaderStage)
 {
+#if defined(ENABLE_VULKAN_COMPILER)
 
     const int defaultVersion = 110;
 
@@ -203,6 +214,8 @@ void CompilerVulkan::Compile(CompilerResult& result, const char* code, ShaderSta
     result.Binary.resize(1);
     result.Binary[0].resize(spirvCode.size() * sizeof(unsigned int));
     memcpy(result.Binary[0].data(), spirvCode.data(), result.Binary[0].size());
+#endif
+
 }
 
 } // namespace LLGI

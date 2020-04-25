@@ -26,7 +26,7 @@ struct PlatformMetal_Impl
 	CAMetalLayer* layer;
 	id<CAMetalDrawable> drawable;
 
-	PlatformMetal_Impl(Window* window)
+	PlatformMetal_Impl(Window* window, bool waitVSync)
 	{
         window_ = window;
         NSWindow* nswindow = (NSWindow*)window_->GetNativePtr(0);
@@ -35,6 +35,7 @@ struct PlatformMetal_Impl
 		device = MTLCreateSystemDefaultDevice();
 		layer = [CAMetalLayer layer];
 		layer.device = device;
+		layer.displaySyncEnabled = waitVSync;
 		layer.pixelFormat = MTLPixelFormatBGRA8Unorm;
 		nswindow.contentView.layer = layer;
 		nswindow.contentView.wantsLayer = YES;
@@ -68,9 +69,9 @@ struct PlatformMetal_Impl
 	}
 };
 
-PlatformMetal::PlatformMetal(Window* window)
+PlatformMetal::PlatformMetal(Window* window, bool waitVSync)
 {
-	impl = new PlatformMetal_Impl(window);
+	impl = new PlatformMetal_Impl(window, waitVSync);
     
     ringBuffers_.resize(6);
     for(size_t i = 0; i < ringBuffers_.size(); i++)

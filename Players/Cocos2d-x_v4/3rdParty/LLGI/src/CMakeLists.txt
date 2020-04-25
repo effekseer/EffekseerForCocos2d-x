@@ -71,7 +71,10 @@ set_target_properties(${PROJECT_NAME} PROPERTIES PUBLIC_HEADER "${LOCAL_HEADERS}
 if(BUILD_VULKAN)
   find_package(Vulkan REQUIRED)
   target_include_directories(LLGI PRIVATE ${Vulkan_INCLUDE_DIRS})
-  target_link_libraries(LLGI PRIVATE ${Vulkan_LIBRARIES} glslang SPIRV)
+  target_link_libraries(LLGI PRIVATE ${Vulkan_LIBRARIES})
+  if(BUILD_VULKAN_COMPILER)
+    target_link_libraries(LLGI PRIVATE glslang SPIRV)
+  endif()
 endif()
 
 if(WIN32)
@@ -87,6 +90,8 @@ endif()
 #          Overriding glslang installation settings.
 
 if(BUILD_VULKAN)
+
+  if(BUILD_VULKAN_COMPILER)
 
     set_target_properties(glslang PROPERTIES INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_INSTALL_PREFIX}/include)
     set_target_properties(SPIRV PROPERTIES INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_INSTALL_PREFIX}/include)
@@ -129,6 +134,7 @@ if(BUILD_VULKAN)
     install(EXPORT SPIRV-export
             FILE SPIRV-config.cmake
             DESTINATION lib/cmake)
+  endif()
 endif()
 
 

@@ -305,6 +305,34 @@ void CommandListMetal::Draw(int32_t pritimiveCount)
     CommandList::Draw(pritimiveCount);
 }
 
+void CommandListMetal::CopyTexture(Texture* src, Texture* dst)
+{
+    if (isInRenderPass_)
+    {
+        Log(LogType::Error, "Please call CopyTexture outside of RenderPass");
+        return;
+    }
+
+    auto srcTex = static_cast<TextureMetal*>(src);
+    auto dstTex = static_cast<TextureMetal*>(dst);
+
+    id<MTLBlitCommandEncoder> blitEncoder = [impl->commandBuffer blitCommandEncoder];
+    
+    auto regionSize = srcTex->GetSizeAs2D();
+    
+    MTLRegion region =
+       {
+           {0, 0, 0},
+           {(uint32_t)regionSize .X, (uint32_t)regionSize .Y, 1}
+       };
+    
+    [blitEncoder copyFromTexture:srcTex->GetImpl()->texture sourceSlice:0 sourceLevel:0 sourceOrigin:region.origin sourceSize:region.size toTexture:dstTex->GetImpl()->texture destinationSlice:0 destinationLevel:0 destinationOrigin:{0, 0, 0}];
+    [blitEncoder endEncoding];
+    
+    RegisterReferencedObject(src);
+    RegisterReferencedObject(dst);
+}
+
 void CommandListMetal::BeginRenderPass(RenderPass* renderPass)
 {
 	auto renderPass_ = static_cast<RenderPassMetal*>(renderPass)->GetImpl();
@@ -313,7 +341,7 @@ void CommandListMetal::BeginRenderPass(RenderPass* renderPass)
     CommandList::BeginRenderPass(renderPass);
 }
 
-void CommandListMetal::EndRenderPass() { impl->EndRenderPass(); }
+void CommandListMetal::EndRenderPass() { impl->EndRenderPass(); CommandList::EndRenderPass(); }
 
 void CommandListMetal::WaitUntilCompleted()
 {

@@ -69,7 +69,7 @@ bool RenderPassVulkan::Initialize(const TextureVulkan** textures, int32_t textur
 	}
 
 	FixedSizeVector<vk::ImageView, RenderTargetMax + 1> views;
-	views.resize(textureCount + 1);
+	views.resize(textureCount + (GetHasDepthTexture() ? 1 : 0));
 
 	for (int32_t i = 0; i < textureCount; i++)
 	{

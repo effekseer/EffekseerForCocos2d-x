@@ -62,10 +62,12 @@ private:
 	bool isVertexBufferDirtied = true;
 	bool isCurrentIndexBufferDirtied = true;
 	bool isPipelineDirtied = true;
+	bool doesBeginWithPlatform_ = false;
 
 	std::array<ConstantBuffer*, static_cast<int>(ShaderStageType::Max)> constantBuffers;
 
 protected:
+	bool isInRenderPass_ = false;
 	std::array<std::array<BindingTexture, NumTexture>, static_cast<int>(ShaderStageType::Max)> currentTextures;
 
 protected:
@@ -105,6 +107,11 @@ public:
 	virtual void SetConstantBuffer(ConstantBuffer* constantBuffer, ShaderStageType shaderStage);
 
 	/**
+		@brief	copy a texture
+	*/
+	virtual void CopyTexture(Texture* src, Texture* dst) {}
+
+	/**
 		@brief specify textures
 		@note
 		shaderStage is ignored in DirectX12 (common textures are used on all stages)
@@ -119,7 +126,7 @@ public:
 	*/
 	virtual bool BeginRenderPassWithPlatformPtr(void* platformPtr);
 
-	virtual void EndRenderPass() {}
+	virtual void EndRenderPass() { isInRenderPass_ = false; }
 
 	/**
 		@brief

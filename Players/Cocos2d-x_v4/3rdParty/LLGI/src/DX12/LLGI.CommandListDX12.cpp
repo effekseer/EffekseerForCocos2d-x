@@ -175,9 +175,15 @@ void CommandListDX12::BeginRenderPass(RenderPass* renderPass)
 			ClearDepth();
 		}
 	}
+
+	CommandList::BeginRenderPass(renderPass);
 }
 
-void CommandListDX12::EndRenderPass() { renderPass_.reset(); }
+void CommandListDX12::EndRenderPass()
+{
+	renderPass_.reset();
+	CommandList::EndRenderPass();
+}
 
 void CommandListDX12::Draw(int32_t pritimiveCount)
 {
@@ -393,6 +399,37 @@ void CommandListDX12::Draw(int32_t pritimiveCount)
 	currentCommandList_->DrawIndexedInstanced(pritimiveCount * 3 /*triangle*/, 1, 0, 0, 0);
 
 	CommandList::Draw(pritimiveCount);
+}
+
+void CommandListDX12::CopyTexture(Texture* src, Texture* dst)
+{
+	if (isInRenderPass_)
+	{
+		Log(LogType::Error, "Please call CopyTexture outside of RenderPass");
+		return;
+	}
+
+	auto srcTex = static_cast<TextureDX12*>(src);
+	auto dstTex = static_cast<TextureDX12*>(dst);
+
+	D3D12_TEXTURE_COPY_LOCATION srcLoc = {}, dstLoc = {};
+
+	srcLoc.pResource = srcTex->Get();
+
+	dstLoc.pResource = dstTex->Get();
+
+	auto srcState = srcTex->GetState();
+
+	srcTex->ResourceBarrior(currentCommandList_, D3D12_RESOURCE_STATE_COPY_SOURCE);
+	dstTex->ResourceBarrior(currentCommandList_, D3D12_RESOURCE_STATE_COPY_DEST);
+
+	currentCommandList_->CopyTextureRegion(&dstLoc, 0, 0, 0, &srcLoc, nullptr);
+
+	dstTex->ResourceBarrior(currentCommandList_, D3D12_RESOURCE_STATE_GENERIC_READ);
+	srcTex->ResourceBarrior(currentCommandList_, srcState);
+
+	RegisterReferencedObject(src);
+	RegisterReferencedObject(dst);
 }
 
 void CommandListDX12::Clear(const Color8& color)

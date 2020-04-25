@@ -51,6 +51,10 @@ public:
 	TextureFormatType GetFormat() const override { return format_; }
 	DXGI_FORMAT GetDXGIFormat() const { return dxgiFormat_; }
 
+	const D3D12_PLACED_SUBRESOURCE_FOOTPRINT& GetFootprint() const { return footprint_; }
+
+	D3D12_RESOURCE_STATES GetState() const { return state_; }
+
 	//! set a resource barrior and change a state
 	void ResourceBarrior(ID3D12GraphicsCommandList* commandList, D3D12_RESOURCE_STATES state);
 };

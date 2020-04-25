@@ -17,13 +17,6 @@ public:
 	Texture() = default;
 	virtual ~Texture() = default;
 
-	/**
-		@brief	get an internal buffer of image
-		@note
-		CommandList::UpdateTexture must be called in some platforms.
-	*/
-	virtual void* GetBuffer() const;
-
 	/*[[deprecated("use CommandList::SetImageData2D.")]]*/ virtual void* Lock();
 
 	/*[[deprecated("use CommandList::SetImageData2D.")]]*/ virtual void Unlock();

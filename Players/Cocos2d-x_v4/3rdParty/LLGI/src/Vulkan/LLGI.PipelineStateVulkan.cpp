@@ -311,7 +311,7 @@ void PipelineStateVulkan::Compile()
 	graphicsPipelineInfo.renderPass = static_cast<RenderPassPipelineStateVulkan*>(renderPassPipelineState_.get())->GetRenderPass();
 
 	// uniform layout info
-	std::array<vk::DescriptorSetLayoutBinding, 2> uboLayoutBindings;
+	std::array<vk::DescriptorSetLayoutBinding, 3> uboLayoutBindings;
 	uboLayoutBindings[0].binding = 0;
 	uboLayoutBindings[0].descriptorType = vk::DescriptorType::eUniformBufferDynamic;
 	uboLayoutBindings[0].descriptorCount = 1;
@@ -324,8 +324,14 @@ void PipelineStateVulkan::Compile()
 	uboLayoutBindings[1].stageFlags = vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment;
 	uboLayoutBindings[1].pImmutableSamplers = nullptr;
 
+	uboLayoutBindings[2].binding = 2;
+	uboLayoutBindings[2].descriptorType = vk::DescriptorType::eCombinedImageSampler;
+	uboLayoutBindings[2].descriptorCount = 1;
+	uboLayoutBindings[2].stageFlags = vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment;
+	uboLayoutBindings[2].pImmutableSamplers = nullptr;
+
 	vk::DescriptorSetLayoutCreateInfo descriptorSetLayoutInfo;
-	descriptorSetLayoutInfo.bindingCount = 2;
+	descriptorSetLayoutInfo.bindingCount = uboLayoutBindings.size();
 	descriptorSetLayoutInfo.pBindings = uboLayoutBindings.data();
 
 	descriptorSetLayouts[0] = graphics_->GetDevice().createDescriptorSetLayout(descriptorSetLayoutInfo);

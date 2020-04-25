@@ -93,7 +93,7 @@ private:
 #endif
 	uint32_t frameIndex = 0;
 
-	bool CreateSwapChain(Vec2I windowSize, bool isVSyncEnabled);
+	bool CreateSwapChain(Vec2I windowSize, bool waitVSync);
 
 	/*!
 		@brief	get swap buffer index
@@ -108,11 +108,11 @@ private:
 	*/
 	vk::Result Present(vk::Semaphore semaphore);
 
-	void SetImageBarrior(vk::CommandBuffer cmdbuffer,
-						vk::Image image,
-						vk::ImageLayout oldImageLayout,
-						vk::ImageLayout newImageLayout,
-						vk::ImageSubresourceRange subresourceRange);
+	//void SetImageBarrior(vk::CommandBuffer cmdbuffer,
+	//					vk::Image image,
+	//					vk::ImageLayout oldImageLayout,
+	//					vk::ImageLayout newImageLayout,
+	//					vk::ImageSubresourceRange subresourceRange);
 
 	void Reset();
 
@@ -120,7 +120,7 @@ public:
 	PlatformVulkan();
 	virtual ~PlatformVulkan();
 
-	bool Initialize(Window* window);
+	bool Initialize(Window* window, bool waitVSync);
 
 	bool NewFrame() override;
 	void Present() override;

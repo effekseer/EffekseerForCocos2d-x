@@ -13,9 +13,13 @@
 #endif
 
 #ifdef __APPLE__
+#include "../Mac/LLGI.WindowMac.h"
 #include "../Metal/LLGI.CompilerMetal.h"
 #include "../Metal/LLGI.PlatformMetal.h"
-#include "../Mac/LLGI.WindowMac.h"
+#endif
+
+#if defined(ENABLE_VULKAN)
+#include "../Vulkan/LLGI.CompilerVulkan.h"
 #endif
 
 #ifdef __linux__
@@ -38,24 +42,24 @@ Window* CreateWindow(const char* title, Vec2I windowSize)
 		return window;
 	}
 #elif __APPLE__
-    auto window = new WindowMac();
-    if (window->Initialize(title, windowSize))
-    {
-        return window;
-    }
+	auto window = new WindowMac();
+	if (window->Initialize(title, windowSize))
+	{
+		return window;
+	}
 #elif __linux__
-    auto window = new WindowLinux();
-    if (window->Initialize(title, windowSize))
-    {
-        return window;
-    }
+	auto window = new WindowLinux();
+	if (window->Initialize(title, windowSize))
+	{
+		return window;
+	}
 #endif
 
 	Log(LogType::Error, "Failed to create window.");
 	return nullptr;
 }
 
-Platform* CreatePlatform(DeviceType platformDeviceType, Window* window)
+Platform* CreatePlatform(const PlatformParameter& parameter, Window* window)
 {
 	Vec2I windowSize;
 	windowSize.X = 1280;
@@ -63,13 +67,13 @@ Platform* CreatePlatform(DeviceType platformDeviceType, Window* window)
 
 #ifdef ENABLE_VULKAN
 #if defined(__linux__)
-	if (platformDeviceType == DeviceType::Vulkan || platformDeviceType == DeviceType::Default)
+	if (parameter.Device == DeviceType::Vulkan || parameter.Device == DeviceType::Default)
 #else
-	if (platformDeviceType == DeviceType::Vulkan)
+	if (parameter.Device == DeviceType::Vulkan)
 #endif
 	{
 		auto platform = new PlatformVulkan();
-		if (!platform->Initialize(window))
+		if (!platform->Initialize(window, parameter.WaitVSync))
 		{
 			SafeRelease(platform);
 			return nullptr;
@@ -80,10 +84,10 @@ Platform* CreatePlatform(DeviceType platformDeviceType, Window* window)
 
 #ifdef _WIN32
 
-	if (platformDeviceType == DeviceType::Default || platformDeviceType == DeviceType::DirectX12)
+	if (parameter.Device == DeviceType::Default || parameter.Device == DeviceType::DirectX12)
 	{
 		auto platform = new PlatformDX12();
-		if (!platform->Initialize(window))
+		if (!platform->Initialize(window, parameter.WaitVSync))
 		{
 			SafeRelease(platform);
 			return nullptr;
@@ -92,7 +96,7 @@ Platform* CreatePlatform(DeviceType platformDeviceType, Window* window)
 	}
 
 #elif defined(__APPLE__)
-	auto obj = new PlatformMetal(window);
+	auto obj = new PlatformMetal(window, parameter.WaitVSync);
 	return obj;
 
 #endif
@@ -114,7 +118,12 @@ Compiler* CreateCompiler(DeviceType device)
 #ifdef ENABLE_VULKAN
 	if (device == DeviceType::Vulkan)
 	{
+#if defined(ENABLE_VULKAN_COMPILER)
+		auto obj = new CompilerVulkan();
+		return obj;
+#else
 		return nullptr;
+#endif
 	}
 #endif
 

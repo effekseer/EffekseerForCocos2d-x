@@ -48,8 +48,10 @@ RenderPassPipelineStateVulkan* RenderPassPipelineStateCacheVulkan::Create(bool i
 	// settings
 	FixedSizeVector<vk::AttachmentDescription, RenderTargetMax + 1> attachmentDescs;
 	FixedSizeVector<vk::AttachmentReference, RenderTargetMax + 1> attachmentRefs;
+	FixedSizeVector<vk::ImageLayout, RenderTargetMax + 1> finalLayouts;
 	attachmentDescs.resize(formats.size() + (hasDepth ? 1 : 0));
 	attachmentRefs.resize(formats.size() + (hasDepth ? 1 : 0));
+	finalLayouts.resize(formats.size() + (hasDepth ? 1 : 0));
 
 	// color buffer
 	int colorCount = formats.size();
@@ -101,8 +103,14 @@ RenderPassPipelineStateVulkan* RenderPassPipelineStateCacheVulkan::Create(bool i
 		attachmentDescs.at(colorCount).stencilStoreOp = vk::AttachmentStoreOp::eStore;
 
 		// When clearing, the initialLayout does not matter.
-		attachmentDescs.at(colorCount).initialLayout = (isDepthCleared) ? vk::ImageLayout::eUndefined : vk::ImageLayout::eDepthStencilAttachmentOptimal;
-		attachmentDescs.at(colorCount).finalLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
+		attachmentDescs.at(colorCount).initialLayout =
+			(isDepthCleared) ? vk::ImageLayout::eUndefined : vk::ImageLayout::eDepthStencilAttachmentOptimal;
+		attachmentDescs.at(colorCount).finalLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal;	
+	}
+
+	for (size_t i = 0; i < attachmentDescs.size(); i++)
+	{
+		finalLayouts.at(i) = attachmentDescs.at(i).finalLayout;
 	}
 
 	for (int i = 0; i < colorCount; i++)
@@ -179,7 +187,7 @@ RenderPassPipelineStateVulkan* RenderPassPipelineStateCacheVulkan::Create(bool i
 
 		std::shared_ptr<RenderPassPipelineStateVulkan> ret = CreateSharedPtr(new RenderPassPipelineStateVulkan(device_, owner_));
 		ret->renderPass_ = renderPass;
-
+		ret->finalLayouts_ = finalLayouts;
 		renderPassPipelineStates_[key] = ret;
 
 		auto retptr = ret.get();

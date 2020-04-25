@@ -20,7 +20,6 @@ private:
 
 	vk::Device device_;
 	ReferenceObject* owner_ = nullptr;
-
 public:
 	RenderPassPipelineStateCacheVulkan(vk::Device device, ReferenceObject* owner);
 	virtual ~RenderPassPipelineStateCacheVulkan();

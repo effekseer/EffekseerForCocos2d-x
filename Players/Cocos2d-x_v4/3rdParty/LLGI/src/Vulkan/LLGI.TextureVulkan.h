@@ -19,8 +19,10 @@ private:
 	bool isStrongRef_ = false;
 	vk::Image image_ = nullptr;
 	vk::ImageView view_ = nullptr;
+	vk::ImageLayout imageLayout_ = vk::ImageLayout::eUndefined;
 	vk::DeviceMemory devMem_ = nullptr;
 	vk::Format vkTextureFormat_;
+	vk::ImageSubresourceRange subresourceRange_;
 
 	Vec2I textureSize;
 
@@ -47,7 +49,7 @@ public:
 
 	bool InitializeAsDepthStencil(vk::Device device, vk::PhysicalDevice physicalDevice, const Vec2I& size, ReferenceObject* owner);
 
-    bool InitializeFromExternal(TextureType type, VkImage image, VkImageView imageView, VkFormat format, const Vec2I& size);
+	bool InitializeFromExternal(TextureType type, VkImage image, VkImageView imageView, VkFormat format, const Vec2I& size);
 
 	void* Lock() override;
 	void Unlock() override;
@@ -58,6 +60,14 @@ public:
 
 	vk::Format GetVulkanFormat() const { return vkTextureFormat_; }
 	int32_t GetMemorySize() const { return memorySize; }
+
+	vk::ImageLayout GetImageLayout() const;
+
+	vk::ImageSubresourceRange GetSubresourceRange() const { return subresourceRange_; }
+
+	void ChangeImageLayout(const vk::ImageLayout& imageLayout);
+
+	void ResourceBarrior(vk::CommandBuffer& commandBuffer, const vk::ImageLayout& imageLayout);
 };
 
 } // namespace LLGI
