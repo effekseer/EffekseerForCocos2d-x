@@ -6635,7 +6635,7 @@ namespace Effekseer
 namespace GLSL
 {
 
-static char* material_common_define_450 = R"(
+static const char* material_common_define_450 = R"(
 #version 450
 #define LAYOUT(ind) layout(location = ind)
 #define lowp
@@ -6646,11 +6646,11 @@ static char* material_common_define_450 = R"(
 
 )";
 
-static char* material_common_define_not_450 = R"(
+static const char* material_common_define_not_450 = R"(
 #define LAYOUT(ind) 
 )";
 
-static char* material_common_define =
+static const char* material_common_define =
 	R"(
 #define MOD mod
 #define FRAC fract
@@ -6662,7 +6662,7 @@ float atan2(in float y, in float x) {
 
 )";
 
-static char* material_common_vs_define = R"()"
+static const char* material_common_vs_define = R"()"
 
 										 R"(
 
@@ -6670,7 +6670,7 @@ static char* material_common_vs_define = R"()"
 
 )";
 
-static char* material_common_fs_define = R"()"
+static const char* material_common_fs_define = R"()"
 
 										 R"(
 
