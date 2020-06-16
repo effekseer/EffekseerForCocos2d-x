@@ -330,6 +330,9 @@ private:
 	// all the effects will be rendered to this layer
 	// this texture will be used as a frame buffer for HDR rendering
 	cocos2d::RenderTexture* hdrRenderTexture = nullptr;
+    // ensure HDR texture is cleared only ONCE per visit
+    // regardless of the number of visit calls due to number of cameras present
+     bool clearedHdrTexture = false;
 
 	::Effekseer::Handle play(Effect* effect, float x, float y, float z);
 

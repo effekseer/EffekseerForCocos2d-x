@@ -858,13 +858,13 @@ void EffectManager::CreateHdrRenderTexture()
 {
 #if EFK_ENABLE_HDR
 	if (!cocos2d::Configuration::getInstance()->supportsHdrFbo()) return;
-
     auto d = cocos2d::Director::getInstance();
 
     // create Frame buffer texture
     auto v = d->getRenderer()->getViewport();
-    hdrRenderTexture = cocos2d::RenderTexture::create(
-                                                      v.w, v.h, cocos2d::PixelFormat::RGBA16x4
+    hdrRenderTexture = cocos2d::RenderTexture::create(v.w / CC_CONTENT_SCALE_FACTOR(), v.h / CC_CONTENT_SCALE_FACTOR(),
+                                                      cocos2d::PixelFormat::RGBA16x4
+// in the case of Metal, depth stencil attachment already created by default, so no need to create here
 #if defined(CC_USE_GL) || defined(CC_USE_GLES)
                                                       , cocos2d::PixelFormat::D24S8
 #endif
@@ -954,7 +954,23 @@ void EffectManager::begin(cocos2d::Renderer* renderer, float globalZOrder)
     newFrame();
 
     if (hdrRenderTexture)
+    {
+#if EFK_ENABLE_HDR && (defined(CC_USE_GL) || defined(CC_USE_GLES))
+        // clear depth and stencil texture attachments for rendering new frame
+        // need to clear color flag as well, or else other there is a weird behaviour when other rendertexture with smaller size is used
+        if (!clearedHdrTexture)
+        {
+            // do not use group command here, as this will cause conflict within
+            // the group command in actual 'begin' used for rendering, which results in crash
+            hdrRenderTexture->begin(false);
+            cocos2d::ClearFlag flags = cocos2d::ClearFlag::ALL;
+            cocos2d::Director::getInstance()->getRenderer()->clear(flags, cocos2d::Color4F(0, 0, 0, 0), 1.0, 0, 0);
+            hdrRenderTexture->end();
+            clearedHdrTexture = true;
+        }
+#endif
         hdrRenderTexture->begin();
+    }
     
 	// TODO Batch render
 	/*
@@ -1015,16 +1031,8 @@ void EffectManager::update(float delta)
 	time_ += delta;
 	renderer2d->SetTime(time_);
 
-#if EFK_ENABLE_HDR && (defined(CC_USE_GL) || defined(CC_USE_GLES))
-	// clear depth and stencil texture attachments for rendering new frame
 	if (hdrRenderTexture)
-	{
-		hdrRenderTexture->beginSane(); // do not use group command here as it will crash
-        cocos2d::ClearFlag flags = cocos2d::ClearFlag::DEPTH | cocos2d::ClearFlag::STENCIL;
-		cocos2d::Director::getInstance()->getRenderer()->clear(flags, cocos2d::Color4F(0, 0, 0, 0), 1.0, 0, 0);
-		hdrRenderTexture->endSane();
-	}
-#endif
+        clearedHdrTexture = false;
 }
 
 NetworkServer* NetworkServer::create() { return new NetworkServer(); }
