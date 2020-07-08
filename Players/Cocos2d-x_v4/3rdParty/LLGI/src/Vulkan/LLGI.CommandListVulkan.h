@@ -36,12 +36,14 @@ private:
 	std::vector<std::shared_ptr<DescriptorPoolVulkan>> descriptorPools;
 	int32_t currentSwapBufferIndex_;
 	std::vector<vk::Fence> fences_;
+	vk::Sampler samplers_[2][2];
 
 public:
 	CommandListVulkan();
 	virtual ~CommandListVulkan();
 
-	bool Initialize(GraphicsVulkan* graphics, int32_t drawingCount, CommandListPreCondition precondition = CommandListPreCondition::Standalone);
+	bool
+	Initialize(GraphicsVulkan* graphics, int32_t drawingCount, CommandListPreCondition precondition = CommandListPreCondition::Standalone);
 
 	void Begin() override;
 	void End() override;
@@ -50,7 +52,7 @@ public:
 	void EndExternal();
 
 	void SetScissor(int32_t x, int32_t y, int32_t width, int32_t height) override;
-	void Draw(int32_t pritimiveCount) override;
+	void Draw(int32_t primitiveCount, int32_t instanceCount) override;
 	void CopyTexture(Texture* src, Texture* dst) override;
 
 	void BeginRenderPass(RenderPass* renderPass) override;

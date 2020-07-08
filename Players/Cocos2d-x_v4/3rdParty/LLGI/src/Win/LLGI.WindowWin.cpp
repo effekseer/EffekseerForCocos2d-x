@@ -3,15 +3,15 @@
 namespace LLGI
 {
 
+static bool doExit_ = false;
+
 #ifdef _WIN32
 
 LRESULT LLGI_WndProc_Win(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
-	switch (msg)
+	if (msg == WM_CLOSE)
 	{
-	case WM_DESTROY:
-		PostQuitMessage(0);
-		return 0;
+		doExit_ = true;
 	}
 
 	return DefWindowProc(hwnd, msg, wParam, lParam);
@@ -51,6 +51,8 @@ bool WindowWin::Initialize(const char* title, const Vec2I& windowSize)
 
 	// TODO : check many things
 
+	doExit_ = false;
+
 	return true;
 }
 
@@ -62,7 +64,7 @@ void WindowWin::Terminate()
 #ifdef _WIN32
 	if (hwnd_ != nullptr)
 	{
-		//DestroyWindow(hwnd_);		
+		SendMessage(hwnd_, WM_CLOSE, 0, 0);
 		UnregisterClassA(title_.c_str(), GetModuleHandle(NULL));
 	}
 	hwnd_ = nullptr;
@@ -92,7 +94,7 @@ bool WindowWin::OnNewFrame()
 		}
 	}
 
-	return true;
+	return !doExit_;
 }
 
 void* WindowWin::GetNativePtr(int32_t index)

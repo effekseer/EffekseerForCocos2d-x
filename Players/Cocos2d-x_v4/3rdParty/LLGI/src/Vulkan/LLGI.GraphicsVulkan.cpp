@@ -32,25 +32,6 @@ GraphicsVulkan::GraphicsVulkan(const vk::Device& device,
 
 	swapBufferCount_ = swapBufferCount;
 
-	vk::SamplerCreateInfo samplerInfo;
-	samplerInfo.magFilter = vk::Filter::eLinear;
-	samplerInfo.minFilter = vk::Filter::eLinear;
-	samplerInfo.anisotropyEnable = false;
-	samplerInfo.maxAnisotropy = 1;
-	samplerInfo.addressModeU = vk::SamplerAddressMode::eRepeat;
-	samplerInfo.addressModeV = vk::SamplerAddressMode::eRepeat;
-	samplerInfo.addressModeW = vk::SamplerAddressMode::eRepeat;
-	samplerInfo.borderColor = vk::BorderColor::eIntOpaqueBlack;
-	samplerInfo.unnormalizedCoordinates = false;
-	samplerInfo.compareEnable = false;
-	samplerInfo.compareOp = vk::CompareOp::eAlways;
-	samplerInfo.mipmapMode = vk::SamplerMipmapMode::eLinear;
-	samplerInfo.mipLodBias = 0.0f;
-	samplerInfo.minLod = 0.0f;
-	samplerInfo.maxLod = 0.0f;
-
-	defaultSampler_ = vkDevice.createSampler(samplerInfo);
-
 	SafeAddRef(renderPassPipelineStateCache_);
 	if (renderPassPipelineStateCache_ == nullptr)
 	{
@@ -61,11 +42,6 @@ GraphicsVulkan::GraphicsVulkan(const vk::Device& device,
 GraphicsVulkan::~GraphicsVulkan()
 {
 	SafeRelease(renderPassPipelineStateCache_);
-
-	if (defaultSampler_)
-	{
-		vkDevice.destroySampler(defaultSampler_);
-	}
 
 	SafeRelease(owner_);
 }
@@ -160,21 +136,23 @@ ConstantBuffer* GraphicsVulkan::CreateConstantBuffer(int32_t size)
 	return obj;
 }
 
-RenderPass* GraphicsVulkan::CreateRenderPass(const Texture** textures, int32_t textureCount, Texture* depthTexture)
+RenderPass* GraphicsVulkan::CreateRenderPass(Texture** textures, int32_t textureCount, Texture* depthTexture)
 {
 	assert(textures != nullptr);
-	if(textures == nullptr) return nullptr;
+	if (textures == nullptr)
+		return nullptr;
 
-	for(size_t i = 0; i < textureCount; i++)
+	for (size_t i = 0; i < textureCount; i++)
 	{
 		assert(textures[i] != nullptr);
-		if(textures[i] == nullptr) return nullptr;	
+		if (textures[i] == nullptr)
+			return nullptr;
 	}
 
 	auto dt = static_cast<TextureVulkan*>(depthTexture);
 
 	auto renderPass = new RenderPassVulkan(renderPassPipelineStateCache_, GetDevice(), this);
-	if (!renderPass->Initialize((const TextureVulkan**)textures, textureCount, dt))
+	if (!renderPass->Initialize((const TextureVulkan**)textures, textureCount, dt, nullptr, nullptr))
 	{
 		SafeRelease(renderPass);
 	}
@@ -182,37 +160,33 @@ RenderPass* GraphicsVulkan::CreateRenderPass(const Texture** textures, int32_t t
 	return renderPass;
 }
 
-/*
-Texture* GraphicsVulkan::CreateTexture(const Vec2I& size, bool isRenderPass, bool isDepthBuffer)
+RenderPass*
+GraphicsVulkan::CreateRenderPass(Texture* texture, Texture* resolvedTexture, Texture* depthTexture, Texture* resolvedDepthTexture)
 {
-	auto obj = new TextureVulkan();
-	if(isDepthBuffer)
-	{
-		if (!obj->InitializeAsDepthStencil( this->vkDevice, this->vkPysicalDevice, size, this))
-		{
-			SafeRelease(obj);
-			return nullptr;
-		}
-		return obj;
-	}
-	
-	if (!obj->Initialize(this, true, size, isRenderPass))
-	{
-		SafeRelease(obj);
+	if (texture == nullptr)
 		return nullptr;
+
+	auto dt = static_cast<const TextureVulkan*>(depthTexture);
+	auto rt = static_cast<const TextureVulkan*>(resolvedTexture);
+	auto rdt = static_cast<const TextureVulkan*>(resolvedDepthTexture);
+
+	auto renderPass = new RenderPassVulkan(renderPassPipelineStateCache_, GetDevice(), this);
+	if (!renderPass->Initialize((const TextureVulkan**)(&texture), 1, (TextureVulkan*)dt, (TextureVulkan*)rt, (TextureVulkan*)rdt))
+	{
+		SafeRelease(renderPass);
 	}
 
-	return obj;
+	return renderPass;
 }
-*/
 
 Texture* GraphicsVulkan::CreateTexture(uint64_t id) { throw "Not inplemented"; }
 
-Texture* GraphicsVulkan::CreateTexture(const TextureInitializationParameter& parameter) 
+Texture* GraphicsVulkan::CreateTexture(const TextureInitializationParameter& parameter)
 {
 	auto obj = new TextureVulkan();
-	
-	if (!obj->Initialize(this, true, parameter.Size, false))
+
+	if (!obj->Initialize(
+			this, true, parameter.Size, (vk::Format)VulkanHelper::TextureFormatToVkFormat(parameter.Format), 1, TextureType::Color))
 	{
 		SafeRelease(obj);
 		return nullptr;
@@ -237,7 +211,18 @@ Texture* GraphicsVulkan::CreateDepthTexture(const DepthTextureInitializationPara
 {
 	auto obj = new TextureVulkan();
 
-	if (!obj->InitializeAsDepthStencil( this->vkDevice, this->vkPysicalDevice, parameter.Size, this))
+	auto format = TextureFormatType::D32;
+	if (parameter.Mode == DepthTextureMode::DepthStencil)
+	{
+		format = TextureFormatType::D24S8;
+	}
+
+	if (!obj->InitializeAsDepthStencil(this->vkDevice,
+									   this->vkPysicalDevice,
+									   parameter.Size,
+									   (vk::Format)VulkanHelper::TextureFormatToVkFormat(format),
+									   parameter.SamplingCount,
+									   this))
 	{
 		SafeRelease(obj);
 		return nullptr;
@@ -272,7 +257,11 @@ std::vector<uint8_t> GraphicsVulkan::CaptureRenderTarget(Texture* renderTarget)
 
 	{
 		VkCommandBuffer commandBuffer = BeginSingleTimeCommands();
+		vk::CommandBuffer commandBufferCpp = static_cast<vk::CommandBuffer>(commandBuffer);
+		auto oldLayout = texture->GetImageLayout();
+		texture->ResourceBarrior(commandBufferCpp, vk::ImageLayout::eTransferSrcOptimal);
 
+		/*
 		// Swapchain image (VK_IMAGE_LAYOUT_PRESENT_SRC_KHR) -> copy source (VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL)
 		{
 			VkImageMemoryBarrier imageMemoryBarrier = {};
@@ -295,6 +284,7 @@ std::vector<uint8_t> GraphicsVulkan::CaptureRenderTarget(Texture* renderTarget)
 								 1,
 								 &imageMemoryBarrier);
 		}
+		*/
 
 		// Copy to destBuffer
 		{
@@ -312,6 +302,8 @@ std::vector<uint8_t> GraphicsVulkan::CaptureRenderTarget(Texture* renderTarget)
 		}
 
 		// Undo layout
+		texture->ResourceBarrior(commandBufferCpp, oldLayout);
+		/*
 		{
 			VkImageMemoryBarrier imageMemoryBarrier = {};
 			imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -333,6 +325,7 @@ std::vector<uint8_t> GraphicsVulkan::CaptureRenderTarget(Texture* renderTarget)
 								 1,
 								 &imageMemoryBarrier);
 		}
+		*/
 
 		// Submit and Wait
 		if (!EndSingleTimeCommands(commandBuffer))
@@ -367,15 +360,7 @@ RenderPassPipelineState* GraphicsVulkan::CreateRenderPassPipelineState(RenderPas
 
 RenderPassPipelineState* GraphicsVulkan::CreateRenderPassPipelineState(const RenderPassPipelineStateKey& key)
 {
-	FixedSizeVector<vk::Format, RenderTargetMax> renderTargets;
-
-	renderTargets.resize(key.RenderTargetFormats.size());
-	for(size_t i = 0; i < renderTargets.size(); i++)
-	{
-		renderTargets.at(i) = (vk::Format)VulkanHelper::TextureFormatToVkFormat(key.RenderTargetFormats.at(i));
-	}
-
-	return renderPassPipelineStateCache_->Create(key.IsPresent, key.HasDepth, renderTargets, key.IsColorCleared, key.IsDepthCleared);
+	return renderPassPipelineStateCache_->Create(key);
 }
 
 int32_t GraphicsVulkan::GetSwapBufferCount() const { return swapBufferCount_; }

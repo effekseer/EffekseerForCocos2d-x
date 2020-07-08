@@ -31,7 +31,7 @@ public:
 	virtual ~PipelineStateDX12();
 
 	void SetShader(ShaderStageType stage, Shader* shader) override;
-	void Compile() override;
+	bool Compile() override;
 
 	ID3D12PipelineState* GetPipelineState() { return pipelineState_; }
 	ID3D12RootSignature* GetRootSignature() { return rootSignature_; }

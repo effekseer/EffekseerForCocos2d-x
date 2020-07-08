@@ -1112,6 +1112,7 @@ namespace GLExt
 #define GL_STREAM_DRAW 0x88E0
 #define GL_DYNAMIC_DRAW 0x88E8
 #define GL_FUNC_ADD 0x8006
+#define GL_MAX 0x8008
 #define GL_FUNC_REVERSE_SUBTRACT 0x800B
 #define GL_CLAMP_TO_EDGE 0x812F
 #define GL_TEXTURE0 0x84C0
@@ -3171,6 +3172,8 @@ void main()
 		float diffuse = max(0.0, dot(localNormal, LightDirection.xyz));
 		FRAGCOLOR.xyz = FRAGCOLOR.xyz * (LightColor.xyz * diffuse + LightAmbient.xyz);
 	}
+
+	if(FRAGCOLOR.w <= 0.0) discard;
 }
 
 )";
@@ -3296,6 +3299,8 @@ void main() {
 
 	vec3 color = TEX2D(uBackTexture0, uv).xyz;
 	FRAGCOLOR.xyz = color;
+
+	if(FRAGCOLOR.w <= 0.0) discard;
 }
 )";
 
@@ -4230,6 +4235,8 @@ uniform sampler2D uTexture0;
 void main()
 {
 	FRAGCOLOR = vaColor * TEX2D(uTexture0, vaTexCoord.xy);
+
+	if(FRAGCOLOR.w <= 0.0) discard;
 }
 )";
 
@@ -4241,6 +4248,8 @@ IN mediump vec4 vaTexCoord;
 void main()
 {
 	FRAGCOLOR = vaColor;
+
+	if(FRAGCOLOR.w <= 0.0) discard;
 }
 )";
 
@@ -4340,6 +4349,8 @@ void main() {
 	color.xyz = TEX2D(uBackTexture0, uv).xyz;
 	
 	FRAGCOLOR = color;
+
+	if(FRAGCOLOR.w <= 0.0) discard;
 }
 )";
 
@@ -4379,6 +4390,8 @@ void main() {
 	color.xyz = TEX2D(uBackTexture0, uv).xyz;
 	
 	FRAGCOLOR = color;
+
+	if(FRAGCOLOR.w <= 0.0) discard;
 }
 )";
 
@@ -4473,6 +4486,8 @@ void main()
 	
 	FRAGCOLOR = v_VColor * TEX2D(ColorTexture, v_UV1.xy);
 	FRAGCOLOR.xyz = FRAGCOLOR.xyz * (LightColor.xyz * diffuse + LightAmbient.xyz);
+
+	if(FRAGCOLOR.w <= 0.0) discard;
 }
 
 
@@ -5760,16 +5775,16 @@ void RenderState::Update( bool forced )
 
 	if( m_active.AlphaBlend != m_next.AlphaBlend || forced )
 	{
-		if(  m_next.AlphaBlend == ::Effekseer::AlphaBlendType::Opacity ||
-			m_renderer->GetRenderMode() == ::Effekseer::RenderMode::Wireframe )
-		{
-			glDisable( GL_BLEND );
-		}
-		else
 		{
 			glEnable( GL_BLEND );
 
-			if( m_next.AlphaBlend == ::Effekseer::AlphaBlendType::Sub )
+			if (m_next.AlphaBlend == ::Effekseer::AlphaBlendType::Opacity ||
+				m_renderer->GetRenderMode() == ::Effekseer::RenderMode::Wireframe)
+			{
+				GLExt::glBlendEquationSeparate(GL_FUNC_ADD, GL_MAX);
+				GLExt::glBlendFuncSeparate(GL_ONE, GL_ZERO, GL_ONE, GL_ONE);
+			}
+			else if( m_next.AlphaBlend == ::Effekseer::AlphaBlendType::Sub )
 			{
 				GLExt::glBlendEquationSeparate(GL_FUNC_REVERSE_SUBTRACT, GL_FUNC_ADD);
 				GLExt::glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE, GL_ZERO, GL_ONE);

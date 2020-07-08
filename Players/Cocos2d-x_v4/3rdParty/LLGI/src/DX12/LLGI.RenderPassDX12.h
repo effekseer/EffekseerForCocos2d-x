@@ -34,7 +34,11 @@ public:
 	RenderPassDX12(ID3D12Device* device);
 	virtual ~RenderPassDX12();
 
-	bool Initialize(TextureDX12** textures, int numTextures, TextureDX12* depthTexture);
+	bool Initialize(TextureDX12** textures,
+					int numTextures,
+					TextureDX12* depthTexture,
+					TextureDX12* resolvedRenderTexture,
+					TextureDX12* resolvedDepthTexture);
 
 	const D3D12_CPU_DESCRIPTOR_HANDLE* GetHandleRTV() const { return handleRTV_.data(); }
 	const RenderTargetDX12* GetRenderTarget(int idx) const { return &renderTargets_[idx]; }

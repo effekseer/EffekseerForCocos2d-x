@@ -36,7 +36,7 @@ void PipelineStateDX12::SetShader(ShaderStageType stage, Shader* shader)
 	shaders_[static_cast<int>(stage)] = shader;
 }
 
-void PipelineStateDX12::Compile()
+bool PipelineStateDX12::Compile()
 {
 	CreateRootSignature();
 
@@ -46,7 +46,7 @@ void PipelineStateDX12::Compile()
 	{
 		auto shader = static_cast<ShaderDX12*>(shaders_.at(i));
 		if (shader == nullptr)
-			return;
+			return false;
 
 		auto& shaderData = shader->GetData();
 
@@ -74,7 +74,12 @@ void PipelineStateDX12::Compile()
 		elementDescs[i].AlignedByteOffset = elementOffset;
 		elementDescs[i].InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
 
-		if (VertexLayouts[i] == VertexLayoutFormat::R32G32_FLOAT)
+		if (VertexLayouts[i] == VertexLayoutFormat::R32_FLOAT)
+		{
+			elementDescs[i].Format = DXGI_FORMAT_R32_FLOAT;
+			elementOffset += sizeof(float) * 1;
+		}
+		else if (VertexLayouts[i] == VertexLayoutFormat::R32G32_FLOAT)
 		{
 			elementDescs[i].Format = DXGI_FORMAT_R32G32_FLOAT;
 			elementOffset += sizeof(float) * 2;
@@ -101,15 +106,29 @@ void PipelineStateDX12::Compile()
 		}
 		else
 		{
-			assert(0);
+			Log(LogType::Error, "Unimplemented VertexLoayoutFormat");
+			return false;
 		}
 	}
 
 	// setup a topology
 	if (Topology == TopologyType::Triangle)
+	{
 		pipelineStateDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-	if (Topology == TopologyType::Line)
+	}
+	else if (Topology == TopologyType::Line)
+	{
 		pipelineStateDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE;
+	}
+	else if (Topology == TopologyType::Point)
+	{
+		pipelineStateDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT;
+	}
+	else
+	{
+		Log(LogType::Error, "Unimplemented TopologyType");
+		return false;
+	}
 
 	// TODO...(generate from parameters)
 	D3D12_RASTERIZER_DESC rasterizerDesc = {};
@@ -190,15 +209,15 @@ void PipelineStateDX12::Compile()
 	pipelineStateDesc.BlendState = blendDesc;
 
 	auto renderPassPipelineState = static_cast<RenderPassPipelineStateDX12*>(renderPassPipelineState_.get());
-	pipelineStateDesc.NumRenderTargets = renderPassPipelineState->RenderTargetCount;
+	pipelineStateDesc.NumRenderTargets = static_cast<UINT>(renderPassPipelineState->Key.RenderTargetFormats.size());
 
-	for (int i = 0; i < pipelineStateDesc.NumRenderTargets; i++)
+	for (uint32_t i = 0; i < pipelineStateDesc.NumRenderTargets; i++)
 	{
-		pipelineStateDesc.RTVFormats[i] = renderPassPipelineState->RenderTargetFormats[i];
+		pipelineStateDesc.RTVFormats[i] = ConvertFormat(renderPassPipelineState->Key.RenderTargetFormats.at(i));
 	}
 
 	// setup a depth stencil
-	if (renderPassPipelineState->HasDepth)
+	if (renderPassPipelineState->Key.DepthFormat != TextureFormatType::Unknown)
 	{
 		std::array<D3D12_COMPARISON_FUNC, 10> depthCompareOps;
 		depthCompareOps[static_cast<int>(DepthFuncType::Never)] = D3D12_COMPARISON_FUNC_NEVER;
@@ -216,15 +235,40 @@ void PipelineStateDX12::Compile()
 		depthStencilDesc.DepthEnable = IsDepthTestEnabled | IsDepthWriteEnabled;
 		if (!IsDepthTestEnabled)
 		{
-			depthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_NEVER;
+			depthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_ALWAYS;
 		}
-		depthStencilDesc.StencilEnable = false;
+
+		depthStencilDesc.StencilEnable = true;
+
+		D3D12_DEPTH_STENCILOP_DESC stencilDesc;
+
+		if (IsStencilTestEnabled)
+		{
+			stencilDesc.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
+			stencilDesc.StencilFailOp = D3D12_STENCIL_OP_KEEP;
+			stencilDesc.StencilPassOp = D3D12_STENCIL_OP_KEEP;
+			stencilDesc.StencilFunc = D3D12_COMPARISON_FUNC_EQUAL;
+			depthStencilDesc.StencilReadMask = 0xff;
+			depthStencilDesc.StencilWriteMask = 0xff;
+		}
+		else
+		{
+			stencilDesc.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
+			stencilDesc.StencilFailOp = D3D12_STENCIL_OP_KEEP;
+			stencilDesc.StencilPassOp = D3D12_STENCIL_OP_REPLACE;
+			stencilDesc.StencilFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+			depthStencilDesc.StencilReadMask = 0xff;
+			depthStencilDesc.StencilWriteMask = 0xff;
+		}
+
+		depthStencilDesc.BackFace = stencilDesc;
+		depthStencilDesc.FrontFace = stencilDesc;
 
 		pipelineStateDesc.DepthStencilState = depthStencilDesc;
-		pipelineStateDesc.DSVFormat = DXGI_FORMAT_D32_FLOAT;
+		pipelineStateDesc.DSVFormat = ConvertFormat(renderPassPipelineState->Key.DepthFormat);
 	}
 
-	pipelineStateDesc.SampleDesc.Count = 1;
+	pipelineStateDesc.SampleDesc.Count = renderPassPipelineState->Key.SamplingCount;
 	pipelineStateDesc.SampleMask = UINT_MAX;
 
 	auto hr = graphics_->GetDevice()->CreateGraphicsPipelineState(&pipelineStateDesc, IID_PPV_ARGS(&pipelineState_));
@@ -234,11 +278,11 @@ void PipelineStateDX12::Compile()
 		goto FAILED_EXIT;
 	}
 
-	return;
+	return true;
 
 FAILED_EXIT:
 	SafeRelease(pipelineState_);
-	return;
+	return false;
 }
 
 bool PipelineStateDX12::CreateRootSignature()

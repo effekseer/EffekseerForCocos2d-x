@@ -29,7 +29,8 @@ TextureVulkan::~TextureVulkan()
 	SafeRelease(owner_);
 }
 
-bool TextureVulkan::Initialize(GraphicsVulkan* graphics, bool isStrongRef, const Vec2I& size, bool isRenderPass)
+bool TextureVulkan::Initialize(
+	GraphicsVulkan* graphics, bool isStrongRef, const Vec2I& size, vk::Format format, int samplingCount, TextureType textureType)
 {
 	graphics_ = graphics;
 	if (isStrongRef_)
@@ -37,16 +38,11 @@ bool TextureVulkan::Initialize(GraphicsVulkan* graphics, bool isStrongRef, const
 		SafeAddRef(graphics_);
 	}
 
-	type_ = TextureType::Color;
-
-	if (isRenderPass)
-	{
-		type_ = TextureType::Render;
-	}
+	type_ = textureType;
+	format_ = VulkanHelper::VkFormatToTextureFormat(static_cast<VkFormat>(format));
+	samplingCount_ = samplingCount;
 
 	cpuBuf = std::unique_ptr<Buffer>(new Buffer(graphics_));
-
-	vk::Format format = vk::Format::eR8G8B8A8Unorm;
 
 	// image
 	vk::ImageCreateInfo imageCreateInfo;
@@ -61,9 +57,8 @@ bool TextureVulkan::Initialize(GraphicsVulkan* graphics, bool isStrongRef, const
 	imageCreateInfo.tiling = vk::ImageTiling::eOptimal;
 	imageCreateInfo.initialLayout = vk::ImageLayout::eUndefined;
 
-	if (isRenderPass)
+	if (type_ == TextureType::Render)
 	{
-		isRenderPass_ = isRenderPass;
 		imageCreateInfo.usage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferDst |
 								vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eSampled;
 	}
@@ -74,7 +69,7 @@ bool TextureVulkan::Initialize(GraphicsVulkan* graphics, bool isStrongRef, const
 	}
 
 	imageCreateInfo.sharingMode = vk::SharingMode::eExclusive;
-	imageCreateInfo.samples = vk::SampleCountFlagBits::e1;
+	imageCreateInfo.samples = (vk::SampleCountFlagBits)samplingCount_;
 	imageCreateInfo.flags = (vk::ImageCreateFlagBits)0;
 
 	image_ = graphics_->GetDevice().createImage(imageCreateInfo);
@@ -83,7 +78,7 @@ bool TextureVulkan::Initialize(GraphicsVulkan* graphics, bool isStrongRef, const
 	auto device = graphics_->GetDevice();
 
 	// calculate size
-	memorySize = size.X * size.Y * 4;
+	memorySize = GetTextureMemorySize(format_, size);
 
 	// create a buffer on cpu
 	{
@@ -129,6 +124,7 @@ bool TextureVulkan::Initialize(GraphicsVulkan* graphics, bool isStrongRef, const
 
 	textureSize = size;
 	vkTextureFormat_ = imageCreateInfo.format;
+	format_ = VulkanHelper::VkFormatToTextureFormat(static_cast<VkFormat>(vkTextureFormat_));
 	device_ = graphics_->GetDevice();
 
 	return true;
@@ -138,7 +134,12 @@ bool TextureVulkan::InitializeAsRenderTexture(GraphicsVulkan* graphics,
 											  bool isStrongRef,
 											  const RenderTextureInitializationParameter& parameter)
 {
-	return Initialize(graphics, isStrongRef, parameter.Size, true);
+	return Initialize(graphics,
+					  isStrongRef,
+					  parameter.Size,
+					  (vk::Format)VulkanHelper::TextureFormatToVkFormat(parameter.Format),
+					  parameter.SamplingCount,
+					  TextureType::Render);
 }
 
 bool TextureVulkan::InitializeAsScreen(const vk::Image& image, const vk::ImageView& imageVew, vk::Format format, const Vec2I& size)
@@ -149,15 +150,21 @@ bool TextureVulkan::InitializeAsScreen(const vk::Image& image, const vk::ImageVi
 	this->view_ = imageVew;
 	vkTextureFormat_ = format;
 	textureSize = size;
-	memorySize = size.X * size.Y * 4; // TODO: format
+	format_ = VulkanHelper::VkFormatToTextureFormat(static_cast<VkFormat>(vkTextureFormat_));
+	memorySize = GetTextureMemorySize(format_, size);
+
+	subresourceRange_.aspectMask = vk::ImageAspectFlagBits::eColor;
+	subresourceRange_.baseArrayLayer = 0;
+	subresourceRange_.levelCount = 1;
+	subresourceRange_.baseMipLevel = 0;
+	subresourceRange_.layerCount = 1;
+
 	isExternalResource_ = true;
 	return true;
 }
 
-bool TextureVulkan::InitializeAsDepthStencil(vk::Device device,
-											 vk::PhysicalDevice physicalDevice,
-											 const Vec2I& size,
-											 ReferenceObject* owner)
+bool TextureVulkan::InitializeAsDepthStencil(
+	vk::Device device, vk::PhysicalDevice physicalDevice, const Vec2I& size, vk::Format format, int samplingCount, ReferenceObject* owner)
 {
 	type_ = TextureType::Depth;
 	textureSize = size;
@@ -166,12 +173,20 @@ bool TextureVulkan::InitializeAsDepthStencil(vk::Device device,
 	SafeAddRef(owner_);
 	device_ = device;
 
+	samplingCount_ = samplingCount;
+
 	// check a format whether specified format is supported
-	vk::Format depthFormat = vk::Format::eD32SfloatS8Uint;
+	vk::Format depthFormat = format;
+	format_ = VulkanHelper::VkFormatToTextureFormat(static_cast<VkFormat>(format));
+
 	vk::FormatProperties formatProps = physicalDevice.getFormatProperties(depthFormat);
 	assert(formatProps.optimalTilingFeatures & vk::FormatFeatureFlagBits::eDepthStencilAttachment);
 
-	vk::ImageAspectFlags aspect = vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil;
+	vk::ImageAspectFlags aspect = vk::ImageAspectFlagBits::eDepth;
+	if (HasStencil(format_))
+	{
+		aspect = aspect | vk::ImageAspectFlagBits::eStencil;
+	}
 
 	// create an image
 	vk::ImageCreateInfo imageCreateInfo;
@@ -180,7 +195,8 @@ bool TextureVulkan::InitializeAsDepthStencil(vk::Device device,
 	imageCreateInfo.format = depthFormat;
 	imageCreateInfo.mipLevels = 1;
 	imageCreateInfo.arrayLayers = 1;
-	imageCreateInfo.usage = vk::ImageUsageFlagBits::eDepthStencilAttachment;
+	imageCreateInfo.samples = (vk::SampleCountFlagBits)samplingCount_;
+	imageCreateInfo.usage = vk::ImageUsageFlagBits::eDepthStencilAttachment /* | vk::ImageUsageFlagBits::eSampled*/;
 	image_ = device.createImage(imageCreateInfo);
 
 	// allocate memory
@@ -216,6 +232,7 @@ bool TextureVulkan::InitializeFromExternal(TextureType type, VkImage image, VkIm
 	vkTextureFormat_ = vk::Format(format);
 	textureSize = size;
 	isExternalResource_ = true;
+	format_ = VulkanHelper::VkFormatToTextureFormat(static_cast<VkFormat>(vkTextureFormat_));
 
 	if (type_ == TextureType::Depth)
 	{
@@ -286,7 +303,7 @@ void TextureVulkan::Unlock()
 	copySubmitInfos[0].commandBufferCount = 1;
 	copySubmitInfos[0].pCommandBuffers = &copyCommandBuffer;
 
-	graphics_->GetQueue().submit(copySubmitInfos.size(), copySubmitInfos.data(), vk::Fence());
+	graphics_->GetQueue().submit(static_cast<uint32_t>(copySubmitInfos.size()), copySubmitInfos.data(), vk::Fence());
 	graphics_->GetQueue().waitIdle();
 
 	graphics_->GetDevice().freeCommandBuffers(graphics_->GetCommandPool(), copyCommandBuffer);

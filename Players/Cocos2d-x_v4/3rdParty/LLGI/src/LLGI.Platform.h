@@ -35,6 +35,11 @@ public:
 	virtual Graphics* CreateGraphics();
 	virtual DeviceType GetDeviceType() const { return DeviceType::Default; }
 
+	/*
+	 @brief change this window size
+	 @note
+	 the argument is ignored on Mac. This function notify that an window size is changed.
+	**/
 	virtual void SetWindowSize(const Vec2I& windowSize);
 
 	bool GetWaitVSync() const { return waitVSync_; }

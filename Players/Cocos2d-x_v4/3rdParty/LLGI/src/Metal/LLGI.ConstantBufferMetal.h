@@ -12,16 +12,16 @@ class ConstantBufferMetal : public ConstantBuffer
 {
 private:
 	BufferMetal* buffer_ = nullptr;
-    int32_t size_ = 0;
-    int32_t offset_ = 0;
-    
+	int32_t size_ = 0;
+	int32_t offset_ = 0;
+
 public:
 	ConstantBufferMetal();
 	virtual ~ConstantBufferMetal();
 
 	bool Initialize(Graphics* graphics, int32_t size);
 
-    bool InitializeAsShortTime(BufferMetal* buffer, int32_t offset, int32_t size);
+	bool InitializeAsShortTime(BufferMetal* buffer, int32_t offset, int32_t size);
 
 	void* Lock() override;
 
@@ -31,9 +31,9 @@ public:
 
 	int32_t GetSize() override;
 
-    Buffer_Impl* GetImpl() const;
-    
-    int32_t GetOffset() const { return offset_; }
+	Buffer_Impl* GetImpl() const;
+
+	int32_t GetOffset() const { return offset_; }
 };
 
 } // namespace LLGI

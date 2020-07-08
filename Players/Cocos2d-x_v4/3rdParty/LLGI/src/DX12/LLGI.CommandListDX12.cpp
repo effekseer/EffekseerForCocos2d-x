@@ -106,6 +106,8 @@ void CommandListDX12::End()
 	assert(currentCommandList_ != nullptr);
 	currentCommandList_->Close();
 	currentCommandList_ = nullptr;
+
+	CommandList::End();
 }
 
 bool CommandListDX12::BeginWithPlatform(void* platformContextPtr)
@@ -181,11 +183,34 @@ void CommandListDX12::BeginRenderPass(RenderPass* renderPass)
 
 void CommandListDX12::EndRenderPass()
 {
+	// Resolve MSAA
+	if (renderPass_ != nullptr && renderPass_->GetResolvedRenderTexture() != nullptr)
+	{
+		auto src = static_cast<TextureDX12*>(renderPass_->GetRenderTexture(0));
+		auto dst = static_cast<TextureDX12*>(renderPass_->GetResolvedRenderTexture());
+
+		src->ResourceBarrior(currentCommandList_, D3D12_RESOURCE_STATE_RESOLVE_SOURCE);
+		dst->ResourceBarrior(currentCommandList_, D3D12_RESOURCE_STATE_RESOLVE_DEST);
+
+		currentCommandList_->ResolveSubresource(dst->Get(), 0, src->Get(), 0, dst->GetDXGIFormat());
+	}
+
+	if (renderPass_ != nullptr && renderPass_->GetResolvedDepthTexture() != nullptr)
+	{
+		auto src = static_cast<TextureDX12*>(renderPass_->GetDepthTexture());
+		auto dst = static_cast<TextureDX12*>(renderPass_->GetResolvedDepthTexture());
+
+		src->ResourceBarrior(currentCommandList_, D3D12_RESOURCE_STATE_RESOLVE_SOURCE);
+		dst->ResourceBarrior(currentCommandList_, D3D12_RESOURCE_STATE_RESOLVE_DEST);
+
+		currentCommandList_->ResolveSubresource(dst->Get(), 0, src->Get(), 0, DirectX12::GetShaderResourceViewFormat(dst->GetDXGIFormat()));
+	}
+
 	renderPass_.reset();
 	CommandList::EndRenderPass();
 }
 
-void CommandListDX12::Draw(int32_t pritimiveCount)
+void CommandListDX12::Draw(int32_t primitiveCount, int32_t instanceCount)
 {
 	assert(currentCommandList_ != nullptr);
 
@@ -235,6 +260,7 @@ void CommandListDX12::Draw(int32_t pritimiveCount)
 		currentCommandList_->SetGraphicsRootSignature(pip->GetRootSignature());
 		auto p = pip->GetPipelineState();
 		currentCommandList_->SetPipelineState(p);
+		currentCommandList_->OMSetStencilRef(0xff);
 	}
 
 	// count descriptor
@@ -343,8 +369,17 @@ void CommandListDX12::Draw(int32_t pritimiveCount)
 					// SRV
 					{
 						D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-						srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-						srvDesc.Format = texture->GetDXGIFormat();
+
+						if (texture->GetSamplingCount() > 1)
+						{
+							srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DMS;
+						}
+						else
+						{
+							srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+						}
+
+						srvDesc.Format = DirectX12::GetShaderResourceViewFormat(texture->GetDXGIFormat());
 						srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 						srvDesc.Texture2D.MipLevels = 1;
 						srvDesc.Texture2D.MostDetailedMip = 0;
@@ -393,12 +428,36 @@ void CommandListDX12::Draw(int32_t pritimiveCount)
 	}
 
 	// setup a topology (triangle)
-	currentCommandList_->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	int indexPerPrim = 0;
+	D3D_PRIMITIVE_TOPOLOGY topology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+
+	if (pip_->Topology == TopologyType::Triangle)
+	{
+		indexPerPrim = 3;
+		topology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+	}
+	else if (pip_->Topology == TopologyType::Line)
+	{
+		indexPerPrim = 2;
+		topology = D3D_PRIMITIVE_TOPOLOGY_LINELIST;
+	}
+	else if (pip_->Topology == TopologyType::Point)
+	{
+		indexPerPrim = 1;
+		topology = D3D_PRIMITIVE_TOPOLOGY_POINTLIST;
+	}
+	else
+	{
+		assert(0);
+	}
+
+	currentCommandList_->IASetPrimitiveTopology(topology);
 
 	// draw polygon
-	currentCommandList_->DrawIndexedInstanced(pritimiveCount * 3 /*triangle*/, 1, 0, 0, 0);
+	currentCommandList_->DrawIndexedInstanced(primitiveCount * indexPerPrim, instanceCount, 0, 0, 0);
 
-	CommandList::Draw(pritimiveCount);
+	CommandList::Draw(primitiveCount, instanceCount);
 }
 
 void CommandListDX12::CopyTexture(Texture* src, Texture* dst)
@@ -465,7 +524,7 @@ void CommandListDX12::ClearDepth()
 	auto handle = rt->GetHandleDSV();
 	for (int i = 0; i < rt->GetCount(); i++)
 	{
-		currentCommandList_->ClearDepthStencilView(handle[i], D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+		currentCommandList_->ClearDepthStencilView(handle[i], D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 	}
 }
 

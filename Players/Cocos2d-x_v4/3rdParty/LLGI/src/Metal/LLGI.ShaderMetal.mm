@@ -47,9 +47,9 @@ bool Shader_Impl::Initialize(Graphics_Impl* graphics, const void* data, int size
 		id<MTLLibrary> lib = [device newLibraryWithSource:code_ options:NULL error:&libraryError];
 		if (libraryError
 #ifdef SUPPRESS_COMPILE_WARNINGS
-            && [libraryError.localizedDescription rangeOfString:@"succeeded"].location == NSNotFound
+			&& [libraryError.localizedDescription rangeOfString:@"succeeded"].location == NSNotFound
 #endif
-            )
+		)
 		{
 			std::cout << libraryError.localizedDescription.UTF8String << std::endl;
 			return false;
@@ -64,9 +64,9 @@ bool Shader_Impl::Initialize(Graphics_Impl* graphics, const void* data, int size
 
 		if (libraryError
 #ifdef SUPPRESS_COMPILE_WARNINGS
-            && [libraryError.localizedDescription rangeOfString:@"succeeded"].location == NSNotFound
+			&& [libraryError.localizedDescription rangeOfString:@"succeeded"].location == NSNotFound
 #endif
-            )
+		)
 		{
 			std::cout << libraryError.localizedDescription.UTF8String << std::endl;
 			return false;

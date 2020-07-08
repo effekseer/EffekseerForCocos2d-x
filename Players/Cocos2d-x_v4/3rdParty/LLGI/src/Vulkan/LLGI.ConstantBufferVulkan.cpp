@@ -45,10 +45,10 @@ bool ConstantBufferVulkan::InitializeAsShortTime(GraphicsVulkan* graphics, Singl
 		buffer_ = std::unique_ptr<Buffer>(new Buffer(graphics_.get()));
 	}
 
-	auto size_ = GetAlignedSize(size, 256);
+	auto alignedSize = static_cast<int32_t>(GetAlignedSize(size, 256));
 	VkBuffer buffer;
 	VkDeviceMemory deviceMemory;
-	if (memoryPool->GetConstantBuffer(size_, &buffer, &deviceMemory, &offset_))
+	if (memoryPool->GetConstantBuffer(alignedSize, &buffer, &deviceMemory, &offset_))
 	{
 		buffer_->Attach(vk::Buffer(buffer), vk::DeviceMemory(deviceMemory), true);
 		memSize_ = size;

@@ -20,7 +20,7 @@ private:
 
 public:
 	bool Initialize(GraphicsVulkan* graphics, int32_t size);
-    bool InitializeAsShortTime(SingleFrameMemoryPoolVulkan* memoryPool, int32_t size);
+	bool InitializeAsShortTime(SingleFrameMemoryPoolVulkan* memoryPool, int32_t size);
 
 	VertexBufferVulkan();
 	virtual ~VertexBufferVulkan();

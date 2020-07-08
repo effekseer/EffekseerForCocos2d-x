@@ -29,7 +29,7 @@ public:
 	void* Lock(int32_t offset, int32_t size) override;
 	void Unlock() override;
 	int32_t GetSize() override;
-
+	int32_t GetOffset() const { return offset_; }
 	vk::Buffer GetBuffer() { return buffer_->buffer(); }
 };
 

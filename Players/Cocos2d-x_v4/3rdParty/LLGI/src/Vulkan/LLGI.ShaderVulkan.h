@@ -24,5 +24,4 @@ public:
 	vk::ShaderModule GetShaderModule() const;
 };
 
-
 } // namespace LLGI

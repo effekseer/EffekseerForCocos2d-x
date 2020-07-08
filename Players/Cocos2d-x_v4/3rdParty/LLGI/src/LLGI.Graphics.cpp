@@ -126,10 +126,48 @@ bool RenderPass::assignDepthTexture(Texture* depthTexture)
 	return true;
 }
 
-bool RenderPass::getSize(Vec2I& size, const Texture** textures, int32_t textureCount, Texture* depthTexture) const
+bool RenderPass::assignResolvedRenderTexture(Texture* texture)
+{
+	if (resolvedRenderTexture_ != nullptr && resolvedRenderTexture_->GetType() != TextureType::Render)
+	{
+		Log(LogType::Error, "RenderPass : Invalid ResolvedTexture.");
+		return false;
+	}
+
+	SafeAddRef(texture);
+	SafeRelease(resolvedRenderTexture_);
+	resolvedRenderTexture_ = texture;
+
+	return true;
+}
+
+bool RenderPass::assignResolvedDepthTexture(Texture* texture)
+{
+	if (resolvedDepthTexture_ != nullptr && resolvedDepthTexture_->GetType() != TextureType::Depth)
+	{
+		Log(LogType::Error, "RenderPass : Invalid ResolvedTexture.");
+		return false;
+	}
+
+	SafeAddRef(texture);
+	SafeRelease(resolvedDepthTexture_);
+	resolvedDepthTexture_ = texture;
+
+	return true;
+}
+
+bool RenderPass::getSize(Vec2I& size,
+						 const Texture** textures,
+						 int32_t textureCount,
+						 Texture* depthTexture,
+						 Texture* resolvedRenderTexture,
+						 Texture* resolvedDepthTexture) const
 {
 	if (textureCount == 0)
+	{
+		Log(LogType::Error, "RenderPass : Invalid Count.");
 		return false;
+	}
 
 	size = textures[0]->GetSizeAs2D();
 
@@ -137,25 +175,89 @@ bool RenderPass::getSize(Vec2I& size, const Texture** textures, int32_t textureC
 	{
 		auto temp = textures[i]->GetSizeAs2D();
 		if (size.X != temp.X)
-			return false;
+			goto FAIL;
 		if (size.Y != temp.Y)
-			return false;
+			goto FAIL;
 	}
 
 	if (depthTexture != nullptr)
 	{
 		if (size.X != depthTexture->GetSizeAs2D().X)
-			return false;
+			goto FAIL;
 		if (size.Y != depthTexture->GetSizeAs2D().Y)
+			goto FAIL;
+	}
+
+	if (resolvedRenderTexture != nullptr)
+	{
+		if (size.X != resolvedRenderTexture->GetSizeAs2D().X)
+			goto FAIL;
+		if (size.Y != resolvedRenderTexture->GetSizeAs2D().Y)
+			goto FAIL;
+	}
+
+	if (resolvedDepthTexture != nullptr)
+	{
+		if (size.X != resolvedDepthTexture->GetSizeAs2D().X)
+			goto FAIL;
+		if (size.Y != resolvedDepthTexture->GetSizeAs2D().Y)
+			goto FAIL;
+	}
+
+	return true;
+
+FAIL:;
+	Log(LogType::Error, "RenderPass : Invalid Size.");
+	return false;
+}
+
+bool RenderPass::sanitize()
+{
+
+	if (resolvedRenderTexture_ != nullptr)
+	{
+		if (renderTextures_.size() != 1)
+		{
+			Log(LogType::Error, "RenderPass : Invalid Size.");
 			return false;
+		}
+
+		if (renderTextures_.at(0)->GetFormat() != resolvedRenderTexture_->GetFormat())
+		{
+			Log(LogType::Error, "RenderPass : Formats are not same between Render and Resolved.");
+			return false;
+		}
+	}
+
+	if (resolvedDepthTexture_ != nullptr)
+	{
+		if (depthTexture_ == nullptr)
+		{
+			Log(LogType::Error, "RenderPass : Require a depth texture.");
+			return false;
+		}
+
+		if (depthTexture_->GetFormat() != resolvedDepthTexture_->GetFormat())
+		{
+			Log(LogType::Error, "RenderPass : Formats are not same between Render and Resolved.");
+			return false;
+		}
+	}
+
+	if (depthTexture_ != nullptr && renderTextures_.at(0)->GetSamplingCount() != depthTexture_->GetSamplingCount())
+	{
+		Log(LogType::Error, "RenderPass : SamplingCount are not same.");
+		return false;
 	}
 
 	return true;
 }
 
-RenderPass::~RenderPass() 
+RenderPass::~RenderPass()
 {
-	SafeRelease(depthTexture_); 
+	SafeRelease(depthTexture_);
+	SafeRelease(resolvedRenderTexture_);
+	SafeRelease(resolvedDepthTexture_);
 
 	for (size_t i = 0; i < renderTextures_.size(); i++)
 	{
@@ -169,9 +271,40 @@ void RenderPass::SetIsDepthCleared(bool isDepthCleared) { isDepthCleared_ = isDe
 
 void RenderPass::SetClearColor(const Color8& color) { color_ = color; }
 
-bool RenderPass::GetIsSwapchainScreen() const
-{ 
-	return GetRenderTexture(0)->GetType() == TextureType::Screen;
+bool RenderPass::GetIsSwapchainScreen() const { return GetRenderTexture(0)->GetType() == TextureType::Screen; }
+
+RenderPassPipelineStateKey RenderPass::GetKey() const
+{
+	RenderPassPipelineStateKey key;
+
+	key.IsPresent = GetIsSwapchainScreen();
+	key.IsColorCleared = GetIsColorCleared();
+	key.IsDepthCleared = GetIsDepthCleared();
+	key.RenderTargetFormats.resize(GetRenderTextureCount());
+	key.SamplingCount = renderTextures_.at(0)->GetSamplingCount();
+	key.HasResolvedRenderTarget = GetResolvedRenderTexture() != nullptr;
+	key.HasResolvedDepthTarget = GetResolvedDepthTexture() != nullptr;
+
+	for (size_t i = 0; i < key.RenderTargetFormats.size(); i++)
+	{
+		key.RenderTargetFormats.at(i) = GetRenderTexture(static_cast<int32_t>(i))->GetFormat();
+	}
+
+	if (GetHasDepthTexture())
+	{
+		key.DepthFormat = GetDepthTexture()->GetFormat();
+	}
+	else
+	{
+		key.DepthFormat = TextureFormatType::Unknown;
+	}
+
+	if (key.RenderTargetFormats.at(0) == TextureFormatType::Unknown)
+	{
+		printf("");
+	}
+
+	return key;
 }
 
 Graphics::~Graphics()

@@ -68,6 +68,8 @@ private:
 
 protected:
 	bool isInRenderPass_ = false;
+	bool isInBegin_ = false;
+
 	std::array<std::array<BindingTexture, NumTexture>, static_cast<int>(ShaderStageType::Max)> currentTextures;
 
 protected:
@@ -100,7 +102,7 @@ public:
 	virtual void EndWithPlatform();
 
 	virtual void SetScissor(int32_t x, int32_t y, int32_t width, int32_t height);
-	virtual void Draw(int32_t pritimiveCount);
+	virtual void Draw(int32_t primitiveCount, int32_t instanceCount = 1);
 	virtual void SetVertexBuffer(VertexBuffer* vertexBuffer, int32_t stride, int32_t offset);
 	virtual void SetIndexBuffer(IndexBuffer* indexBuffer, int32_t offset = 0);
 	virtual void SetPipelineState(PipelineState* pipelineState);
@@ -118,6 +120,12 @@ public:
 	*/
 	virtual void
 	SetTexture(Texture* texture, TextureWrapMode wrapMode, TextureMinMagFilter minmagFilter, int32_t unit, ShaderStageType shaderStage);
+
+	/**
+		@brief	reset textures and set null.
+	*/
+	virtual void ResetTextures();
+
 	virtual void BeginRenderPass(RenderPass* renderPass);
 
 	/**
@@ -158,6 +166,8 @@ public:
 		@brief wait until this command is completed.
 	*/
 	virtual void WaitUntilCompleted();
+
+	bool GetIsInRenderPass() const;
 };
 
 } // namespace LLGI

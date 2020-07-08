@@ -72,7 +72,7 @@ private:
 	vk::ColorSpaceKHR surfaceColorSpace;
 
 	//! depth buffer
-	//DepthStencilBuffer depthStencilBuffer;
+	// DepthStencilBuffer depthStencilBuffer;
 	TextureVulkan* depthStencilTexture_ = nullptr;
 
 	RenderPassPipelineStateCacheVulkan* renderPassPipelineStateCache_ = nullptr;
@@ -95,6 +95,10 @@ private:
 
 	bool CreateSwapChain(Vec2I windowSize, bool waitVSync);
 
+	bool CreateDepthBuffer(Vec2I windowSize);
+
+	void CreateRenderPass();
+
 	/*!
 		@brief	get swap buffer index
 		@param	semaphore	the signaling semaphore to be waited for other functions
@@ -108,7 +112,7 @@ private:
 	*/
 	vk::Result Present(vk::Semaphore semaphore);
 
-	//void SetImageBarrior(vk::CommandBuffer cmdbuffer,
+	// void SetImageBarrior(vk::CommandBuffer cmdbuffer,
 	//					vk::Image image,
 	//					vk::ImageLayout oldImageLayout,
 	//					vk::ImageLayout newImageLayout,
@@ -124,6 +128,8 @@ public:
 
 	bool NewFrame() override;
 	void Present() override;
+	void SetWindowSize(const Vec2I& windowSize) override;
+
 	Graphics* CreateGraphics() override;
 
 	RenderPass* GetCurrentScreen(const Color8& clearColor, bool isColorCleared, bool isDepthCleared) override;
