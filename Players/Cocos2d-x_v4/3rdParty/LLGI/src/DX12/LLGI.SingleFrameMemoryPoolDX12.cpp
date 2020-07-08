@@ -82,7 +82,6 @@ ConstantBuffer* SingleFrameMemoryPoolDX12::ReinitializeConstantBuffer(ConstantBu
 	return obj;
 }
 
-
 bool SingleFrameMemoryPoolDX12::GetConstantBuffer(int32_t size, ID3D12Resource*& resource, int32_t& offset)
 {
 	assert(currentSwap_ >= 0);
@@ -102,6 +101,5 @@ void SingleFrameMemoryPoolDX12::NewFrame()
 
 	assert(currentSwap_ == currentSwapBuffer_);
 }
-
 
 } // namespace LLGI

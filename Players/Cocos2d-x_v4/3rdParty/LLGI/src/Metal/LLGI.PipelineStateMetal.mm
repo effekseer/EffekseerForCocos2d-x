@@ -1,8 +1,8 @@
 #include "LLGI.PipelineStateMetal.h"
 #include "LLGI.GraphicsMetal.h"
 #include "LLGI.Metal_Impl.h"
-#include "LLGI.ShaderMetal.h"
 #include "LLGI.RenderPassMetal.h"
+#include "LLGI.ShaderMetal.h"
 
 #import <MetalKit/MetalKit.h>
 
@@ -32,7 +32,7 @@ PipelineState_Impl::~PipelineState_Impl()
 	}
 }
 
-void PipelineState_Impl::Compile(PipelineState* self, Graphics_Impl* graphics)
+bool PipelineState_Impl::Compile(PipelineState* self, Graphics_Impl* graphics)
 {
 	auto self_ = static_cast<PipelineStateMetal*>(self);
 	auto renderPassPipelineStateMetal_ = static_cast<RenderPassPipelineStateMetal*>(self_->GetRenderPassPipelineState());
@@ -53,33 +53,40 @@ void PipelineState_Impl::Compile(PipelineState* self, Graphics_Impl* graphics)
 			vertexDescriptor.attributes[i].bufferIndex = VertexBufferIndex;
 			vertexOffset += sizeof(float) * 3;
 		}
-
-        if (self_->VertexLayouts[i] == VertexLayoutFormat::R32G32B32A32_FLOAT)
-        {
-            vertexDescriptor.attributes[i].format = MTLVertexFormatFloat4;
-            vertexDescriptor.attributes[i].bufferIndex = VertexBufferIndex;
-            vertexOffset += sizeof(float) * 4;
-        }
-
-		if (self_->VertexLayouts[i] == VertexLayoutFormat::R32G32_FLOAT)
+		else if (self_->VertexLayouts[i] == VertexLayoutFormat::R32G32B32A32_FLOAT)
+		{
+			vertexDescriptor.attributes[i].format = MTLVertexFormatFloat4;
+			vertexDescriptor.attributes[i].bufferIndex = VertexBufferIndex;
+			vertexOffset += sizeof(float) * 4;
+		}
+		else if (self_->VertexLayouts[i] == VertexLayoutFormat::R32G32_FLOAT)
 		{
 			vertexDescriptor.attributes[i].format = MTLVertexFormatFloat2;
 			vertexDescriptor.attributes[i].bufferIndex = VertexBufferIndex;
 			vertexOffset += sizeof(float) * 2;
 		}
-
-		if (self_->VertexLayouts[i] == VertexLayoutFormat::R8G8B8A8_UINT)
+		else if (self_->VertexLayouts[i] == VertexLayoutFormat::R32_FLOAT)
+		{
+			vertexDescriptor.attributes[i].format = MTLVertexFormatFloat;
+			vertexDescriptor.attributes[i].bufferIndex = VertexBufferIndex;
+			vertexOffset += sizeof(float) * 1;
+		}
+		else if (self_->VertexLayouts[i] == VertexLayoutFormat::R8G8B8A8_UINT)
 		{
 			vertexDescriptor.attributes[i].format = MTLVertexFormatUChar4;
 			vertexDescriptor.attributes[i].bufferIndex = VertexBufferIndex;
 			vertexOffset += sizeof(float);
 		}
-
-		if (self_->VertexLayouts[i] == VertexLayoutFormat::R8G8B8A8_UNORM)
+		else if (self_->VertexLayouts[i] == VertexLayoutFormat::R8G8B8A8_UNORM)
 		{
 			vertexDescriptor.attributes[i].format = MTLVertexFormatUChar4Normalized;
 			vertexDescriptor.attributes[i].bufferIndex = VertexBufferIndex;
 			vertexOffset += sizeof(float);
+		}
+		else
+		{
+			Log(LogType::Error, "Unimplemented VertexLoayoutFormat");
+			return false;
 		}
 	}
 
@@ -119,28 +126,37 @@ void PipelineState_Impl::Compile(PipelineState* self, Graphics_Impl* graphics)
 	{
 		depthStencilDescriptor.depthCompareFunction = MTLCompareFunctionAlways;
 	}
-	
-	
+
 	if (renderPassPipelineStateMetal_->GetImpl()->depthStencilFormat != MTLPixelFormatInvalid)
 	{
-		if (self_->IsStencilTestEnabled)
+		if (renderPassPipelineStateMetal_->Key.DepthFormat == TextureFormatType::D24S8 ||
+			renderPassPipelineStateMetal_->Key.DepthFormat == TextureFormatType::D32S8)
 		{
-			depthStencilDescriptor.frontFaceStencil.depthFailureOperation = MTLStencilOperationKeep;
-			depthStencilDescriptor.frontFaceStencil.stencilFailureOperation = MTLStencilOperationKeep;
-			depthStencilDescriptor.frontFaceStencil.depthStencilPassOperation = MTLStencilOperationKeep;
-			depthStencilDescriptor.frontFaceStencil.stencilCompareFunction = MTLCompareFunctionEqual;
-			depthStencilDescriptor.frontFaceStencil.readMask = 0xFF;
-			depthStencilDescriptor.frontFaceStencil.writeMask = 0xFF;
-		}
-		else
-		{
-			// always write to stencil reference value
-			depthStencilDescriptor.frontFaceStencil.depthFailureOperation = MTLStencilOperationKeep;
-			depthStencilDescriptor.frontFaceStencil.stencilFailureOperation = MTLStencilOperationKeep;
-			depthStencilDescriptor.frontFaceStencil.depthStencilPassOperation = MTLStencilOperationReplace;
-			depthStencilDescriptor.frontFaceStencil.stencilCompareFunction = MTLCompareFunctionAlways;
-			depthStencilDescriptor.frontFaceStencil.readMask = 0xFF;
-			depthStencilDescriptor.frontFaceStencil.writeMask = 0xFF;
+			MTLStencilDescriptor* stencilDescriptor = [[MTLStencilDescriptor alloc] init];
+
+			if (self_->IsStencilTestEnabled)
+			{
+				stencilDescriptor.depthFailureOperation = MTLStencilOperationKeep;
+				stencilDescriptor.stencilFailureOperation = MTLStencilOperationKeep;
+				stencilDescriptor.depthStencilPassOperation = MTLStencilOperationKeep;
+				stencilDescriptor.stencilCompareFunction = MTLCompareFunctionEqual;
+				stencilDescriptor.readMask = 0xFF;
+				stencilDescriptor.writeMask = 0xFF;
+			}
+			else
+			{
+				// always write to stencil reference value
+				stencilDescriptor.depthFailureOperation = MTLStencilOperationKeep;
+				stencilDescriptor.stencilFailureOperation = MTLStencilOperationKeep;
+				stencilDescriptor.depthStencilPassOperation = MTLStencilOperationReplace;
+				stencilDescriptor.stencilCompareFunction = MTLCompareFunctionAlways;
+				stencilDescriptor.readMask = 0xFF;
+				stencilDescriptor.writeMask = 0xFF;
+			}
+
+			depthStencilDescriptor.frontFaceStencil = stencilDescriptor;
+			depthStencilDescriptor.backFaceStencil = stencilDescriptor;
+			[stencilDescriptor release];
 		}
 	}
 
@@ -156,9 +172,14 @@ void PipelineState_Impl::Compile(PipelineState* self, Graphics_Impl* graphics)
 	{
 		pipelineStateDescriptor.inputPrimitiveTopology = MTLPrimitiveTopologyClassLine;
 	}
+	else if (self_->Topology == TopologyType::Point)
+	{
+		pipelineStateDescriptor.inputPrimitiveTopology = MTLPrimitiveTopologyClassPoint;
+	}
 	else
 	{
-		assert(0);
+		Log(LogType::Error, "Unimplemented TopologyType");
+		return false;
 	}
 
 	// clulling (on commandlist)
@@ -184,11 +205,11 @@ void PipelineState_Impl::Compile(PipelineState* self, Graphics_Impl* graphics)
 		blendFuncs[static_cast<int>(BlendFuncType::SrcColor)] = MTLBlendFactorSourceColor;
 		blendFuncs[static_cast<int>(BlendFuncType::OneMinusSrcColor)] = MTLBlendFactorOneMinusSourceColor;
 		blendFuncs[static_cast<int>(BlendFuncType::SrcAlpha)] = MTLBlendFactorSourceAlpha;
-        blendFuncs[static_cast<int>(BlendFuncType::OneMinusSrcAlpha)] = MTLBlendFactorOneMinusSourceAlpha;
+		blendFuncs[static_cast<int>(BlendFuncType::OneMinusSrcAlpha)] = MTLBlendFactorOneMinusSourceAlpha;
 		blendFuncs[static_cast<int>(BlendFuncType::DstColor)] = MTLBlendFactorDestinationColor;
 		blendFuncs[static_cast<int>(BlendFuncType::OneMinusDstColor)] = MTLBlendFactorOneMinusDestinationColor;
 		blendFuncs[static_cast<int>(BlendFuncType::DstAlpha)] = MTLBlendFactorDestinationAlpha;
-        blendFuncs[static_cast<int>(BlendFuncType::OneMinusDstAlpha)] = MTLBlendFactorOneMinusDestinationAlpha;
+		blendFuncs[static_cast<int>(BlendFuncType::OneMinusDstAlpha)] = MTLBlendFactorOneMinusDestinationAlpha;
 
 		colorAttachment.sourceRGBBlendFactor = blendFuncs[static_cast<int>(self_->BlendSrcFunc)];
 		colorAttachment.destinationRGBBlendFactor = blendFuncs[static_cast<int>(self_->BlendDstFunc)];
@@ -202,21 +223,29 @@ void PipelineState_Impl::Compile(PipelineState* self, Graphics_Impl* graphics)
 		colorAttachment.blendingEnabled = false;
 	}
 
-	[pipelineStateDescriptor.colorAttachments objectAtIndexedSubscript:0].pixelFormat =
-		renderPassPipelineStateMetal_->GetImpl()->pixelFormat;
+	for (size_t i = 0; i < renderPassPipelineStateMetal_->GetImpl()->pixelFormats.size(); i++)
+	{
+		[pipelineStateDescriptor.colorAttachments objectAtIndexedSubscript:i].pixelFormat =
+			renderPassPipelineStateMetal_->GetImpl()->pixelFormats.at(i);
+	}
+
 	if (renderPassPipelineStateMetal_->GetImpl()->depthStencilFormat != MTLPixelFormatInvalid)
 	{
-		pipelineStateDescriptor.depthAttachmentPixelFormat = renderPassPipelineStateMetal_->GetImpl()->depthStencilFormat ;
-		pipelineStateDescriptor.stencilAttachmentPixelFormat = renderPassPipelineStateMetal_->GetImpl()->depthStencilFormat ;
+		pipelineStateDescriptor.depthAttachmentPixelFormat = renderPassPipelineStateMetal_->GetImpl()->depthStencilFormat;
+
+		if (renderPassPipelineStateMetal_->Key.DepthFormat == TextureFormatType::D24S8 ||
+			renderPassPipelineStateMetal_->Key.DepthFormat == TextureFormatType::D32S8)
+		{
+			pipelineStateDescriptor.stencilAttachmentPixelFormat = renderPassPipelineStateMetal_->GetImpl()->depthStencilFormat;
+		}
 	}
-	
-	if (self_->IsMSAA)
-	{
-		pipelineStateDescriptor.sampleCount = graphics->maxMultiSamplingCount;
-	}
+
+	pipelineStateDescriptor.sampleCount = renderPassPipelineStateMetal_->Key.SamplingCount;
 
 	NSError* pipelineError = nil;
 	pipelineState = [graphics->device newRenderPipelineStateWithDescriptor:pipelineStateDescriptor error:&pipelineError];
+
+	return true;
 }
 
 PipelineStateMetal::PipelineStateMetal()
@@ -253,6 +282,6 @@ void PipelineStateMetal::SetShader(ShaderStageType stage, Shader* shader)
 	shaders[static_cast<int>(stage)] = shader;
 }
 
-void PipelineStateMetal::Compile() { impl->Compile(this, graphics_->GetImpl()); }
+bool PipelineStateMetal::Compile() { return impl->Compile(this, graphics_->GetImpl()); }
 
 }

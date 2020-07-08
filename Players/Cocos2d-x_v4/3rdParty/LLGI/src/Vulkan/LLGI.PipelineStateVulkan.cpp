@@ -60,7 +60,7 @@ void PipelineStateVulkan::SetShader(ShaderStageType stage, Shader* shader)
 	shaders[static_cast<int>(stage)] = shader;
 }
 
-void PipelineStateVulkan::Compile()
+bool PipelineStateVulkan::Compile()
 {
 	vk::GraphicsPipelineCreateInfo graphicsPipelineInfo;
 
@@ -87,7 +87,7 @@ void PipelineStateVulkan::Compile()
 	}
 
 	graphicsPipelineInfo.pStages = shaderStageInfos.data();
-	graphicsPipelineInfo.stageCount = shaderStageInfos.size();
+	graphicsPipelineInfo.stageCount = static_cast<int32_t>(shaderStageInfos.size());
 
 	// setup layouts
 	std::vector<vk::VertexInputBindingDescription> bindDescs;
@@ -107,23 +107,30 @@ void PipelineStateVulkan::Compile()
 			attribDesc.format = vk::Format::eR32G32B32Sfloat;
 			vertexOffset += sizeof(float) * 3;
 		}
-
-		if (VertexLayouts[i] == VertexLayoutFormat::R32G32_FLOAT)
+		else if (VertexLayouts[i] == VertexLayoutFormat::R32_FLOAT)
+		{
+			attribDesc.format = vk::Format::eR32Sfloat;
+			vertexOffset += sizeof(float) * 1;
+		}
+		else if (VertexLayouts[i] == VertexLayoutFormat::R32G32_FLOAT)
 		{
 			attribDesc.format = vk::Format::eR32G32Sfloat;
 			vertexOffset += sizeof(float) * 2;
 		}
-
-		if (VertexLayouts[i] == VertexLayoutFormat::R8G8B8A8_UINT)
+		else if (VertexLayouts[i] == VertexLayoutFormat::R8G8B8A8_UINT)
 		{
 			attribDesc.format = vk::Format::eR8G8B8A8Uint;
 			vertexOffset += sizeof(float);
 		}
-
-		if (VertexLayouts[i] == VertexLayoutFormat::R8G8B8A8_UNORM)
+		else if (VertexLayouts[i] == VertexLayoutFormat::R8G8B8A8_UNORM)
 		{
 			attribDesc.format = vk::Format::eR8G8B8A8Unorm;
 			vertexOffset += sizeof(float);
+		}
+		else
+		{
+			Log(LogType::Error, "Unimplemented VertexLoayoutFormat");
+			return false;
 		}
 
 		attribDescs.push_back(attribDesc);
@@ -138,8 +145,8 @@ void PipelineStateVulkan::Compile()
 	vk::PipelineVertexInputStateCreateInfo inputStateInfo;
 	inputStateInfo.pVertexBindingDescriptions = bindDescs.data();
 	inputStateInfo.pVertexAttributeDescriptions = attribDescs.data();
-	inputStateInfo.vertexBindingDescriptionCount = bindDescs.size();
-	inputStateInfo.vertexAttributeDescriptionCount = attribDescs.size();
+	inputStateInfo.vertexBindingDescriptionCount = static_cast<int32_t>(bindDescs.size());
+	inputStateInfo.vertexAttributeDescriptionCount = static_cast<int32_t>(attribDescs.size());
 	graphicsPipelineInfo.pVertexInputState = &inputStateInfo;
 
 	// setup a topology
@@ -152,10 +159,16 @@ void PipelineStateVulkan::Compile()
 	{
 		inputAssemblyStateInfo.topology = vk::PrimitiveTopology::eLineList;
 	}
+	else if (Topology == TopologyType::Point)
+	{
+		inputAssemblyStateInfo.topology = vk::PrimitiveTopology::ePointList;
+	}
 	else
 	{
-		assert(0);
+		Log(LogType::Error, "Unimplemented TopologyType");
+		return false;
 	}
+
 	inputAssemblyStateInfo.primitiveRestartEnable = false;
 
 	graphicsPipelineInfo.pInputAssemblyState = &inputAssemblyStateInfo;
@@ -209,14 +222,18 @@ void PipelineStateVulkan::Compile()
 	rasterizationState.depthBiasConstantFactor = 0.0f;
 	rasterizationState.depthBiasClamp = 0.0f;
 	rasterizationState.depthBiasSlopeFactor = 0.0f;
-    rasterizationState.lineWidth = 1.0f;    // disable lineWidth. (Must not be zero)
+	rasterizationState.lineWidth = 1.0f; // disable lineWidth. (Must not be zero)
 
 	graphicsPipelineInfo.pRasterizationState = &rasterizationState;
 
+	assert(renderPassPipelineState_ != nullptr);
+	auto renderPassPipelineState = static_cast<RenderPassPipelineStateVulkan*>(renderPassPipelineState_.get());
+	auto renderPass = renderPassPipelineState->GetRenderPass();
+
 	// setup a multisampling
 	vk::PipelineMultisampleStateCreateInfo multisampleStateInfo;
-	multisampleStateInfo.sampleShadingEnable = false;
-	multisampleStateInfo.rasterizationSamples = vk::SampleCountFlagBits::e1;
+	multisampleStateInfo.sampleShadingEnable = renderPassPipelineState->Key.SamplingCount > 1;
+	multisampleStateInfo.rasterizationSamples = (vk::SampleCountFlagBits)renderPassPipelineState->Key.SamplingCount;
 	multisampleStateInfo.minSampleShading = 1.0f;
 	multisampleStateInfo.pSampleMask = nullptr;
 	multisampleStateInfo.alphaToCoverageEnable = false;
@@ -227,9 +244,10 @@ void PipelineStateVulkan::Compile()
 	// setup a depthstencil
 	vk::PipelineDepthStencilStateCreateInfo depthStencilInfo;
 
-	depthStencilInfo.depthTestEnable = IsDepthTestEnabled;
+	// DepthTest flag must be enabled because DepthWrite and Stencil are depended on DepthTestFlag
+	depthStencilInfo.depthTestEnable = true;
+
 	depthStencilInfo.depthWriteEnable = IsDepthWriteEnabled;
-	depthStencilInfo.stencilTestEnable = IsStencilTestEnabled;
 
 	std::array<vk::CompareOp, 10> depthCompareOps;
 	depthCompareOps[static_cast<int>(DepthFuncType::Never)] = vk::CompareOp::eNever;
@@ -243,53 +261,95 @@ void PipelineStateVulkan::Compile()
 
 	depthStencilInfo.depthCompareOp = depthCompareOps[static_cast<int>(DepthFunc)];
 
-	graphicsPipelineInfo.pDepthStencilState = &depthStencilInfo;
-
-	// blending
-	vk::PipelineColorBlendAttachmentState blendInfo;
-	blendInfo.colorWriteMask =
-		vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
-
-	if (IsBlendEnabled)
+	if (!IsDepthTestEnabled)
 	{
-		blendInfo.blendEnable = true;
+		depthStencilInfo.depthCompareOp = vk::CompareOp::eAlways;
+	}
 
-		std::array<vk::BlendOp, 10> blendOps;
-		blendOps[static_cast<int>(BlendEquationType::Add)] = vk::BlendOp::eAdd;
-		blendOps[static_cast<int>(BlendEquationType::Sub)] = vk::BlendOp::eSubtract;
-		blendOps[static_cast<int>(BlendEquationType::ReverseSub)] = vk::BlendOp::eReverseSubtract;
-		blendOps[static_cast<int>(BlendEquationType::Min)] = vk::BlendOp::eMin;
-		blendOps[static_cast<int>(BlendEquationType::Max)] = vk::BlendOp::eMax;
+	vk::StencilOpState stencil;
+	depthStencilInfo.stencilTestEnable = true;
 
-		std::array<vk::BlendFactor, 20> blendFuncs;
-		blendFuncs[static_cast<int>(BlendFuncType::Zero)] = vk::BlendFactor::eZero;
-		blendFuncs[static_cast<int>(BlendFuncType::One)] = vk::BlendFactor::eOne;
-		blendFuncs[static_cast<int>(BlendFuncType::SrcColor)] = vk::BlendFactor::eSrcColor;
-		blendFuncs[static_cast<int>(BlendFuncType::OneMinusSrcColor)] = vk::BlendFactor::eOneMinusSrcColor;
-		blendFuncs[static_cast<int>(BlendFuncType::SrcAlpha)] = vk::BlendFactor::eSrcAlpha;
-		blendFuncs[static_cast<int>(BlendFuncType::OneMinusSrcAlpha)] = vk::BlendFactor::eSrcAlpha;
-		blendFuncs[static_cast<int>(BlendFuncType::DstColor)] = vk::BlendFactor::eDstColor;
-		blendFuncs[static_cast<int>(BlendFuncType::OneMinusDstColor)] = vk::BlendFactor::eOneMinusDstColor;
-		blendFuncs[static_cast<int>(BlendFuncType::DstAlpha)] = vk::BlendFactor::eDstAlpha;
-		blendFuncs[static_cast<int>(BlendFuncType::OneMinusDstAlpha)] = vk::BlendFactor::eDstAlpha;
-
-		blendInfo.srcColorBlendFactor = blendFuncs[static_cast<int>(BlendSrcFunc)];
-		blendInfo.dstColorBlendFactor = blendFuncs[static_cast<int>(BlendDstFunc)];
-		blendInfo.srcAlphaBlendFactor = blendFuncs[static_cast<int>(BlendSrcFuncAlpha)];
-		blendInfo.dstAlphaBlendFactor = blendFuncs[static_cast<int>(BlendDstFuncAlpha)];
-		blendInfo.colorBlendOp = blendOps[static_cast<int>(BlendEquationRGB)];
-		blendInfo.alphaBlendOp = blendOps[static_cast<int>(BlendEquationAlpha)];
+	if (IsStencilTestEnabled)
+	{
+		stencil.depthFailOp = vk::StencilOp::eKeep;
+		stencil.failOp = vk::StencilOp::eKeep;
+		stencil.passOp = vk::StencilOp::eKeep;
+		stencil.compareOp = vk::CompareOp::eEqual;
+		stencil.writeMask = 0xff;
+		stencil.compareMask = 0xff;
+		stencil.reference = 0xff;
 	}
 	else
 	{
-		blendInfo.blendEnable = false;
+		stencil.depthFailOp = vk::StencilOp::eKeep;
+		stencil.failOp = vk::StencilOp::eKeep;
+		stencil.passOp = vk::StencilOp::eReplace;
+		stencil.compareOp = vk::CompareOp::eAlways;
+		stencil.writeMask = 0xff;
+		stencil.compareMask = 0xff;
+		stencil.reference = 0xff;
+	}
+
+	depthStencilInfo.front = stencil;
+	depthStencilInfo.back = stencil;
+
+	depthStencilInfo.minDepthBounds = 0.0f;
+	depthStencilInfo.maxDepthBounds = 1.0f;
+	depthStencilInfo.depthBoundsTestEnable = false;
+
+	graphicsPipelineInfo.pDepthStencilState = &depthStencilInfo;
+
+	// blending
+	std::array<vk::PipelineColorBlendAttachmentState, RenderTargetMax> blendInfos;
+
+	for (int32_t i = 0; i < renderPassPipelineState->RenderTargetCount; i++)
+	{
+		auto& blendInfo = blendInfos[i];
+
+		blendInfo.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB |
+								   vk::ColorComponentFlagBits::eA;
+
+		if (IsBlendEnabled)
+		{
+			blendInfo.blendEnable = true;
+
+			std::array<vk::BlendOp, 10> blendOps;
+			blendOps[static_cast<int>(BlendEquationType::Add)] = vk::BlendOp::eAdd;
+			blendOps[static_cast<int>(BlendEquationType::Sub)] = vk::BlendOp::eSubtract;
+			blendOps[static_cast<int>(BlendEquationType::ReverseSub)] = vk::BlendOp::eReverseSubtract;
+			blendOps[static_cast<int>(BlendEquationType::Min)] = vk::BlendOp::eMin;
+			blendOps[static_cast<int>(BlendEquationType::Max)] = vk::BlendOp::eMax;
+
+			std::array<vk::BlendFactor, 20> blendFuncs;
+			blendFuncs[static_cast<int>(BlendFuncType::Zero)] = vk::BlendFactor::eZero;
+			blendFuncs[static_cast<int>(BlendFuncType::One)] = vk::BlendFactor::eOne;
+			blendFuncs[static_cast<int>(BlendFuncType::SrcColor)] = vk::BlendFactor::eSrcColor;
+			blendFuncs[static_cast<int>(BlendFuncType::OneMinusSrcColor)] = vk::BlendFactor::eOneMinusSrcColor;
+			blendFuncs[static_cast<int>(BlendFuncType::SrcAlpha)] = vk::BlendFactor::eSrcAlpha;
+			blendFuncs[static_cast<int>(BlendFuncType::OneMinusSrcAlpha)] = vk::BlendFactor::eOneMinusSrcAlpha;
+			blendFuncs[static_cast<int>(BlendFuncType::DstColor)] = vk::BlendFactor::eDstColor;
+			blendFuncs[static_cast<int>(BlendFuncType::OneMinusDstColor)] = vk::BlendFactor::eOneMinusDstColor;
+			blendFuncs[static_cast<int>(BlendFuncType::DstAlpha)] = vk::BlendFactor::eDstAlpha;
+			blendFuncs[static_cast<int>(BlendFuncType::OneMinusDstAlpha)] = vk::BlendFactor::eDstAlpha;
+
+			blendInfo.srcColorBlendFactor = blendFuncs[static_cast<int>(BlendSrcFunc)];
+			blendInfo.dstColorBlendFactor = blendFuncs[static_cast<int>(BlendDstFunc)];
+			blendInfo.srcAlphaBlendFactor = blendFuncs[static_cast<int>(BlendSrcFuncAlpha)];
+			blendInfo.dstAlphaBlendFactor = blendFuncs[static_cast<int>(BlendDstFuncAlpha)];
+			blendInfo.colorBlendOp = blendOps[static_cast<int>(BlendEquationRGB)];
+			blendInfo.alphaBlendOp = blendOps[static_cast<int>(BlendEquationAlpha)];
+		}
+		else
+		{
+			blendInfo.blendEnable = false;
+		}
 	}
 
 	vk::PipelineColorBlendStateCreateInfo colorBlendInfo;
 	colorBlendInfo.logicOpEnable = VK_FALSE;
 	colorBlendInfo.logicOp = vk::LogicOp::eCopy;
-	colorBlendInfo.attachmentCount = 1;
-	colorBlendInfo.pAttachments = &blendInfo;
+	colorBlendInfo.attachmentCount = renderPassPipelineState->RenderTargetCount;
+	colorBlendInfo.pAttachments = blendInfos.data();
 	colorBlendInfo.blendConstants[0] = 0.0f;
 	colorBlendInfo.blendConstants[1] = 0.0f;
 	colorBlendInfo.blendConstants[2] = 0.0f;
@@ -307,8 +367,8 @@ void PipelineStateVulkan::Compile()
 	graphicsPipelineInfo.pDynamicState = &dynamicStateInfo;
 
 	// setup a render pass
-	assert(renderPassPipelineState_ != nullptr);
-	graphicsPipelineInfo.renderPass = static_cast<RenderPassPipelineStateVulkan*>(renderPassPipelineState_.get())->GetRenderPass();
+
+	graphicsPipelineInfo.renderPass = renderPass;
 
 	// uniform layout info
 	std::array<vk::DescriptorSetLayoutBinding, 3> uboLayoutBindings;
@@ -331,7 +391,7 @@ void PipelineStateVulkan::Compile()
 	uboLayoutBindings[2].pImmutableSamplers = nullptr;
 
 	vk::DescriptorSetLayoutCreateInfo descriptorSetLayoutInfo;
-	descriptorSetLayoutInfo.bindingCount = uboLayoutBindings.size();
+	descriptorSetLayoutInfo.bindingCount = static_cast<int32_t>(uboLayoutBindings.size());
 	descriptorSetLayoutInfo.pBindings = uboLayoutBindings.data();
 
 	descriptorSetLayouts[0] = graphics_->GetDevice().createDescriptorSetLayout(descriptorSetLayoutInfo);
@@ -347,7 +407,9 @@ void PipelineStateVulkan::Compile()
 	graphicsPipelineInfo.layout = pipelineLayout_;
 
 	// setup a pipeline
-	pipeline_ = graphics_->GetDevice().createGraphicsPipeline(nullptr, graphicsPipelineInfo);
+	pipeline_ = static_cast<vk::Pipeline>(graphics_->GetDevice().createGraphicsPipeline(nullptr, graphicsPipelineInfo));
+
+	return true;
 }
 
 } // namespace LLGI

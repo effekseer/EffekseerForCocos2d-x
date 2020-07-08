@@ -15,19 +15,8 @@ RenderPassPipelineStateCacheVulkan::~RenderPassPipelineStateCacheVulkan()
 	SafeRelease(owner_);
 }
 
-RenderPassPipelineStateVulkan* RenderPassPipelineStateCacheVulkan::Create(bool isPresentMode,
-																		  bool hasDepth,
-																		  const FixedSizeVector<vk::Format, RenderTargetMax>& formats,
-																		  bool isColorCleared,
-																		  bool isDepthCleared)
+RenderPassPipelineStateVulkan* RenderPassPipelineStateCacheVulkan::Create(const RenderPassPipelineStateKey key)
 {
-	RenderPassPipelineStateVulkanKey key;
-	key.isPresentMode = isPresentMode;
-	key.hasDepth = hasDepth;
-	key.formats = formats;
-	key.isColorCleared = isColorCleared;
-	key.isDepthCleared = isDepthCleared;
-
 	// already?
 	{
 		auto it = renderPassPipelineStates_.find(key);
@@ -46,22 +35,25 @@ RenderPassPipelineStateVulkan* RenderPassPipelineStateCacheVulkan::Create(bool i
 	}
 
 	// settings
+	bool hasDepth = key.DepthFormat != TextureFormatType::Unknown;
 	FixedSizeVector<vk::AttachmentDescription, RenderTargetMax + 1> attachmentDescs;
 	FixedSizeVector<vk::AttachmentReference, RenderTargetMax + 1> attachmentRefs;
 	FixedSizeVector<vk::ImageLayout, RenderTargetMax + 1> finalLayouts;
-	attachmentDescs.resize(formats.size() + (hasDepth ? 1 : 0));
-	attachmentRefs.resize(formats.size() + (hasDepth ? 1 : 0));
-	finalLayouts.resize(formats.size() + (hasDepth ? 1 : 0));
+
+	int colorCount = static_cast<int32_t>(key.RenderTargetFormats.size());
+	int depthCount = key.DepthFormat != TextureFormatType::Unknown ? 1 : 0;
+
+	attachmentDescs.resize(colorCount + depthCount);
+	attachmentRefs.resize(colorCount + depthCount);
 
 	// color buffer
-	int colorCount = formats.size();
 
 	for (int i = 0; i < colorCount; i++)
 	{
-		attachmentDescs.at(i).format = formats.at(i);
-		attachmentDescs.at(i).samples = vk::SampleCountFlagBits::e1;
+		attachmentDescs.at(i).format = (vk::Format)VulkanHelper::TextureFormatToVkFormat(key.RenderTargetFormats.at(i));
+		attachmentDescs.at(i).samples = (vk::SampleCountFlagBits)key.SamplingCount;
 
-		if (isColorCleared)
+		if (key.IsColorCleared)
 			attachmentDescs.at(i).loadOp = vk::AttachmentLoadOp::eClear;
 		else
 			attachmentDescs.at(i).loadOp = vk::AttachmentLoadOp::eDontCare;
@@ -71,10 +63,10 @@ RenderPassPipelineStateVulkan* RenderPassPipelineStateCacheVulkan::Create(bool i
 		attachmentDescs.at(i).stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
 	}
 
-	if (isPresentMode)
+	if (key.IsPresent)
 	{
 		// When clearing, the initialLayout does not matter.
-		attachmentDescs.at(0).initialLayout = (isColorCleared) ? vk::ImageLayout::eUndefined : vk::ImageLayout::ePresentSrcKHR;
+		attachmentDescs.at(0).initialLayout = (key.IsColorCleared) ? vk::ImageLayout::eUndefined : vk::ImageLayout::ePresentSrcKHR;
 		attachmentDescs.at(0).finalLayout = vk::ImageLayout::ePresentSrcKHR;
 	}
 	else
@@ -82,7 +74,8 @@ RenderPassPipelineStateVulkan* RenderPassPipelineStateCacheVulkan::Create(bool i
 		for (int i = 0; i < colorCount; i++)
 		{
 			// When clearing, the initialLayout does not matter.
-			attachmentDescs.at(i).initialLayout = (isColorCleared) ? vk::ImageLayout::eUndefined : vk::ImageLayout::eShaderReadOnlyOptimal;
+			attachmentDescs.at(i).initialLayout =
+				(key.IsColorCleared) ? vk::ImageLayout::eUndefined : vk::ImageLayout::eShaderReadOnlyOptimal;
 			attachmentDescs.at(i).finalLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
 		}
 	}
@@ -90,27 +83,60 @@ RenderPassPipelineStateVulkan* RenderPassPipelineStateCacheVulkan::Create(bool i
 	// depth buffer
 	if (hasDepth)
 	{
-		attachmentDescs.at(colorCount).format = vk::Format::eD32SfloatS8Uint;
-		attachmentDescs.at(colorCount).samples = vk::SampleCountFlagBits::e1;
+		attachmentDescs.at(colorCount).format = (vk::Format)VulkanHelper::TextureFormatToVkFormat(key.DepthFormat);
+		attachmentDescs.at(colorCount).samples = (vk::SampleCountFlagBits)key.SamplingCount;
 
-		if (isDepthCleared)
+		if (key.IsDepthCleared)
+		{
 			attachmentDescs.at(colorCount).loadOp = vk::AttachmentLoadOp::eClear;
+			attachmentDescs.at(colorCount).stencilLoadOp = vk::AttachmentLoadOp::eClear;
+		}
 		else
+		{
 			attachmentDescs.at(colorCount).loadOp = vk::AttachmentLoadOp::eDontCare;
+			attachmentDescs.at(colorCount).stencilLoadOp = vk::AttachmentLoadOp::eDontCare;
+		}
 
-		attachmentDescs.at(colorCount).storeOp = vk::AttachmentStoreOp::eStore;
-		attachmentDescs.at(colorCount).stencilLoadOp = vk::AttachmentLoadOp::eDontCare;
-		attachmentDescs.at(colorCount).stencilStoreOp = vk::AttachmentStoreOp::eStore;
+		attachmentDescs.at(colorCount).storeOp = vk::AttachmentStoreOp::eDontCare;
+		attachmentDescs.at(colorCount).stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
 
 		// When clearing, the initialLayout does not matter.
 		attachmentDescs.at(colorCount).initialLayout =
-			(isDepthCleared) ? vk::ImageLayout::eUndefined : vk::ImageLayout::eDepthStencilAttachmentOptimal;
-		attachmentDescs.at(colorCount).finalLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal;	
+			(key.IsDepthCleared) ? vk::ImageLayout::eUndefined : vk::ImageLayout::eDepthStencilAttachmentOptimal;
+		attachmentDescs.at(colorCount).finalLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
+		//attachmentDescs.at(colorCount).finalLayout = vk::ImageLayout::eDepthStencilReadOnlyOptimal;
 	}
 
-	for (size_t i = 0; i < attachmentDescs.size(); i++)
+	// resolve
+	int32_t resolveIndex = -1;
+	if (key.HasResolvedRenderTarget)
 	{
-		finalLayouts.at(i) = attachmentDescs.at(i).finalLayout;
+		attachmentDescs.resize(attachmentDescs.size() + 1);
+		auto& desc = attachmentDescs.at(attachmentDescs.size() - 1);
+		resolveIndex = static_cast<int32_t>(attachmentDescs.size()) - 1;
+
+		desc.format = (vk::Format)VulkanHelper::TextureFormatToVkFormat(key.RenderTargetFormats.at(0));
+		desc.samples = vk::SampleCountFlagBits::e1;
+		desc.loadOp = vk::AttachmentLoadOp::eDontCare;
+		desc.storeOp = vk::AttachmentStoreOp::eStore;
+		desc.initialLayout = vk::ImageLayout::eUndefined;
+		desc.finalLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+	}
+
+	int32_t resolveDepthIndex = -1;
+	if (key.HasResolvedDepthTarget)
+	{
+		// Wait 1.2
+		// attachmentDescs.resize(attachmentDescs.size() + 1);
+		// auto& desc = attachmentDescs.at(attachmentDescs.size() - 1);
+		// resolveDepthIndex = static_cast<int32_t>(attachmentDescs.size()) - 1;
+		//
+		// desc.format = (vk::Format)VulkanHelper::TextureFormatToVkFormat(key.DepthFormat);
+		// desc.samples = vk::SampleCountFlagBits::e1;
+		// desc.loadOp = vk::AttachmentLoadOp::eDontCare;
+		// desc.storeOp = vk::AttachmentStoreOp::eStore;
+		// desc.initialLayout = vk::ImageLayout::eUndefined;
+		// desc.finalLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
 	}
 
 	for (int i = 0; i < colorCount; i++)
@@ -125,6 +151,30 @@ RenderPassPipelineStateVulkan* RenderPassPipelineStateCacheVulkan::Create(bool i
 		vk::AttachmentReference& depthReference = attachmentRefs.at(colorCount);
 		depthReference.attachment = colorCount;
 		depthReference.layout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
+	}
+
+	if (key.HasResolvedRenderTarget)
+	{
+		attachmentRefs.resize(attachmentRefs.size() + 1);
+		auto& ref = attachmentRefs.at(attachmentRefs.size() - 1);
+		ref.attachment = resolveIndex;
+		ref.layout = vk::ImageLayout::eColorAttachmentOptimal;
+	}
+
+	if (key.HasResolvedDepthTarget)
+	{
+		// Wait 1.2
+		// attachmentRefs.resize(attachmentRefs.size() + 1);
+		// auto& ref = attachmentRefs.at(attachmentRefs.size() - 1);
+		// ref.attachment = resolveDepthIndex;
+		// ref.layout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
+	}
+
+	finalLayouts.resize(attachmentDescs.size());
+
+	for (size_t i = 0; i < attachmentDescs.size(); i++)
+	{
+		finalLayouts.at(i) = attachmentDescs.at(i).finalLayout;
 	}
 
 	std::array<vk::SubpassDescription, 1> subpasses;
@@ -142,42 +192,60 @@ RenderPassPipelineStateVulkan* RenderPassPipelineStateCacheVulkan::Create(bool i
 		{
 			subpass.pDepthStencilAttachment = nullptr;
 		}
+
+		if (key.HasResolvedRenderTarget)
+		{
+			subpass.pResolveAttachments = &attachmentRefs.at(resolveIndex);
+		}
+
+		if (key.HasResolvedDepthTarget)
+		{
+			// Wait 1.2
+		}
 	}
 
-	std::array<vk::SubpassDependency, 1> subpassDepends;
+	std::array<vk::SubpassDependency, RenderTargetMax * 2> dependencies;
+
+	if (!key.IsPresent)
 	{
-		vk::SubpassDependency& dependency = subpassDepends[0];
+		for (int i = 0; i < colorCount; i++)
+		{
+			dependencies[i * 2 + 0].srcSubpass = VK_SUBPASS_EXTERNAL;
+			dependencies[i * 2 + 0].dstSubpass = i;
+			dependencies[i * 2 + 0].srcStageMask = (vk::PipelineStageFlags)VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+			dependencies[i * 2 + 0].dstStageMask = (vk::PipelineStageFlags)VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+			dependencies[i * 2 + 0].srcAccessMask = (vk::AccessFlags)VK_ACCESS_SHADER_READ_BIT;
+			dependencies[i * 2 + 0].dstAccessMask = (vk::AccessFlags)VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+			dependencies[i * 2 + 0].dependencyFlags = (vk::DependencyFlags)VK_DEPENDENCY_BY_REGION_BIT;
 
-		/*
-		//monsho
-		dependency.srcSubpass = 0;
-		dependency.dstSubpass = VK_SUBPASS_EXTERNAL;
-		dependency.srcAccessMask = vk::AccessFlagBits::eColorAttachmentWrite;
-		dependency.dstAccessMask = vk::AccessFlagBits::eColorAttachmentRead;
-		dependency.srcStageMask = vk::PipelineStageFlagBits::eBottomOfPipe;
-		dependency.dstStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
-		*/
-
-		dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-		dependency.dstSubpass = 0;
-		dependency.srcAccessMask = static_cast<vk::AccessFlagBits>(0);
-		dependency.dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite;
-		dependency.srcStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
-		dependency.dstStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
+			dependencies[i * 2 + 1].srcSubpass = i;
+			dependencies[i * 2 + 1].dstSubpass = VK_SUBPASS_EXTERNAL;
+			dependencies[i * 2 + 1].srcStageMask = (vk::PipelineStageFlags)VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+			dependencies[i * 2 + 1].dstStageMask = (vk::PipelineStageFlags)VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+			dependencies[i * 2 + 1].srcAccessMask = (vk::AccessFlags)VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+			dependencies[i * 2 + 1].dstAccessMask = (vk::AccessFlags)VK_ACCESS_SHADER_READ_BIT;
+			dependencies[i * 2 + 1].dependencyFlags = (vk::DependencyFlags)VK_DEPENDENCY_BY_REGION_BIT;
+		}
 	}
 
 	{
 		vk::RenderPassCreateInfo renderPassInfo;
 		renderPassInfo.attachmentCount = (uint32_t)attachmentDescs.size();
 		renderPassInfo.pAttachments = attachmentDescs.data();
+
 		renderPassInfo.subpassCount = (uint32_t)subpasses.size();
 		renderPassInfo.pSubpasses = subpasses.data();
 
-		// based on official
-		// renderPassInfo.dependencyCount = (uint32_t)subpassDepends.size();
-		// renderPassInfo.pDependencies = subpassDepends.data();
-		renderPassInfo.dependencyCount = 0;
-		renderPassInfo.pDependencies = nullptr;
+		if (!key.IsPresent)
+		{
+			renderPassInfo.dependencyCount = static_cast<uint32_t>(colorCount * 2);
+			renderPassInfo.pDependencies = dependencies.data();
+		}
+		else
+		{
+			renderPassInfo.dependencyCount = 0;
+			renderPassInfo.pDependencies = nullptr;
+		}
 
 		auto renderPass = device_.createRenderPass(renderPassInfo);
 		if (!renderPass)
@@ -192,6 +260,11 @@ RenderPassPipelineStateVulkan* RenderPassPipelineStateCacheVulkan::Create(bool i
 
 		auto retptr = ret.get();
 		SafeAddRef(retptr);
+
+		retptr->RenderTargetCount = colorCount;
+
+		retptr->Key = key;
+
 		return retptr;
 	}
 }

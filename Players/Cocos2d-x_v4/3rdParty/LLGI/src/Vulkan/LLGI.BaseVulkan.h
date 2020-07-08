@@ -29,8 +29,7 @@
 namespace std
 {
 
-template <>
-struct hash<vk::Format>
+template <> struct hash<vk::Format>
 {
 	size_t operator()(const vk::Format& _Keyval) const noexcept { return std::hash<uint32_t>()(static_cast<uint32_t>(_Keyval)); }
 };
@@ -50,7 +49,7 @@ class VulkanHelper
 {
 public:
 	static const char* getResultName(VkResult result);
-    static VkFormat TextureFormatToVkFormat(TextureFormatType format);
+	static VkFormat TextureFormatToVkFormat(TextureFormatType format);
 	static TextureFormatType VkFormatToTextureFormat(VkFormat format);
 };
 

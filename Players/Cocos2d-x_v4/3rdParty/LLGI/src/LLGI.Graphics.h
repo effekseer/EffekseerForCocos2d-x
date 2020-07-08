@@ -20,12 +20,20 @@ struct RenderTextureInitializationParameter
 {
 	Vec2I Size;
 	TextureFormatType Format = TextureFormatType::R8G8B8A8_UNORM;
-	bool IsMultiSampling = false;
+	int32_t SamplingCount = 1;
+};
+
+enum class DepthTextureMode
+{
+	Depth,
+	DepthStencil,
 };
 
 struct DepthTextureInitializationParameter
 {
 	Vec2I Size;
+	int32_t SamplingCount = 1;
+	DepthTextureMode Mode = DepthTextureMode::Depth;
 };
 
 /**
@@ -61,6 +69,57 @@ public:
 	virtual ConstantBuffer* CreateConstantBuffer(int32_t size);
 };
 
+struct RenderPassPipelineStateKey
+{
+	bool IsPresent = false;
+	TextureFormatType DepthFormat = TextureFormatType::Unknown;
+	FixedSizeVector<TextureFormatType, RenderTargetMax> RenderTargetFormats;
+	bool IsColorCleared = true;
+	bool IsDepthCleared = true;
+	bool HasResolvedRenderTarget = false;
+	bool HasResolvedDepthTarget = false;
+	int32_t SamplingCount = 1;
+
+	bool operator==(const RenderPassPipelineStateKey& value) const
+	{
+		if (RenderTargetFormats.size() != value.RenderTargetFormats.size())
+			return false;
+
+		for (size_t i = 0; i < RenderTargetFormats.size(); i++)
+		{
+			if (RenderTargetFormats.at(i) != value.RenderTargetFormats.at(i))
+				return false;
+		}
+
+		return (IsPresent == value.IsPresent && DepthFormat == value.DepthFormat && IsColorCleared == value.IsColorCleared &&
+				IsDepthCleared == value.IsDepthCleared && SamplingCount == value.SamplingCount &&
+				HasResolvedRenderTarget == value.HasResolvedRenderTarget && HasResolvedDepthTarget == value.HasResolvedDepthTarget);
+	}
+
+	struct Hash
+	{
+		typedef std::size_t result_type;
+
+		std::size_t operator()(const RenderPassPipelineStateKey& key) const
+		{
+			auto ret = std::hash<bool>()(key.IsPresent);
+			ret += std::hash<TextureFormatType>()(key.DepthFormat);
+			ret += std::hash<bool>()(key.IsColorCleared);
+			ret += std::hash<bool>()(key.IsDepthCleared);
+			ret += std::hash<int32_t>()(key.SamplingCount);
+			ret += std::hash<bool>()(key.HasResolvedRenderTarget);
+			ret += std::hash<bool>()(key.HasResolvedDepthTarget);
+
+			for (int32_t i = 0; i < key.RenderTargetFormats.size(); i++)
+			{
+				ret += std::hash<uint64_t>()((uint64_t)key.RenderTargetFormats.at(i));
+			}
+
+			return ret;
+		}
+	};
+};
+
 class RenderPass : public ReferenceObject
 {
 private:
@@ -72,14 +131,24 @@ private:
 
 	FixedSizeVector<Texture*, RenderTargetMax> renderTextures_;
 	Texture* depthTexture_ = nullptr;
+	Texture* resolvedRenderTexture_ = nullptr;
+	Texture* resolvedDepthTexture_ = nullptr;
 
 protected:
 	Vec2I screenSize_;
 
 	bool assignRenderTextures(Texture** textures, int32_t count);
 	bool assignDepthTexture(Texture* depthTexture);
+	bool assignResolvedRenderTexture(Texture* texture);
+	bool assignResolvedDepthTexture(Texture* texture);
 
-	bool getSize(Vec2I& size, const Texture** textures, int32_t textureCount, Texture* depthTexture) const;
+	bool getSize(Vec2I& size,
+				 const Texture** textures,
+				 int32_t textureCount,
+				 Texture* depthTexture,
+				 Texture* resolvedRenderTexture = nullptr,
+				 Texture* resolvedDepthTexture = nullptr) const;
+	bool sanitize();
 
 public:
 	RenderPass() = default;
@@ -105,52 +174,15 @@ public:
 
 	bool GetHasDepthTexture() const { return GetDepthTexture() != nullptr; }
 
+	Texture* GetResolvedRenderTexture() const { return resolvedRenderTexture_; }
+
+	Texture* GetResolvedDepthTexture() const { return resolvedDepthTexture_; }
+
 	virtual bool GetIsSwapchainScreen() const;
 
 	virtual Vec2I GetScreenSize() const { return screenSize_; }
-};
 
-struct RenderPassPipelineStateKey
-{
-	bool IsPresent = false;
-	bool HasDepth = false;
-	FixedSizeVector<TextureFormatType, RenderTargetMax> RenderTargetFormats;
-	bool IsColorCleared = true;
-	bool IsDepthCleared = true;
-
-	bool operator==(const RenderPassPipelineStateKey& value) const
-	{
-		if (RenderTargetFormats.size() != value.RenderTargetFormats.size())
-			return false;
-
-		for (size_t i = 0; i < RenderTargetFormats.size(); i++)
-		{
-			if (RenderTargetFormats.at(i) != value.RenderTargetFormats.at(i))
-				return false;
-		}
-
-		return (IsPresent == value.IsPresent && HasDepth == value.HasDepth && IsColorCleared == value.IsColorCleared && IsDepthCleared == value.IsDepthCleared);
-	}
-
-	struct Hash
-	{
-		typedef std::size_t result_type;
-
-		std::size_t operator()(const RenderPassPipelineStateKey& key) const
-		{
-			auto ret = std::hash<bool>()(key.IsPresent);
-			ret += std::hash<bool>()(key.HasDepth);
-			ret += std::hash<bool>()(key.IsColorCleared);
-			ret += std::hash<bool>()(key.IsDepthCleared);
-
-			for (int32_t i = 0; i < key.RenderTargetFormats.size(); i++)
-			{
-				ret += std::hash<uint64_t>()((uint64_t)key.RenderTargetFormats.at(i));
-			}
-
-			return ret;
-		}
-	};
+	RenderPassPipelineStateKey GetKey() const;
 };
 
 /**
@@ -162,6 +194,7 @@ private:
 public:
 	RenderPassPipelineState() = default;
 	virtual ~RenderPassPipelineState() = default;
+	RenderPassPipelineStateKey Key;
 };
 
 /**
@@ -209,7 +242,7 @@ public:
 
 	/**
 		@brief create a memory pool
-        @param  drawingCount(drawingCount is ignored in DirectX12)
+		@param  drawingCount(drawingCount is ignored in DirectX12)
 	*/
 	virtual SingleFrameMemoryPool* CreateSingleFrameMemoryPool(int32_t constantBufferPoolSize, int32_t drawingCount);
 
@@ -225,7 +258,12 @@ public:
 	*/
 	virtual ConstantBuffer* CreateConstantBuffer(int32_t size);
 
-	virtual RenderPass* CreateRenderPass(const Texture** textures, int32_t textureCount, Texture* depthTexture) { return nullptr; }
+	virtual RenderPass* CreateRenderPass(Texture** textures, int32_t textureCount, Texture* depthTexture) { return nullptr; }
+
+	virtual RenderPass* CreateRenderPass(Texture* texture, Texture* resolvedTexture, Texture* depthTexture, Texture* resolvedDepthTexture)
+	{
+		return nullptr;
+	}
 
 	virtual Texture* CreateTexture(const TextureInitializationParameter& parameter) { return nullptr; }
 
@@ -262,6 +300,8 @@ public:
 		@param	disposed	called function
 	*/
 	void SetDisposed(const std::function<void()>& disposed);
+
+	virtual bool IsResolvedDepthSupported() const { return false; }
 };
 
 } // namespace LLGI

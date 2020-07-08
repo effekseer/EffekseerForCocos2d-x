@@ -15,6 +15,6 @@ void PipelineState::SetRenderPassPipelineState(RenderPassPipelineState* renderPa
 	renderPassPipelineState_ = CreateSharedPtr(renderPassPipelineState);
 }
 
-void PipelineState::Compile() {}
+bool PipelineState::Compile() { return false; }
 
 } // namespace LLGI

@@ -53,7 +53,10 @@ void InternalSingleFrameMemoryPoolVulkan::Dispose()
 	nativeDevice_ = VK_NULL_HANDLE;
 }
 
-bool InternalSingleFrameMemoryPoolVulkan::GetConstantBuffer(int32_t size, VkBuffer* outResource, VkDeviceMemory* deviceMemory, int32_t* outOffset)
+bool InternalSingleFrameMemoryPoolVulkan::GetConstantBuffer(int32_t size,
+															VkBuffer* outResource,
+															VkDeviceMemory* deviceMemory,
+															int32_t* outOffset)
 {
 	if (constantBufferOffset_ + size > constantBufferSize_)
 		return false;
@@ -67,7 +70,7 @@ bool InternalSingleFrameMemoryPoolVulkan::GetConstantBuffer(int32_t size, VkBuff
 
 void InternalSingleFrameMemoryPoolVulkan::Reset() { constantBufferOffset_ = 0; }
 
-ConstantBuffer* SingleFrameMemoryPoolVulkan::CreateConstantBufferInternal(int32_t size) 
+ConstantBuffer* SingleFrameMemoryPoolVulkan::CreateConstantBufferInternal(int32_t size)
 {
 	auto obj = new ConstantBufferVulkan();
 	if (!obj->InitializeAsShortTime(graphics_, this, size))
@@ -79,7 +82,7 @@ ConstantBuffer* SingleFrameMemoryPoolVulkan::CreateConstantBufferInternal(int32_
 	return obj;
 }
 
-ConstantBuffer* SingleFrameMemoryPoolVulkan::ReinitializeConstantBuffer(ConstantBuffer* cb, int32_t size) 
+ConstantBuffer* SingleFrameMemoryPoolVulkan::ReinitializeConstantBuffer(ConstantBuffer* cb, int32_t size)
 {
 	auto obj = static_cast<ConstantBufferVulkan*>(cb);
 	if (!obj->InitializeAsShortTime(graphics_, this, size))
@@ -90,12 +93,9 @@ ConstantBuffer* SingleFrameMemoryPoolVulkan::ReinitializeConstantBuffer(Constant
 	return obj;
 }
 
-
 SingleFrameMemoryPoolVulkan::SingleFrameMemoryPoolVulkan(
 	GraphicsVulkan* graphics, bool isStrongRef, int32_t swapBufferCount, int32_t constantBufferPoolSize, int32_t drawingCount)
-	: SingleFrameMemoryPool(swapBufferCount),
-	graphics_(graphics), 
-	isStrongRef_(isStrongRef), drawingCount_(drawingCount), currentSwap_(-1)
+	: SingleFrameMemoryPool(swapBufferCount), graphics_(graphics), isStrongRef_(isStrongRef), drawingCount_(drawingCount), currentSwap_(-1)
 {
 	if (isStrongRef)
 	{

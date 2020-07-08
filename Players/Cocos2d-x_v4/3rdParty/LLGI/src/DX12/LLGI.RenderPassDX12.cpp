@@ -22,7 +22,8 @@ RenderPassDX12 ::~RenderPassDX12()
 	SafeRelease(device_);
 }
 
-bool RenderPassDX12::Initialize(TextureDX12** textures, int numTextures, TextureDX12* depthTexture)
+bool RenderPassDX12::Initialize(
+	TextureDX12** textures, int numTextures, TextureDX12* depthTexture, TextureDX12* resolvedTexture, TextureDX12* resolvedDepthTexture)
 {
 	if (textures[0]->Get() == nullptr)
 		return false;
@@ -33,6 +34,21 @@ bool RenderPassDX12::Initialize(TextureDX12** textures, int numTextures, Texture
 	}
 
 	if (!assignDepthTexture(depthTexture))
+	{
+		return false;
+	}
+
+	if (!assignResolvedRenderTexture(resolvedTexture))
+	{
+		return false;
+	}
+
+	if (!assignResolvedDepthTexture(resolvedDepthTexture))
+	{
+		return false;
+	}
+
+	if (!sanitize())
 	{
 		return false;
 	}
@@ -89,16 +105,21 @@ bool RenderPassDX12::ReinitializeRenderTargetViews(CommandListDX12* commandList,
 	{
 		D3D12_RENDER_TARGET_VIEW_DESC desc = {};
 		desc.Format = renderTargets_[i].texture_->GetDXGIFormat();
-		desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+
+		if (GetRenderTexture(0)->GetSamplingCount() > 1)
+		{
+			desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DMS;
+		}
+		else
+		{
+			desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+		}
 		auto cpuHandle = cpuDescriptorHandleRTV[i];
 		device_->CreateRenderTargetView(renderTargets_[i].renderPass_, &desc, cpuHandle);
 		handleRTV_[i] = cpuHandle;
 
 		// memory barrior to make a rendertarget
-		if (renderTargets_[i].texture_->GetType() != TextureType::Screen)
-		{
-			renderTargets_[i].texture_->ResourceBarrior(commandList->GetCommandList(), D3D12_RESOURCE_STATE_RENDER_TARGET);
-		}
+		renderTargets_[i].texture_->ResourceBarrior(commandList->GetCommandList(), D3D12_RESOURCE_STATE_RENDER_TARGET);
 	}
 
 	if (GetHasDepthTexture())
@@ -106,8 +127,16 @@ bool RenderPassDX12::ReinitializeRenderTargetViews(CommandListDX12* commandList,
 		auto depthTexture = static_cast<TextureDX12*>(GetDepthTexture());
 
 		D3D12_DEPTH_STENCIL_VIEW_DESC desc = {};
-		desc.Format = DXGI_FORMAT_D32_FLOAT;
-		desc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+		desc.Format = depthTexture->GetDXGIFormat();
+
+		if (depthTexture->GetSamplingCount() > 1)
+		{
+			desc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DMS;
+		}
+		else
+		{
+			desc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+		}
 
 		auto cpuHandle = cpuDescriptorHandleDSV[0];
 		device_->CreateDepthStencilView(depthTexture->Get(), &desc, cpuHandle);

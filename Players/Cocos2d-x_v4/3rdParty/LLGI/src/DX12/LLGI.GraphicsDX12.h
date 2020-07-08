@@ -26,16 +26,18 @@ private:
 	const D3D12_COMMAND_LIST_TYPE commandListType_ = D3D12_COMMAND_LIST_TYPE_DIRECT;
 	ID3D12CommandQueue* commandQueue_ = nullptr;
 	ID3D12CommandAllocator* commandAllocator_ = nullptr;
+	ReferenceObject* owner_ = nullptr;
 
-	std::unordered_map<RenderPassPipelineStateDX12Key, std::shared_ptr<RenderPassPipelineStateDX12>, RenderPassPipelineStateDX12Key::Hash>
-		renderPassPipelineStates;
+	std::unordered_map<RenderPassPipelineStateKey, std::shared_ptr<RenderPassPipelineStateDX12>, RenderPassPipelineStateKey::Hash>
+		renderPassPipelineStates_;
 
 public:
 	GraphicsDX12(ID3D12Device* device,
 				 std::function<std::tuple<D3D12_CPU_DESCRIPTOR_HANDLE, Texture*>()> getScreenFunc,
 				 std::function<void()> waitFunc,
 				 ID3D12CommandQueue* commandQueue,
-				 int32_t swapBufferCount);
+				 int32_t swapBufferCount,
+				 ReferenceObject* owner = nullptr);
 	virtual ~GraphicsDX12();
 
 	void Execute(CommandList* commandList) override;
@@ -48,16 +50,12 @@ public:
 	PipelineState* CreatePiplineState() override;
 	SingleFrameMemoryPool* CreateSingleFrameMemoryPool(int32_t constantBufferPoolSize, int32_t drawingCount) override;
 	CommandList* CreateCommandList(SingleFrameMemoryPool* memoryPool) override;
-	RenderPass* CreateRenderPass(const Texture** textures, int32_t textureCount, Texture* depthTexture) override;
+	RenderPass* CreateRenderPass(Texture** textures, int32_t textureCount, Texture* depthTexture) override;
+	RenderPass* CreateRenderPass(Texture* texture, Texture* resolvedTexture, Texture* depthTexture, Texture* resolvedDepthTexture) override;
 	Texture* CreateTexture(uint64_t id) override;
 	Texture* CreateTexture(const TextureInitializationParameter& parameter) override;
 	Texture* CreateRenderTexture(const RenderTextureInitializationParameter& parameter) override;
 	Texture* CreateDepthTexture(const DepthTextureInitializationParameter& parameter) override;
-
-	std::shared_ptr<RenderPassPipelineStateDX12> CreateRenderPassPipelineState(bool isPresentMode,
-																			   bool hasDepth,
-																			   int32_t renderTargetCount,
-																			   std::array<DXGI_FORMAT, 8> renderTargetFormats);
 
 	RenderPassPipelineState* CreateRenderPassPipelineState(RenderPass* renderpass) override;
 
@@ -86,6 +84,9 @@ public:
 								   Vec2I size);
 
 	std::vector<uint8_t> CaptureRenderTarget(Texture* renderTarget);
+
+	//! ResolvingDepth is only supported on the latestet Nvidia video card and driver
+	bool IsResolvedDepthSupported() const override { return false; }
 };
 
 } // namespace LLGI

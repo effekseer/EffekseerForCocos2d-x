@@ -29,10 +29,7 @@ public:
 		return internal_.at(n);
 	}
 
-	const T* data() const
-	{
-		return internal_.data();
-	}
+	const T* data() const { return internal_.data(); }
 
 	void resize(size_t nsize)
 	{
@@ -53,6 +50,8 @@ public:
 
 		return true;
 	}
+
+	bool operator!=(FixedSizeVector<T, N> const& rhs) const { return !(*this == rhs); }
 
 	size_t size() const { return size_; }
 

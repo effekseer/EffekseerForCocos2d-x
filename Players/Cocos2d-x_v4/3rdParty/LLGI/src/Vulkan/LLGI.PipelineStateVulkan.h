@@ -25,7 +25,8 @@ public:
 	bool Initialize(GraphicsVulkan* graphics);
 
 	void SetShader(ShaderStageType stage, Shader* shader) override;
-	void Compile() override;
+
+	bool Compile() override;
 
 	vk::Pipeline GetPipeline() const { return pipeline_; }
 

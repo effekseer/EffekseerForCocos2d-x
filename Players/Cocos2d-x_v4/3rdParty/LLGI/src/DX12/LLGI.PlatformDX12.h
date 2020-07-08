@@ -32,7 +32,7 @@ private:
 	ID3D12Resource* renderResources_[SwapBufferCount];
 	std::array<TextureDX12*, SwapBufferCount> renderTargets_;
 	std::array<RenderPassDX12*, SwapBufferCount> renderPasses_;
-	
+
 	std::array<ID3D12CommandAllocator*, SwapBufferCount> commandAllocators;
 	ID3D12GraphicsCommandList* commandListStart = nullptr;
 	ID3D12GraphicsCommandList* commandListPresent = nullptr;
@@ -40,8 +40,12 @@ private:
 
 	int32_t frameIndex = 0;
 
+	bool inFrame_ = false;
 
 	void Wait();
+
+	void ResetSwapBuffer();
+	bool GenerateSwapBuffer();
 
 public:
 	PlatformDX12();
@@ -54,6 +58,8 @@ public:
 	Graphics* CreateGraphics() override;
 
 	ID3D12Device* GetDevice();
+
+	void SetWindowSize(const Vec2I& windowSize) override;
 
 	RenderPass* GetCurrentScreen(const Color8& clearColor, bool isColorCleared, bool isDepthCleared) override;
 

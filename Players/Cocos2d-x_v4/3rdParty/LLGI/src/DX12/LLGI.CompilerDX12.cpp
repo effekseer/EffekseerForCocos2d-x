@@ -5,11 +5,11 @@
 namespace LLGI
 {
 
-CompilerDX12::CompileShaderResultDX12 CompilerDX12::CompileShader(const CompilerDX12Option& option,
-																  const char* text,
+CompilerDX12::CompileShaderResultDX12 CompilerDX12::CompileShader(const char* text,
 																  const char* fileName,
 																  const char* target,
-																  const std::vector<D3D_SHADER_MACRO>& macro)
+																  const std::vector<D3D_SHADER_MACRO>& macro,
+																  const CompilerDX12Option& option)
 {
 	ID3DBlob* shader = nullptr;
 	ID3DBlob* error = nullptr;
@@ -89,7 +89,7 @@ void CompilerDX12::Compile(CompilerResult& result, const char* code, ShaderStage
 	}
 
 	std::vector<D3D_SHADER_MACRO> macro;
-	auto compileResult = CompileShader(option_, code, "dx12_code", target, macro);
+	auto compileResult = CompileShader(code, "dx12_code", target, macro, option_);
 
 	result.Message = compileResult.error;
 

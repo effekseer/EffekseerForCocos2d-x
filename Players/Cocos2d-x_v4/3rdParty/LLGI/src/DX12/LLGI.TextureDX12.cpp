@@ -34,8 +34,11 @@ TextureDX12::TextureDX12(ID3D12Resource* textureResource, ID3D12Device* device, 
 	dxgiFormat_ = desc.Format;
 
 	format_ = ConvertFormat(desc.Format);
-	textureSize_ = Vec2I(desc.Width, desc.Height);
-	memorySize_ = GetTextureMemorySize(format_, textureSize_);
+	textureSize_ = Vec2I(static_cast<int32_t>(desc.Width), static_cast<int32_t>(desc.Height));
+	cpuMemorySize_ = GetTextureMemorySize(format_, textureSize_);
+
+	UINT64 size = 0;
+	device_->GetCopyableFootprints(&desc, 0, 1, 0, &footprint_, nullptr, nullptr, &size);
 }
 
 TextureDX12::~TextureDX12()
@@ -51,7 +54,8 @@ TextureDX12::~TextureDX12()
 	SafeRelease(commandQueue_);
 }
 
-bool TextureDX12::Initialize(ID3D12Resource* textureResource) {
+bool TextureDX12::Initialize(ID3D12Resource* textureResource)
+{
 	type_ = TextureType::Color;
 	texture_ = textureResource;
 
@@ -61,28 +65,31 @@ bool TextureDX12::Initialize(ID3D12Resource* textureResource) {
 	dxgiFormat_ = desc.Format;
 
 	format_ = ConvertFormat(desc.Format);
-	textureSize_ = Vec2I(desc.Width, desc.Height);
-	memorySize_ = GetTextureMemorySize(format_, textureSize_);
+	textureSize_ = Vec2I(static_cast<int32_t>(desc.Width), static_cast<int32_t>(desc.Height));
+	cpuMemorySize_ = GetTextureMemorySize(format_, textureSize_);
+
+	UINT64 size = 0;
+	device_->GetCopyableFootprints(&desc, 0, 1, 0, &footprint_, nullptr, nullptr, &size);
 
 	return true;
 }
 
-bool TextureDX12::Initialize(const Vec2I& size, TextureType type, const TextureFormatType formatType)
+bool TextureDX12::Initialize(const Vec2I& size, TextureType type, const TextureFormatType formatType, int32_t samplingCount)
 {
 	type_ = type;
 
 	if (type_ == TextureType::Depth)
 	{
-		format_ = TextureFormatType::Uknown;
-		dxgiFormat_ = DXGI_FORMAT_D32_FLOAT;
-		memorySize_ = size.X * size.Y * 4;
+		format_ = formatType;
+		dxgiFormat_ = ConvertFormat(formatType);
+		cpuMemorySize_ = GetTextureMemorySize(format_, textureSize_);
 	}
 	else
 	{
 		format_ = formatType;
 		dxgiFormat_ = ConvertFormat(formatType);
 		textureSize_ = Vec2I(size.X, size.Y);
-		memorySize_ = GetTextureMemorySize(format_, textureSize_);
+		cpuMemorySize_ = GetTextureMemorySize(format_, textureSize_);
 	}
 
 	if (type_ == TextureType::Render)
@@ -93,7 +100,8 @@ bool TextureDX12::Initialize(const Vec2I& size, TextureType type, const TextureF
 										D3D12_RESOURCE_DIMENSION_TEXTURE2D,
 										D3D12_RESOURCE_STATE_GENERIC_READ,
 										D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET,
-										size);
+										size,
+										samplingCount);
 		state_ = D3D12_RESOURCE_STATE_GENERIC_READ;
 	}
 	else if (type_ == TextureType::Depth)
@@ -104,7 +112,8 @@ bool TextureDX12::Initialize(const Vec2I& size, TextureType type, const TextureF
 										D3D12_RESOURCE_DIMENSION_TEXTURE2D,
 										D3D12_RESOURCE_STATE_DEPTH_READ,
 										D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL,
-										size);
+										size,
+										samplingCount);
 		state_ = D3D12_RESOURCE_STATE_DEPTH_READ;
 	}
 	else if (type_ == TextureType::Color)
@@ -115,11 +124,14 @@ bool TextureDX12::Initialize(const Vec2I& size, TextureType type, const TextureF
 										D3D12_RESOURCE_DIMENSION_TEXTURE2D,
 										D3D12_RESOURCE_STATE_COPY_DEST,
 										D3D12_RESOURCE_FLAG_NONE,
-										size);
+										size,
+										samplingCount);
 
 		state_ = D3D12_RESOURCE_STATE_COPY_DEST;
 	}
 	textureSize_ = size;
+	samplingCount_ = samplingCount;
+
 	if (texture_ == nullptr)
 		return false;
 
@@ -141,12 +153,13 @@ void TextureDX12::CreateBuffer()
 								   D3D12_RESOURCE_DIMENSION_BUFFER,
 								   D3D12_RESOURCE_STATE_GENERIC_READ,
 								   D3D12_RESOURCE_FLAG_NONE,
-								   Vec2I(size, 1));
+								   Vec2I(static_cast<int32_t>(size), 1),
+								   1);
 	assert(buffer_ != nullptr);
 
-	if (footprint_.Footprint.RowPitch != memorySize_ / textureSize_.Y)
+	if (footprint_.Footprint.RowPitch != cpuMemorySize_ / textureSize_.Y)
 	{
-		lockedBuffer_.resize(memorySize_);
+		lockedBuffer_.resize(cpuMemorySize_);
 	}
 }
 
@@ -174,7 +187,7 @@ void TextureDX12::Unlock()
 		for (int32_t i = 0; i < textureSize_.Y; i++)
 		{
 			auto p = ptr + i * footprint_.Footprint.RowPitch;
-			auto rowPitch = memorySize_ / textureSize_.Y;
+			auto rowPitch = cpuMemorySize_ / textureSize_.Y;
 			memcpy(p, lockedBuffer_.data() + rowPitch * i, rowPitch);
 		}
 
@@ -192,6 +205,7 @@ void TextureDX12::Unlock()
 	HANDLE event = CreateEvent(0, 0, 0, 0);
 
 	D3D12_TEXTURE_COPY_LOCATION src = {}, dst = {};
+	D3D12_COMMAND_QUEUE_DESC queueDesc = {};
 
 	auto hr = device_->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&commandAllocator));
 	if (FAILED(hr))
@@ -216,7 +230,6 @@ void TextureDX12::Unlock()
 		goto FAILED_EXIT;
 	}
 
-	D3D12_COMMAND_QUEUE_DESC queueDesc = {};
 	queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
 	queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
 	queueDesc.NodeMask = 1;
@@ -234,6 +247,8 @@ void TextureDX12::Unlock()
 	dst.pResource = texture_;
 	dst.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
 	dst.SubresourceIndex = 0;
+
+	ResourceBarrior(commandList, D3D12_RESOURCE_STATE_COPY_DEST);
 
 	commandList->CopyTextureRegion(&dst, 0, 0, 0, &src, nullptr);
 

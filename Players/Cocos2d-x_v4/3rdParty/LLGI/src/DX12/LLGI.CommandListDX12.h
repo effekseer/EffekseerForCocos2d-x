@@ -51,7 +51,7 @@ public:
 
 	void BeginRenderPass(RenderPass* renderPass) override;
 	void EndRenderPass() override;
-	void Draw(int32_t pritimiveCount) override;
+	void Draw(int32_t primitiveCount, int32_t instanceCount) override;
 	void CopyTexture(Texture* src, Texture* dst) override;
 
 	void Clear(const Color8& color);

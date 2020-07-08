@@ -23,7 +23,7 @@ public:
 
 	bool Initialize(GraphicsMetal* graphics);
 	void SetShader(ShaderStageType stage, Shader* shader) override;
-	void Compile() override;
+	bool Compile() override;
 
 	std::array<Shader*, static_cast<int>(ShaderStageType::Max)> GetShaders() const { return shaders; }
 

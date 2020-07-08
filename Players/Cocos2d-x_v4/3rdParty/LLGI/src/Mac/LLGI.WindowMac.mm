@@ -110,6 +110,7 @@ struct WindowMac_Impl
 	{
 		if (window != nullptr)
 		{
+			[window close];
 			[window release];
 			window = nullptr;
 		}
@@ -152,7 +153,7 @@ bool WindowMac::Initialize(const char* title, const Vec2I& windowSize)
 {
 	Cocoa_Impl::initialize();
 	impl = std::make_shared<WindowMac_Impl>(title, windowSize);
-    windowSize_ = windowSize;
+	windowSize_ = windowSize;
 	return true;
 }
 
@@ -162,21 +163,22 @@ void WindowMac::Terminate() { impl.reset(); }
 
 void* WindowMac::GetNSWindowAsVoidPtr() { return impl->window; }
 
-bool WindowMac::OnNewFrame()
+bool WindowMac::OnNewFrame() { return DoEvent(); }
+
+void* WindowMac::GetNativePtr(int32_t index) { return GetNSWindowAsVoidPtr(); }
+
+Vec2I WindowMac::GetWindowSize() const { return windowSize_; }
+
+Vec2I WindowMac::GetFrameBufferSize() const
 {
-    return DoEvent();
+	@autoreleasepool
+	{
+		NSRect contentRect = [impl->window.contentView frame];
+		NSRect rect = [impl->window.contentView convertRectToBacking:contentRect];
+		return Vec2I(rect.size.width, rect.size.height);
+	}
 }
-    
-void* WindowMac::GetNativePtr(int32_t index)
-{
-    return GetNSWindowAsVoidPtr();
-}
-    
-Vec2I WindowMac::GetWindowSize() const
-{
-    return windowSize_;
-}
-    
+
 } // namespace LLGI
 
 #endif

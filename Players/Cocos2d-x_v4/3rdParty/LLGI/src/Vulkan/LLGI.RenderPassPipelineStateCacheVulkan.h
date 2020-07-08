@@ -13,18 +13,17 @@ namespace LLGI
 class RenderPassPipelineStateCacheVulkan : public ReferenceObject
 {
 private:
-	std::unordered_map<RenderPassPipelineStateVulkanKey,
-					   std::shared_ptr<RenderPassPipelineStateVulkan>,
-					   RenderPassPipelineStateVulkanKey::Hash>
+	std::unordered_map<RenderPassPipelineStateKey, std::shared_ptr<RenderPassPipelineStateVulkan>, RenderPassPipelineStateKey::Hash>
 		renderPassPipelineStates_;
 
 	vk::Device device_;
 	ReferenceObject* owner_ = nullptr;
+
 public:
 	RenderPassPipelineStateCacheVulkan(vk::Device device, ReferenceObject* owner);
 	virtual ~RenderPassPipelineStateCacheVulkan();
 
-	RenderPassPipelineStateVulkan* Create(bool isPresentMode, bool hasDepth, const FixedSizeVector<vk::Format, RenderTargetMax>& formats, bool isColorCleared, bool isDepthCleared);
+	RenderPassPipelineStateVulkan* Create(const RenderPassPipelineStateKey key);
 };
 
 } // namespace LLGI

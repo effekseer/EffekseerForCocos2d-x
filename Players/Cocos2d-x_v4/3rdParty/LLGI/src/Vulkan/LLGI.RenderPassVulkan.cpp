@@ -34,7 +34,11 @@ RenderPassVulkan::~RenderPassVulkan()
 	SafeRelease(owner_);
 }
 
-bool RenderPassVulkan::Initialize(const TextureVulkan** textures, int32_t textureCount, TextureVulkan* depthTexture)
+bool RenderPassVulkan::Initialize(const TextureVulkan** textures,
+								  int32_t textureCount,
+								  TextureVulkan* depthTexture,
+								  TextureVulkan* resolvedTexture,
+								  TextureVulkan* resolvedDepthTexture)
 {
 	if (textureCount == 0)
 		return false;
@@ -49,7 +53,22 @@ bool RenderPassVulkan::Initialize(const TextureVulkan** textures, int32_t textur
 		return false;
 	}
 
+	if (!assignResolvedRenderTexture(resolvedTexture))
+	{
+		return false;
+	}
+
+	if (!assignResolvedDepthTexture(resolvedDepthTexture))
+	{
+		return false;
+	}
+
 	if (!getSize(screenSize_, reinterpret_cast<const Texture**>(textures), textureCount, depthTexture))
+	{
+		return false;
+	}
+
+	if (!sanitize())
 	{
 		return false;
 	}
@@ -69,7 +88,7 @@ bool RenderPassVulkan::Initialize(const TextureVulkan** textures, int32_t textur
 	}
 
 	FixedSizeVector<vk::ImageView, RenderTargetMax + 1> views;
-	views.resize(textureCount + (GetHasDepthTexture() ? 1 : 0));
+	views.resize(textureCount);
 
 	for (int32_t i = 0; i < textureCount; i++)
 	{
@@ -78,7 +97,21 @@ bool RenderPassVulkan::Initialize(const TextureVulkan** textures, int32_t textur
 
 	if (GetHasDepthTexture())
 	{
-		views.at(textureCount) = depthTexture->GetView();
+		views.resize(views.size() + 1);
+		views.at(views.size() - 1) = depthTexture->GetView();
+	}
+
+	if (auto resolvedTexture = static_cast<TextureVulkan*>(GetResolvedRenderTexture()))
+	{
+		views.resize(views.size() + 1);
+		views.at(views.size() - 1) = resolvedTexture->GetView();
+	}
+
+	if (auto resolvedTexture = static_cast<TextureVulkan*>(GetResolvedDepthTexture()))
+	{
+		// Wait 1.2
+		// views.resize(views.size() + 1);
+		// views.at(views.size() - 1) = resolvedTexture->GetView();
 	}
 
 	ResetRenderPassPipelineState();
@@ -121,8 +154,7 @@ void RenderPassVulkan::ResetRenderPassPipelineState()
 		formats.at(i) = renderTargetProperties.at(i).colorBufferPtr->GetVulkanFormat();
 	}
 
-	this->renderPassPipelineState = renderPassPipelineStateCache_->Create(
-		GetIsSwapchainScreen(), GetHasDepthTexture(), formats, GetIsColorCleared(), GetIsDepthCleared());
+	this->renderPassPipelineState = renderPassPipelineStateCache_->Create(GetKey());
 }
 
 RenderPassPipelineStateVulkan::RenderPassPipelineStateVulkan(vk::Device device, ReferenceObject* owner)

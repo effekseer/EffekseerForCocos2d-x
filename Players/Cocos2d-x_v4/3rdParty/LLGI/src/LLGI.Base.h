@@ -78,12 +78,14 @@ enum class VertexLayoutFormat
 	R8G8B8A8_UNORM,
 	R8G8B8A8_UINT,
 	R32G32_FLOAT,
+	R32_FLOAT,
 };
 
 enum class TopologyType
 {
 	Triangle,
 	Line,
+	Point,
 };
 
 enum class TextureWrapMode
@@ -124,6 +126,8 @@ struct Vec2I
 	Vec2I() : X(0), Y(0) {}
 
 	Vec2I(int32_t x, int32_t y) : X(x), Y(y) {}
+
+	bool operator==(const Vec2I& o) const { return X == o.X && Y == o.Y; }
 };
 
 struct Vec2F
@@ -187,10 +191,21 @@ enum class TextureFormatType
 	BC2_SRGB = 9,
 	BC3_SRGB = 10,
 
+	D32 = 12,
+	D32S8 = 13,
+	D24S8 = 14,
 	//! for internal
 	B8G8R8A8_UNORM = 254,
-	Uknown = 255,
+	Unknown = 255,
 };
+
+inline bool HasStencil(TextureFormatType format)
+{
+	if (format == TextureFormatType::D24S8)
+		return true;
+
+	return false;
+}
 
 enum class TextureType
 {
@@ -283,7 +298,15 @@ template <typename T> struct ReferenceDeleter
 	}
 };
 
-template <typename T> static std::shared_ptr<T> CreateSharedPtr(T* p) { return std::shared_ptr<T>(p, ReferenceDeleter<T>()); }
+template <typename T> static std::shared_ptr<T> CreateSharedPtr(T* p, bool addRef = false)
+{
+	if (addRef)
+	{
+		SafeAddRef(p);
+	}
+
+	return std::shared_ptr<T>(p, ReferenceDeleter<T>());
+}
 
 template <typename T> inline std::unique_ptr<T, ReferenceDeleter<T>> CreateUniqueReference(T* ptr, bool addRef = false)
 {
@@ -327,7 +350,7 @@ void Log(LogType logType, const char* message);
 
 inline size_t GetAlignedSize(size_t size, size_t alignment) { return (size + (alignment - 1)) & ~(alignment - 1); }
 
-inline size_t GetTextureMemorySize(TextureFormatType format, Vec2I size)
+inline int32_t GetTextureMemorySize(TextureFormatType format, Vec2I size)
 {
 	switch (format)
 	{
@@ -343,6 +366,12 @@ inline size_t GetTextureMemorySize(TextureFormatType format, Vec2I size)
 		return size.X * size.Y * 4;
 	case TextureFormatType::R8_UNORM:
 		return size.X * size.Y * 1;
+	case TextureFormatType::B8G8R8A8_UNORM:
+		return size.X * size.Y * 4;
+	case TextureFormatType::D32:
+		return size.X * size.Y * 4;
+	case TextureFormatType::D24S8:
+		return size.X * size.Y * 4;
 	default:
 		assert(0);
 	}
@@ -373,6 +402,24 @@ public:
 		@brief	return current window size
 	*/
 	virtual Vec2I GetWindowSize() const = 0;
+
+	/**
+		@brief  return current frame buffer  size
+	*/
+	virtual Vec2I GetFrameBufferSize() const { return GetWindowSize(); }
 };
 
 } // namespace LLGI
+
+namespace std
+{
+
+template <> struct hash<LLGI::TextureFormatType>
+{
+	size_t operator()(const LLGI::TextureFormatType& _Keyval) const noexcept
+	{
+		return std::hash<uint32_t>()(static_cast<uint32_t>(_Keyval));
+	}
+};
+
+} // namespace std

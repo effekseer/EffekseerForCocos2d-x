@@ -42,7 +42,11 @@ public:
 	RenderPassVulkan(RenderPassPipelineStateCacheVulkan* renderPassPipelineStateCache, vk::Device device, ReferenceObject* owner);
 	virtual ~RenderPassVulkan();
 
-	bool Initialize(const TextureVulkan** textures, int32_t textureCount, TextureVulkan* depthTexture);
+	bool Initialize(const TextureVulkan** textures,
+					int32_t textureCount,
+					TextureVulkan* depthTexture,
+					TextureVulkan* resolvedTexture,
+					TextureVulkan* resolvedDepthTexture);
 
 	Vec2I GetImageSize() const;
 
@@ -66,35 +70,10 @@ public:
 	virtual ~RenderPassPipelineStateVulkan();
 
 	vk::RenderPass renderPass_;
+	int32_t RenderTargetCount = 0;
 	FixedSizeVector<vk::ImageLayout, RenderTargetMax + 1> finalLayouts_;
 
 	vk::RenderPass GetRenderPass() const;
-};
-
-struct RenderPassPipelineStateVulkanKey
-{
-	bool isPresentMode;
-	FixedSizeVector<vk::Format, RenderTargetMax> formats;
-	bool hasDepth;
-	bool isColorCleared;
-	bool isDepthCleared;
-
-	bool operator==(const RenderPassPipelineStateVulkanKey& value) const
-	{
-		return (isPresentMode == value.isPresentMode && hasDepth == value.hasDepth && formats == value.formats &&
-				isColorCleared == value.isColorCleared && isDepthCleared == value.isDepthCleared);
-	}
-
-	struct Hash
-	{
-		typedef std::size_t result_type;
-
-		std::size_t operator()(const RenderPassPipelineStateVulkanKey& key) const
-		{
-			return key.formats.get_hash() + std::hash<bool>()(key.isPresentMode) + std::hash<bool>()(key.hasDepth) +
-				   std::hash<bool>()(key.isColorCleared) + std::hash<bool>()(key.isDepthCleared);
-		}
-	};
 };
 
 } // namespace LLGI

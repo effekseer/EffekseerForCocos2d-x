@@ -18,11 +18,18 @@ GraphicsDX12::GraphicsDX12(ID3D12Device* device,
 						   std::function<std::tuple<D3D12_CPU_DESCRIPTOR_HANDLE, Texture*>()> getScreenFunc,
 						   std::function<void()> waitFunc,
 						   ID3D12CommandQueue* commandQueue,
-						   int32_t swapBufferCount)
-	: device_(device), getScreenFunc_(getScreenFunc), waitFunc_(waitFunc), commandQueue_(commandQueue), swapBufferCount_(swapBufferCount)
+						   int32_t swapBufferCount,
+						   ReferenceObject* owner)
+	: device_(device)
+	, getScreenFunc_(getScreenFunc)
+	, waitFunc_(waitFunc)
+	, commandQueue_(commandQueue)
+	, swapBufferCount_(swapBufferCount)
+	, owner_(owner)
 {
 	SafeAddRef(device_);
 	SafeAddRef(commandQueue_);
+	SafeAddRef(owner_);
 
 	HRESULT hr;
 	// Create Command Allocator
@@ -32,13 +39,22 @@ GraphicsDX12::GraphicsDX12(ID3D12Device* device,
 
 GraphicsDX12::~GraphicsDX12()
 {
+	WaitFinish();
+
 	SafeRelease(device_);
 	SafeRelease(commandQueue_);
 	SafeRelease(commandAllocator_);
+	SafeRelease(owner_);
 }
 
 void GraphicsDX12::Execute(CommandList* commandList)
 {
+	if (commandList->GetIsInRenderPass())
+	{
+		Log(LogType::Error, "Please call Execute outside of RenderPass");
+		return;
+	}
+
 	auto cl = (CommandListDX12*)commandList;
 	auto cl_internal = cl->GetCommandList();
 	commandQueue_->ExecuteCommandLists(1, (ID3D12CommandList**)(&cl_internal));
@@ -108,7 +124,7 @@ SingleFrameMemoryPool* GraphicsDX12::CreateSingleFrameMemoryPool(int32_t constan
 	if (drawingCount > 512)
 	{
 		Log(LogType::Warning, "drawingCount is too large. It must be lower than 512");
-		//drawingCount = 512;
+		// drawingCount = 512;
 	}
 
 	return new SingleFrameMemoryPoolDX12(this, true, swapBufferCount_, constantBufferPoolSize, drawingCount);
@@ -127,10 +143,29 @@ CommandList* GraphicsDX12::CreateCommandList(SingleFrameMemoryPool* memoryPool)
 	return obj;
 }
 
-RenderPass* GraphicsDX12::CreateRenderPass(const Texture** textures, int32_t textureCount, Texture* depthTexture)
+RenderPass* GraphicsDX12::CreateRenderPass(Texture** textures, int32_t textureCount, Texture* depthTexture)
 {
 	auto renderPass = new RenderPassDX12(this->device_);
-	if (!renderPass->Initialize((TextureDX12**)textures, textureCount, (TextureDX12*)depthTexture))
+	if (!renderPass->Initialize((TextureDX12**)textures, textureCount, (TextureDX12*)depthTexture, nullptr, nullptr))
+	{
+		SafeRelease(renderPass);
+	}
+
+	return renderPass;
+}
+
+RenderPass* GraphicsDX12::CreateRenderPass(Texture* texture, Texture* resolvedTexture, Texture* depthTexture, Texture* resolvedDepthTexture)
+{
+	auto renderPass = new RenderPassDX12(this->device_);
+
+	std::array<TextureDX12*, 1> t;
+	t[0] = const_cast<TextureDX12*>(static_cast<const TextureDX12*>(texture));
+
+	if (!renderPass->Initialize(t.data(),
+								static_cast<int32_t>(t.size()),
+								(TextureDX12*)depthTexture,
+								(TextureDX12*)resolvedTexture,
+								(TextureDX12*)resolvedDepthTexture))
 	{
 		SafeRelease(renderPass);
 	}
@@ -152,7 +187,7 @@ Texture* GraphicsDX12::CreateTexture(uint64_t id)
 Texture* GraphicsDX12::CreateTexture(const TextureInitializationParameter& parameter)
 {
 	auto obj = new TextureDX12(this, true);
-	if (!obj->Initialize(parameter.Size, TextureType::Color, parameter.Format))
+	if (!obj->Initialize(parameter.Size, TextureType::Color, parameter.Format, 1))
 	{
 		SafeRelease(obj);
 		return nullptr;
@@ -163,7 +198,7 @@ Texture* GraphicsDX12::CreateTexture(const TextureInitializationParameter& param
 Texture* GraphicsDX12::CreateRenderTexture(const RenderTextureInitializationParameter& parameter)
 {
 	auto obj = new TextureDX12(this, true);
-	if (!obj->Initialize(parameter.Size, TextureType::Render, parameter.Format))
+	if (!obj->Initialize(parameter.Size, TextureType::Render, parameter.Format, parameter.SamplingCount))
 	{
 		SafeRelease(obj);
 		return nullptr;
@@ -174,7 +209,14 @@ Texture* GraphicsDX12::CreateRenderTexture(const RenderTextureInitializationPara
 Texture* GraphicsDX12::CreateDepthTexture(const DepthTextureInitializationParameter& parameter)
 {
 	auto obj = new TextureDX12(this, true);
-	if (!obj->Initialize(parameter.Size, TextureType::Depth, TextureFormatType::Uknown))
+
+	auto format = TextureFormatType::D32;
+	if (parameter.Mode == DepthTextureMode::DepthStencil)
+	{
+		format = TextureFormatType::D24S8;
+	}
+
+	if (!obj->Initialize(parameter.Size, TextureType::Depth, format, parameter.SamplingCount))
 	{
 		SafeRelease(obj);
 		return nullptr;
@@ -182,83 +224,41 @@ Texture* GraphicsDX12::CreateDepthTexture(const DepthTextureInitializationParame
 	return obj;
 }
 
-std::shared_ptr<RenderPassPipelineStateDX12> GraphicsDX12::CreateRenderPassPipelineState(bool isPresentMode,
-																						 bool hasDepth,
-																						 int32_t renderTargetCount,
-																						 std::array<DXGI_FORMAT, 8> renderTargetFormats)
-{
-	RenderPassPipelineStateDX12Key key;
-	key.isPresentMode = isPresentMode;
-	key.hasDepth = hasDepth;
-	key.RenderTargetCount = renderTargetCount;
-	key.RenderTargetFormats = renderTargetFormats;
-
-	// already?
-	{
-		auto it = renderPassPipelineStates.find(key);
-
-		if (it != renderPassPipelineStates.end())
-		{
-			auto ret = it->second;
-
-			if (ret != nullptr)
-				return ret;
-		}
-	}
-
-	auto ret = CreateSharedPtr<>(new RenderPassPipelineStateDX12());
-	renderPassPipelineStates[key] = ret;
-
-	ret->RenderTargetCount = renderTargetCount;
-	ret->RenderTargetFormats = renderTargetFormats;
-	ret->HasDepth = hasDepth;
-
-	return ret;
-}
-
 RenderPassPipelineState* GraphicsDX12::CreateRenderPassPipelineState(RenderPass* renderPass)
 {
 	auto renderPass_ = static_cast<RenderPassDX12*>(renderPass);
-
-	std::array<DXGI_FORMAT, RenderTargetMax> renderTargetFormats;
-	renderTargetFormats.fill(DXGI_FORMAT_UNKNOWN);
-	int32_t renderTargetCount = renderPass->GetRenderTextureCount();
-	;
-	for (int32_t i = 0; i < renderPass_->GetCount(); i++)
-	{
-		if (renderPass_->GetRenderTarget(i) == nullptr)
-		{
-			renderTargetCount = i;
-			break;
-		}
-
-		renderTargetFormats[i] = renderPass_->GetRenderTarget(i)->texture_->GetDXGIFormat();
-	}
-
-	auto ret = CreateRenderPassPipelineState(
-		renderPass_->GetIsSwapchainScreen(), renderPass->GetHasDepthTexture(), renderTargetCount, renderTargetFormats);
-
-	auto ptr = ret.get();
-	SafeAddRef(ptr);
-	return ptr;
+	auto key = renderPass_->GetKey();
+	return CreateRenderPassPipelineState(key);
 }
 
 RenderPassPipelineState* GraphicsDX12::CreateRenderPassPipelineState(const RenderPassPipelineStateKey& key)
 {
-	std::array<DXGI_FORMAT, RenderTargetMax> renderTargetFormats;
-	renderTargetFormats.fill(DXGI_FORMAT_UNKNOWN);
-	int32_t renderTargetCount = key.RenderTargetFormats.size();
-
-	for (int32_t i = 0; i < renderTargetCount; i++)
+	// already?
 	{
-		renderTargetFormats[i] = ConvertFormat(key.RenderTargetFormats.at(i));
+		auto it = renderPassPipelineStates_.find(key);
+
+		if (it != renderPassPipelineStates_.end())
+		{
+			auto ret = it->second;
+
+			if (ret != nullptr)
+			{
+				auto ptr = ret.get();
+				SafeAddRef(ptr);
+				return ptr;
+			}
+		}
 	}
 
-	auto ret = CreateRenderPassPipelineState(key.IsPresent, key.HasDepth, key.RenderTargetFormats.size(), renderTargetFormats);
+	auto ret = CreateSharedPtr<>(new RenderPassPipelineStateDX12());
+	renderPassPipelineStates_[key] = ret;
+	ret->Key = key;
 
-	auto ptr = ret.get();
-	SafeAddRef(ptr);
-	return ptr;
+	{
+		auto ptr = ret.get();
+		SafeAddRef(ptr);
+		return ptr;
+	}
 }
 
 ID3D12Device* GraphicsDX12::GetDevice() { return device_; }
@@ -272,7 +272,7 @@ ID3D12Resource* GraphicsDX12::CreateResource(D3D12_HEAP_TYPE heapType,
 											 D3D12_RESOURCE_FLAGS flags,
 											 Vec2I size)
 {
-	return CreateResourceBuffer(device_, heapType, format, resourceDimention, resourceState, flags, size);
+	return CreateResourceBuffer(device_, heapType, format, resourceDimention, resourceState, flags, size, 1);
 }
 
 std::vector<uint8_t> GraphicsDX12::CaptureRenderTarget(Texture* renderTarget)
@@ -282,14 +282,25 @@ std::vector<uint8_t> GraphicsDX12::CaptureRenderTarget(Texture* renderTarget)
 		return std::vector<uint8_t>();
 	}
 
+	if (renderTarget->GetFormat() != TextureFormatType::R8G8B8A8_UNORM &&
+		renderTarget->GetFormat() != TextureFormatType::R8G8B8A8_UNORM_SRGB &&
+		renderTarget->GetFormat() != TextureFormatType::R32G32B32A32_FLOAT && renderTarget->GetFormat() != TextureFormatType::R8_UNORM)
+	{
+		Log(LogType::Error, "Unimplemented.");
+		return std::vector<uint8_t>();
+	}
+
 	auto device = GetDevice();
 
 	std::vector<uint8_t> result;
 	auto texture = static_cast<TextureDX12*>(renderTarget);
 	auto size = texture->GetSizeAs2D();
+	D3D12_TEXTURE_COPY_LOCATION src = {}, dst = {};
+
+	auto dstFootprint = texture->GetFootprint().Footprint;
 
 	BufferDX12 dstBuffer;
-	if (!dstBuffer.Initialize(this, texture->GetMemorySize()))
+	if (!dstBuffer.Initialize(this, dstFootprint.RowPitch * dstFootprint.Height))
 		goto FAILED_EXIT;
 
 	ID3D12CommandAllocator* commandAllocator = nullptr;
@@ -307,7 +318,6 @@ std::vector<uint8_t> GraphicsDX12::CaptureRenderTarget(Texture* renderTarget)
 	}
 
 	D3D12_PLACED_SUBRESOURCE_FOOTPRINT footprint;
-	D3D12_TEXTURE_COPY_LOCATION src = {}, dst = {};
 	UINT64 totalSize;
 	auto textureDesc = texture->Get()->GetDesc();
 	device->GetCopyableFootprints(&textureDesc, 0, 1, 0, &footprint, nullptr, nullptr, &totalSize);
@@ -333,10 +343,26 @@ std::vector<uint8_t> GraphicsDX12::CaptureRenderTarget(Texture* renderTarget)
 	SafeRelease(commandList);
 	SafeRelease(commandAllocator);
 
-	result.resize(dstBuffer.GetSize());
-	auto raw = dstBuffer.Lock();
-	memcpy(result.data(), raw, result.size());
-	dstBuffer.Unlock();
+	if (GetTextureMemorySize(renderTarget->GetFormat(), renderTarget->GetSizeAs2D()) != dstBuffer.GetSize())
+	{
+		result.resize(GetTextureMemorySize(renderTarget->GetFormat(), renderTarget->GetSizeAs2D()));
+		auto raw = static_cast<uint8_t*>(dstBuffer.Lock());
+
+		for (int32_t y = 0; y < renderTarget->GetSizeAs2D().Y; y++)
+		{
+			auto pitch = GetTextureMemorySize(renderTarget->GetFormat(), renderTarget->GetSizeAs2D()) / renderTarget->GetSizeAs2D().Y;
+			memcpy(result.data() + pitch * y, raw + dstFootprint.RowPitch * y, pitch);
+		}
+
+		dstBuffer.Unlock();
+	}
+	else
+	{
+		result.resize(dstBuffer.GetSize());
+		auto raw = dstBuffer.Lock();
+		memcpy(result.data(), raw, result.size());
+		dstBuffer.Unlock();
+	}
 
 	return result;
 

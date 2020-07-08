@@ -30,15 +30,14 @@ private:
 	std::unique_ptr<Buffer> cpuBuf;
 	void* data = nullptr;
 
-	bool isRenderPass_ = false;
-	bool isDepthBuffer_ = false;
 	bool isExternalResource_ = false;
 
 public:
 	TextureVulkan();
 	virtual ~TextureVulkan();
 
-	bool Initialize(GraphicsVulkan* graphics, bool isStrongRef, const Vec2I& size, bool isRenderPass);
+	bool Initialize(
+		GraphicsVulkan* graphics, bool isStrongRef, const Vec2I& size, vk::Format format, int samplingCount, TextureType textureType);
 
 	bool InitializeAsRenderTexture(GraphicsVulkan* graphics, bool isStrongRef, const RenderTextureInitializationParameter& parameter);
 
@@ -47,7 +46,12 @@ public:
 	*/
 	bool InitializeAsScreen(const vk::Image& image, const vk::ImageView& imageVew, vk::Format format, const Vec2I& size);
 
-	bool InitializeAsDepthStencil(vk::Device device, vk::PhysicalDevice physicalDevice, const Vec2I& size, ReferenceObject* owner);
+	bool InitializeAsDepthStencil(vk::Device device,
+								  vk::PhysicalDevice physicalDevice,
+								  const Vec2I& size,
+								  vk::Format format,
+								  int samplingCount,
+								  ReferenceObject* owner);
 
 	bool InitializeFromExternal(TextureType type, VkImage image, VkImageView imageView, VkFormat format, const Vec2I& size);
 

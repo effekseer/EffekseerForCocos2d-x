@@ -7,37 +7,38 @@
 namespace LLGI
 {
 
-ConstantBufferMetal::ConstantBufferMetal() { }
+ConstantBufferMetal::ConstantBufferMetal() {}
 
 ConstantBufferMetal::~ConstantBufferMetal() { SafeRelease(buffer_); }
 
 bool ConstantBufferMetal::Initialize(Graphics* graphics, int32_t size)
 {
-    auto buffer = new BufferMetal();
-    if(buffer->Initialize(graphics, size))
-    {
-        buffer_ = buffer;
-        size_ = size;
-        offset_ = 0;
-        return true;
-    }
-    
-    SafeRelease(buffer);
-    return nullptr;
-}
-    
-bool ConstantBufferMetal::InitializeAsShortTime(BufferMetal* buffer, int32_t offset, int32_t size)
-{
-    SafeAssign(buffer_, buffer);
-    size_ = size;
-    offset_ = offset;
-    return true;
+	auto buffer = new BufferMetal();
+	if (buffer->Initialize(graphics, size))
+	{
+		buffer_ = buffer;
+		size_ = size;
+		offset_ = 0;
+		return true;
+	}
+
+	SafeRelease(buffer);
+	return false;
 }
 
-void* ConstantBufferMetal::Lock() {
-    auto buffer = static_cast<uint8_t*>(buffer_->GetImpl()->GetBuffer());
-    buffer += offset_;
-    return buffer;
+bool ConstantBufferMetal::InitializeAsShortTime(BufferMetal* buffer, int32_t offset, int32_t size)
+{
+	SafeAssign(buffer_, buffer);
+	size_ = size;
+	offset_ = offset;
+	return true;
+}
+
+void* ConstantBufferMetal::Lock()
+{
+	auto buffer = static_cast<uint8_t*>(buffer_->GetImpl()->GetBuffer());
+	buffer += offset_;
+	return buffer;
 }
 
 void* ConstantBufferMetal::Lock(int32_t offset, int32_t size)
@@ -54,5 +55,5 @@ void ConstantBufferMetal::Unlock() {}
 int32_t ConstantBufferMetal::GetSize() { return buffer_->GetImpl()->size_; }
 
 Buffer_Impl* ConstantBufferMetal::GetImpl() const { return buffer_->GetImpl(); }
-    
+
 }
