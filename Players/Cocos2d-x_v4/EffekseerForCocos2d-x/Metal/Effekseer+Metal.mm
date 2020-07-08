@@ -188,6 +188,12 @@ void EffectEmitter::preRender(EffekseerRenderer::Renderer* renderer)
     SetMTLObjectsFromCocos2d(r);
 }
 
+void EffectManager::onDestructor()
+{
+    auto r = static_cast<::EffekseerRendererMetal::RendererImplemented*>(renderer2d);
+    r->SetExternalRenderEncoder(nullptr);
+}
+
 void EffectManager::CreateRenderer(int32_t spriteSize)
 {
     auto device = EffekseerGraphicsDevice::create();

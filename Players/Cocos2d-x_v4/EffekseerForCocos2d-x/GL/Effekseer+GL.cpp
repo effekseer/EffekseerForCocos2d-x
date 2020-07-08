@@ -186,6 +186,10 @@ void CleanupTextureData(::Effekseer::TextureData* textureData) {}
 
 void EffectEmitter::preRender(EffekseerRenderer::Renderer*) {}
 
+void EffectManager::onDestructor()
+{
+}
+
 void EffectManager::CreateRenderer(int32_t spriteSize)
 {
 #if (CC_TARGET_PLATFORM == CC_PLATFORM_IOS || CC_TARGET_PLATFORM == CC_PLATFORM_ANDROID)

@@ -86,8 +86,8 @@ private:
 
 	cocos2d::CallbackCommand renderCommand;
 	
-    void preRender(EffekseerRenderer::Renderer*);
-    
+	void preRender(EffekseerRenderer::Renderer*);
+
 public:
 	/**
 		@brief
@@ -342,7 +342,8 @@ private:
 	bool Initialize(cocos2d::Size visibleSize);
 
     void CreateRenderer(int32_t spriteSize);
-    
+	void onDestructor();
+
 public:
 	/**
 		@brief

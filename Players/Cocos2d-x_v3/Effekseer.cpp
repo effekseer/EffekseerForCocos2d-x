@@ -3,6 +3,14 @@
 
 namespace efk
 {
+
+	class ImageAccessor : public cocos2d::Image
+	{
+	public:
+		static bool getPngPremultipledAlphaEnabled() { return PNG_PREMULTIPLIED_ALPHA_ENABLED; }
+	};
+
+
 	int ccNextPOT(int x)
 	{
 		x = x - 1;
@@ -300,6 +308,10 @@ namespace efk
 			cocos2d::Image* image = new cocos2d::Image();
 			cocos2d::Texture2D* texture = new cocos2d::Texture2D();
 			bool hasMipmap = false;
+
+			auto backup = ImageAccessor::getPngPremultipledAlphaEnabled();
+			cocos2d::Image::setPNGPremultipliedAlphaEnabled(false);
+
 			if (image != nullptr &&
 				texture != nullptr &&
 				image->initWithImageData((const uint8_t*)data_texture, size_texture))
@@ -332,6 +344,8 @@ namespace efk
 			g_filePath2EffectData[key] = textureData;
 			g_glTex2FilePath[textureData] = key;
 			
+			cocos2d::Image::setPNGPremultipliedAlphaEnabled(backup);
+
 			return textureData;
 		}
 		return NULL;

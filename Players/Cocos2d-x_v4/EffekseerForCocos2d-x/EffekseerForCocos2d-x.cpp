@@ -8,6 +8,13 @@
 namespace efk
 {
 
+
+class ImageAccessor : public cocos2d::Image
+{
+public:
+	static bool getPngPremultipledAlphaEnabled() { return PNG_PREMULTIPLIED_ALPHA_ENABLED; }
+};
+
 Effekseer::ModelLoader* CreateModelLoader(Effekseer::FileInterface*);
 
 ::Effekseer::MaterialLoader* CreateMaterialLoader(Effekseer::FileInterface*);
@@ -185,6 +192,10 @@ Effekseer::TextureData* TextureLoader::Load(const EFK_CHAR* path, ::Effekseer::T
 		cocos2d::Image* image = new cocos2d::Image();
 		cocos2d::Texture2D* texture = new cocos2d::Texture2D();
 		bool hasMipmap = false;
+
+		auto backup = ImageAccessor::getPngPremultipledAlphaEnabled();
+		cocos2d::Image::setPNGPremultipliedAlphaEnabled(false);
+
 		if (image != nullptr && texture != nullptr && image->initWithImageData((const uint8_t*)data_texture, size_texture))
 		{
 			if (texture->initWithImage(image))
@@ -219,6 +230,8 @@ Effekseer::TextureData* TextureLoader::Load(const EFK_CHAR* path, ::Effekseer::T
 		g_filePath2CTex[key] = texture;
 		g_filePath2EffectData[key] = textureData;
 		g_glTex2FilePath[textureData] = key;
+
+		cocos2d::Image::setPNGPremultipliedAlphaEnabled(backup);
 
 		return textureData;
 	}
@@ -874,6 +887,8 @@ EffectManager::~EffectManager()
 		delete distortingCallback;
 		distortingCallback = nullptr;
 	}
+
+	onDestructor();
 
 	if (manager2d != nullptr)
 	{

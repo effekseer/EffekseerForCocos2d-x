@@ -46,6 +46,10 @@ if (USE_OPENGL3)
 	add_definitions(-D__EFFEKSEER_RENDERER_GL3__)
 endif()
 
+# Substitute
+function(clang_format target)
+endfunction()
+
 # a function to generate filters by folders
 function(FilterFolder srcs)
     foreach(FILE ${srcs}) 
