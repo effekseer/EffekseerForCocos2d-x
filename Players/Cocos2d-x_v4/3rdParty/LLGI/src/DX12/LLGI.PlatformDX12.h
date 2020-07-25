@@ -29,7 +29,7 @@ private:
 
 	ID3D12DescriptorHeap* descriptorHeapRTV = nullptr;
 	D3D12_CPU_DESCRIPTOR_HANDLE handleRTV[SwapBufferCount];
-	ID3D12Resource* renderResources_[SwapBufferCount];
+	std::array<ID3D12Resource*, SwapBufferCount> renderResources_;
 	std::array<TextureDX12*, SwapBufferCount> renderTargets_;
 	std::array<RenderPassDX12*, SwapBufferCount> renderPasses_;
 

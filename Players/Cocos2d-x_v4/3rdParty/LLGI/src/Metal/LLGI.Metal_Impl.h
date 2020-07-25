@@ -79,6 +79,9 @@ struct CommandList_Impl
 	void End();
 	void BeginRenderPass(RenderPass_Impl* renderPass);
 	void EndRenderPass();
+	void BeginRenderPassWithPlatform(id<MTLRenderCommandEncoder> renderEncoder);
+	void EndRenderPassWithPlatform();
+
 	void SetScissor(int32_t x, int32_t y, int32_t width, int32_t height);
 	void SetVertexBuffer(Buffer_Impl* vertexBuffer, int32_t stride, int32_t offset);
 };

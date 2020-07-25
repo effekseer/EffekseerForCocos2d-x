@@ -5,7 +5,7 @@
 
 namespace LLGI
 {
-static constexpr int NumTexture = 8;
+static constexpr int NumTexture = TextureSlotMax;
 
 class VertexBuffer;
 class IndexBuffer;

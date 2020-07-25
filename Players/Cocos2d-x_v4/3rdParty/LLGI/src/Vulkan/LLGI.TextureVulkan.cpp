@@ -8,16 +8,19 @@ TextureVulkan::TextureVulkan() {}
 
 TextureVulkan::~TextureVulkan()
 {
+	if (view_ && type_ != TextureType::Screen)
+	{
+		device_.destroyImageView(view_);
+		view_ = nullptr;
+	}
+
 	if (image_)
 	{
-		if (!isExternalResource_)
+		if (type_ != TextureType::Screen && !isExternalResource_)
 		{
-			device_.destroyImageView(view_);
 			device_.destroyImage(image_);
 			device_.freeMemory(devMem_);
-
 			image_ = nullptr;
-			view_ = nullptr;
 		}
 	}
 
@@ -224,22 +227,33 @@ bool TextureVulkan::InitializeAsDepthStencil(
 	return true;
 }
 
-bool TextureVulkan::InitializeFromExternal(TextureType type, VkImage image, VkImageView imageView, VkFormat format, const Vec2I& size)
+bool TextureVulkan::InitializeAsExternal(vk::Device device, const VulkanImageInfo& info, ReferenceObject* owner)
 {
-	type_ = type;
-	image_ = vk::Image(image);
-	view_ = vk::ImageView(imageView);
-	vkTextureFormat_ = vk::Format(format);
-	textureSize = size;
-	isExternalResource_ = true;
-	format_ = VulkanHelper::VkFormatToTextureFormat(static_cast<VkFormat>(vkTextureFormat_));
+	type_ = TextureType::Color;
+	textureSize = Vec2I(0, 0);
+	device_ = device;
 
-	if (type_ == TextureType::Depth)
+	owner_ = owner;
+	SafeAddRef(owner_);
+
+	image_ = info.image;
+
+	vk::ImageViewCreateInfo viewCreateInfo;
+	viewCreateInfo.viewType = vk::ImageViewType::e2D;
+	viewCreateInfo.format = (vk::Format)info.format;
+	viewCreateInfo.components = {vk::ComponentSwizzle::eR, vk::ComponentSwizzle::eG, vk::ComponentSwizzle::eB, vk::ComponentSwizzle::eA};
+	viewCreateInfo.subresourceRange.aspectMask = (vk::ImageAspectFlagBits)info.aspect;
+	viewCreateInfo.subresourceRange.levelCount = 1;
+	viewCreateInfo.subresourceRange.layerCount = 1;
+	viewCreateInfo.image = image_;
+	view_ = device.createImageView(viewCreateInfo);
+
+	if (!view_)
 	{
-		subresourceRange_.aspectMask = vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil;
-		subresourceRange_.levelCount = 1;
-		subresourceRange_.layerCount = 1;
+		return false;
 	}
+
+	isExternalResource_ = true;
 
 	return true;
 }

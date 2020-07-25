@@ -77,7 +77,7 @@ private:
 
 	RenderPassPipelineStateCacheVulkan* renderPassPipelineStateCache_ = nullptr;
 
-	std::vector<std::shared_ptr<RenderPassVulkan>> renderPasses;
+	std::vector<std::shared_ptr<RenderPassVulkan>> renderPasses_;
 
 	std::vector<SwapBuffer> swapBuffers;
 

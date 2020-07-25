@@ -9,6 +9,11 @@ namespace LLGI
 struct CommandList_Impl;
 class IndexBuffer;
 
+struct CommandListMetalPlatformRenderPassContext
+{
+	id<MTLRenderCommandEncoder> RenderEncoder = nullptr;
+};
+
 class CommandListMetal : public CommandList
 {
 	CommandList_Impl* impl = nullptr;
@@ -32,6 +37,12 @@ public:
 	void EndRenderPass() override;
 
 	void WaitUntilCompleted() override;
+
+	bool BeginWithPlatform(void* platformContextPtr) override;
+	void EndWithPlatform() override;
+
+	bool BeginRenderPassWithPlatformPtr(void* platformPtr) override;
+	bool EndRenderPassWithPlatformPtr() override;
 
 	CommandList_Impl* GetImpl();
 };

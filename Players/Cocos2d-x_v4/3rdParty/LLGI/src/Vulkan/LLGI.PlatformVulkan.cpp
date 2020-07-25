@@ -179,7 +179,7 @@ bool PlatformVulkan::CreateDepthBuffer(Vec2I windowSize)
 
 void PlatformVulkan::CreateRenderPass()
 {
-	renderPasses.clear();
+	renderPasses_.clear();
 	for (size_t i = 0; i < swapBuffers.size(); i++)
 	{
 		auto renderPass = new RenderPassVulkan(renderPassPipelineStateCache_, vkDevice_, nullptr);
@@ -189,7 +189,7 @@ void PlatformVulkan::CreateRenderPass()
 
 		renderPass->Initialize(const_cast<const TextureVulkan**>(textures.data()), 1, depthStencilTexture_, nullptr, nullptr);
 
-		renderPasses.emplace_back(CreateSharedPtr(renderPass));
+		renderPasses_.emplace_back(CreateSharedPtr(renderPass));
 	}
 }
 
@@ -230,62 +230,16 @@ vk::Result PlatformVulkan::Present(vk::Semaphore semaphore)
 	presentInfo.pImageIndices = &frameIndex;
 	presentInfo.waitSemaphoreCount = semaphore ? 1 : 0;
 	presentInfo.pWaitSemaphores = &semaphore;
-	return vkQueue.presentKHR(presentInfo);
+
+	try
+	{
+		return vkQueue.presentKHR(presentInfo);
+	}
+	catch (const vk::OutOfDateKHRError& e)
+	{
+		return vk::Result::eErrorOutOfDateKHR;
+	}
 }
-
-/*
-void PlatformVulkan::SetImageBarrior(vk::CommandBuffer cmdbuffer,
-									 vk::Image image,
-									 vk::ImageLayout oldImageLayout,
-									 vk::ImageLayout newImageLayout,
-									 vk::ImageSubresourceRange subresourceRange)
-{
-	assert(newImageLayout != vk::ImageLayout::eUndefined);
-	assert(newImageLayout != vk::ImageLayout::ePreinitialized);
-
-	// setup image barrior object
-	vk::ImageMemoryBarrier imageMemoryBarrier;
-	imageMemoryBarrier.oldLayout = oldImageLayout;
-	imageMemoryBarrier.newLayout = newImageLayout;
-	imageMemoryBarrier.image = image;
-	imageMemoryBarrier.subresourceRange = subresourceRange;
-
-	// current layout
-	if (oldImageLayout == vk::ImageLayout::ePreinitialized)
-		imageMemoryBarrier.srcAccessMask = vk::AccessFlagBits::eHostWrite | vk::AccessFlagBits::eTransferWrite;
-	else if (oldImageLayout == vk::ImageLayout::eColorAttachmentOptimal)
-		imageMemoryBarrier.srcAccessMask = vk::AccessFlagBits::eColorAttachmentWrite;
-	else if (oldImageLayout == vk::ImageLayout::eDepthStencilAttachmentOptimal)
-		imageMemoryBarrier.srcAccessMask = vk::AccessFlagBits::eDepthStencilAttachmentWrite;
-	else if (oldImageLayout == vk::ImageLayout::eTransferSrcOptimal)
-		imageMemoryBarrier.srcAccessMask = vk::AccessFlagBits::eTransferRead;
-	else if (oldImageLayout == vk::ImageLayout::eShaderReadOnlyOptimal)
-		imageMemoryBarrier.srcAccessMask = vk::AccessFlagBits::eShaderRead;
-	else if (oldImageLayout == vk::ImageLayout::ePresentSrcKHR)
-		imageMemoryBarrier.srcAccessMask = vk::AccessFlagBits::eMemoryRead;
-
-	// next layout
-	if (newImageLayout == vk::ImageLayout::eTransferDstOptimal)
-		imageMemoryBarrier.dstAccessMask = vk::AccessFlagBits::eTransferRead;
-	else if (newImageLayout == vk::ImageLayout::eTransferSrcOptimal)
-		imageMemoryBarrier.dstAccessMask = vk::AccessFlagBits::eShaderRead;
-	else if (newImageLayout == vk::ImageLayout::eColorAttachmentOptimal)
-		imageMemoryBarrier.dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite;
-	else if (newImageLayout == vk::ImageLayout::eDepthStencilAttachmentOptimal)
-		imageMemoryBarrier.dstAccessMask = vk::AccessFlagBits::eDepthStencilAttachmentWrite;
-	else if (newImageLayout == vk::ImageLayout::eShaderReadOnlyOptimal)
-		imageMemoryBarrier.dstAccessMask = vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eInputAttachmentRead;
-
-	// Put barrier on top
-	// Put barrier inside setup command buffer
-	cmdbuffer.pipelineBarrier(vk::PipelineStageFlagBits::eAllCommands,
-							  vk::PipelineStageFlagBits::eAllCommands,
-							  vk::DependencyFlags(),
-							  nullptr,
-							  nullptr,
-							  imageMemoryBarrier);
-}
-*/
 
 void PlatformVulkan::Reset()
 {
@@ -313,7 +267,7 @@ void PlatformVulkan::Reset()
 			swapchain_ = nullptr;
 		}
 
-		renderPasses.clear();
+		renderPasses_.clear();
 
 		if (vkPipelineCache_)
 		{
@@ -632,78 +586,6 @@ bool PlatformVulkan::Initialize(Window* window, bool waitVSync)
 			return false;
 		}
 
-		/*
-		{
-			// check a format whether specified format is supported
-			vk::Format depthFormat = vk::Format::eD32SfloatS8Uint;
-			vk::FormatProperties formatProps = vkPhysicalDevice.getFormatProperties(depthFormat);
-			assert(formatProps.optimalTilingFeatures & vk::FormatFeatureFlagBits::eDepthStencilAttachment);
-
-			vk::ImageAspectFlags aspect = vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil;
-
-			// create an image
-			vk::ImageCreateInfo imageCreateInfo;
-			imageCreateInfo.imageType = vk::ImageType::e2D;
-			imageCreateInfo.extent = vk::Extent3D(windowSize.X, windowSize.Y, 1);
-			imageCreateInfo.format = depthFormat;
-			imageCreateInfo.mipLevels = 1;
-			imageCreateInfo.arrayLayers = 1;
-			imageCreateInfo.usage = vk::ImageUsageFlagBits::eDepthStencilAttachment;
-			depthStencilBuffer.image = vkDevice_.createImage(imageCreateInfo);
-
-			// allocate memory
-			vk::MemoryRequirements memReqs = vkDevice_.getImageMemoryRequirements(depthStencilBuffer.image);
-			vk::MemoryAllocateInfo memAlloc;
-			memAlloc.allocationSize = memReqs.size;
-			memAlloc.memoryTypeIndex =
-				GetMemoryTypeIndex(vkPhysicalDevice, memReqs.memoryTypeBits, vk::MemoryPropertyFlagBits::eDeviceLocal);
-			depthStencilBuffer.devMem = vkDevice_.allocateMemory(memAlloc);
-			vkDevice_.bindImageMemory(depthStencilBuffer.image, depthStencilBuffer.devMem, 0);
-
-			// create view
-			vk::ImageViewCreateInfo viewCreateInfo;
-			viewCreateInfo.viewType = vk::ImageViewType::e2D;
-			viewCreateInfo.format = depthFormat;
-			viewCreateInfo.components = {
-				vk::ComponentSwizzle::eR, vk::ComponentSwizzle::eG, vk::ComponentSwizzle::eB, vk::ComponentSwizzle::eA};
-			viewCreateInfo.subresourceRange.aspectMask = aspect;
-			viewCreateInfo.subresourceRange.levelCount = 1;
-			viewCreateInfo.subresourceRange.layerCount = 1;
-			viewCreateInfo.image = depthStencilBuffer.image;
-			depthStencilBuffer.view = vkDevice_.createImageView(viewCreateInfo);
-
-			// change layout(nt needed?)
-
-			{
-				vk::CommandBufferBeginInfo cmdBufferBeginInfo;
-				vk::BufferCopy copyRegion;
-
-				// start to store commands
-				vkCmdBuffers[0].begin(cmdBufferBeginInfo);
-
-				vk::ImageSubresourceRange subresourceRange;
-				subresourceRange.aspectMask = aspect;
-				subresourceRange.levelCount = 1;
-				subresourceRange.layerCount = 1;
-				SetImageBarrior(vkCmdBuffers[0],
-								depthStencilBuffer.image,
-								vk::ImageLayout::eUndefined,
-								vk::ImageLayout::eDepthStencilAttachmentOptimal,
-								subresourceRange);
-
-				vkCmdBuffers[0].end();
-
-				// submit and wait
-				std::array<vk::SubmitInfo, 1> copySubmitInfos;
-				copySubmitInfos[0].commandBufferCount = 1;
-				copySubmitInfos[0].pCommandBuffers = &vkCmdBuffers[0];
-
-				vkQueue.submit(copySubmitInfos.size(), copySubmitInfos.data(), vk::Fence());
-				vkQueue.waitIdle();
-			}
-		}
-		*/
-
 		windowSize_ = window->GetWindowSize();
 		renderPassPipelineStateCache_ = new RenderPassPipelineStateCacheVulkan(vkDevice_, nullptr);
 
@@ -804,7 +686,16 @@ void PlatformVulkan::Present()
 		assert(fenceRes == vk::Result::eSuccess);
 	}
 
-	Present(vkRenderComplete_);
+	auto result = Present(vkRenderComplete_);
+
+	// TODO optimize it
+	if (result == vk::Result::eErrorOutOfDateKHR)
+	{
+		vkDevice_.waitIdle();
+		CreateSwapChain(windowSize_, waitVSync_);
+		CreateDepthBuffer(windowSize_);
+		CreateRenderPass();
+	}
 }
 
 void PlatformVulkan::SetWindowSize(const Vec2I& windowSize)
@@ -848,7 +739,7 @@ Graphics* PlatformVulkan::CreateGraphics()
 
 RenderPass* PlatformVulkan::GetCurrentScreen(const Color8& clearColor, bool isColorCleared, bool isDepthCleared)
 {
-	auto currentRenderPass = renderPasses[frameIndex];
+	auto currentRenderPass = renderPasses_[frameIndex];
 
 	currentRenderPass->SetClearColor(clearColor);
 	currentRenderPass->SetIsColorCleared(isColorCleared);

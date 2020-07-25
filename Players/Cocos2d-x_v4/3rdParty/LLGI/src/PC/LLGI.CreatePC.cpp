@@ -107,6 +107,8 @@ Platform* CreatePlatform(const PlatformParameter& parameter, Window* window)
 
 Compiler* CreateCompiler(DeviceType device)
 {
+#ifdef ENABLE_CREATE_COMPILER
+
 #ifdef _WIN32
 	if (device == DeviceType::Default || device == DeviceType::DirectX12)
 	{
@@ -132,6 +134,7 @@ Compiler* CreateCompiler(DeviceType device)
 	return obj;
 #endif
 
+#endif
 	return nullptr;
 }
 

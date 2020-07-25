@@ -53,7 +53,7 @@ public:
 								  int samplingCount,
 								  ReferenceObject* owner);
 
-	bool InitializeFromExternal(TextureType type, VkImage image, VkImageView imageView, VkFormat format, const Vec2I& size);
+	bool InitializeAsExternal(vk::Device device, const VulkanImageInfo& info, ReferenceObject* owner);
 
 	void* Lock() override;
 	void Unlock() override;

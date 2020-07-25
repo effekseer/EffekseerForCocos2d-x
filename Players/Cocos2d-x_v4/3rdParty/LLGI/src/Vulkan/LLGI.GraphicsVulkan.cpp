@@ -179,7 +179,19 @@ GraphicsVulkan::CreateRenderPass(Texture* texture, Texture* resolvedTexture, Tex
 	return renderPass;
 }
 
-Texture* GraphicsVulkan::CreateTexture(uint64_t id) { throw "Not inplemented"; }
+Texture* GraphicsVulkan::CreateTexture(uint64_t id)
+{
+	auto info = reinterpret_cast<VulkanImageInfo*>(id);
+	auto obj = new TextureVulkan();
+
+	if (!obj->InitializeAsExternal(GetDevice(), *info, this))
+	{
+		SafeRelease(obj);
+		return nullptr;
+	}
+
+	return obj;
+}
 
 Texture* GraphicsVulkan::CreateTexture(const TextureInitializationParameter& parameter)
 {

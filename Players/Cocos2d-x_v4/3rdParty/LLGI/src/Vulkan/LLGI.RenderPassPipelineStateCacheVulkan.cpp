@@ -104,7 +104,7 @@ RenderPassPipelineStateVulkan* RenderPassPipelineStateCacheVulkan::Create(const 
 		attachmentDescs.at(colorCount).initialLayout =
 			(key.IsDepthCleared) ? vk::ImageLayout::eUndefined : vk::ImageLayout::eDepthStencilAttachmentOptimal;
 		attachmentDescs.at(colorCount).finalLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
-		//attachmentDescs.at(colorCount).finalLayout = vk::ImageLayout::eDepthStencilReadOnlyOptimal;
+		// attachmentDescs.at(colorCount).finalLayout = vk::ImageLayout::eDepthStencilReadOnlyOptimal;
 	}
 
 	// resolve

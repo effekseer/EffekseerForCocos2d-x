@@ -201,42 +201,34 @@ void TextureDX12::Unlock()
 	ID3D12CommandAllocator* commandAllocator = nullptr;
 	ID3D12GraphicsCommandList* commandList = nullptr;
 	ID3D12Fence* fence = nullptr;
-	ID3D12CommandQueue* commandQueue = nullptr;
-	HANDLE event = CreateEvent(0, 0, 0, 0);
 
 	D3D12_TEXTURE_COPY_LOCATION src = {}, dst = {};
-	D3D12_COMMAND_QUEUE_DESC queueDesc = {};
+
+	HANDLE event = CreateEvent(0, 0, 0, 0);
+
+	if (event == nullptr)
+	{
+		goto FAILED_EXIT;
+	}
 
 	auto hr = device_->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&commandAllocator));
 	if (FAILED(hr))
 	{
+		SHOW_DX12_ERROR(hr, device_);
 		goto FAILED_EXIT;
 	}
 
 	hr = device_->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, commandAllocator, NULL, IID_PPV_ARGS(&commandList));
 	if (FAILED(hr))
 	{
+		SHOW_DX12_ERROR(hr, device_);
 		goto FAILED_EXIT;
 	}
 
 	hr = device_->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence));
 	if (FAILED(hr))
 	{
-		goto FAILED_EXIT;
-	}
-
-	if (event == nullptr)
-	{
-		goto FAILED_EXIT;
-	}
-
-	queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
-	queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
-	queueDesc.NodeMask = 1;
-
-	hr = device_->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&commandQueue));
-	if (event == nullptr)
-	{
+		SHOW_DX12_ERROR(hr, device_);
 		goto FAILED_EXIT;
 	}
 
@@ -256,17 +248,16 @@ void TextureDX12::Unlock()
 
 	commandList->Close();
 	ID3D12CommandList* list[] = {commandList};
-	commandQueue->ExecuteCommandLists(1, list);
+	commandQueue_->ExecuteCommandLists(1, list);
 
 	// TODO optimize it
-	hr = commandQueue->Signal(fence, 1);
+	hr = commandQueue_->Signal(fence, 1);
 	fence->SetEventOnCompletion(1, event);
 	WaitForSingleObject(event, INFINITE);
 
 FAILED_EXIT:
 	SafeRelease(commandList);
 	SafeRelease(commandAllocator);
-	SafeRelease(commandQueue);
 	SafeRelease(fence);
 
 	if (event != nullptr)

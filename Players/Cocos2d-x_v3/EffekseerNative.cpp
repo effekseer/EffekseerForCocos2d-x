@@ -8955,9 +8955,9 @@ private:
 
 	// buffers which is allocated while initializing
 	// 初期化中に確保されたバッファ
-	std::unique_ptr<InstanceChunk[]> reservedChunksBuffer_;
-	std::unique_ptr<uint8_t[]> reservedGroupBuffer_;
-	std::unique_ptr<uint8_t[]> reservedContainerBuffer_;
+	CustomAlignedVector<InstanceChunk> reservedChunksBuffer_;
+	CustomAlignedVector<uint8_t> reservedGroupBuffer_;
+	CustomAlignedVector<uint8_t> reservedContainerBuffer_;
 
 	// pooled instances. Thease are not used and waiting to be used.
 	// プールされたインスタンス。使用されておらず、使用されてるのを待っている。
@@ -10231,7 +10231,7 @@ namespace Effekseer
 	@note
 	インスタンスコンテナ内でさらにインスタンスをグループ化するクラス
 */
-class InstanceGroup
+class alignas(32) InstanceGroup
 {
 friend class InstanceContainer;
 friend class ManagerImplemented;
@@ -15709,10 +15709,10 @@ ManagerImplemented::ManagerImplemented(int instance_max, bool autoFlip)
 	m_renderingDrawSets.reserve(64);
 
 	int chunk_max = (m_instance_max + InstanceChunk::InstancesOfChunk - 1) / InstanceChunk::InstancesOfChunk;
-	reservedChunksBuffer_.reset(new InstanceChunk[chunk_max]);
-	for (int i = 0; i < chunk_max; i++)
+	reservedChunksBuffer_.resize(chunk_max);
+	for (auto& chunk : reservedChunksBuffer_)
 	{
-		pooledChunks_.push(&reservedChunksBuffer_[i]);
+		pooledChunks_.push(&chunk);
 	}
 	for (auto& chunks : instanceChunks_)
 	{
@@ -15721,17 +15721,17 @@ ManagerImplemented::ManagerImplemented(int instance_max, bool autoFlip)
 	std::fill(creatableChunkOffsets_.begin(), creatableChunkOffsets_.end(), 0);
 
 	// Pooling InstanceGroup
-	reservedGroupBuffer_.reset(new uint8_t[instance_max * sizeof(InstanceGroup)]);
+	reservedGroupBuffer_.resize(instance_max * sizeof(InstanceGroup));
 	for (int i = 0; i < instance_max; i++)
 	{
 		pooledGroups_.push((InstanceGroup*)&reservedGroupBuffer_[i * sizeof(InstanceGroup)]);
 	}
 
 	// Pooling InstanceGroup
-	reservedContainerBuffer_.reset(new uint8_t[instance_max * sizeof(InstanceGroup)]);
+	reservedContainerBuffer_.resize(instance_max * sizeof(InstanceContainer));
 	for (int i = 0; i < instance_max; i++)
 	{
-		pooledContainers_.push((InstanceContainer*)&reservedContainerBuffer_[i * sizeof(InstanceGroup)]);
+		pooledContainers_.push((InstanceContainer*)&reservedContainerBuffer_[i * sizeof(InstanceContainer)]);
 	}
 
 	m_setting->SetEffectLoader(new DefaultEffectLoader());
@@ -20228,20 +20228,28 @@ std::array<float, 4> InternalScript::Execute(const std::array<float, 4>& externa
 			else if (type == OperatorType::Div)
 				registers[index] = tempInputs[0] / tempInputs[1];
 			else if (type == OperatorType::Sine)
-				registers[index] = sin(tempInputs[0]);
+			{
+				registers[index] = sin(tempInputs[j]);
+			}
 			else if (type == OperatorType::Cos)
-				registers[index] = cos(tempInputs[0]);
+			{
+				registers[index] = cos(tempInputs[j]);
+			}
 			else if (type == OperatorType::UnaryAdd)
+			{
 				registers[index] = tempInputs[0];
+			}
 			else if (type == OperatorType::UnarySub)
+			{
 				registers[index] = -tempInputs[0];
+			}
 			else if (type == OperatorType::Rand)
 			{
 				registers[index] = randFuncCallback(userData);
 			}
 			else if (type == OperatorType::Rand_WithSeed)
 			{
-				registers[index] = randSeedFuncCallback(userData, tempInputs[0]);
+				registers[index] = randSeedFuncCallback(userData, tempInputs[j]);
 			}
 			else if (type == OperatorType::Constant)
 			{

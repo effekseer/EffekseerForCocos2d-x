@@ -4,6 +4,66 @@
 namespace LLGI
 {
 
+static bool isGPUDebugEnabled_ = false;
+
+bool GetIsGPUDebugEnabled() { return isGPUDebugEnabled_; }
+
+void SetIsGPUDebugEnabled(bool value) { isGPUDebugEnabled_ = value; }
+
+#if defined(_DEBUG)
+
+#ifdef __DRED__
+int32_t dredSettingsCount_ = 0;
+ID3D12DeviceRemovedExtendedDataSettings* pDredSettings = nullptr;
+#endif
+
+void StartDX12_DRED_Debug()
+{
+#ifdef __DRED__
+	if (dredSettingsCount_ == 0)
+	{
+		D3D12GetDebugInterface(IID_PPV_ARGS(&pDredSettings));
+		pDredSettings->SetAutoBreadcrumbsEnablement(D3D12_DRED_ENABLEMENT_FORCED_ON);
+		pDredSettings->SetPageFaultEnablement(D3D12_DRED_ENABLEMENT_FORCED_ON);
+	}
+	dredSettingsCount_++;
+#endif
+}
+
+void EndDX12_DRED_Debug()
+{
+#ifdef __DRED__
+	dredSettingsCount_--;
+	if (dredSettingsCount_ == 0)
+	{
+		if (pDredSettings != nullptr)
+		{
+			pDredSettings->Release();
+			pDredSettings = nullptr;
+		}
+	}
+#endif
+}
+#endif
+
+void DumpDX12_DRED(ID3D12Device* device)
+{
+	if (device->GetDeviceRemovedReason() == S_OK)
+		return;
+#if defined(_DEBUG)
+#ifdef __DRED__
+	ID3D12DeviceRemovedExtendedData* pDred = nullptr;
+	device->QueryInterface(IID_PPV_ARGS(&pDred));
+	D3D12_DRED_AUTO_BREADCRUMBS_OUTPUT DredAutoBreadcrumbsOutput;
+	D3D12_DRED_PAGE_FAULT_OUTPUT DredPageFaultOutput;
+	pDred->GetAutoBreadcrumbsOutput(&DredAutoBreadcrumbsOutput);
+	pDred->GetPageFaultAllocationOutput(&DredPageFaultOutput);
+
+	pDred->Release();
+#endif
+#endif
+}
+
 ID3D12Resource* CreateResourceBuffer(ID3D12Device* device,
 									 D3D12_HEAP_TYPE heapType,
 									 DXGI_FORMAT format,
@@ -22,8 +82,8 @@ ID3D12Resource* CreateResourceBuffer(ID3D12Device* device,
 	heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
 	heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
 
-	heapProps.CreationNodeMask = 1; // TODO: set properly for multi-adaptor.
-	heapProps.VisibleNodeMask = 1;	// TODO: set properly for multi-adaptor.
+	heapProps.CreationNodeMask = DirectX12::GetNodeMask();
+	heapProps.VisibleNodeMask = DirectX12::GetNodeMask();
 
 	if (samplingCount > 1)
 	{
@@ -35,6 +95,7 @@ ID3D12Resource* CreateResourceBuffer(ID3D12Device* device,
 		HRESULT hr = device->CheckFeatureSupport(D3D12_FEATURE_MULTISAMPLE_QUALITY_LEVELS, &msaaQualityDesc, sizeof(msaaQualityDesc));
 		if (FAILED(hr))
 		{
+			SHOW_DX12_ERROR(hr, device);
 			return nullptr;
 		}
 	}
@@ -73,6 +134,7 @@ ID3D12Resource* CreateResourceBuffer(ID3D12Device* device,
 
 	if (FAILED(hr))
 	{
+		SHOW_DX12_ERROR(hr, device);
 		SafeRelease(resource);
 		return nullptr;
 	}
@@ -105,6 +167,9 @@ DXGI_FORMAT ConvertFormat(TextureFormatType format)
 	if (format == TextureFormatType::D24S8)
 		return DXGI_FORMAT_D24_UNORM_S8_UINT;
 
+	if (format == TextureFormatType::Unknown)
+		return DXGI_FORMAT_UNKNOWN;
+
 	throw "Not implemented";
 	return DXGI_FORMAT_UNKNOWN;
 }
@@ -135,12 +200,17 @@ TextureFormatType ConvertFormat(DXGI_FORMAT format)
 	if (format == DXGI_FORMAT_D24_UNORM_S8_UINT)
 		return TextureFormatType::D24S8;
 
+	if (format == DXGI_FORMAT_UNKNOWN)
+		return TextureFormatType::Unknown;
+
 	throw "Not implemented";
 	return TextureFormatType::Unknown;
 }
 
 namespace DirectX12
 {
+
+static int nodeMask_ = 1;
 
 DXGI_FORMAT GetGeneratedFormat(DXGI_FORMAT format)
 {
@@ -163,6 +233,10 @@ DXGI_FORMAT GetShaderResourceViewFormat(DXGI_FORMAT format)
 
 	return format;
 }
+
+int32_t GetNodeMask() { return nodeMask_; }
+
+void SetNodeMask(int nodeMask) { nodeMask_ = nodeMask; }
 
 } // namespace DirectX12
 

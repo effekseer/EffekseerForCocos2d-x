@@ -71,7 +71,7 @@ public:
 
 	Texture* CreateDepthTexture(const DepthTextureInitializationParameter& parameter) override;
 
-	Texture* CreateTexture(uint64_t id) override;
+	Texture* CreateTexture(uint64_t texid) override;
 
 	RenderPassPipelineState* CreateRenderPassPipelineState(RenderPass* renderPass) override;
 

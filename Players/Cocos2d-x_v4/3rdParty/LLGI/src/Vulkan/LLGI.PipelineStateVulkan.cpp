@@ -371,24 +371,21 @@ bool PipelineStateVulkan::Compile()
 	graphicsPipelineInfo.renderPass = renderPass;
 
 	// uniform layout info
-	std::array<vk::DescriptorSetLayoutBinding, 3> uboLayoutBindings;
+	std::array<vk::DescriptorSetLayoutBinding, TextureSlotMax + 1> uboLayoutBindings;
 	uboLayoutBindings[0].binding = 0;
 	uboLayoutBindings[0].descriptorType = vk::DescriptorType::eUniformBufferDynamic;
 	uboLayoutBindings[0].descriptorCount = 1;
 	uboLayoutBindings[0].stageFlags = vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment;
 	uboLayoutBindings[0].pImmutableSamplers = nullptr;
 
-	uboLayoutBindings[1].binding = 1;
-	uboLayoutBindings[1].descriptorType = vk::DescriptorType::eCombinedImageSampler;
-	uboLayoutBindings[1].descriptorCount = 1;
-	uboLayoutBindings[1].stageFlags = vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment;
-	uboLayoutBindings[1].pImmutableSamplers = nullptr;
-
-	uboLayoutBindings[2].binding = 2;
-	uboLayoutBindings[2].descriptorType = vk::DescriptorType::eCombinedImageSampler;
-	uboLayoutBindings[2].descriptorCount = 1;
-	uboLayoutBindings[2].stageFlags = vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment;
-	uboLayoutBindings[2].pImmutableSamplers = nullptr;
+	for (size_t i = 1; i < uboLayoutBindings.size(); i++)
+	{
+		uboLayoutBindings[i].binding = i;
+		uboLayoutBindings[i].descriptorType = vk::DescriptorType::eCombinedImageSampler;
+		uboLayoutBindings[i].descriptorCount = 1;
+		uboLayoutBindings[i].stageFlags = vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment;
+		uboLayoutBindings[i].pImmutableSamplers = nullptr;
+	}
 
 	vk::DescriptorSetLayoutCreateInfo descriptorSetLayoutInfo;
 	descriptorSetLayoutInfo.bindingCount = static_cast<int32_t>(uboLayoutBindings.size());

@@ -45,6 +45,13 @@ class TextureVulkan;
 class RenderPassVulkan;
 class RenderPassPipelineStateCacheVulkan;
 
+struct VulkanImageInfo
+{
+	VkImage image;
+	VkImageAspectFlags aspect;
+	VkFormat format;
+};
+
 class VulkanHelper
 {
 public:

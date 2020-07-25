@@ -40,13 +40,13 @@ public:
 	}
 
 	CommandList* Get(bool addRef = false)
-	{ 
+	{
 		CommandList* commandList = nullptr;
 
-		commandLists_[current_]->WaitUntilCompleted(); 
-		
+		commandLists_[current_]->WaitUntilCompleted();
+
 		commandList = commandLists_[current_];
-		
+
 		if (addRef)
 		{
 			SafeAddRef(commandList);

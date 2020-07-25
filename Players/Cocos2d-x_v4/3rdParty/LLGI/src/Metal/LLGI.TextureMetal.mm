@@ -106,8 +106,8 @@ void Texture_Impl::Write(const uint8_t* data)
 {
 	MTLRegion region = {{0, 0, 0}, {static_cast<uint32_t>(size_.X), static_cast<uint32_t>(size_.Y), 1}};
 
-    auto allSize = GetTextureMemorySize(ConvertFormat(texture.pixelFormat), size_);
-    
+	auto allSize = GetTextureMemorySize(ConvertFormat(texture.pixelFormat), size_);
+
 	[texture replaceRegion:region mipmapLevel:0 withBytes:data bytesPerRow:allSize / size_.Y];
 }
 
@@ -190,6 +190,21 @@ bool TextureMetal::Initialize(GraphicsMetal* owner, const DepthTextureInitializa
 
 	format_ = ConvertFormat(impl->texture.pixelFormat);
 	data.resize(GetTextureMemorySize(format_, impl->size_));
+
+	return true;
+}
+
+bool TextureMetal::Initialize(GraphicsMetal* owner, id<MTLTexture> externalTexture)
+{
+	if (externalTexture == nullptr)
+	{
+		return false;
+	}
+
+	type_ = TextureType::Color;
+	impl->Reset(externalTexture);
+
+	format_ = ConvertFormat(impl->texture.pixelFormat);
 
 	return true;
 }

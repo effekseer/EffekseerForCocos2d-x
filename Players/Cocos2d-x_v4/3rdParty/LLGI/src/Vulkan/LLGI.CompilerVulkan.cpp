@@ -2,9 +2,9 @@
 #include <memory>
 
 #if defined(ENABLE_VULKAN_COMPILER)
-#include <glslang/SPIRV/GlslangToSpv.h>
 #include <glslang/Include/ResourceLimits.h>
 #include <glslang/Public/ShaderLang.h>
+#include <glslang/SPIRV/GlslangToSpv.h>
 #endif
 
 #include "LLGI.CompilerVulkan.h"
