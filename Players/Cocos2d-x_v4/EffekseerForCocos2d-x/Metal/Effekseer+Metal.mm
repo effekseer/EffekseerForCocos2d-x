@@ -12,7 +12,7 @@
 
 namespace efk {
 
-void SetMTLObjectsFromCocos2d(EffekseerRendererMetal::RendererImplemented* renderer)
+void SetMTLObjectsFromCocos2d(EffekseerRenderer::CommandList* commandList)
 {
     auto d = cocos2d::Director::getInstance();
     auto buffer = d->getCommandBuffer();
@@ -28,8 +28,7 @@ void SetMTLObjectsFromCocos2d(EffekseerRendererMetal::RendererImplemented* rende
     bufferM->setViewport(v.x, v.y, v.w, v.h);
     
     // set Command Buffer and Render Encoder from Cocos
-    renderer->SetExternalCommandBuffer(bufferM->getMTLCommandBuffer());
-    renderer->SetExternalRenderEncoder(bufferM->getRenderCommandEncoder());
+    EffekseerRendererMetal::BeginCommandList(commandList, bufferM->getRenderCommandEncoder());
 }
 
 
@@ -39,19 +38,21 @@ class DistortingCallbackMetal
 {
 
     EffekseerRendererMetal::RendererImplemented*    renderer = nullptr;
+    EffekseerRenderer::CommandList* commandList_ = nullptr;
     id<MTLTexture>                                  texture = nullptr;
     LLGI::Texture*                                  textureLLGI = nullptr;
 
 public:
-    DistortingCallbackMetal(EffekseerRendererMetal::RendererImplemented* renderer);
+    DistortingCallbackMetal(EffekseerRendererMetal::RendererImplemented* renderer, EffekseerRenderer::CommandList* commandList);
 
     virtual ~DistortingCallbackMetal();
 
     virtual bool OnDistorting() override;
 };
 
-DistortingCallbackMetal::DistortingCallbackMetal(EffekseerRendererMetal::RendererImplemented* r)
+DistortingCallbackMetal::DistortingCallbackMetal(EffekseerRendererMetal::RendererImplemented* r, EffekseerRenderer::CommandList* commandList)
 : renderer(r)
+, commandList_(commandList)
 {
 }
 
@@ -89,6 +90,7 @@ bool DistortingCallbackMetal::OnDistorting()
     auto commandBuffer = static_cast<cocos2d::backend::CommandBufferMTL*>(cocos2d::Director::getInstance()->getCommandBuffer());
     commandBuffer->endEncoding();
     
+    EffekseerRendererMetal::EndCommandList(commandList_);
     
     MTLRegion region =
     {
@@ -102,7 +104,7 @@ bool DistortingCallbackMetal::OnDistorting()
     [blitEncoder endEncoding];
     cocos2d::backend::Device::getInstance()->setFrameBufferOnly(true); // reset
     
-    SetMTLObjectsFromCocos2d(renderer);
+    SetMTLObjectsFromCocos2d(commandList_);
     
     renderer->SetBackground(textureLLGI);
 
@@ -175,23 +177,26 @@ void CleanupTextureData(::Effekseer::TextureData* textureData)
     tex->Release();
 }
 
-::EffekseerRenderer::DistortingCallback* CreateDistortingCallback(::EffekseerRenderer::Renderer* renderer)
+::EffekseerRenderer::DistortingCallback* CreateDistortingCallback(::EffekseerRenderer::Renderer* renderer, ::EffekseerRenderer::CommandList* commandList)
 {
     auto r = static_cast<::EffekseerRendererMetal::RendererImplemented*>(renderer);
-    return new DistortingCallbackMetal(r);
+    return new DistortingCallbackMetal(r, commandList);
 }
 
 
-void EffectEmitter::preRender(EffekseerRenderer::Renderer* renderer)
+void EffectEmitter::beforeRender(EffekseerRenderer::Renderer* renderer, EffekseerRenderer::CommandList* commandList)
 {
-    auto r = static_cast<::EffekseerRendererMetal::RendererImplemented*>(renderer);
-    SetMTLObjectsFromCocos2d(r);
+    SetMTLObjectsFromCocos2d(commandList);
+}
+
+void EffectEmitter::afterRender(EffekseerRenderer::Renderer* renderer, EffekseerRenderer::CommandList* commandList)
+{
+    EffekseerRendererMetal::EndCommandList(commandList);
 }
 
 void EffectManager::onDestructor()
 {
-    auto r = static_cast<::EffekseerRendererMetal::RendererImplemented*>(renderer2d);
-    r->SetExternalRenderEncoder(nullptr);
+    EffekseerRendererMetal::EndCommandList(commandList_);
 }
 
 void EffectManager::CreateRenderer(int32_t spriteSize)

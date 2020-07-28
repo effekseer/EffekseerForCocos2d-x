@@ -178,7 +178,7 @@ void UpdateTextureData(::Effekseer::TextureData* textureData, cocos2d::Texture2D
 
 void CleanupTextureData(::Effekseer::TextureData* textureData) {}
 
-::EffekseerRenderer::DistortingCallback* CreateDistortingCallback(::EffekseerRenderer::Renderer* renderer)
+::EffekseerRenderer::DistortingCallback* CreateDistortingCallback(::EffekseerRenderer::Renderer* renderer, ::EffekseerRenderer::CommandList* commandList)
 {
 	auto renderGL = static_cast<::EffekseerRendererGL::Renderer*>(renderer);
 	return new DistortingCallbackGL(renderGL);

@@ -23,7 +23,7 @@ void UpdateTextureData(::Effekseer::TextureData* textureData, cocos2d::Texture2D
 
 void CleanupTextureData(::Effekseer::TextureData* textureData);
 
-::EffekseerRenderer::DistortingCallback* CreateDistortingCallback(::EffekseerRenderer::Renderer* renderer);
+::EffekseerRenderer::DistortingCallback* CreateDistortingCallback(::EffekseerRenderer::Renderer*, ::EffekseerRenderer::CommandList*);
 
 void ResetBackground(::EffekseerRenderer::Renderer* renderer);
 
@@ -191,7 +191,6 @@ Effekseer::TextureData* TextureLoader::Load(const EFK_CHAR* path, ::Effekseer::T
 
 		cocos2d::Image* image = new cocos2d::Image();
 		cocos2d::Texture2D* texture = new cocos2d::Texture2D();
-		bool hasMipmap = false;
 
 		auto backup = ImageAccessor::getPngPremultipledAlphaEnabled();
 		cocos2d::Image::setPNGPremultipliedAlphaEnabled(false);
@@ -778,7 +777,8 @@ void EffectEmitter::draw(cocos2d::Renderer* renderer, const cocos2d::Mat4& paren
 		renderer2d->SetProjectionMatrix(mProj);
 
 #ifdef CC_USE_METAL
-            preRender(renderer2d);
+        auto commandList = manager->getInternalCommandList();
+        beforeRender(renderer2d, commandList);
 #endif
 		renderer2d->SetRestorationOfStatesFlag(true);
 		renderer2d->BeginRendering();
@@ -790,6 +790,11 @@ void EffectEmitter::draw(cocos2d::Renderer* renderer, const cocos2d::Mat4& paren
 		renderer->addDrawnVertices(renderer2d->GetDrawVertexCount());
 		renderer2d->ResetDrawCallCount();
 		renderer2d->ResetDrawVertexCount();
+        
+        #ifdef CC_USE_METAL
+        afterRender(renderer2d, commandList);
+        #endif
+
 	};
 
 	renderer->addCommand(&renderCommand);
@@ -850,7 +855,7 @@ bool EffectManager::Initialize(cocos2d::Size visibleSize)
 										 ::Effekseer::Vector3D(visibleSize.width / 2.0f, visibleSize.height / 2.0f, -200.0f),
 										 ::Effekseer::Vector3D(0.0f, 1.0f, 0.0f)));
 
-	distortingCallback = CreateDistortingCallback(renderer2d);
+	distortingCallback = CreateDistortingCallback(renderer2d, commandList_);
 
 	manager2d->SetSpriteRenderer(renderer2d->CreateSpriteRenderer());
 	manager2d->SetRibbonRenderer(renderer2d->CreateRibbonRenderer());

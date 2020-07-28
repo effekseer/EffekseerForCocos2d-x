@@ -86,7 +86,8 @@ private:
 
 	cocos2d::CallbackCommand renderCommand;
 	
-	void preRender(EffekseerRenderer::Renderer*);
+	void beforeRender(EffekseerRenderer::Renderer*, EffekseerRenderer::CommandList*);
+    void afterRender(EffekseerRenderer::Renderer*, EffekseerRenderer::CommandList*);
 
 public:
 	/**
@@ -430,6 +431,8 @@ public:
 
 	void setCameraMatrix(const cocos2d::Mat4& mat);
 	void setProjectionMatrix(const cocos2d::Mat4& mat);
+    
+    ::EffekseerRenderer::CommandList* getInternalCommandList() { return commandList_; }
 };
 
 class NetworkServer : public cocos2d::Ref
