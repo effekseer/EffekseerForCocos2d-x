@@ -14,7 +14,7 @@ private:
 
 public:
 	VertexBufferMetal();
-	virtual ~VertexBufferMetal();
+	~VertexBufferMetal() override;
 
 	bool Initialize(Graphics* graphics, int32_t size);
 

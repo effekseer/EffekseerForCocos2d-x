@@ -11,7 +11,7 @@ class ConstantBuffer : public ReferenceObject
 private:
 public:
 	ConstantBuffer() = default;
-	virtual ~ConstantBuffer() = default;
+	~ConstantBuffer() override = default;
 
 	/*[[deprecated("use CommandList::SetData.")]]*/ virtual void* Lock();
 

@@ -38,7 +38,7 @@ public:
 				   RenderPassPipelineStateCacheVulkan* renderPassPipelineStateCache = nullptr,
 				   ReferenceObject* owner = nullptr);
 
-	virtual ~GraphicsVulkan();
+	~GraphicsVulkan() override;
 
 	void SetWindowSize(const Vec2I& windowSize) override;
 

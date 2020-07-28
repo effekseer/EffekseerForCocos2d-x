@@ -17,7 +17,7 @@ private:
 
 public:
 	BufferMetal();
-	virtual ~BufferMetal();
+	~BufferMetal() override;
 
 	bool Initialize(Graphics* graphics, int32_t size);
 

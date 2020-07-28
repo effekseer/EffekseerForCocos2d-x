@@ -112,6 +112,7 @@ bool CommandList::BeginWithPlatform(void* platformContextPtr)
 	isVertexBufferDirtied = true;
 	isCurrentIndexBufferDirtied = true;
 	isPipelineDirtied = true;
+	ResetTextures();
 
 	swapIndex_ = (swapIndex_ + 1) % swapCount_;
 

@@ -17,7 +17,7 @@ private:
 public:
 	WindowMac() = default;
 
-	virtual ~WindowMac() = default;
+	~WindowMac() override = default;
 
 	bool Initialize(const char* title, const Vec2I& windowSize);
 

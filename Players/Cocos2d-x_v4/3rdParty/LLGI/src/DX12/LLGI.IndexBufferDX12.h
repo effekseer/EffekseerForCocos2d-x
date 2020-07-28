@@ -22,7 +22,7 @@ public:
 	bool Initialize(GraphicsDX12* graphics, int32_t stride, int32_t count);
 
 	IndexBufferDX12();
-	virtual ~IndexBufferDX12();
+	~IndexBufferDX12() override;
 
 	virtual void* Lock();
 	virtual void* Lock(int32_t offset, int32_t size);

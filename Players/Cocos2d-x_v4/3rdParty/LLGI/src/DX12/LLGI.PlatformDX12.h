@@ -49,7 +49,7 @@ private:
 
 public:
 	PlatformDX12();
-	virtual ~PlatformDX12();
+	~PlatformDX12() override;
 
 	bool Initialize(Window* window, bool waitVSync);
 

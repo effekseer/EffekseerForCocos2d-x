@@ -38,7 +38,7 @@ private:
 public:
 	SingleFrameMemoryPoolDX12(
 		GraphicsDX12* graphics, bool isStrongRef, int32_t swapBufferCount, int32_t constantBufferPoolSize, int32_t drawingCount);
-	virtual ~SingleFrameMemoryPoolDX12();
+	~SingleFrameMemoryPoolDX12() override;
 
 	bool GetConstantBuffer(int32_t size, ID3D12Resource*& resource, int32_t& offset);
 

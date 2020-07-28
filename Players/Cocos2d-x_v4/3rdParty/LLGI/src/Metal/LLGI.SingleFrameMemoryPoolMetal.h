@@ -45,7 +45,7 @@ private:
 
 public:
 	SingleFrameMemoryPoolMetal(GraphicsMetal* graphics, bool isStrongRef, int32_t constantBufferPoolSize, int32_t drawingCount);
-	virtual ~SingleFrameMemoryPoolMetal();
+	~SingleFrameMemoryPoolMetal() override;
 	virtual void NewFrame() override;
 };
 

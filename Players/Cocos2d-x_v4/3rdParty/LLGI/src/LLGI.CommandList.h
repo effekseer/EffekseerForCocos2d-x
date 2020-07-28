@@ -81,7 +81,7 @@ protected:
 
 public:
 	CommandList(int32_t swapCount = 3);
-	virtual ~CommandList();
+	~CommandList() override;
 
 	/**
 	@brief

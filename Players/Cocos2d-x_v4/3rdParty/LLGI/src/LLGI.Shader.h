@@ -11,7 +11,7 @@ class Shader : public ReferenceObject
 private:
 public:
 	Shader() = default;
-	virtual ~Shader() = default;
+	~Shader() override = default;
 };
 
 } // namespace LLGI

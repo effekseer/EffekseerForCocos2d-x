@@ -17,7 +17,7 @@ private:
 
 public:
 	ShaderVulkan();
-	virtual ~ShaderVulkan();
+	~ShaderVulkan() override;
 
 	bool Initialize(GraphicsVulkan* graphics, DataStructure* data, int count);
 

@@ -36,7 +36,7 @@ public:
 	//! init as screen texture
 	TextureDX12(ID3D12Resource* textureResource, ID3D12Device* device, ID3D12CommandQueue* commandQueue);
 
-	virtual ~TextureDX12();
+	~TextureDX12() override;
 
 	//! init as external texture
 	bool Initialize(ID3D12Resource* textureResource);

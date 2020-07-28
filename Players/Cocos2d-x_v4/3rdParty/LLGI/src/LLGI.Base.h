@@ -196,7 +196,8 @@ enum class TextureFormatType
 	D32S8 = 13,
 	D24S8 = 14,
 	//! for internal
-	B8G8R8A8_UNORM = 254,
+	B8G8R8A8_UNORM = 253,
+	B8G8R8A8_UNORM_SRGB = 254,
 	Unknown = 255,
 };
 

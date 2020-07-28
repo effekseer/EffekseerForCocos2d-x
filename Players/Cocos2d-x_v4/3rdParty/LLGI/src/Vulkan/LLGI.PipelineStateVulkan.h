@@ -20,7 +20,7 @@ private:
 
 public:
 	PipelineStateVulkan();
-	virtual ~PipelineStateVulkan();
+	~PipelineStateVulkan() override;
 
 	bool Initialize(GraphicsVulkan* graphics);
 

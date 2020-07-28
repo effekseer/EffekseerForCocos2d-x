@@ -37,7 +37,7 @@ class GraphicsMetal : public Graphics
 
 public:
 	GraphicsMetal();
-	virtual ~GraphicsMetal();
+	~GraphicsMetal() override;
 
 	bool Initialize(std::function<GraphicsView()> getGraphicsView);
 

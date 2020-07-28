@@ -16,7 +16,7 @@ class RenderPassPipelineStateDX12 : public RenderPassPipelineState
 private:
 public:
 	RenderPassPipelineStateDX12() = default;
-	virtual ~RenderPassPipelineStateDX12() = default;
+	~RenderPassPipelineStateDX12() override = default;
 };
 
 } // namespace LLGI

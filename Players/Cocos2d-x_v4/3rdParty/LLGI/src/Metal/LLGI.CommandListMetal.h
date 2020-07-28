@@ -24,7 +24,7 @@ class CommandListMetal : public CommandList
 
 public:
 	CommandListMetal();
-	virtual ~CommandListMetal();
+	~CommandListMetal() override;
 
 	bool Initialize(Graphics* graphics);
 

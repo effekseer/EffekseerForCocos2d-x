@@ -28,7 +28,7 @@ protected:
 
 public:
 	Platform() = default;
-	virtual ~Platform() = default;
+	~Platform() override = default;
 
 	virtual bool NewFrame();
 	virtual void Present();

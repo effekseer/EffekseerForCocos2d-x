@@ -33,7 +33,7 @@ private:
 
 public:
 	CompilerDX12(const CompilerDX12Option& option = LLGI::CompilerDX12Option::ColumnMajor);
-	virtual ~CompilerDX12() = default;
+	~CompilerDX12() override = default;
 
 	void Initialize() override;
 	void Compile(CompilerResult& result, const char* code, ShaderStageType shaderStage) override;

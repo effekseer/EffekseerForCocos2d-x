@@ -25,7 +25,7 @@ public:
 	bool InitializeAsShortTime(SingleFrameMemoryPoolDX12* memoryPool, int32_t size);
 
 	ConstantBufferDX12();
-	virtual ~ConstantBufferDX12();
+	~ConstantBufferDX12() override;
 
 	void* Lock() override;
 	void* Lock(int32_t offset, int32_t size) override;

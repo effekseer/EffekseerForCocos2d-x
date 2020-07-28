@@ -12,7 +12,7 @@ class CompilerVulkan : public Compiler
 private:
 public:
 	CompilerVulkan();
-	virtual ~CompilerVulkan();
+	~CompilerVulkan() override;
 
 	void Initialize() override;
 	void Compile(CompilerResult& result, const char* code, ShaderStageType shaderStage) override;

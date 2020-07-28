@@ -20,7 +20,7 @@ private:
 
 public:
 	ConstantBufferVulkan();
-	virtual ~ConstantBufferVulkan();
+	~ConstantBufferVulkan() override;
 
 	bool Initialize(GraphicsVulkan* graphics, int32_t size);
 	bool InitializeAsShortTime(GraphicsVulkan* graphics, SingleFrameMemoryPoolVulkan* memoryPool, int32_t size);

@@ -11,7 +11,7 @@ class IndexBuffer : public ReferenceObject
 private:
 public:
 	IndexBuffer() = default;
-	virtual ~IndexBuffer() = default;
+	~IndexBuffer() override = default;
 
 	/*[[deprecated("use CommandList::SetData.")]]*/ virtual void* Lock();
 

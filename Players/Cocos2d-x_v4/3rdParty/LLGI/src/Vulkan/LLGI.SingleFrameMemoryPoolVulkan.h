@@ -43,7 +43,7 @@ protected:
 public:
 	SingleFrameMemoryPoolVulkan(
 		GraphicsVulkan* graphics, bool isStrongRef, int32_t swapBufferCount, int32_t constantBufferPoolSize, int32_t drawingCount);
-	virtual ~SingleFrameMemoryPoolVulkan();
+	~SingleFrameMemoryPoolVulkan() override;
 
 	bool GetConstantBuffer(int32_t size, VkBuffer* outResource, VkDeviceMemory* deviceMemory, int32_t* outOffset);
 

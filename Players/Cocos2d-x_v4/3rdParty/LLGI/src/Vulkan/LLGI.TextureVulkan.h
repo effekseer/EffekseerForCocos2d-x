@@ -34,7 +34,7 @@ private:
 
 public:
 	TextureVulkan();
-	virtual ~TextureVulkan();
+	~TextureVulkan() override;
 
 	bool Initialize(
 		GraphicsVulkan* graphics, bool isStrongRef, const Vec2I& size, vk::Format format, int samplingCount, TextureType textureType);

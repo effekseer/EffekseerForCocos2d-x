@@ -16,7 +16,7 @@ private:
 
 public:
 	IndexBufferMetal();
-	virtual ~IndexBufferMetal();
+	~IndexBufferMetal() override;
 
 	bool Initialize(Graphics* graphics, int32_t stride, int32_t count);
 

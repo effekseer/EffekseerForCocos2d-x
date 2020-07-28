@@ -18,7 +18,7 @@ private:
 
 public:
 	TextureMetal();
-	virtual ~TextureMetal();
+	~TextureMetal() override;
 
 	bool Initialize(GraphicsMetal* owner, const TextureInitializationParameter& parameter);
 	bool Initialize(GraphicsMetal* owner, const RenderTextureInitializationParameter& parameter);

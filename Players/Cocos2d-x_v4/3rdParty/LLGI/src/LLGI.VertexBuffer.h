@@ -11,7 +11,7 @@ class VertexBuffer : public ReferenceObject
 private:
 public:
 	VertexBuffer() = default;
-	virtual ~VertexBuffer() = default;
+	~VertexBuffer() override = default;
 
 	/*[[deprecated("use CommandList::SetData.")]]*/ virtual void* Lock();
 

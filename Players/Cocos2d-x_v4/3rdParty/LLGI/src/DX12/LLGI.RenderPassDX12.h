@@ -32,7 +32,7 @@ private:
 
 public:
 	RenderPassDX12(ID3D12Device* device);
-	virtual ~RenderPassDX12();
+	~RenderPassDX12() override;
 
 	bool Initialize(TextureDX12** textures,
 					int numTextures,

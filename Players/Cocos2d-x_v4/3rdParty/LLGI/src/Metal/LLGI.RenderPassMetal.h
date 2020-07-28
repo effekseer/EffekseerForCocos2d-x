@@ -24,7 +24,7 @@ class RenderPassMetal : public RenderPass
 public:
 	RenderPassMetal();
 
-	virtual ~RenderPassMetal();
+	~RenderPassMetal() override;
 
 	bool UpdateRenderTarget(
 		Texture** textures, int32_t textureCount, Texture* depthTexture, Texture* resolvedTexture, Texture* resolvedDepthTexture);
@@ -45,7 +45,7 @@ private:
 
 public:
 	RenderPassPipelineStateMetal();
-	virtual ~RenderPassPipelineStateMetal();
+	~RenderPassPipelineStateMetal() override;
 
 	void SetKey(const RenderPassPipelineStateKey& key);
 

@@ -23,7 +23,7 @@ public:
 	bool Initialize(GraphicsVulkan* graphics, int32_t stride, int32_t count);
 
 	IndexBufferVulkan();
-	virtual ~IndexBufferVulkan();
+	~IndexBufferVulkan() override;
 
 	void* Lock() override;
 	void* Lock(int32_t offset, int32_t size) override;

@@ -40,7 +40,7 @@ public:
 	vk::Image depthBuffer;
 
 	RenderPassVulkan(RenderPassPipelineStateCacheVulkan* renderPassPipelineStateCache, vk::Device device, ReferenceObject* owner);
-	virtual ~RenderPassVulkan();
+	~RenderPassVulkan() override;
 
 	bool Initialize(const TextureVulkan** textures,
 					int32_t textureCount,
@@ -67,7 +67,7 @@ private:
 public:
 	RenderPassPipelineStateVulkan(vk::Device device, ReferenceObject* owner);
 
-	virtual ~RenderPassPipelineStateVulkan();
+	~RenderPassPipelineStateVulkan() override;
 
 	vk::RenderPass renderPass_;
 	int32_t RenderTargetCount = 0;

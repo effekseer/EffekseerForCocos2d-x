@@ -23,7 +23,7 @@ public:
 	bool InitializeAsShortTime(SingleFrameMemoryPoolVulkan* memoryPool, int32_t size);
 
 	VertexBufferVulkan();
-	virtual ~VertexBufferVulkan();
+	~VertexBufferVulkan() override;
 
 	void* Lock() override;
 	void* Lock(int32_t offset, int32_t size) override;

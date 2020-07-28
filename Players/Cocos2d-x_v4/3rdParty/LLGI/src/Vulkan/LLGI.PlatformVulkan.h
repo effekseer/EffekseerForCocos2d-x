@@ -122,7 +122,7 @@ private:
 
 public:
 	PlatformVulkan();
-	virtual ~PlatformVulkan();
+	~PlatformVulkan() override;
 
 	bool Initialize(Window* window, bool waitVSync);
 

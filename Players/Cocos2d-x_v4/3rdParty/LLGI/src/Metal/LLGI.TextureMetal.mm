@@ -9,7 +9,7 @@ Texture_Impl::Texture_Impl() {}
 
 Texture_Impl::~Texture_Impl()
 {
-	if (!fromExternal_ && texture != nullptr)
+	if (texture != nullptr)
 	{
 		[texture release];
 		texture = nullptr;
@@ -96,9 +96,29 @@ bool Texture_Impl::Initialize(Graphics_Impl* graphics, const RenderTextureInitia
 
 void Texture_Impl::Reset(id<MTLTexture> nativeTexture)
 {
+	if(nativeTexture != nullptr)
+	{
+		[nativeTexture retain];
+	}
+
+	if(texture != nullptr)
+	{
+		[texture release];
+	}
+
 	texture = nativeTexture;
-	size_.X = texture.width;
-	size_.Y = texture.height;
+
+	if(texture != nullptr)
+	{
+		size_.X = texture.width;
+		size_.Y = texture.height;
+	}
+	else
+	{
+		size_.X = 0.0f;
+		size_.Y = 0.0f;
+	}
+
 	fromExternal_ = true;
 }
 

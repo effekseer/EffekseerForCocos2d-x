@@ -67,7 +67,7 @@ add_library(LLGI STATIC ${files})
 
 file(GLOB LOCAL_HEADERS *.h)
 set_target_properties(LLGI PROPERTIES PUBLIC_HEADER "${LOCAL_HEADERS}")
-target_compile_features(LLGI PUBLIC cxx_std_11)
+target_compile_features(LLGI PUBLIC cxx_std_14)
 
 if(BUILD_VULKAN)
   find_package(Vulkan REQUIRED)

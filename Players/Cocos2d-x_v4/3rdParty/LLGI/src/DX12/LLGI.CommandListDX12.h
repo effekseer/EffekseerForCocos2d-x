@@ -41,7 +41,7 @@ private:
 
 public:
 	CommandListDX12();
-	virtual ~CommandListDX12();
+	~CommandListDX12() override;
 	bool Initialize(GraphicsDX12* graphics, int32_t drawingCount);
 
 	void Begin() override;

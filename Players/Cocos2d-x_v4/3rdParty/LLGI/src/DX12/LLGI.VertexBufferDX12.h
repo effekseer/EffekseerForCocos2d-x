@@ -19,7 +19,7 @@ public:
 	bool Initialize(GraphicsDX12* graphics, int32_t size);
 
 	VertexBufferDX12();
-	virtual ~VertexBufferDX12();
+	~VertexBufferDX12() override;
 
 	virtual void* Lock();
 	virtual void* Lock(int32_t offset, int32_t size);

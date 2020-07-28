@@ -38,7 +38,7 @@ public:
 				 ID3D12CommandQueue* commandQueue,
 				 int32_t swapBufferCount,
 				 ReferenceObject* owner = nullptr);
-	virtual ~GraphicsDX12();
+	~GraphicsDX12() override;
 
 	void Execute(CommandList* commandList) override;
 	void WaitFinish() override;

@@ -17,7 +17,7 @@ private:
 
 public:
 	ShaderMetal();
-	virtual ~ShaderMetal();
+	~ShaderMetal() override;
 	bool Initialize(GraphicsMetal* graphics, DataStructure* data, int32_t count);
 
 	Shader_Impl* GetImpl() { return impl; }

@@ -18,7 +18,7 @@ class Compiler : public ReferenceObject
 private:
 public:
 	Compiler() = default;
-	virtual ~Compiler() = default;
+	~Compiler() override = default;
 
 	virtual void Initialize();
 	virtual void Compile(CompilerResult& result, const char* code, ShaderStageType shaderStage);

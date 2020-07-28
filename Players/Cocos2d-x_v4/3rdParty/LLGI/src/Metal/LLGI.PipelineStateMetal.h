@@ -19,7 +19,7 @@ private:
 
 public:
 	PipelineStateMetal();
-	virtual ~PipelineStateMetal();
+	~PipelineStateMetal() override;
 
 	bool Initialize(GraphicsMetal* graphics);
 	void SetShader(ShaderStageType stage, Shader* shader) override;

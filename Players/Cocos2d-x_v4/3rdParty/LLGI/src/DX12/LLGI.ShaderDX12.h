@@ -17,7 +17,7 @@ private:
 
 public:
 	ShaderDX12() = default;
-	virtual ~ShaderDX12() = default;
+	~ShaderDX12() override = default;
 
 	bool Initialize(DataStructure* data, int32_t count);
 

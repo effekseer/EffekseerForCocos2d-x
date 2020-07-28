@@ -16,7 +16,7 @@ protected:
 
 public:
 	Texture() = default;
-	virtual ~Texture() = default;
+	~Texture() override = default;
 
 	/*[[deprecated("use CommandList::SetImageData2D.")]]*/ virtual void* Lock();
 

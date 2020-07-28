@@ -40,7 +40,7 @@ private:
 
 public:
 	CommandListVulkan();
-	virtual ~CommandListVulkan();
+	~CommandListVulkan() override;
 
 	bool
 	Initialize(GraphicsVulkan* graphics, int32_t drawingCount, CommandListPreCondition precondition = CommandListPreCondition::Standalone);

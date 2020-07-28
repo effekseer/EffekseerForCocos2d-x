@@ -59,7 +59,7 @@ protected:
 
 public:
 	SingleFrameMemoryPool(int32_t swapBufferCount = 3);
-	virtual ~SingleFrameMemoryPool();
+	~SingleFrameMemoryPool() override;
 
 	/**
 	@brief	Start new frame
@@ -152,7 +152,7 @@ protected:
 
 public:
 	RenderPass() = default;
-	virtual ~RenderPass();
+	~RenderPass() override;
 
 	virtual bool GetIsColorCleared() const { return isColorCleared_; }
 
@@ -193,7 +193,7 @@ class RenderPassPipelineState : public ReferenceObject
 private:
 public:
 	RenderPassPipelineState() = default;
-	virtual ~RenderPassPipelineState() = default;
+	~RenderPassPipelineState() override = default;
 	RenderPassPipelineStateKey Key;
 };
 
@@ -209,7 +209,7 @@ protected:
 
 public:
 	Graphics() = default;
-	virtual ~Graphics();
+	~Graphics() override;
 
 	/*[[deprecated("use Platform::SetWindowSize.")]]*/ virtual void SetWindowSize(const Vec2I& windowSize);
 

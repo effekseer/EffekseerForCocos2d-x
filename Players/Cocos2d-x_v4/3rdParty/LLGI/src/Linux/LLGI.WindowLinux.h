@@ -24,7 +24,7 @@ private:
 public:
 	WindowLinux() = default;
 
-	virtual ~WindowLinux();
+	~WindowLinux() override;
 
 	bool Initialize(const char* title, const Vec2I& windowSize);
 

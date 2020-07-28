@@ -13,7 +13,7 @@ protected:
 
 public:
 	PipelineState();
-	virtual ~PipelineState() = default;
+	~PipelineState() override = default;
 
 	CullingMode Culling = CullingMode::Clockwise;
 	TopologyType Topology = TopologyType::Triangle;

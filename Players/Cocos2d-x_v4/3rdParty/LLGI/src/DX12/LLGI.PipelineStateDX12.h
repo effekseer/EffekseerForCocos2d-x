@@ -28,7 +28,7 @@ private:
 public:
 	PipelineStateDX12() = default;
 	PipelineStateDX12(GraphicsDX12* graphics);
-	virtual ~PipelineStateDX12();
+	~PipelineStateDX12() override;
 
 	void SetShader(ShaderStageType stage, Shader* shader) override;
 	bool Compile() override;

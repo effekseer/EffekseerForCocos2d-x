@@ -21,7 +21,7 @@ private:
 
 public:
 	RenderPassPipelineStateCacheVulkan(vk::Device device, ReferenceObject* owner);
-	virtual ~RenderPassPipelineStateCacheVulkan();
+	~RenderPassPipelineStateCacheVulkan() override;
 
 	RenderPassPipelineStateVulkan* Create(const RenderPassPipelineStateKey key);
 };
