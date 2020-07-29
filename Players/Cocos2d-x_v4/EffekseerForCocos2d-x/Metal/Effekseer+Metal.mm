@@ -211,7 +211,6 @@ void EffectManager::CreateRenderer(int32_t spriteSize)
     memoryPool_ = EffekseerRendererMetal::CreateSingleFrameMemoryPool(renderer2d);
     commandList_ = EffekseerRendererMetal::CreateCommandList(renderer2d, memoryPool_);
     renderer2d->SetCommandList(commandList_);
-    renderer2d->SetBackgroundTextureUVStyle(EffekseerRenderer::UVStyle::VerticalFlipped);
     
     ES_SAFE_RELEASE(device);
 }
