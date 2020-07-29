@@ -124,7 +124,8 @@ void CommandList_Impl::BeginRenderPassWithPlatform(id<MTLRenderCommandEncoder> r
 	if (this->renderEncoder)
 	{
 		[this->renderEncoder retain];
-		[this->renderEncoder waitForFence:fence beforeStages:MTLRenderStageVertex];
+        // TODO : make correct. wait can do only once per encorder
+		// [this->renderEncoder waitForFence:fence beforeStages:MTLRenderStageVertex];
 	}
 }
 
@@ -132,7 +133,8 @@ void CommandList_Impl::EndRenderPassWithPlatform()
 {
 	if (renderEncoder)
 	{
-		[renderEncoder updateFence:fence afterStages:MTLRenderStageFragment];
+        // TODO : make correct. wait can do only once per encorder
+		// [renderEncoder updateFence:fence afterStages:MTLRenderStageFragment];
 		[renderEncoder release];
 		renderEncoder = nullptr;
 	}
