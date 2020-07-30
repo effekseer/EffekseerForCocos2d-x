@@ -11,6 +11,9 @@
 #include "LLGI.VertexBufferMetal.h"
 #import <MetalKit/MetalKit.h>
 
+#include <TargetConditionals.h>
+
+
 namespace LLGI
 {
 
@@ -340,7 +343,10 @@ std::vector<uint8_t> GraphicsMetal::CaptureRenderTarget(Texture* renderTarget)
 	id<MTLCommandQueue> queue = [this->impl->device newCommandQueue];
 	id<MTLCommandBuffer> commandBuffer = [queue commandBuffer];
 	id<MTLBlitCommandEncoder> blitEncoder = [commandBuffer blitCommandEncoder];
+    
+#if !(TARGET_OS_IPHONE) && !(TARGET_OS_SIMULATOR)
 	[blitEncoder synchronizeTexture:impl->texture slice:0 level:0];
+#endif
 	[blitEncoder endEncoding];
 
 	[commandBuffer commit];
