@@ -10259,6 +10259,7 @@ private:
 
 	~InstanceGroup();
 
+	void NotfyEraseInstance();
 public:
 
 	/** 
@@ -17134,7 +17135,22 @@ void ManagerImplemented::BeginReloadEffect(Effect* effect, bool doLockThread)
 		}
 
 		// dispose instances
+		it.second.InstanceContainerPointer->KillAllInstances(true);
+
+		/*
+		for (int32_t i = 0; i < 3; i++)
+		{
+			it.second.GlobalPointer->BeginDeltaFrame(0.0f);
+
+			UpdateInstancesByInstanceGlobal(it.second);
+			UpdateHandleInternal(it.second);
+
+			it.second.GlobalPointer->EndDeltaFrame();
+		}
+		*/
+
 		it.second.InstanceContainerPointer->RemoveForcibly(true);
+
 		ReleaseInstanceContainer(it.second.InstanceContainerPointer);
 		it.second.InstanceContainerPointer = NULL;
 		ES_SAFE_RELEASE(it.second.CullingObjectPointer);
@@ -17178,7 +17194,7 @@ void ManagerImplemented::EndReloadEffect(Effect* effect, bool doLockThread)
 		pGlobal->ResetUpdatedFrame();
 
 		// Create an instance through a container
-		//ds.InstanceContainerPointer =
+		// ds.InstanceContainerPointer =
 		//	CreateInstanceContainer(e->GetRoot(), ds.GlobalPointer, true, ds.GlobalMatrix, NULL);
 		auto isShown = ds.IsShown;
 		ds.IsShown = false;
@@ -17193,9 +17209,9 @@ void ManagerImplemented::EndReloadEffect(Effect* effect, bool doLockThread)
 			UpdateInstancesByInstanceGlobal(ds);
 			UpdateHandleInternal(ds);
 
-			//UpdateInstancesByInstanceGlobal(ds);
+			// UpdateInstancesByInstanceGlobal(ds);
 
-			//ds.InstanceContainerPointer->Update(true, false);
+			// ds.InstanceContainerPointer->Update(true, false);
 			ds.GlobalPointer->EndDeltaFrame();
 		}
 
@@ -17206,9 +17222,9 @@ void ManagerImplemented::EndReloadEffect(Effect* effect, bool doLockThread)
 		UpdateInstancesByInstanceGlobal(ds);
 		UpdateHandleInternal(ds);
 
-		//UpdateInstancesByInstanceGlobal(ds);
+		// UpdateInstancesByInstanceGlobal(ds);
 
-		//ds.InstanceContainerPointer->Update(true, ds.IsShown);
+		// ds.InstanceContainerPointer->Update(true, ds.IsShown);
 		ds.GlobalPointer->EndDeltaFrame();
 	}
 
@@ -17220,7 +17236,7 @@ void ManagerImplemented::EndReloadEffect(Effect* effect, bool doLockThread)
 		m_isLockedWithRenderingMutex = false;
 	}
 
-	//Update(0);
+	// Update(0);
 }
 
 void ManagerImplemented::CreateCullingWorld(float xsize, float ysize, float zsize, int32_t layerCount)
@@ -19858,6 +19874,8 @@ InstanceGroup::~InstanceGroup()
 	RemoveForcibly();
 }
 
+void InstanceGroup::NotfyEraseInstance() { m_global->DecInstanceCount(); }
+
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
@@ -19907,7 +19925,7 @@ void InstanceGroup::Update(bool shown)
 		if (instance->m_State != INSTANCE_STATE_ACTIVE)
 		{
 			it = m_instances.erase(it);
-			m_global->DecInstanceCount();
+			NotfyEraseInstance();
 		}
 		else
 		{
@@ -20017,6 +20035,7 @@ void InstanceGroup::KillAllInstances()
 	{
 		auto instance = m_instances.front();
 		m_instances.pop_front();
+		NotfyEraseInstance();
 
 		if (instance->GetState() == INSTANCE_STATE_ACTIVE)
 		{
