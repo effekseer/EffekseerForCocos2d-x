@@ -184,7 +184,13 @@ void CleanupTextureData(::Effekseer::TextureData* textureData) {}
 	return new DistortingCallbackGL(renderGL);
 }
 
-void EffectEmitter::preRender(EffekseerRenderer::Renderer*) {}
+void EffectEmitter::beforeRender(EffekseerRenderer::Renderer* renderer, EffekseerRenderer::CommandList* commandList)
+{
+}
+
+void EffectEmitter::afterRender(EffekseerRenderer::Renderer* renderer, EffekseerRenderer::CommandList* commandList)
+{
+}
 
 void EffectManager::onDestructor()
 {
