@@ -3198,6 +3198,7 @@ void main()
 	}
 
 	if(FRAGCOLOR.w <= 0.0) discard;
+	if(FRAGCOLOR.w > 1.01) discard;
 }
 
 )";
@@ -3325,6 +3326,7 @@ void main() {
 	FRAGCOLOR.xyz = color;
 
 	if(FRAGCOLOR.w <= 0.0) discard;
+	if(FRAGCOLOR.w > 1.01) discard;
 }
 )";
 
@@ -4261,6 +4263,7 @@ void main()
 	FRAGCOLOR = vaColor * TEX2D(uTexture0, vaTexCoord.xy);
 
 	if(FRAGCOLOR.w <= 0.0) discard;
+	if(FRAGCOLOR.w > 1.01) discard;
 }
 )";
 
@@ -4375,6 +4378,7 @@ void main() {
 	FRAGCOLOR = color;
 
 	if(FRAGCOLOR.w <= 0.0) discard;
+	if(FRAGCOLOR.w > 1.01) discard;
 }
 )";
 
@@ -4416,6 +4420,7 @@ void main() {
 	FRAGCOLOR = color;
 
 	if(FRAGCOLOR.w <= 0.0) discard;
+	if(FRAGCOLOR.w > 1.01) discard;
 }
 )";
 
@@ -4512,6 +4517,7 @@ void main()
 	FRAGCOLOR.xyz = FRAGCOLOR.xyz * (LightColor.xyz * diffuse + LightAmbient.xyz);
 
 	if(FRAGCOLOR.w <= 0.0) discard;
+	if(FRAGCOLOR.w > 1.01) discard;
 }
 
 
@@ -6106,6 +6112,7 @@ bool Shader::CompileShader(
 	GLExt::glGetProgramiv(program, GL_LINK_STATUS, &res_link);
 
 #ifndef NDEBUG
+    if (res_link == GL_FALSE)
 	{
 		// output errors
 		char log[512];
