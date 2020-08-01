@@ -3109,8 +3109,8 @@ R"(
 OUT mediump vec4 v_Normal;
 OUT mediump vec4 v_Binormal;
 OUT mediump vec4 v_Tangent;
-OUT mediump vec4 v_TexCoord;
-OUT lowp vec4 v_Color;
+CENTROID OUT mediump vec4 v_TexCoord;
+CENTROID OUT lowp vec4 v_Color;
 )"
 #if defined(MODEL_SOFTWARE_INSTANCING)
 R"(
@@ -3175,8 +3175,8 @@ R"(
 IN mediump vec4 v_Normal;
 IN mediump vec4 v_Binormal;
 IN mediump vec4 v_Tangent;
-IN mediump vec4 v_TexCoord;
-IN lowp vec4 v_Color;
+CENTROID IN mediump vec4 v_TexCoord;
+CENTROID IN lowp vec4 v_Color;
 
 uniform sampler2D ColorTexture;
 uniform sampler2D NormalTexture;
@@ -3198,7 +3198,6 @@ void main()
 	}
 
 	if(FRAGCOLOR.w <= 0.0) discard;
-	if(FRAGCOLOR.w > 1.01) discard;
 }
 
 )";
@@ -3221,9 +3220,9 @@ R"(
 OUT mediump vec4 v_Normal;
 OUT mediump vec4 v_Binormal;
 OUT mediump vec4 v_Tangent;
-OUT mediump vec4 v_TexCoord;
+CENTROID OUT mediump vec4 v_TexCoord;
 OUT mediump vec4 v_Pos;
-OUT lowp vec4 v_Color;
+CENTROID OUT lowp vec4 v_Color;
 )"
 
 #if defined(MODEL_SOFTWARE_INSTANCING)
@@ -3284,9 +3283,9 @@ static const char g_model_distortion_fs_src [] =
 "IN mediump vec4 v_Normal;\n"
 "IN mediump vec4 v_Binormal;\n"
 "IN mediump vec4 v_Tangent;\n"
-"IN mediump vec4 v_TexCoord;\n"
+"CENTROID IN mediump vec4 v_TexCoord;\n"
 "IN mediump vec4 v_Pos;\n"
-"IN lowp vec4 v_Color;\n"
+"CENTROID IN lowp vec4 v_Color;\n"
 
 R"(
 uniform sampler2D uTexture0;
@@ -3326,7 +3325,6 @@ void main() {
 	FRAGCOLOR.xyz = color;
 
 	if(FRAGCOLOR.w <= 0.0) discard;
-	if(FRAGCOLOR.w > 1.01) discard;
 }
 )";
 
@@ -4213,8 +4211,8 @@ IN vec4 atTexCoord;
 )"
 
 R"(
-OUT vec4 vaColor;
-OUT vec4 vaTexCoord;
+CENTROID OUT vec4 vaColor;
+CENTROID OUT vec4 vaTexCoord;
 OUT vec4 vaPos;
 OUT vec4 vaPosR;
 OUT vec4 vaPosU;
@@ -4253,8 +4251,8 @@ void main() {
 
 static const char g_sprite_fs_texture_src[] =
 R"(
-IN lowp vec4 vaColor;
-IN mediump vec4 vaTexCoord;
+CENTROID IN lowp vec4 vaColor;
+CENTROID IN mediump vec4 vaTexCoord;
 
 uniform sampler2D uTexture0;
 
@@ -4263,14 +4261,13 @@ void main()
 	FRAGCOLOR = vaColor * TEX2D(uTexture0, vaTexCoord.xy);
 
 	if(FRAGCOLOR.w <= 0.0) discard;
-	if(FRAGCOLOR.w > 1.01) discard;
 }
 )";
 
 static const char g_sprite_fs_no_texture_src[] =
 R"(
-IN lowp vec4 vaColor;
-IN mediump vec4 vaTexCoord;
+CENTROID IN lowp vec4 vaColor;
+CENTROID IN mediump vec4 vaTexCoord;
 
 void main()
 {
@@ -4292,8 +4289,8 @@ IN vec4 atTangent;
 )"
 
 R"(
-OUT vec4 vaColor;
-OUT vec4 vaTexCoord;
+CENTROID OUT vec4 vaColor;
+CENTROID OUT vec4 vaTexCoord;
 OUT vec4 vaPos;
 OUT vec4 vaPosR;
 OUT vec4 vaPosU;
@@ -4341,8 +4338,8 @@ void main() {
 
 static const char g_sprite_fs_texture_distortion_src [] =
 R"(
-IN lowp vec4 vaColor;
-IN mediump vec4 vaTexCoord;
+CENTROID IN lowp vec4 vaColor;
+CENTROID IN mediump vec4 vaTexCoord;
 IN mediump vec4 vaPos;
 IN mediump vec4 vaPosR;
 IN mediump vec4 vaPosU;
@@ -4378,14 +4375,13 @@ void main() {
 	FRAGCOLOR = color;
 
 	if(FRAGCOLOR.w <= 0.0) discard;
-	if(FRAGCOLOR.w > 1.01) discard;
 }
 )";
 
 static const char g_sprite_fs_no_texture_distortion_src [] =
 R"(
-IN lowp vec4 vaColor;
-IN mediump vec4 vaTexCoord;
+CENTROID IN lowp vec4 vaColor;
+CENTROID IN mediump vec4 vaTexCoord;
 IN mediump vec4 vaPos;
 IN mediump vec4 vaPosR;
 IN mediump vec4 vaPosU;
@@ -4420,7 +4416,6 @@ void main() {
 	FRAGCOLOR = color;
 
 	if(FRAGCOLOR.w <= 0.0) discard;
-	if(FRAGCOLOR.w > 1.01) discard;
 }
 )";
 
@@ -4435,8 +4430,8 @@ IN vec2 atTexCoord2;
 )"
 
 	R"(
-OUT lowp vec4 v_VColor;
-OUT mediump vec2 v_UV1;
+CENTROID OUT lowp vec4 v_VColor;
+CENTROID OUT mediump vec2 v_UV1;
 OUT mediump vec2 v_UV2;
 OUT mediump vec3 v_WorldP;
 OUT mediump vec3 v_WorldN;
@@ -4491,8 +4486,8 @@ void main() {
 static const char g_sprite_fs_lighting_src[] =
 	R"(
 
-IN lowp vec4 v_VColor;
-IN mediump vec2 v_UV1;
+CENTROID IN lowp vec4 v_VColor;
+CENTROID IN mediump vec2 v_UV1;
 IN mediump vec2 v_UV2;
 IN mediump vec3 v_WorldP;
 IN mediump vec3 v_WorldN;
@@ -4517,7 +4512,6 @@ void main()
 	FRAGCOLOR.xyz = FRAGCOLOR.xyz * (LightColor.xyz * diffuse + LightAmbient.xyz);
 
 	if(FRAGCOLOR.w <= 0.0) discard;
-	if(FRAGCOLOR.w > 1.01) discard;
 }
 
 
@@ -5995,6 +5989,7 @@ static const char g_header_vs_gl3_src [] =
 "#define mediump\n" \
 "#define highp\n" \
 "#define IN in\n" \
+"#define CENTROID centroid\n" \
 "#define TEX2D textureLod\n" \
 "#define OUT out\n";
 
@@ -6004,6 +5999,7 @@ static const char g_header_fs_gl3_src [] =
 "#define mediump\n" \
 "#define highp\n" \
 "#define IN in\n" \
+"#define CENTROID centroid\n" \
 "#define TEX2D texture\n" \
 "layout (location = 0) out vec4 FRAGCOLOR;\n";
 
@@ -6011,6 +6007,7 @@ static const char g_header_vs_gles3_src [] =
 "#version 300 es\n" \
 "precision mediump float;\n" \
 "#define IN in\n" \
+"#define CENTROID centroid\n" \
 "#define TEX2D textureLod\n" \
 "#define OUT out\n";
 
@@ -6018,18 +6015,21 @@ static const char g_header_fs_gles3_src [] =
 "#version 300 es\n" \
 "precision mediump float;\n" \
 "#define IN in\n" \
+"#define CENTROID centroid\n" \
 "#define TEX2D texture\n" \
 "layout (location = 0) out vec4 FRAGCOLOR;\n";
 
 static const char g_header_vs_gles2_src [] =
 "precision mediump float;\n" \
 "#define IN attribute\n" \
+"#define CENTROID\n" \
 "#define TEX2D texture2DLod\n" \
 "#define OUT varying\n";
 
 static const char g_header_fs_gles2_src [] =
 "precision mediump float;\n" \
 "#define IN varying\n" \
+"#define CENTROID\n"\
 "#define TEX2D texture2D\n" \
 "#define FRAGCOLOR gl_FragColor\n";
 
@@ -6039,6 +6039,7 @@ static const char g_header_vs_gl2_src [] =
 "#define mediump\n" \
 "#define highp\n" \
 "#define IN attribute\n" \
+"#define CENTROID\n"\
 "#define TEX2D texture2DLod\n" \
 "#define OUT varying\n";
 
@@ -6048,6 +6049,7 @@ static const char g_header_fs_gl2_src [] =
 "#define mediump\n" \
 "#define highp\n" \
 "#define IN varying\n" \
+"#define CENTROID\n" \
 "#define TEX2D texture2D\n" \
 "#define FRAGCOLOR gl_FragColor\n";
 
