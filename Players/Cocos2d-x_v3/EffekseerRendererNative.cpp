@@ -3674,10 +3674,11 @@ void ModelRenderer::EndRendering( const efkModelNodeParam& parameter, void* user
         return;
     }
     
-    for(auto i = 0; i < model->GetFrameCount(); i++)
-    {
-        model->InternalModels[i].TryDelayLoad();
-    }
+    model->LoadToGPU();
+	if (!model->IsLoadedOnGPU)
+	{
+		return;
+	}
 	
     m_shader_lighting_texture_normal->SetVertexSize(model->GetVertexSize());
     m_shader_texture->SetVertexSize(model->GetVertexSize());
@@ -5587,8 +5588,15 @@ Model::InternalModel::InternalModel()
 
 Model::InternalModel::~InternalModel()
 {
-	GLExt::glDeleteBuffers(1, &IndexBuffer);
-	GLExt::glDeleteBuffers(1, &VertexBuffer);
+	if (VertexBuffer > 0)
+	{
+		GLExt::glDeleteBuffers(1, &IndexBuffer);
+	}
+
+	if (IndexBuffer > 0)
+	{
+		GLExt::glDeleteBuffers(1, &VertexBuffer);
+	}
 }
 
 bool Model::InternalModel::TryDelayLoad()
@@ -5637,33 +5645,33 @@ Model::Model(void* data, int32_t size)
 		InternalModels[f].VertexCount = vertexCount;
 		InternalModels[f].IndexCount = faceCount * 3;
 		
-		GLExt::glGenBuffers(1, &InternalModels[f].VertexBuffer);
+		//GLExt::glGenBuffers(1, &InternalModels[f].VertexBuffer);
 		size_t vertexSize = vertexCount * sizeof(::Effekseer::Model::Vertex);
 
-		int arrayBufferBinding = 0;
-		int elementArrayBufferBinding = 0;
-		glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &arrayBufferBinding);
-		glGetIntegerv(GL_ELEMENT_ARRAY_BUFFER_BINDING, &elementArrayBufferBinding);
+		//int arrayBufferBinding = 0;
+		//int elementArrayBufferBinding = 0;
+		//glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &arrayBufferBinding);
+		//glGetIntegerv(GL_ELEMENT_ARRAY_BUFFER_BINDING, &elementArrayBufferBinding);
 
-		if (InternalModels[f].VertexBuffer > 0)
-		{
-			GLExt::glBindBuffer(GL_ARRAY_BUFFER, InternalModels[f].VertexBuffer);
-			GLExt::glBufferData(GL_ARRAY_BUFFER, vertexSize, vertexData, GL_STATIC_DRAW);
-		}
+		//if (InternalModels[f].VertexBuffer > 0)
+		//{
+		//	GLExt::glBindBuffer(GL_ARRAY_BUFFER, InternalModels[f].VertexBuffer);
+		//	GLExt::glBufferData(GL_ARRAY_BUFFER, vertexSize, vertexData, GL_STATIC_DRAW);
+		//}
 		InternalModels[f].delayVertexBuffer.resize(vertexSize);
 		memcpy(InternalModels[f].delayVertexBuffer.data(), vertexData, vertexSize);
 		
-		GLExt::glGenBuffers(1, &InternalModels[f].IndexBuffer);
+		//GLExt::glGenBuffers(1, &InternalModels[f].IndexBuffer);
 		size_t indexSize = faceCount * sizeof(::Effekseer::Model::Face);
 
-		if (InternalModels[f].IndexBuffer > 0)
-		{
-			GLExt::glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, InternalModels[f].IndexBuffer);
-			GLExt::glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexSize, faceData, GL_STATIC_DRAW);
-		}
+		//if (InternalModels[f].IndexBuffer > 0)
+		//{
+		//	GLExt::glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, InternalModels[f].IndexBuffer);
+		//	GLExt::glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexSize, faceData, GL_STATIC_DRAW);
+		//}
 
-		GLExt::glBindBuffer(GL_ARRAY_BUFFER, arrayBufferBinding);
-		GLExt::glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementArrayBufferBinding);
+		//GLExt::glBindBuffer(GL_ARRAY_BUFFER, arrayBufferBinding);
+		//GLExt::glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementArrayBufferBinding);
 
 		InternalModels[f].delayIndexBuffer.resize(indexSize);
 		memcpy(InternalModels[f].delayIndexBuffer.data(), faceData, indexSize);
@@ -5673,7 +5681,26 @@ Model::Model(void* data, int32_t size)
 Model::~Model()
 {
 	ES_SAFE_DELETE_ARRAY(InternalModels);
+}
 
+bool Model::LoadToGPU()
+{
+	if (IsLoadedOnGPU)
+	{
+		return false;
+	}
+
+	for (int32_t f = 0; f < GetFrameCount(); f++)
+	{
+		if(!InternalModels[f].TryDelayLoad())
+		{
+			return false;
+		}
+	}
+
+	IsLoadedOnGPU = true;
+
+	return true;
 }
 
 //----------------------------------------------------------------------------------
