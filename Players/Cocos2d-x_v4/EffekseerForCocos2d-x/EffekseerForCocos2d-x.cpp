@@ -208,6 +208,12 @@ Effekseer::TextureData* TextureLoader::Load(const EFK_CHAR* path, ::Effekseer::T
 				{
 					texture->generateMipmap();
 				}
+				else
+				{
+					char path8[300];
+					::Effekseer::ConvertUtf16ToUtf8((int8_t*)path8, 300, (const int16_t*)path);
+					CCLOG("%s : The texture is not shown on a mobile. The size is not power of two.", path8);
+				}
 #endif
 			}
 			else
