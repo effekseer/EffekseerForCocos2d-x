@@ -171,7 +171,6 @@ DXGI_FORMAT ConvertFormat(TextureFormatType format)
 		return DXGI_FORMAT_UNKNOWN;
 
 	throw "Not implemented";
-	return DXGI_FORMAT_UNKNOWN;
 }
 
 TextureFormatType ConvertFormat(DXGI_FORMAT format)
@@ -204,7 +203,6 @@ TextureFormatType ConvertFormat(DXGI_FORMAT format)
 		return TextureFormatType::Unknown;
 
 	throw "Not implemented";
-	return TextureFormatType::Unknown;
 }
 
 namespace DirectX12

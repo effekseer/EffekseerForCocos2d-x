@@ -66,8 +66,7 @@ private:
 
 	vk::SurfaceKHR surface_ = nullptr;
 	vk::SwapchainKHR swapchain_ = nullptr;
-	vk::PresentInfoKHR presentInfo;
-
+	
 	vk::Format surfaceFormat;
 	vk::ColorSpaceKHR surfaceColorSpace;
 

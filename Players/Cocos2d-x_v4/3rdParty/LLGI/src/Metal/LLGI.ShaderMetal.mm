@@ -2,7 +2,6 @@
 #include "LLGI.GraphicsMetal.h"
 #include "LLGI.Metal_Impl.h"
 #import <MetalKit/MetalKit.h>
-#include <iostream>
 
 #define SUPPRESS_COMPILE_WARNINGS
 
@@ -51,7 +50,7 @@ bool Shader_Impl::Initialize(Graphics_Impl* graphics, const void* data, int size
 #endif
 		)
 		{
-			std::cout << libraryError.localizedDescription.UTF8String << std::endl;
+			Log(LogType::Error, libraryError.localizedDescription.UTF8String);
 			return false;
 		}
 
@@ -68,7 +67,7 @@ bool Shader_Impl::Initialize(Graphics_Impl* graphics, const void* data, int size
 #endif
 		)
 		{
-			std::cout << libraryError.localizedDescription.UTF8String << std::endl;
+			Log(LogType::Error, libraryError.localizedDescription.UTF8String);
 			return false;
 		}
 

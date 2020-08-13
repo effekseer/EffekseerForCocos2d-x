@@ -15,10 +15,14 @@ void CompilerMetal::Compile(CompilerResult& result, const char* code, ShaderStag
 	id<MTLDevice> device = MTLCreateSystemDefaultDevice();
 
 	NSError* libraryError = nil;
-	[device newLibraryWithSource:code_ options:NULL error:&libraryError];
+	id<MTLLibrary> lib = [device newLibraryWithSource:code_ options:NULL error:&libraryError];
 	if (libraryError)
 	{
 		result.Message = libraryError.localizedDescription.UTF8String;
+	}
+
+	if (lib == NULL)
+	{
 		return;
 	}
 

@@ -342,11 +342,11 @@ bool PipelineStateDX12::CreateRootSignature()
 	if (FAILED(hr))
 	{
 		goto FAILED_EXIT;
-		SafeRelease(signature_);
 	}
 	return true;
 
 FAILED_EXIT:
+	SafeRelease(signature_);
 	return false;
 }
 

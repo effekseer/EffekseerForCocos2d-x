@@ -6,11 +6,11 @@ namespace LLGI
 {
 
 //! TODO should be moved
-static std::function<void(LogType, const char*)> g_logger;
+static std::function<void(LogType, const std::string&)> g_logger;
 
-void SetLogger(const std::function<void(LogType, const char*)>& logger) { g_logger = logger; }
+void SetLogger(const std::function<void(LogType, const std::string&)>& logger) { g_logger = logger; }
 
-void Log(LogType logType, const char* message)
+void Log(LogType logType, const std::string& message)
 {
 	if (g_logger != nullptr)
 	{
@@ -50,7 +50,7 @@ ConstantBuffer* SingleFrameMemoryPool::CreateConstantBuffer(int32_t size)
 {
 	assert(currentSwapBuffer_ >= 0);
 
-	if (constantBuffers_[currentSwapBuffer_].size() <= offsets_[currentSwapBuffer_])
+	if (static_cast<int32_t>(constantBuffers_[currentSwapBuffer_].size()) <= offsets_[currentSwapBuffer_])
 	{
 		auto cb = CreateConstantBufferInternal(size);
 		if (cb == nullptr)
@@ -76,13 +76,11 @@ ConstantBuffer* SingleFrameMemoryPool::CreateConstantBuffer(int32_t size)
 		offsets_[currentSwapBuffer_]++;
 		return newCb;
 	}
-
-	return nullptr;
 }
 
 bool RenderPass::assignRenderTextures(Texture** textures, int32_t count)
 {
-	for (size_t i = 0; i < count; i++)
+	for (int32_t i = 0; i < count; i++)
 	{
 		if (!(textures[i]->GetType() == TextureType::Render || textures[i]->GetType() == TextureType::Screen))
 		{
@@ -91,19 +89,19 @@ bool RenderPass::assignRenderTextures(Texture** textures, int32_t count)
 		}
 	}
 
-	for (size_t i = 0; i < count; i++)
+	for (int32_t i = 0; i < count; i++)
 	{
 		SafeAddRef(textures[i]);
 	}
 
-	for (size_t i = 0; i < renderTextures_.size(); i++)
+	for (int32_t i = 0; i < static_cast<int32_t>(renderTextures_.size()); i++)
 	{
 		renderTextures_.at(i)->Release();
 	}
 
 	renderTextures_.resize(count);
 
-	for (size_t i = 0; i < count; i++)
+	for (int32_t i = 0; i < count; i++)
 	{
 		renderTextures_.at(i) = textures[i];
 	}
@@ -297,11 +295,6 @@ RenderPassPipelineStateKey RenderPass::GetKey() const
 	else
 	{
 		key.DepthFormat = TextureFormatType::Unknown;
-	}
-
-	if (key.RenderTargetFormats.at(0) == TextureFormatType::Unknown)
-	{
-		printf("");
 	}
 
 	return key;

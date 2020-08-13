@@ -69,7 +69,6 @@ bool WindowLinux::DoEvent()
 			closed_ = true;
 			return false;
 		}
-		break;
 		}
 	}
 

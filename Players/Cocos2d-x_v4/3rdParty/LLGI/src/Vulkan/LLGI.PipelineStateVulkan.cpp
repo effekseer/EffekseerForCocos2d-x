@@ -10,7 +10,7 @@ namespace LLGI
 PipelineStateVulkan::PipelineStateVulkan()
 {
 	shaders.fill(0);
-	for (auto i = 0; i < descriptorSetLayouts.size(); i++)
+	for (size_t i = 0; i < descriptorSetLayouts.size(); i++)
 	{
 		descriptorSetLayouts[i] = nullptr;
 	}
@@ -23,7 +23,7 @@ PipelineStateVulkan ::~PipelineStateVulkan()
 		SafeRelease(shader);
 	}
 
-	for (auto i = 0; i < descriptorSetLayouts.size(); i++)
+	for (size_t i = 0; i < descriptorSetLayouts.size(); i++)
 	{
 		graphics_->GetDevice().destroyDescriptorSetLayout(descriptorSetLayouts[i]);
 		descriptorSetLayouts[i] = nullptr;
@@ -106,6 +106,11 @@ bool PipelineStateVulkan::Compile()
 		{
 			attribDesc.format = vk::Format::eR32G32B32Sfloat;
 			vertexOffset += sizeof(float) * 3;
+		}
+		else if (VertexLayouts[i] == VertexLayoutFormat::R32G32B32A32_FLOAT)
+		{
+			attribDesc.format = vk::Format::eR32G32B32A32Sfloat;
+			vertexOffset += sizeof(float) * 4;
 		}
 		else if (VertexLayouts[i] == VertexLayoutFormat::R32_FLOAT)
 		{
@@ -380,7 +385,7 @@ bool PipelineStateVulkan::Compile()
 
 	for (size_t i = 1; i < uboLayoutBindings.size(); i++)
 	{
-		uboLayoutBindings[i].binding = i;
+		uboLayoutBindings[i].binding = static_cast<uint32_t>(i);
 		uboLayoutBindings[i].descriptorType = vk::DescriptorType::eCombinedImageSampler;
 		uboLayoutBindings[i].descriptorCount = 1;
 		uboLayoutBindings[i].stageFlags = vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment;
@@ -403,8 +408,17 @@ bool PipelineStateVulkan::Compile()
 	pipelineLayout_ = graphics_->GetDevice().createPipelineLayout(layoutInfo);
 	graphicsPipelineInfo.layout = pipelineLayout_;
 
+#if VK_HEADER_VERSION >= 130
 	// setup a pipeline
-	pipeline_ = static_cast<vk::Pipeline>(graphics_->GetDevice().createGraphicsPipeline(nullptr, graphicsPipelineInfo));
+	const auto pipeline = graphics_->GetDevice().createGraphicsPipeline(nullptr, graphicsPipelineInfo);
+	if (pipeline.result != vk::Result::eSuccess)
+	{
+		throw std::runtime_error("Cannnot create graphicPipeline: " + std::to_string(static_cast<int>(pipeline.result)));
+	}
+	pipeline_ = pipeline.value;
+#else
+	pipeline_ = graphics_->GetDevice().createGraphicsPipeline(nullptr, graphicsPipelineInfo);
+#endif
 
 	return true;
 }

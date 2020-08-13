@@ -95,14 +95,14 @@ ConstantBuffer* SingleFrameMemoryPoolVulkan::ReinitializeConstantBuffer(Constant
 
 SingleFrameMemoryPoolVulkan::SingleFrameMemoryPoolVulkan(
 	GraphicsVulkan* graphics, bool isStrongRef, int32_t swapBufferCount, int32_t constantBufferPoolSize, int32_t drawingCount)
-	: SingleFrameMemoryPool(swapBufferCount), graphics_(graphics), isStrongRef_(isStrongRef), drawingCount_(drawingCount), currentSwap_(-1)
+	: SingleFrameMemoryPool(swapBufferCount), graphics_(graphics), isStrongRef_(isStrongRef), currentSwap_(-1), drawingCount_(drawingCount)
 {
 	if (isStrongRef)
 	{
 		SafeAddRef(graphics_);
 	}
 
-	for (size_t i = 0; i < swapBufferCount; i++)
+	for (int32_t i = 0; i < swapBufferCount; i++)
 	{
 		auto memoryPool = std::make_shared<InternalSingleFrameMemoryPoolVulkan>();
 		if (!memoryPool->Initialize(graphics, constantBufferPoolSize, drawingCount))

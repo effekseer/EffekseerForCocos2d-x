@@ -142,7 +142,7 @@ RenderPass* GraphicsVulkan::CreateRenderPass(Texture** textures, int32_t texture
 	if (textures == nullptr)
 		return nullptr;
 
-	for (size_t i = 0; i < textureCount; i++)
+	for (int32_t i = 0; i < textureCount; i++)
 	{
 		assert(textures[i] != nullptr);
 		if (textures[i] == nullptr)

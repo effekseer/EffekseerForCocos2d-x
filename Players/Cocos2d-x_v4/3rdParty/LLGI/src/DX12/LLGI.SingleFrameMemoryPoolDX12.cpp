@@ -40,7 +40,7 @@ SingleFrameMemoryPoolDX12::SingleFrameMemoryPoolDX12(
 		SafeAddRef(graphics_);
 	}
 
-	for (size_t i = 0; i < swapBufferCount; i++)
+	for (int32_t i = 0; i < swapBufferCount; i++)
 	{
 		auto memoryPool = std::make_shared<InternalSingleFrameMemoryPoolDX12>(graphics, constantBufferPoolSize, drawingCount);
 		memoryPools.push_back(memoryPool);

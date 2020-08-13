@@ -12,8 +12,8 @@ namespace LLGI
 
 struct PlatformParameter
 {
-	DeviceType Device;
-	bool WaitVSync;
+	DeviceType Device = DeviceType::Default;
+	bool WaitVSync = true;
 };
 
 Window* CreateWindow(const char* title, Vec2I windowSize);

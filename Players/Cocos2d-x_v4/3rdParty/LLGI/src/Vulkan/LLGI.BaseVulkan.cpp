@@ -28,7 +28,7 @@ const char* VulkanHelper::getResultName(VkResult result)
 		VK_RESULT_VALUE(VK_ERROR_TOO_MANY_OBJECTS);
 		VK_RESULT_VALUE(VK_ERROR_FORMAT_NOT_SUPPORTED);
 		VK_RESULT_VALUE(VK_ERROR_FRAGMENTED_POOL);		   // and VK_RESULT_BEGIN_RANGE
-		VK_RESULT_VALUE(VK_ERROR_OUT_OF_POOL_MEMORY);	  // and VK_ERROR_OUT_OF_POOL_MEMORY_KHR
+		VK_RESULT_VALUE(VK_ERROR_OUT_OF_POOL_MEMORY);	   // and VK_ERROR_OUT_OF_POOL_MEMORY_KHR
 		VK_RESULT_VALUE(VK_ERROR_INVALID_EXTERNAL_HANDLE); // and VK_ERROR_INVALID_EXTERNAL_HANDLE_KHR
 		VK_RESULT_VALUE(VK_ERROR_SURFACE_LOST_KHR);
 		VK_RESULT_VALUE(VK_ERROR_NATIVE_WINDOW_IN_USE_KHR);
@@ -37,15 +37,18 @@ const char* VulkanHelper::getResultName(VkResult result)
 		VK_RESULT_VALUE(VK_ERROR_INCOMPATIBLE_DISPLAY_KHR);
 		VK_RESULT_VALUE(VK_ERROR_VALIDATION_FAILED_EXT);
 		VK_RESULT_VALUE(VK_ERROR_INVALID_SHADER_NV);
+#if VK_HEADER_VERSION >= 74
 		VK_RESULT_VALUE(VK_ERROR_FRAGMENTATION_EXT);
+#endif
 		VK_RESULT_VALUE(VK_ERROR_NOT_PERMITTED_EXT);
 #if VK_HEADER_VERSION < 141
 		VK_RESULT_VALUE(VK_RESULT_RANGE_SIZE);
 #endif
 		VK_RESULT_VALUE(VK_RESULT_MAX_ENUM);
+	default:
+		return "<Unkonwn VkResult>";
 	}
 #undef VK_RESULT_VALUE
-	return "<Unkonwn VkResult>";
 }
 
 struct FormatConversionItem
@@ -300,7 +303,6 @@ void SetImageLayout(vk::CommandBuffer cmdbuffer,
 
 uint32_t GetMemoryTypeIndex(vk::PhysicalDevice& phDevice, uint32_t bits, const vk::MemoryPropertyFlags& properties)
 {
-	uint32_t result = 0;
 	vk::PhysicalDeviceMemoryProperties deviceMemoryProperties = phDevice.getMemoryProperties();
 	for (uint32_t i = 0; i < 32; i++)
 	{
@@ -314,7 +316,7 @@ uint32_t GetMemoryTypeIndex(vk::PhysicalDevice& phDevice, uint32_t bits, const v
 		bits >>= 1;
 	}
 
-	assert(!"NOT found memory type.\n");
+	assert(false); //"NOT found memory type.\n"
 	return 0xffffffff;
 }
 

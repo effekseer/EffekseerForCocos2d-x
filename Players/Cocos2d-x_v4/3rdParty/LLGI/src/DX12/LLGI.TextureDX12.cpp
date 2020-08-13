@@ -157,7 +157,7 @@ void TextureDX12::CreateBuffer()
 								   1);
 	assert(buffer_ != nullptr);
 
-	if (footprint_.Footprint.RowPitch != cpuMemorySize_ / textureSize_.Y)
+	if (static_cast<int32_t>(footprint_.Footprint.RowPitch) != cpuMemorySize_ / textureSize_.Y)
 	{
 		lockedBuffer_.resize(cpuMemorySize_);
 	}

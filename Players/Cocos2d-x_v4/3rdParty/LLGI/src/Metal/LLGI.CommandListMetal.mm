@@ -124,7 +124,7 @@ void CommandList_Impl::BeginRenderPassWithPlatform(id<MTLRenderCommandEncoder> r
 	if (this->renderEncoder)
 	{
 		[this->renderEncoder retain];
-        // TODO : make correct. wait can do only once per encorder
+		// TODO : make correct. wait can do only once per encorder
 		// [this->renderEncoder waitForFence:fence beforeStages:MTLRenderStageVertex];
 	}
 }
@@ -133,7 +133,7 @@ void CommandList_Impl::EndRenderPassWithPlatform()
 {
 	if (renderEncoder)
 	{
-        // TODO : make correct. wait can do only once per encorder
+		// TODO : make correct. wait can do only once per encorder
 		// [renderEncoder updateFence:fence afterStages:MTLRenderStageFragment];
 		[renderEncoder release];
 		renderEncoder = nullptr;
@@ -323,7 +323,12 @@ void CommandListMetal::Draw(int32_t primitiveCount, int32_t instanceCount)
 	if (isPipDirtied)
 	{
 		[impl->renderEncoder setRenderPipelineState:pip->GetImpl()->pipelineState];
-		[impl->renderEncoder setDepthStencilState:pip->GetImpl()->depthStencilState];
+
+		if (pip->GetImpl()->depthStencilState != nullptr)
+		{
+			[impl->renderEncoder setDepthStencilState:pip->GetImpl()->depthStencilState];
+		}
+
 		[impl->renderEncoder setStencilReferenceValue:0xFF];
 	}
 

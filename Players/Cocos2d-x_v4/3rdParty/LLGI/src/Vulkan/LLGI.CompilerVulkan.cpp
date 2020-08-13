@@ -143,9 +143,6 @@ void CompilerVulkan::Initialize() {}
 void CompilerVulkan::Compile(CompilerResult& result, const char* code, ShaderStageType shaderStage)
 {
 #if defined(ENABLE_VULKAN_COMPILER)
-
-	const int defaultVersion = 110;
-
 	EShLanguage stage;
 	switch (shaderStage)
 	{

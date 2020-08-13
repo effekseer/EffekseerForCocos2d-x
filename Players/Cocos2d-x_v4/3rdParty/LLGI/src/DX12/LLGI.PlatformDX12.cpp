@@ -50,7 +50,7 @@ PlatformDX12::~PlatformDX12()
 {
 	Wait();
 
-	for (int32_t i = 0; i < renderTargets_.size(); i++)
+	for (size_t i = 0; i < renderTargets_.size(); i++)
 	{
 		SafeRelease(renderTargets_[i]);
 	}
@@ -93,7 +93,7 @@ void PlatformDX12::ResetSwapBuffer()
 
 	Wait();
 
-	for (int32_t i = 0; i < renderTargets_.size(); i++)
+	for (size_t i = 0; i < renderTargets_.size(); i++)
 	{
 		SafeRelease(renderTargets_[i]);
 	}

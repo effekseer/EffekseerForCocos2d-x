@@ -96,19 +96,19 @@ bool Texture_Impl::Initialize(Graphics_Impl* graphics, const RenderTextureInitia
 
 void Texture_Impl::Reset(id<MTLTexture> nativeTexture)
 {
-	if(nativeTexture != nullptr)
+	if (nativeTexture != nullptr)
 	{
 		[nativeTexture retain];
 	}
 
-	if(texture != nullptr)
+	if (texture != nullptr)
 	{
 		[texture release];
 	}
 
 	texture = nativeTexture;
 
-	if(texture != nullptr)
+	if (texture != nullptr)
 	{
 		size_.X = texture.width;
 		size_.Y = texture.height;

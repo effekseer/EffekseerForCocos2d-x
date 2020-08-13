@@ -1,19 +1,10 @@
-#ifdef _WIN32
-#define NOMINMAX
-#endif
-
 #include "LLGI.PlatformVulkan.h"
 #include "LLGI.GraphicsVulkan.h"
 #include "LLGI.TextureVulkan.h"
-#include <iostream>
+#include <sstream>
 
 #ifdef _WIN32
 #include <Windows.h>
-#endif
-
-#ifdef __linux__
-#include <X11/Xlib-xcb.h>
-#undef Always
 #endif
 
 namespace LLGI
@@ -29,23 +20,22 @@ VkBool32 PlatformVulkan::DebugMessageCallback(VkDebugReportFlagsEXT flags,
 											  const char* pMsg,
 											  void* pUserData)
 {
+
+	std::stringstream ss;
+	ss << "[" << pLayerPrefix << "] Code " << msgCode << " : " << pMsg;
+
 	if (flags & VK_DEBUG_REPORT_ERROR_BIT_EXT)
 	{
-		std::cout << "ERROR: ";
+		Log(LogType::Error, ss.str());
 	}
 	else if (flags & VK_DEBUG_REPORT_WARNING_BIT_EXT)
 	{
-		std::cout << "WARNING: ";
+		Log(LogType::Warning, ss.str());
 	}
 	else if (flags & VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT)
 	{
-		std::cout << "PERF: ";
+		Log(LogType::Info, ss.str());
 	}
-	else
-	{
-		return false;
-	}
-	std::cout << "[" << pLayerPrefix << "] Code " << msgCode << " : " << pMsg << std::endl;
 
 	return false;
 }
@@ -235,7 +225,7 @@ vk::Result PlatformVulkan::Present(vk::Semaphore semaphore)
 	{
 		return vkQueue.presentKHR(presentInfo);
 	}
-	catch (const vk::OutOfDateKHRError& e)
+	catch (const vk::OutOfDateKHRError&)
 	{
 		return vk::Result::eErrorOutOfDateKHR;
 	}
@@ -419,9 +409,27 @@ bool PlatformVulkan::Initialize(Window* window, bool waitVSync)
 
 		uint32_t layerCount;
 		vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
+
+		std::vector<VkLayerProperties> availableLayers(layerCount);
+		vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
+
+		bool validationLayerFound = false;
+		for (const auto& layerProperties : availableLayers)
+		{
+			std::stringstream ss;
+			ss << "layer " << layerProperties.layerName << " is avalable";
+			Log(LogType::Debug, ss.str());
+			if (strcmp(layerProperties.layerName, "VK_LAYER_LUNARG_standard_validation") == 0)
+			{
+				validationLayerFound = true;
+			}
+		}
+
 		const std::vector<const char*> validationLayers = {"VK_LAYER_LUNARG_standard_validation"};
 
-		if (layerCount > 0)
+		Log(LogType::Warning, "Failed to activate validation layer");
+
+		if (validationLayerFound)
 		{
 			instanceCreateInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
 			instanceCreateInfo.ppEnabledLayerNames = validationLayers.data();
@@ -444,7 +452,7 @@ bool PlatformVulkan::Initialize(Window* window, bool waitVSync)
 		vk::PhysicalDeviceProperties deviceProperties = vkPhysicalDevice.getProperties();
 		memcpy(&_version, &deviceProperties.apiVersion, sizeof(uint32_t));
 		vk::PhysicalDeviceFeatures deviceFeatures = vkPhysicalDevice.getFeatures();
-		vk::PhysicalDeviceMemoryProperties deviceMemoryProperties = vkPhysicalDevice.getMemoryProperties();
+		// vk::PhysicalDeviceMemoryProperties deviceMemoryProperties = vkPhysicalDevice.getMemoryProperties();
 
 		// create surface
 #ifdef _WIN32
@@ -503,10 +511,14 @@ bool PlatformVulkan::Initialize(Window* window, bool waitVSync)
 		deviceCreateInfo.ppEnabledExtensionNames = enabledExtensions.data();
 
 #if !defined(NDEBUG)
-		if (layerCount > 0)
+		if (validationLayerFound)
 		{
 			deviceCreateInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
 			deviceCreateInfo.ppEnabledLayerNames = validationLayers.data();
+		}
+		else
+		{
+			deviceCreateInfo.enabledLayerCount = 0;
 		}
 #else
 		deviceCreateInfo.enabledLayerCount = 0;
@@ -596,8 +608,10 @@ bool PlatformVulkan::Initialize(Window* window, bool waitVSync)
 	}
 	catch (const std::exception& e)
 	{
-		std::cout << "Initialize Failed : " << e.what() << std::endl;
-		std::cout << "Please install Vulkan client driver." << std::endl;
+		std::stringstream ss;
+		ss << "Initialize Failed : " << e.what() << std::endl;
+		Log(LogType::Error, ss.str());
+		Log(LogType::Error, "Please install Vulkan client driver.");
 		exitWithError();
 		return false;
 	}
@@ -629,7 +643,7 @@ void PlatformVulkan::Present()
 	if (executedCommandCount == 0)
 	{
 		vk::ClearColorValue clearColor(std::array<float, 4>{0, 0, 0, 0});
-		vk::ClearDepthStencilValue clearDepth(1.0f, 0);
+		// vk::ClearDepthStencilValue clearDepth(1.0f, 0);
 
 		vk::ImageSubresourceRange colorSubRange;
 		colorSubRange.aspectMask = vk::ImageAspectFlagBits::eColor;

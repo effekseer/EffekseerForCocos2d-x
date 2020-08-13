@@ -346,9 +346,9 @@ enum class LogType
 	Debug,
 };
 
-void SetLogger(const std::function<void(LogType, const char*)>& logger);
+void SetLogger(const std::function<void(LogType, const std::string&)>& logger);
 
-void Log(LogType logType, const char* message);
+void Log(LogType logType, const std::string& message);
 
 inline size_t GetAlignedSize(size_t size, size_t alignment) { return (size + (alignment - 1)) & ~(alignment - 1); }
 

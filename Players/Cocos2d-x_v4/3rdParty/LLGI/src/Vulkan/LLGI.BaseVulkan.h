@@ -2,7 +2,7 @@
 #pragma once
 
 #include "../LLGI.Base.h"
-#include <iostream>
+#include <sstream>
 #include <unordered_map>
 
 #ifdef _WIN32
@@ -17,14 +17,17 @@
 #include <vulkan/vulkan.hpp>
 
 #define LLGI_VK_CHECK(f)                                                                                                                   \
+	do                                                                                                                                     \
 	{                                                                                                                                      \
 		VkResult r = (f);                                                                                                                  \
 		if (r != VK_SUCCESS)                                                                                                               \
 		{                                                                                                                                  \
-			std::cerr << #f << "; VkResult:" << r << "(" << VulkanHelper::getResultName(r) << ")" << std::endl;                            \
+			std::stringstream ss;                                                                                                          \
+			ss << #f << "; VkResult:" << r << "(" << VulkanHelper::getResultName(r) << ")";                                                \
+			Log(LogType::Error, ss.str());                                                                                                 \
 			return false;                                                                                                                  \
 		}                                                                                                                                  \
-	}
+	} while (false)
 
 namespace std
 {

@@ -82,7 +82,7 @@ bool RenderPassVulkan::Initialize(const TextureVulkan** textures,
 		renderTargetProperties.at(i).colorBufferPtr = CreateSharedPtr(texture);
 	}
 
-	for (size_t i = 0; i < textureCount; i++)
+	for (int32_t i = 0; i < textureCount; i++)
 	{
 		renderTargetProperties.at(i).format = textures[i]->GetVulkanFormat();
 	}
@@ -101,18 +101,18 @@ bool RenderPassVulkan::Initialize(const TextureVulkan** textures,
 		views.at(views.size() - 1) = depthTexture->GetView();
 	}
 
-	if (auto resolvedTexture = static_cast<TextureVulkan*>(GetResolvedRenderTexture()))
+	if (auto resolvedTextureVulkan = static_cast<TextureVulkan*>(GetResolvedRenderTexture()))
 	{
 		views.resize(views.size() + 1);
-		views.at(views.size() - 1) = resolvedTexture->GetView();
+		views.at(views.size() - 1) = resolvedTextureVulkan->GetView();
 	}
 
-	if (auto resolvedTexture = static_cast<TextureVulkan*>(GetResolvedDepthTexture()))
-	{
-		// Wait 1.2
-		// views.resize(views.size() + 1);
-		// views.at(views.size() - 1) = resolvedTexture->GetView();
-	}
+	// if (auto resolvedTextureVulkan = static_cast<TextureVulkan*>(GetResolvedDepthTexture()))
+	//{
+	// Wait 1.2
+	// views.resize(views.size() + 1);
+	// views.at(views.size() - 1) = resolvedTexture->GetView();
+	//}
 
 	ResetRenderPassPipelineState();
 
@@ -149,7 +149,7 @@ void RenderPassVulkan::ResetRenderPassPipelineState()
 
 	FixedSizeVector<vk::Format, RenderTargetMax> formats;
 	formats.resize(renderTargetProperties.size());
-	for (int32_t i = 0; i < renderTargetProperties.size(); i++)
+	for (size_t i = 0; i < renderTargetProperties.size(); i++)
 	{
 		formats.at(i) = renderTargetProperties.at(i).colorBufferPtr->GetVulkanFormat();
 	}

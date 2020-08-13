@@ -106,29 +106,30 @@ bool PipelineState_Impl::Compile(PipelineState* self, Graphics_Impl* graphics)
 	pipelineStateDescriptor.fragmentFunction = pf;
 
 	// setup a depth
-	MTLDepthStencilDescriptor* depthStencilDescriptor = [[MTLDepthStencilDescriptor alloc] init];
-	depthStencilDescriptor.depthWriteEnabled = self_->IsDepthWriteEnabled;
-
-	if (self_->IsDepthTestEnabled)
-	{
-		std::array<MTLCompareFunction, 10> depthCompareOps;
-		depthCompareOps[static_cast<int>(DepthFuncType::Never)] = MTLCompareFunctionNever;
-		depthCompareOps[static_cast<int>(DepthFuncType::Less)] = MTLCompareFunctionLess;
-		depthCompareOps[static_cast<int>(DepthFuncType::Equal)] = MTLCompareFunctionEqual;
-		depthCompareOps[static_cast<int>(DepthFuncType::LessEqual)] = MTLCompareFunctionLessEqual;
-		depthCompareOps[static_cast<int>(DepthFuncType::Greater)] = MTLCompareFunctionGreater;
-		depthCompareOps[static_cast<int>(DepthFuncType::NotEqual)] = MTLCompareFunctionNotEqual;
-		depthCompareOps[static_cast<int>(DepthFuncType::GreaterEqual)] = MTLCompareFunctionGreaterEqual;
-		depthCompareOps[static_cast<int>(DepthFuncType::Always)] = MTLCompareFunctionAlways;
-		depthStencilDescriptor.depthCompareFunction = depthCompareOps[static_cast<int>(self_->DepthFunc)];
-	}
-	else
-	{
-		depthStencilDescriptor.depthCompareFunction = MTLCompareFunctionAlways;
-	}
-
 	if (renderPassPipelineStateMetal_->GetImpl()->depthStencilFormat != MTLPixelFormatInvalid)
 	{
+
+		MTLDepthStencilDescriptor* depthStencilDescriptor = [[MTLDepthStencilDescriptor alloc] init];
+		depthStencilDescriptor.depthWriteEnabled = self_->IsDepthWriteEnabled;
+
+		if (self_->IsDepthTestEnabled)
+		{
+			std::array<MTLCompareFunction, 10> depthCompareOps;
+			depthCompareOps[static_cast<int>(DepthFuncType::Never)] = MTLCompareFunctionNever;
+			depthCompareOps[static_cast<int>(DepthFuncType::Less)] = MTLCompareFunctionLess;
+			depthCompareOps[static_cast<int>(DepthFuncType::Equal)] = MTLCompareFunctionEqual;
+			depthCompareOps[static_cast<int>(DepthFuncType::LessEqual)] = MTLCompareFunctionLessEqual;
+			depthCompareOps[static_cast<int>(DepthFuncType::Greater)] = MTLCompareFunctionGreater;
+			depthCompareOps[static_cast<int>(DepthFuncType::NotEqual)] = MTLCompareFunctionNotEqual;
+			depthCompareOps[static_cast<int>(DepthFuncType::GreaterEqual)] = MTLCompareFunctionGreaterEqual;
+			depthCompareOps[static_cast<int>(DepthFuncType::Always)] = MTLCompareFunctionAlways;
+			depthStencilDescriptor.depthCompareFunction = depthCompareOps[static_cast<int>(self_->DepthFunc)];
+		}
+		else
+		{
+			depthStencilDescriptor.depthCompareFunction = MTLCompareFunctionAlways;
+		}
+
 		if (renderPassPipelineStateMetal_->Key.DepthFormat == TextureFormatType::D24S8 ||
 			renderPassPipelineStateMetal_->Key.DepthFormat == TextureFormatType::D32S8)
 		{
@@ -158,10 +159,10 @@ bool PipelineState_Impl::Compile(PipelineState* self, Graphics_Impl* graphics)
 			depthStencilDescriptor.backFaceStencil = stencilDescriptor;
 			[stencilDescriptor release];
 		}
-	}
 
-	depthStencilState = [graphics->device newDepthStencilStateWithDescriptor:depthStencilDescriptor];
-	[depthStencilDescriptor release];
+		depthStencilState = [graphics->device newDepthStencilStateWithDescriptor:depthStencilDescriptor];
+		[depthStencilDescriptor release];
+	}
 
 	// topology
 	if (self_->Topology == TopologyType::Triangle)

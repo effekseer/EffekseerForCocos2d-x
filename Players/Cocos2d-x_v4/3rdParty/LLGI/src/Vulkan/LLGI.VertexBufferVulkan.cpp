@@ -54,7 +54,6 @@ bool VertexBufferVulkan::Initialize(GraphicsVulkan* graphics, int32_t size)
 bool VertexBufferVulkan::InitializeAsShortTime(SingleFrameMemoryPoolVulkan* memoryPool, int32_t size)
 {
 	throw "Not implemented.";
-	return true;
 }
 
 VertexBufferVulkan::VertexBufferVulkan() {}

@@ -123,7 +123,7 @@ RenderPassPipelineStateVulkan* RenderPassPipelineStateCacheVulkan::Create(const 
 		desc.finalLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
 	}
 
-	int32_t resolveDepthIndex = -1;
+	// int32_t resolveDepthIndex = -1;
 	if (key.HasResolvedDepthTarget)
 	{
 		// Wait 1.2
