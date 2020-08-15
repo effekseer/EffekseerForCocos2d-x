@@ -236,7 +236,7 @@ bool TextureVulkan::InitializeAsExternal(vk::Device device, const VulkanImageInf
 	owner_ = owner;
 	SafeAddRef(owner_);
 
-	image_ = info.image;
+	image_ = static_cast<vk::Image>(info.image);
 
 	vk::ImageViewCreateInfo viewCreateInfo;
 	viewCreateInfo.viewType = vk::ImageViewType::e2D;

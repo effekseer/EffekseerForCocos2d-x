@@ -697,7 +697,10 @@ void PlatformVulkan::Present()
 		vk::Fence fence = GetSubmitFence(true);
 		vkQueue.submit(submitInfo, fence);
 		vk::Result fenceRes = vkDevice_.waitForFences(fence, VK_TRUE, std::numeric_limits<int>::max());
-		assert(fenceRes == vk::Result::eSuccess);
+		if (fenceRes != vk::Result::eSuccess)
+		{
+			throw "Invalid waitForFences";
+		}
 	}
 
 	auto result = Present(vkRenderComplete_);

@@ -552,7 +552,10 @@ void CommandListVulkan::WaitUntilCompleted()
 	{
 		vk::Result fenceRes =
 			graphics_->GetDevice().waitForFences(fences_[currentSwapBufferIndex_], VK_TRUE, std::numeric_limits<int>::max());
-		assert(fenceRes == vk::Result::eSuccess);
+		if (fenceRes != vk::Result::eSuccess)
+		{
+			throw "Invalid waitForFences";
+		}
 	}
 }
 

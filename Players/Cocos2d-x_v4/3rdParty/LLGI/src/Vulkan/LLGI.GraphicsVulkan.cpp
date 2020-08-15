@@ -350,7 +350,7 @@ std::vector<uint8_t> GraphicsVulkan::CaptureRenderTarget(Texture* renderTarget)
 	{
 		void* rawData = nullptr;
 		vkMapMemory(device, destBuffer.GetNativeBufferMemory(), 0, destBuffer.GetSize(), 0, &rawData);
-		result.resize(destBuffer.GetSize());
+		result.resize(static_cast<size_t>(destBuffer.GetSize()));
 		memcpy(result.data(), rawData, result.size());
 		vkUnmapMemory(device, destBuffer.GetNativeBufferMemory());
 	}
