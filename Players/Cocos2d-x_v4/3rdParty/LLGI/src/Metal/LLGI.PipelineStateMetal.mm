@@ -167,15 +167,38 @@ bool PipelineState_Impl::Compile(PipelineState* self, Graphics_Impl* graphics)
 	// topology
 	if (self_->Topology == TopologyType::Triangle)
 	{
-		pipelineStateDescriptor.inputPrimitiveTopology = MTLPrimitiveTopologyClassTriangle;
+		if (@available(iOS 12.0, *))
+		{
+			pipelineStateDescriptor.inputPrimitiveTopology = MTLPrimitiveTopologyClassTriangle;
+		}
+		else
+		{
+			// Fallback on earlier versions
+		}
 	}
 	else if (self_->Topology == TopologyType::Line)
 	{
-		pipelineStateDescriptor.inputPrimitiveTopology = MTLPrimitiveTopologyClassLine;
+		if (@available(iOS 12.0, *))
+		{
+			pipelineStateDescriptor.inputPrimitiveTopology = MTLPrimitiveTopologyClassLine;
+		}
+		else
+		{
+			Log(LogType::Error, "OS is too old.");
+			return false;
+		}
 	}
 	else if (self_->Topology == TopologyType::Point)
 	{
-		pipelineStateDescriptor.inputPrimitiveTopology = MTLPrimitiveTopologyClassPoint;
+		if (@available(iOS 12.0, *))
+		{
+			pipelineStateDescriptor.inputPrimitiveTopology = MTLPrimitiveTopologyClassPoint;
+		}
+		else
+		{
+			Log(LogType::Error, "OS is too old.");
+			return false;
+		}
 	}
 	else
 	{

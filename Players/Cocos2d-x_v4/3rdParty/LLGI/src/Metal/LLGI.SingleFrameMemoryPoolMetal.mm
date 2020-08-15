@@ -10,7 +10,7 @@ InternalSingleFrameMemoryPoolMetal::InternalSingleFrameMemoryPoolMetal(GraphicsM
 																	   int32_t constantBufferPoolSize,
 																	   int32_t drawingCount)
 {
-	constantBufferSize_ = GetAlignedSize(constantBufferPoolSize, 256);
+	constantBufferSize_ = static_cast<int32_t>(GetAlignedSize(static_cast<size_t>(constantBufferPoolSize), 256));
 	buffer_ = new BufferMetal();
 	buffer_->Initialize(graphics, constantBufferSize_);
 }
@@ -26,7 +26,7 @@ bool InternalSingleFrameMemoryPoolMetal::GetConstantBuffer(int32_t size, BufferM
 	constantBufferOffset_ += size;
 
 	// shift 256
-	constantBufferOffset_ = GetAlignedSize(constantBufferOffset_, 256);
+	constantBufferOffset_ = static_cast<int32_t>(GetAlignedSize(static_cast<size_t>(constantBufferOffset_), 256));
 	return true;
 }
 

@@ -2794,6 +2794,7 @@ public:
 */
 struct EffectBasicRenderParameter
 {
+	RendererMaterialType MaterialType;
 	int32_t				ColorTextureIndex;
 	AlphaBlendType		AlphaBlend;
 	TextureFilterType	FilterType;

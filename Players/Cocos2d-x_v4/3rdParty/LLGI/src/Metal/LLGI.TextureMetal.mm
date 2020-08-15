@@ -110,8 +110,8 @@ void Texture_Impl::Reset(id<MTLTexture> nativeTexture)
 
 	if (texture != nullptr)
 	{
-		size_.X = texture.width;
-		size_.Y = texture.height;
+		size_.X = static_cast<int32_t>(texture.width);
+		size_.Y = static_cast<int32_t>(texture.height);
 	}
 	else
 	{
