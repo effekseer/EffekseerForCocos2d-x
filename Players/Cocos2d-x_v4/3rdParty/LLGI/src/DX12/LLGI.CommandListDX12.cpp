@@ -23,7 +23,17 @@ void CommandListDX12::BeginInternal()
 	samplerDescriptorHeap_->Reset();
 }
 
-CommandListDX12::CommandListDX12() {}
+CommandListDX12::CommandListDX12()
+	: samplerDescriptorHeap_(nullptr)
+	, cbDescriptorHeap_(nullptr)
+	, rtDescriptorHeap_(nullptr)
+	, dtDescriptorHeap_(nullptr)
+	, commandList_(nullptr)
+	, commandAllocator_(nullptr)
+	, graphics_(nullptr)
+	, renderPass_(nullptr)
+{
+}
 
 CommandListDX12::~CommandListDX12()
 {
@@ -48,6 +58,9 @@ bool CommandListDX12::Initialize(GraphicsDX12* graphics, int32_t drawingCount)
 	hr = graphics_->GetDevice()->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&commandAllocator));
 	if (FAILED(hr))
 	{
+		auto msg = (std::string("Error : ") + std::string(__FILE__) + " : " + std::to_string(__LINE__) + std::string(" : ") +
+					std::system_category().message(hr));
+		::LLGI::Log(::LLGI::LogType::Error, msg.c_str());
 		SafeRelease(graphics_);
 		goto FAILED_EXIT;
 	}
@@ -58,6 +71,9 @@ bool CommandListDX12::Initialize(GraphicsDX12* graphics, int32_t drawingCount)
 	hr = graphics_->GetDevice()->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, commandAllocator, NULL, IID_PPV_ARGS(&commandList));
 	if (FAILED(hr))
 	{
+		auto msg = (std::string("Error : ") + std::string(__FILE__) + " : " + std::to_string(__LINE__) + std::string(" : ") +
+					std::system_category().message(hr));
+		::LLGI::Log(::LLGI::LogType::Error, msg.c_str());
 		SafeRelease(graphics_);
 		SafeRelease(commandAllocator_);
 		goto FAILED_EXIT;
@@ -80,6 +96,9 @@ bool CommandListDX12::Initialize(GraphicsDX12* graphics, int32_t drawingCount)
 	hr = graphics_->GetDevice()->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence_));
 	if (FAILED(hr))
 	{
+		auto msg = (std::string("Error : ") + std::string(__FILE__) + " : " + std::to_string(__LINE__) + std::string(" : ") +
+					std::system_category().message(hr));
+		::LLGI::Log(::LLGI::LogType::Error, msg.c_str());
 		goto FAILED_EXIT;
 	}
 	fenceEvent_ = CreateEvent(NULL, FALSE, FALSE, NULL);
@@ -260,7 +279,7 @@ void CommandListDX12::Draw(int32_t primitiveCount, int32_t instanceCount)
 		currentCommandList_->SetGraphicsRootSignature(pip->GetRootSignature());
 		auto p = pip->GetPipelineState();
 		currentCommandList_->SetPipelineState(p);
-		currentCommandList_->OMSetStencilRef(0xff);
+		currentCommandList_->OMSetStencilRef(pip->StencilRef);
 	}
 
 	// count descriptor

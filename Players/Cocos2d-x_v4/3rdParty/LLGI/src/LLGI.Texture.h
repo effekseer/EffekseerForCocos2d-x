@@ -22,6 +22,16 @@ public:
 
 	/*[[deprecated("use CommandList::SetImageData2D.")]]*/ virtual void Unlock();
 
+	/**
+		@brief	Lock an image on mipmap
+	*/
+	virtual void* Lock(int32_t mipmapLevel) { return nullptr; }
+
+	/**
+		@brief	Generate mipmaps based on level zero.
+	*/
+	virtual void GenerateMipMaps() {}
+
 	virtual Vec2I GetSizeAs2D() const;
 	[[deprecated("use GetType.")]] virtual bool IsRenderTexture() const;
 	[[deprecated("use GetType.")]] virtual bool IsDepthTexture() const;

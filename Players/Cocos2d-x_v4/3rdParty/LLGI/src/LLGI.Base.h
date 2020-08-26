@@ -13,6 +13,7 @@
 #include <queue>
 #include <string>
 #include <vector>
+#include <cmath>
 
 namespace LLGI
 {
@@ -113,6 +114,30 @@ enum class DepthFuncType
 	Always,
 };
 
+enum class CompareFuncType
+{
+	Never,
+	Less,
+	Equal,
+	LessEqual,
+	Greater,
+	NotEqual,
+	GreaterEqual,
+	Always,
+};
+
+enum class StencilOperatorType
+{
+	Keep,
+	Zero,
+	Replace,
+	IncClamp,
+	DecClamp,
+	Invert,
+	IncRepeat,
+	DecRepeat,
+};
+
 enum class ConstantBufferType
 {
 	LongTime,  //! this constant buffer is not almost changed
@@ -150,7 +175,40 @@ struct Vec3F
 	Vec3F() : X(0), Y(0), Z(0) {}
 
 	Vec3F(float x, float y, float z) : X(x), Y(y), Z(z) {}
+
+	static Vec3F Normalize(const Vec3F& in)
+	{
+		float inv = 1.0f /  std::sqrt(in.X * in.X + in.Y * in.Y + in.Z * in.Z);
+		return Vec3F(in.X * inv, in.Y * inv, in.Z * inv);
+	}
+
+	static Vec3F Cross(const Vec3F& in1, const Vec3F& in2)
+	{
+		float x = in1.Y * in2.Z - in1.Z * in2.Y;
+		float y = in1.Z * in2.X - in1.X * in2.Z;
+		float z = in1.X * in2.Y - in1.Y * in2.X;
+		return Vec3F(x, y, z);
+	}
+
+	static Vec3F Sub(const Vec3F& in1, const Vec3F& in2)
+	{
+		return Vec3F(in1.X - in2.X, in1.Y - in2.Y, in1.Z - in2.Z);
+	}
+
+	static float Dot(const Vec3F& in1, const Vec3F& in2)
+	{
+		return in1.X * in2.X + in1.Y * in2.Y + in1.Z * in2.Z;
+	}
+
 };
+
+inline Vec3F operator*(const Vec3F& v1, float v2)
+{
+	return Vec3F(
+		v1.X * v2,
+		v1.Y * v2,
+		v1.Z * v2);
+}
 
 struct Color8
 {
@@ -178,32 +236,32 @@ struct ColorF
 
 enum class TextureFormatType
 {
-	R8G8B8A8_UNORM = 0,
-	R16G16B16A16_FLOAT = 11,
-	R32G32B32A32_FLOAT = 1,
-	R8G8B8A8_UNORM_SRGB = 2,
-	R16G16_FLOAT = 3,
-	R8_UNORM = 4,
-
-	BC1 = 5,
-	BC2 = 6,
-	BC3 = 7,
-	BC1_SRGB = 8,
-	BC2_SRGB = 9,
-	BC3_SRGB = 10,
-
-	D32 = 12,
-	D32S8 = 13,
-	D24S8 = 14,
-	//! for internal
-	B8G8R8A8_UNORM = 253,
-	B8G8R8A8_UNORM_SRGB = 254,
-	Unknown = 255,
+	R8G8B8A8_UNORM,
+	B8G8R8A8_UNORM,
+	R8_UNORM,
+	R16G16_FLOAT,
+	R16G16B16A16_FLOAT,
+	R32G32B32A32_FLOAT,
+	BC1,
+	BC2,
+	BC3,
+	R8G8B8A8_UNORM_SRGB,
+	B8G8R8A8_UNORM_SRGB,
+	BC1_SRGB,
+	BC2_SRGB,
+	BC3_SRGB,
+	D32,
+	D24S8,
+	D32S8,
+	Unknown,
 };
 
 inline bool HasStencil(TextureFormatType format)
 {
 	if (format == TextureFormatType::D24S8)
+		return true;
+
+	if (format == TextureFormatType::D32S8)
 		return true;
 
 	return false;
@@ -352,11 +410,60 @@ void Log(LogType logType, const std::string& message);
 
 inline size_t GetAlignedSize(size_t size, size_t alignment) { return (size + (alignment - 1)) & ~(alignment - 1); }
 
+inline std::string to_string(TextureFormatType format)
+{
+	switch (format)
+	{
+	case TextureFormatType::R8G8B8A8_UNORM:
+		return "R8G8B8A8_UNORM";
+	case TextureFormatType::B8G8R8A8_UNORM:
+		return "B8G8R8A8_UNORM";
+	case TextureFormatType::R8_UNORM:
+		return "R8_UNORM";
+	case TextureFormatType::R16G16_FLOAT:
+		return "R16G16_FLOAT";
+	case TextureFormatType::R16G16B16A16_FLOAT:
+		return "R16G16B16A16_FLOAT";
+	case TextureFormatType::R32G32B32A32_FLOAT:
+		return "R8G8B8A8_UNORM_SRGB";
+	case TextureFormatType::BC1:
+		return "BC1";
+	case TextureFormatType::BC2:
+		return "BC2";
+	case TextureFormatType::BC3:
+		return "BC3";
+	case TextureFormatType::R8G8B8A8_UNORM_SRGB:
+		return "R8G8B8A8_UNORM_SRGB";
+	case TextureFormatType::B8G8R8A8_UNORM_SRGB:
+		return "B8G8R8A8_UNORM_SRGB";
+	case TextureFormatType::BC1_SRGB:
+		return "BC1_SRGB";
+	case TextureFormatType::BC2_SRGB:
+		return "BC2_SRGB";
+	case TextureFormatType::BC3_SRGB:
+		return "BC3_SRGB";
+	case TextureFormatType::D32:
+		return "D32";
+	case TextureFormatType::D32S8:
+		return "D32S8";
+	case TextureFormatType::D24S8:
+		return "D24S8";
+	default:
+		return "Unregistered";
+	}
+}
+
 inline int32_t GetTextureMemorySize(TextureFormatType format, Vec2I size)
 {
 	switch (format)
 	{
 	case TextureFormatType::R8G8B8A8_UNORM:
+		return size.X * size.Y * 4;
+	case TextureFormatType::B8G8R8A8_UNORM:
+		return size.X * size.Y * 4;
+	case TextureFormatType::R8_UNORM:
+		return size.X * size.Y * 1;
+	case TextureFormatType::R16G16_FLOAT:
 		return size.X * size.Y * 4;
 	case TextureFormatType::R16G16B16A16_FLOAT:
 		return size.X * size.Y * 8;
@@ -364,20 +471,19 @@ inline int32_t GetTextureMemorySize(TextureFormatType format, Vec2I size)
 		return size.X * size.Y * 16;
 	case TextureFormatType::R8G8B8A8_UNORM_SRGB:
 		return size.X * size.Y * 4;
-	case TextureFormatType::R16G16_FLOAT:
-		return size.X * size.Y * 4;
-	case TextureFormatType::R8_UNORM:
-		return size.X * size.Y * 1;
-	case TextureFormatType::B8G8R8A8_UNORM:
+	case TextureFormatType::B8G8R8A8_UNORM_SRGB:
 		return size.X * size.Y * 4;
 	case TextureFormatType::D32:
 		return size.X * size.Y * 4;
 	case TextureFormatType::D24S8:
 		return size.X * size.Y * 4;
+	case TextureFormatType::D32S8:
+		return size.X * size.Y * 5;
 	default:
-		assert(0);
+		auto str = to_string(format);
+		Log(LogType::Error, str + " : GetTextureMemorySize is not supported");
+		return 0;
 	}
-	return 0;
 }
 
 /**

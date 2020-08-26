@@ -183,7 +183,10 @@ bool TextureVulkan::InitializeAsDepthStencil(
 	format_ = VulkanHelper::VkFormatToTextureFormat(static_cast<VkFormat>(format));
 
 	vk::FormatProperties formatProps = physicalDevice.getFormatProperties(depthFormat);
-	assert(formatProps.optimalTilingFeatures & vk::FormatFeatureFlagBits::eDepthStencilAttachment);
+	if(!(formatProps.optimalTilingFeatures & vk::FormatFeatureFlagBits::eDepthStencilAttachment))
+	{
+		throw "Invalid formatProps";
+	}
 
 	vk::ImageAspectFlags aspect = vk::ImageAspectFlagBits::eDepth;
 	if (HasStencil(format_))

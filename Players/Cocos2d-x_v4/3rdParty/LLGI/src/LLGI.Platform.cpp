@@ -9,6 +9,18 @@ void Platform::Present() {}
 
 Graphics* Platform::CreateGraphics() { return nullptr; }
 
+int Platform::GetCurrentFrameIndex() const
+{
+	assert(0); // TODO: Not implemented.
+	return 0;
+}
+
+int Platform::GetMaxFrameCount() const
+{
+	assert(0); // TODO: Not implemented.
+	return 0;
+}
+
 void Platform::SetWindowSize(const Vec2I& windowSize)
 {
 	assert(0); // TODO: Not implemented.

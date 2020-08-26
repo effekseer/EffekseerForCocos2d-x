@@ -301,18 +301,29 @@ std::vector<uint8_t> GraphicsDX12::CaptureRenderTarget(Texture* renderTarget)
 
 	BufferDX12 dstBuffer;
 	if (!dstBuffer.Initialize(this, dstFootprint.RowPitch * dstFootprint.Height))
+	{
+		auto msg = (std::string("Error : ") + std::string(__FILE__) + " : " + std::to_string(__LINE__) + std::string(" : "));
+		::LLGI::Log(::LLGI::LogType::Error, msg.c_str());
 		goto FAILED_EXIT;
-
+	}
 	ID3D12CommandAllocator* commandAllocator = nullptr;
 	ID3D12GraphicsCommandList* commandList = nullptr;
 
 	auto hr = device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&commandAllocator));
 	if (FAILED(hr))
+	{
+		auto msg = (std::string("Error : ") + std::string(__FILE__) + " : " + std::to_string(__LINE__) + std::string(" : ") +
+					std::system_category().message(hr));
+		::LLGI::Log(::LLGI::LogType::Error, msg.c_str());
 		goto FAILED_EXIT;
+	}
 
 	hr = device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, commandAllocator, NULL, IID_PPV_ARGS(&commandList));
 	if (FAILED(hr))
 	{
+		auto msg = (std::string("Error : ") + std::string(__FILE__) + " : " + std::to_string(__LINE__) + std::string(" : ") +
+					std::system_category().message(hr));
+		::LLGI::Log(::LLGI::LogType::Error, msg.c_str());
 		SafeRelease(commandAllocator);
 		goto FAILED_EXIT;
 	}

@@ -34,6 +34,8 @@ public:
 	virtual void Present();
 	virtual Graphics* CreateGraphics();
 	virtual DeviceType GetDeviceType() const { return DeviceType::Default; }
+	virtual int GetCurrentFrameIndex() const;
+	virtual int GetMaxFrameCount() const;
 
 	/*
 	 @brief change this window size

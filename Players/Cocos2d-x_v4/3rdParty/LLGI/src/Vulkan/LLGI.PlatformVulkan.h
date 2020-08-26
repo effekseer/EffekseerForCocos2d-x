@@ -150,6 +150,8 @@ public:
 	int32_t GetQueueFamilyIndex() const { return queueFamilyIndex_; }
 
 	DeviceType GetDeviceType() const override { return DeviceType::Vulkan; }
+
+	int GetMaxFrameCount() const override { return static_cast<int>(swapBufferCount); }
 };
 
 } // namespace LLGI

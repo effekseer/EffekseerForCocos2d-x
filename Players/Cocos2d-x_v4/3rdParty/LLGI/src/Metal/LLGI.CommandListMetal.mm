@@ -329,7 +329,7 @@ void CommandListMetal::Draw(int32_t primitiveCount, int32_t instanceCount)
 			[impl->renderEncoder setDepthStencilState:pip->GetImpl()->depthStencilState];
 		}
 
-		[impl->renderEncoder setStencilReferenceValue:0xFF];
+		[impl->renderEncoder setStencilReferenceValue:pip->StencilRef];
 	}
 
 	// draw

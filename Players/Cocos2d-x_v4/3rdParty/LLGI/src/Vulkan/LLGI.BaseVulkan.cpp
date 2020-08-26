@@ -59,20 +59,22 @@ struct FormatConversionItem
 
 static FormatConversionItem s_formatConversionTable[] = {
 	{TextureFormatType::R8G8B8A8_UNORM, VK_FORMAT_R8G8B8A8_UNORM},
-	{TextureFormatType::R32G32B32A32_FLOAT, VK_FORMAT_R32G32B32A32_SFLOAT},
-	{TextureFormatType::R8G8B8A8_UNORM_SRGB, VK_FORMAT_R8G8B8A8_SRGB},
-	{TextureFormatType::R16G16_FLOAT, VK_FORMAT_R16G16_SFLOAT},
+	{TextureFormatType::B8G8R8A8_UNORM, VK_FORMAT_B8G8R8A8_UNORM},
 	{TextureFormatType::R8_UNORM, VK_FORMAT_R8_UNORM},
+	{TextureFormatType::R16G16_FLOAT, VK_FORMAT_R16G16_SFLOAT},
+	{TextureFormatType::R16G16B16A16_FLOAT, VK_FORMAT_R16G16B16A16_SFLOAT},
+	{TextureFormatType::R32G32B32A32_FLOAT, VK_FORMAT_R32G32B32A32_SFLOAT},
 	{TextureFormatType::BC1, VK_FORMAT_BC1_RGBA_UNORM_BLOCK},
 	{TextureFormatType::BC2, VK_FORMAT_BC2_UNORM_BLOCK},
 	{TextureFormatType::BC3, VK_FORMAT_BC3_UNORM_BLOCK},
+	{TextureFormatType::R8G8B8A8_UNORM_SRGB, VK_FORMAT_R8G8B8A8_SRGB},
+	{TextureFormatType::B8G8R8A8_UNORM_SRGB, VK_FORMAT_B8G8R8A8_SRGB},
 	{TextureFormatType::BC1_SRGB, VK_FORMAT_BC1_RGBA_SRGB_BLOCK},
 	{TextureFormatType::BC2_SRGB, VK_FORMAT_BC2_SRGB_BLOCK},
 	{TextureFormatType::BC3_SRGB, VK_FORMAT_BC3_SRGB_BLOCK},
-	{TextureFormatType::R16G16B16A16_FLOAT, VK_FORMAT_R16G16B16A16_SFLOAT},
-	{TextureFormatType::B8G8R8A8_UNORM, VK_FORMAT_B8G8R8A8_UNORM},
 	{TextureFormatType::D32, VK_FORMAT_D32_SFLOAT},
 	{TextureFormatType::D24S8, VK_FORMAT_D24_UNORM_S8_UINT},
+	{TextureFormatType::D32S8, VK_FORMAT_D32_SFLOAT_S8_UINT},
 	{TextureFormatType::Unknown, VK_FORMAT_UNDEFINED},
 };
 
@@ -84,7 +86,9 @@ VkFormat VulkanHelper::TextureFormatToVkFormat(TextureFormatType format)
 			return s_formatConversionTable[i].vulkanFormat;
 	}
 
-	assert(0);
+	auto format_str = to_string(format);
+
+	Log(LogType::Error, format_str + " : LLGI cannot use this format.");
 	return VK_FORMAT_UNDEFINED;
 }
 
@@ -96,7 +100,9 @@ TextureFormatType VulkanHelper::VkFormatToTextureFormat(VkFormat format)
 			return s_formatConversionTable[i].format;
 	}
 
-	assert(0);
+	auto format_str = vk::to_string(static_cast<vk::Format>(format));
+
+	Log(LogType::Error, format_str + " : LLGI cannot use this format.");
 	return TextureFormatType::Unknown;
 }
 

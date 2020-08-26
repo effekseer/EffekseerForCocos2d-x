@@ -137,12 +137,32 @@ bool PipelineState_Impl::Compile(PipelineState* self, Graphics_Impl* graphics)
 
 			if (self_->IsStencilTestEnabled)
 			{
-				stencilDescriptor.depthFailureOperation = MTLStencilOperationKeep;
-				stencilDescriptor.stencilFailureOperation = MTLStencilOperationKeep;
-				stencilDescriptor.depthStencilPassOperation = MTLStencilOperationKeep;
-				stencilDescriptor.stencilCompareFunction = MTLCompareFunctionEqual;
-				stencilDescriptor.readMask = 0xFF;
-				stencilDescriptor.writeMask = 0xFF;
+				std::array<MTLStencilOperation, 8> stencilOps;
+				stencilOps[static_cast<int>(StencilOperatorType::Keep)] = MTLStencilOperationKeep;
+				stencilOps[static_cast<int>(StencilOperatorType::Zero)] = MTLStencilOperationZero;
+				stencilOps[static_cast<int>(StencilOperatorType::Replace)] = MTLStencilOperationReplace;
+				stencilOps[static_cast<int>(StencilOperatorType::IncClamp)] = MTLStencilOperationIncrementClamp;
+				stencilOps[static_cast<int>(StencilOperatorType::DecClamp)] = MTLStencilOperationDecrementClamp;
+				stencilOps[static_cast<int>(StencilOperatorType::Invert)] = MTLStencilOperationDecrementClamp;
+				stencilOps[static_cast<int>(StencilOperatorType::IncRepeat)] = MTLStencilOperationIncrementWrap;
+				stencilOps[static_cast<int>(StencilOperatorType::DecRepeat)] = MTLStencilOperationDecrementWrap;
+
+				std::array<MTLCompareFunction, 8> stencilCompareFuncs;
+				stencilCompareFuncs[static_cast<int>(CompareFuncType::Never)] = MTLCompareFunctionNever;
+				stencilCompareFuncs[static_cast<int>(CompareFuncType::Less)] = MTLCompareFunctionLess;
+				stencilCompareFuncs[static_cast<int>(CompareFuncType::Equal)] = MTLCompareFunctionEqual;
+				stencilCompareFuncs[static_cast<int>(CompareFuncType::LessEqual)] = MTLCompareFunctionLessEqual;
+				stencilCompareFuncs[static_cast<int>(CompareFuncType::Greater)] = MTLCompareFunctionGreater;
+				stencilCompareFuncs[static_cast<int>(CompareFuncType::NotEqual)] = MTLCompareFunctionNotEqual;
+				stencilCompareFuncs[static_cast<int>(CompareFuncType::GreaterEqual)] = MTLCompareFunctionGreaterEqual;
+				stencilCompareFuncs[static_cast<int>(CompareFuncType::Always)] = MTLCompareFunctionAlways;
+
+				stencilDescriptor.depthFailureOperation = stencilOps[static_cast<int>(self_->StencilDepthFailOp)];
+				stencilDescriptor.stencilFailureOperation = stencilOps[static_cast<int>(self_->StencilFailOp)];
+				stencilDescriptor.depthStencilPassOperation = stencilOps[static_cast<int>(self_->StencilPassOp)];
+				stencilDescriptor.stencilCompareFunction = stencilCompareFuncs[static_cast<int>(self_->StencilCompareFunc)];
+				stencilDescriptor.readMask = self_->StencilReadMask;
+				stencilDescriptor.writeMask = self_->StencilWriteMask;
 			}
 			else
 			{

@@ -28,7 +28,7 @@ private:
 	IDXGISwapChain3* swapChain = nullptr;
 
 	ID3D12DescriptorHeap* descriptorHeapRTV = nullptr;
-	D3D12_CPU_DESCRIPTOR_HANDLE handleRTV[SwapBufferCount];
+	std::array<D3D12_CPU_DESCRIPTOR_HANDLE, SwapBufferCount> handleRTV;
 	std::array<ID3D12Resource*, SwapBufferCount> renderResources_;
 	std::array<TextureDX12*, SwapBufferCount> renderTargets_;
 	std::array<RenderPassDX12*, SwapBufferCount> renderPasses_;
@@ -52,6 +52,9 @@ public:
 	~PlatformDX12() override;
 
 	bool Initialize(Window* window, bool waitVSync);
+
+	int GetCurrentFrameIndex() const override;
+	int GetMaxFrameCount() const override;
 
 	bool NewFrame() override;
 	void Present() override;

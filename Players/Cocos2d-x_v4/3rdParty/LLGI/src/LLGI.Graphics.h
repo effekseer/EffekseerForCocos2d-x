@@ -14,6 +14,7 @@ struct TextureInitializationParameter
 {
 	Vec2I Size;
 	TextureFormatType Format = TextureFormatType::R8G8B8A8_UNORM;
+	int MipMapCount = 1;
 };
 
 struct RenderTextureInitializationParameter

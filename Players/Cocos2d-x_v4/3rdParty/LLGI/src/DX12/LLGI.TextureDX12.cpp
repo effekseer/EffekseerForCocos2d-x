@@ -208,6 +208,8 @@ void TextureDX12::Unlock()
 
 	if (event == nullptr)
 	{
+		auto msg = (std::string("Error : ") + std::string(__FILE__) + " : " + std::to_string(__LINE__) + std::string(" : "));
+		::LLGI::Log(::LLGI::LogType::Error, msg.c_str());
 		goto FAILED_EXIT;
 	}
 

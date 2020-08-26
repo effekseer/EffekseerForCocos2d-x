@@ -173,33 +173,66 @@ bool RenderPass::getSize(Vec2I& size,
 	{
 		auto temp = textures[i]->GetSizeAs2D();
 		if (size.X != temp.X)
+		{
+			auto msg = (std::string("Error : ") + std::string(__FILE__) + " : " + std::to_string(__LINE__) + std::string(" : "));
+			::LLGI::Log(::LLGI::LogType::Error, msg.c_str());
 			goto FAIL;
+		}
 		if (size.Y != temp.Y)
+		{
+			auto msg = (std::string("Error : ") + std::string(__FILE__) + " : " + std::to_string(__LINE__) + std::string(" : "));
+			::LLGI::Log(::LLGI::LogType::Error, msg.c_str());
 			goto FAIL;
+		}
 	}
 
 	if (depthTexture != nullptr)
 	{
 		if (size.X != depthTexture->GetSizeAs2D().X)
+		{
+			auto msg = (std::string("Error : ") + std::string(__FILE__) + " : " + std::to_string(__LINE__) + std::string(" : "));
+			::LLGI::Log(::LLGI::LogType::Error, msg.c_str());
 			goto FAIL;
+		}
 		if (size.Y != depthTexture->GetSizeAs2D().Y)
+		{
+			auto msg = (std::string("Error : ") + std::string(__FILE__) + " : " + std::to_string(__LINE__) + std::string(" : "));
+			::LLGI::Log(::LLGI::LogType::Error, msg.c_str());
 			goto FAIL;
+		}
 	}
 
 	if (resolvedRenderTexture != nullptr)
 	{
 		if (size.X != resolvedRenderTexture->GetSizeAs2D().X)
+		{
+			auto msg = (std::string("Error : ") + std::string(__FILE__) + " : " + std::to_string(__LINE__) + std::string(" : "));
+			::LLGI::Log(::LLGI::LogType::Error, msg.c_str());
 			goto FAIL;
+		}
+
 		if (size.Y != resolvedRenderTexture->GetSizeAs2D().Y)
+		{
+			auto msg = (std::string("Error : ") + std::string(__FILE__) + " : " + std::to_string(__LINE__) + std::string(" : "));
+			::LLGI::Log(::LLGI::LogType::Error, msg.c_str());
 			goto FAIL;
+		}
 	}
 
 	if (resolvedDepthTexture != nullptr)
 	{
 		if (size.X != resolvedDepthTexture->GetSizeAs2D().X)
+		{
+			auto msg = (std::string("Error : ") + std::string(__FILE__) + " : " + std::to_string(__LINE__) + std::string(" : "));
+			::LLGI::Log(::LLGI::LogType::Error, msg.c_str());
 			goto FAIL;
+		}
 		if (size.Y != resolvedDepthTexture->GetSizeAs2D().Y)
+		{
+			auto msg = (std::string("Error : ") + std::string(__FILE__) + " : " + std::to_string(__LINE__) + std::string(" : "));
+			::LLGI::Log(::LLGI::LogType::Error, msg.c_str());
 			goto FAIL;
+		}
 	}
 
 	return true;

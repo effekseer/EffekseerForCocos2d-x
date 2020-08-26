@@ -41,9 +41,14 @@ PlatformDX12::PlatformDX12()
 
 	renderTargets_.fill(nullptr);
 
+	D3D12_CPU_DESCRIPTOR_HANDLE h;
+	h.ptr = static_cast<SIZE_T>(0);
+	handleRTV.fill(h);
+
 	renderResources_.fill(nullptr);
 	renderTargets_.fill(nullptr);
 	renderPasses_.fill(nullptr);
+	commandAllocators.fill(nullptr);
 }
 
 PlatformDX12::~PlatformDX12()
@@ -138,12 +143,18 @@ bool PlatformDX12::GenerateSwapBuffer()
 	auto hr = dxgiFactory->CreateSwapChain(commandQueue, &DXGISwapChainDesc, &swapChain_);
 	if (FAILED(hr))
 	{
+		auto msg = (std::string("Error : ") + std::string(__FILE__) + " : " + std::to_string(__LINE__) + std::string(" : ") +
+					std::system_category().message(hr));
+		::LLGI::Log(::LLGI::LogType::Error, msg.c_str());
 		goto FAILED_EXIT;
 	}
 
 	hr = swapChain_->QueryInterface(&swapChain);
 	if (FAILED(hr))
 	{
+		auto msg = (std::string("Error : ") + std::string(__FILE__) + " : " + std::to_string(__LINE__) + std::string(" : ") +
+					std::system_category().message(hr));
+		::LLGI::Log(::LLGI::LogType::Error, msg.c_str());
 		SafeRelease(swapChain_);
 		goto FAILED_EXIT;
 	}
@@ -159,6 +170,9 @@ bool PlatformDX12::GenerateSwapBuffer()
 	hr = device->CreateDescriptorHeap(&renderPassHeapDesc, IID_PPV_ARGS(&descriptorHeapRTV));
 	if (FAILED(hr))
 	{
+		auto msg = (std::string("Error : ") + std::string(__FILE__) + " : " + std::to_string(__LINE__) + std::string(" : ") +
+					std::system_category().message(hr));
+		::LLGI::Log(::LLGI::LogType::Error, msg.c_str());
 		goto FAILED_EXIT;
 	}
 
@@ -170,6 +184,9 @@ bool PlatformDX12::GenerateSwapBuffer()
 		hr = swapChain->GetBuffer(i, IID_PPV_ARGS(&renderResources_[i]));
 		if (FAILED(hr))
 		{
+			auto msg = (std::string("Error : ") + std::string(__FILE__) + " : " + std::to_string(__LINE__) + std::string(" : ") +
+						std::system_category().message(hr));
+			::LLGI::Log(::LLGI::LogType::Error, msg.c_str());
 			goto FAILED_EXIT;
 		}
 
@@ -224,6 +241,9 @@ bool PlatformDX12::Initialize(Window* window, bool waitVSync)
 	hr = D3D12GetDebugInterface(IID_PPV_ARGS(&debug_));
 	if (FAILED(hr))
 	{
+		auto msg = (std::string("Error : ") + std::string(__FILE__) + " : " + std::to_string(__LINE__) + std::string(" : ") +
+					std::system_category().message(hr));
+		::LLGI::Log(::LLGI::LogType::Error, msg.c_str());
 		goto FAILED_EXIT;
 	}
 
@@ -241,6 +261,9 @@ bool PlatformDX12::Initialize(Window* window, bool waitVSync)
 	hr = CreateDXGIFactory2(flagsDXGI, IID_PPV_ARGS(&dxgiFactory));
 	if (FAILED(hr))
 	{
+		auto msg = (std::string("Error : ") + std::string(__FILE__) + " : " + std::to_string(__LINE__) + std::string(" : ") +
+					std::system_category().message(hr));
+		::LLGI::Log(::LLGI::LogType::Error, msg.c_str());
 		goto FAILED_EXIT;
 	}
 
@@ -269,6 +292,9 @@ bool PlatformDX12::Initialize(Window* window, bool waitVSync)
 
 	if (device == nullptr)
 	{
+		auto msg = (std::string("Error : ") + std::string(__FILE__) + " : " + std::to_string(__LINE__) + std::string(" : ") +
+					std::system_category().message(hr));
+		::LLGI::Log(::LLGI::LogType::Error, msg.c_str());
 		goto FAILED_EXIT;
 	}
 
@@ -312,6 +338,9 @@ bool PlatformDX12::Initialize(Window* window, bool waitVSync)
 	hr = device->CreateCommandQueue(&descCommandQueue, IID_PPV_ARGS(&commandQueue));
 	if (FAILED(hr))
 	{
+		auto msg = (std::string("Error : ") + std::string(__FILE__) + " : " + std::to_string(__LINE__) + std::string(" : ") +
+					std::system_category().message(hr));
+		::LLGI::Log(::LLGI::LogType::Error, msg.c_str());
 		goto FAILED_EXIT;
 	}
 
@@ -319,6 +348,9 @@ bool PlatformDX12::Initialize(Window* window, bool waitVSync)
 	hr = device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence));
 	if (FAILED(hr))
 	{
+		auto msg = (std::string("Error : ") + std::string(__FILE__) + " : " + std::to_string(__LINE__) + std::string(" : ") +
+					std::system_category().message(hr));
+		::LLGI::Log(::LLGI::LogType::Error, msg.c_str());
 		goto FAILED_EXIT;
 	}
 	fenceEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
@@ -326,6 +358,9 @@ bool PlatformDX12::Initialize(Window* window, bool waitVSync)
 	// Swap chain
 	if (!GenerateSwapBuffer())
 	{
+		auto msg = (std::string("Error : ") + std::string(__FILE__) + " : " + std::to_string(__LINE__) + std::string(" : ") +
+					std::system_category().message(hr));
+		::LLGI::Log(::LLGI::LogType::Error, msg.c_str());
 		goto FAILED_EXIT;
 	}
 
@@ -335,6 +370,9 @@ bool PlatformDX12::Initialize(Window* window, bool waitVSync)
 		hr = device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&commandAllocator));
 		if (FAILED(hr))
 		{
+			auto msg = (std::string("Error : ") + std::string(__FILE__) + " : " + std::to_string(__LINE__) + std::string(" : ") +
+						std::system_category().message(hr));
+			::LLGI::Log(::LLGI::LogType::Error, msg.c_str());
 			goto FAILED_EXIT;
 		}
 	}
@@ -343,6 +381,9 @@ bool PlatformDX12::Initialize(Window* window, bool waitVSync)
 	hr = device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, commandAllocators[0], NULL, IID_PPV_ARGS(&commandListStart));
 	if (FAILED(hr))
 	{
+		auto msg = (std::string("Error : ") + std::string(__FILE__) + " : " + std::to_string(__LINE__) + std::string(" : ") +
+					std::system_category().message(hr));
+		::LLGI::Log(::LLGI::LogType::Error, msg.c_str());
 		goto FAILED_EXIT;
 	}
 	commandListStart->Close();
@@ -350,6 +391,9 @@ bool PlatformDX12::Initialize(Window* window, bool waitVSync)
 	hr = device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, commandAllocators[0], NULL, IID_PPV_ARGS(&commandListPresent));
 	if (FAILED(hr))
 	{
+		auto msg = (std::string("Error : ") + std::string(__FILE__) + " : " + std::to_string(__LINE__) + std::string(" : ") +
+					std::system_category().message(hr));
+		::LLGI::Log(::LLGI::LogType::Error, msg.c_str());
 		goto FAILED_EXIT;
 	}
 	commandListPresent->Close();
@@ -386,6 +430,16 @@ FAILED_EXIT:;
 	}
 
 	return false;
+}
+
+int PlatformDX12::GetCurrentFrameIndex() const
+{
+	return frameIndex;
+}
+
+int PlatformDX12::GetMaxFrameCount() const
+{
+	return static_cast<int>(renderTargets_.size());
 }
 
 bool PlatformDX12::NewFrame()

@@ -219,37 +219,46 @@ bool PipelineStateDX12::Compile()
 	// setup a depth stencil
 	if (renderPassPipelineState->Key.DepthFormat != TextureFormatType::Unknown)
 	{
-		std::array<D3D12_COMPARISON_FUNC, 10> depthCompareOps;
-		depthCompareOps[static_cast<int>(DepthFuncType::Never)] = D3D12_COMPARISON_FUNC_NEVER;
-		depthCompareOps[static_cast<int>(DepthFuncType::Less)] = D3D12_COMPARISON_FUNC_LESS;
-		depthCompareOps[static_cast<int>(DepthFuncType::Equal)] = D3D12_COMPARISON_FUNC_EQUAL;
-		depthCompareOps[static_cast<int>(DepthFuncType::LessEqual)] = D3D12_COMPARISON_FUNC_LESS_EQUAL;
-		depthCompareOps[static_cast<int>(DepthFuncType::Greater)] = D3D12_COMPARISON_FUNC_GREATER;
-		depthCompareOps[static_cast<int>(DepthFuncType::NotEqual)] = D3D12_COMPARISON_FUNC_NOT_EQUAL;
-		depthCompareOps[static_cast<int>(DepthFuncType::GreaterEqual)] = D3D12_COMPARISON_FUNC_GREATER_EQUAL;
-		depthCompareOps[static_cast<int>(DepthFuncType::Always)] = D3D12_COMPARISON_FUNC_ALWAYS;
+		std::array<D3D12_COMPARISON_FUNC, 10> compareOps;
+		compareOps[static_cast<int>(DepthFuncType::Never)] = D3D12_COMPARISON_FUNC_NEVER;
+		compareOps[static_cast<int>(DepthFuncType::Less)] = D3D12_COMPARISON_FUNC_LESS;
+		compareOps[static_cast<int>(DepthFuncType::Equal)] = D3D12_COMPARISON_FUNC_EQUAL;
+		compareOps[static_cast<int>(DepthFuncType::LessEqual)] = D3D12_COMPARISON_FUNC_LESS_EQUAL;
+		compareOps[static_cast<int>(DepthFuncType::Greater)] = D3D12_COMPARISON_FUNC_GREATER;
+		compareOps[static_cast<int>(DepthFuncType::NotEqual)] = D3D12_COMPARISON_FUNC_NOT_EQUAL;
+		compareOps[static_cast<int>(DepthFuncType::GreaterEqual)] = D3D12_COMPARISON_FUNC_GREATER_EQUAL;
+		compareOps[static_cast<int>(DepthFuncType::Always)] = D3D12_COMPARISON_FUNC_ALWAYS;
 
 		D3D12_DEPTH_STENCIL_DESC depthStencilDesc = {};
-		depthStencilDesc.DepthFunc = depthCompareOps[static_cast<int>(DepthFunc)];
+		depthStencilDesc.DepthFunc = compareOps[static_cast<int>(DepthFunc)];
 		depthStencilDesc.DepthWriteMask = IsDepthWriteEnabled ? D3D12_DEPTH_WRITE_MASK_ALL : D3D12_DEPTH_WRITE_MASK_ZERO;
 		depthStencilDesc.DepthEnable = IsDepthTestEnabled | IsDepthWriteEnabled;
+		depthStencilDesc.StencilEnable = IsStencilTestEnabled;
+
 		if (!IsDepthTestEnabled)
 		{
 			depthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_ALWAYS;
 		}
 
-		depthStencilDesc.StencilEnable = true;
+		std::array<D3D12_STENCIL_OP, 8> stencilOps;
+		stencilOps[static_cast<int>(StencilOperatorType::DecClamp)] = D3D12_STENCIL_OP::D3D12_STENCIL_OP_DECR_SAT;
+		stencilOps[static_cast<int>(StencilOperatorType::DecRepeat)] = D3D12_STENCIL_OP::D3D12_STENCIL_OP_DECR;
+		stencilOps[static_cast<int>(StencilOperatorType::IncClamp)] = D3D12_STENCIL_OP::D3D12_STENCIL_OP_INCR_SAT;
+		stencilOps[static_cast<int>(StencilOperatorType::IncRepeat)] = D3D12_STENCIL_OP::D3D12_STENCIL_OP_INCR;
+		stencilOps[static_cast<int>(StencilOperatorType::Invert)] = D3D12_STENCIL_OP::D3D12_STENCIL_OP_INVERT;
+		stencilOps[static_cast<int>(StencilOperatorType::Keep)] = D3D12_STENCIL_OP::D3D12_STENCIL_OP_KEEP;
+		stencilOps[static_cast<int>(StencilOperatorType::Replace)] = D3D12_STENCIL_OP::D3D12_STENCIL_OP_REPLACE;
+		stencilOps[static_cast<int>(StencilOperatorType::Zero)] = D3D12_STENCIL_OP::D3D12_STENCIL_OP_ZERO;
 
 		D3D12_DEPTH_STENCILOP_DESC stencilDesc;
-
 		if (IsStencilTestEnabled)
 		{
-			stencilDesc.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
-			stencilDesc.StencilFailOp = D3D12_STENCIL_OP_KEEP;
-			stencilDesc.StencilPassOp = D3D12_STENCIL_OP_KEEP;
-			stencilDesc.StencilFunc = D3D12_COMPARISON_FUNC_EQUAL;
-			depthStencilDesc.StencilReadMask = 0xff;
-			depthStencilDesc.StencilWriteMask = 0xff;
+			stencilDesc.StencilDepthFailOp = stencilOps[static_cast<int>(this->StencilDepthFailOp)];
+			stencilDesc.StencilFailOp = stencilOps[static_cast<int>(this->StencilFailOp)];
+			stencilDesc.StencilPassOp = stencilOps[static_cast<int>(this->StencilPassOp)];
+			stencilDesc.StencilFunc = compareOps[static_cast<int>(this->StencilCompareFunc)];
+			depthStencilDesc.StencilReadMask = this->StencilReadMask;
+			depthStencilDesc.StencilWriteMask = this->StencilWriteMask;
 		}
 		else
 		{
@@ -275,6 +284,9 @@ bool PipelineStateDX12::Compile()
 
 	if (FAILED(hr))
 	{
+		auto msg = (std::string("Error : ") + std::string(__FILE__) + " : " + std::to_string(__LINE__) + std::string(" : ") +
+					std::system_category().message(hr));
+		::LLGI::Log(::LLGI::LogType::Error, msg.c_str());
 		goto FAILED_EXIT;
 	}
 
@@ -334,6 +346,9 @@ bool PipelineStateDX12::CreateRootSignature()
 
 	if (FAILED(hr))
 	{
+		auto msg = (std::string("Error : ") + std::string(__FILE__) + " : " + std::to_string(__LINE__) + std::string(" : ") +
+					std::system_category().message(hr));
+		::LLGI::Log(::LLGI::LogType::Error, msg.c_str());
 		goto FAILED_EXIT;
 	}
 
@@ -341,6 +356,9 @@ bool PipelineStateDX12::CreateRootSignature()
 		0, signature_->GetBufferPointer(), signature_->GetBufferSize(), IID_PPV_ARGS(&rootSignature_));
 	if (FAILED(hr))
 	{
+		auto msg = (std::string("Error : ") + std::string(__FILE__) + " : " + std::to_string(__LINE__) + std::string(" : ") +
+					std::system_category().message(hr));
+		::LLGI::Log(::LLGI::LogType::Error, msg.c_str());
 		goto FAILED_EXIT;
 	}
 	return true;
