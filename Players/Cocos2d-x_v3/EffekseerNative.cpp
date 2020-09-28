@@ -14476,6 +14476,11 @@ bool EffectImplemented::LoadBody(const uint8_t* data, int32_t size, float mag)
 			binaryReader.Read(Culling.Location.X);
 			binaryReader.Read(Culling.Location.Y);
 			binaryReader.Read(Culling.Location.Z);
+			
+			Culling.Sphere.Radius *= m_maginification;
+			Culling.Location.X *= m_maginification;
+			Culling.Location.Y *= m_maginification;
+			Culling.Location.Z *= m_maginification;
 		}
 	}
 
@@ -16466,12 +16471,16 @@ void ManagerImplemented::Flip()
 						{
 							Vec3f s = pInstance->GetGlobalMatrix43().GetScale();
 							radius *= s.GetLength();
+							Vec3f culling_pos = Vec3f::Transform(Vec3f(effect->Culling.Location), pInstance->GetGlobalMatrix43());
+							ds.CullingObjectPointer->SetPosition(Culling3D::Vector3DF(culling_pos.GetX(), culling_pos.GetY(), culling_pos.GetZ()));
 						}
 
 						if (ds.DoUseBaseMatrix)
 						{
 							Vec3f s = ds.BaseMatrix.GetScale();
 							radius *= s.GetLength();
+							Vec3f culling_pos = Vec3f::Transform(Vec3f(effect->Culling.Location), ds.BaseMatrix);
+							ds.CullingObjectPointer->SetPosition(Culling3D::Vector3DF(culling_pos.GetX(), culling_pos.GetY(), culling_pos.GetZ()));
 						}
 
 						ds.CullingObjectPointer->ChangeIntoSphere(radius);
