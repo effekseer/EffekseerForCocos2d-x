@@ -122,6 +122,13 @@ public:
 	SetTexture(Texture* texture, TextureWrapMode wrapMode, TextureMinMagFilter minmagFilter, int32_t unit, ShaderStageType shaderStage);
 
 	/**
+		@brief generate mipmap
+		@note
+		use this method before use mipmap required texture.
+	*/
+	virtual void GenerateMipMap(Texture* src) {}
+
+	/**
 		@brief	reset textures and set null.
 	*/
 	virtual void ResetTextures();

@@ -16,16 +16,18 @@ Texture_Impl::~Texture_Impl()
 	}
 }
 
-bool Texture_Impl::Initialize(id<MTLDevice> device, const Vec2I& size, TextureFormatType format, int samplingCount, TextureType type)
+bool Texture_Impl::Initialize(id<MTLDevice> device, const Vec2I& size, TextureFormatType format, int samplingCount, TextureType type, int MipMapCount)
 {
 	MTLTextureDescriptor* textureDescriptor = nullptr;
+
+	bool isMipmapped = MipMapCount >= 2;
 
 	if (type == TextureType::Depth)
 	{
 		textureDescriptor = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:ConvertFormat(format)
 																			   width:size.X
 																			  height:size.Y
-																		   mipmapped:NO];
+																		   mipmapped:isMipmapped];
 		textureDescriptor.usage = MTLTextureUsageRenderTarget;
 		textureDescriptor.textureType = MTLTextureType2D;
 		textureDescriptor.storageMode = MTLStorageModePrivate;
@@ -42,7 +44,12 @@ bool Texture_Impl::Initialize(id<MTLDevice> device, const Vec2I& size, TextureFo
 		textureDescriptor = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:ConvertFormat(format)
 																			   width:size.X
 																			  height:size.Y
-																		   mipmapped:NO];
+																		   mipmapped:isMipmapped];
+	}
+
+	if (isMipmapped)
+	{
+		textureDescriptor.mipmapLevelCount = MipMapCount;
 	}
 
 	texture = [device newTextureWithDescriptor:textureDescriptor];
@@ -145,7 +152,7 @@ bool TextureMetal::Initialize(GraphicsMetal* owner, const TextureInitializationP
 
 	SafeAssign(owner_, static_cast<ReferenceObject*>(owner));
 
-	if (!impl->Initialize(owner->GetImpl()->device, parameter.Size, parameter.Format, 1, type_))
+	if (!impl->Initialize(owner->GetImpl()->device, parameter.Size, parameter.Format, 1, type_, parameter.MipMapCount))
 	{
 		return false;
 	}
@@ -203,7 +210,7 @@ bool TextureMetal::Initialize(GraphicsMetal* owner, const DepthTextureInitializa
 		}
 	}
 
-	if (!impl->Initialize(owner->GetImpl()->device, parameter.Size, format, parameter.SamplingCount, type_))
+	if (!impl->Initialize(owner->GetImpl()->device, parameter.Size, format, parameter.SamplingCount, type_, 1))
 	{
 		return false;
 	}

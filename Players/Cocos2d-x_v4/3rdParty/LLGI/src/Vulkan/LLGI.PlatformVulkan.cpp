@@ -299,6 +299,44 @@ void PlatformVulkan::Reset()
 	}
 }
 
+bool PlatformVulkan::ValidateLayers(std::vector<const char*> requiredLayers, const std::vector<VkLayerProperties>& properties) const
+{
+	for (const auto& requiredLayer : requiredLayers)
+	{
+		if (!std::any_of(
+				properties.begin(), properties.end(), [&](const VkLayerProperties& p) { return strcmp(p.layerName, requiredLayer) == 0; }))
+		{
+			Log(LogType::Info, std::string(requiredLayer) + " is not found.");
+			return false;
+		}
+	}
+
+	return true;
+}
+
+std::vector<const char*> PlatformVulkan::GetOptimalLayers(const std::vector<VkLayerProperties>& properties) const
+{
+	// reference : https://vulkan.lunarg.com/doc/view/1.1.114.0/windows/validation_layers.html
+
+	std::vector<std::vector<const char*>> layerGroups = {
+		{"VK_LAYER_KHRONOS_validation"},
+		{"VK_LAYER_LUNARG_standard_validation"},
+		{"VK_LAYER_LUNARG_core_validation"},
+	};
+
+	for (const auto& layerGroup : layerGroups)
+	{
+		if (ValidateLayers(layerGroup, properties))
+		{
+			return layerGroup;
+		}
+	}
+
+	// not found.
+	Log(LogType::Info, "Optimal layers are not found.");
+	return {};
+}
+
 PlatformVulkan::PlatformVulkan() {}
 
 PlatformVulkan::~PlatformVulkan()
@@ -407,32 +445,23 @@ bool PlatformVulkan::Initialize(Window* window, bool waitVSync)
 		instanceCreateInfo.ppEnabledExtensionNames = extensions.data();
 #if !defined(NDEBUG)
 
-		uint32_t layerCount;
+		uint32_t layerCount = 0;
 		vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
 
 		std::vector<VkLayerProperties> availableLayers(layerCount);
 		vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
 
-		bool validationLayerFound = false;
-		for (const auto& layerProperties : availableLayers)
+		auto optimalLayers = GetOptimalLayers(availableLayers);
+
+		if (optimalLayers.size() > 0)
 		{
-			std::stringstream ss;
-			ss << "layer " << layerProperties.layerName << " is avalable";
-			Log(LogType::Debug, ss.str());
-			if (strcmp(layerProperties.layerName, "VK_LAYER_LUNARG_standard_validation") == 0)
-			{
-				validationLayerFound = true;
-			}
+			instanceCreateInfo.enabledLayerCount = static_cast<uint32_t>(optimalLayers.size());
+			instanceCreateInfo.ppEnabledLayerNames = optimalLayers.data();
 		}
-
-		const std::vector<const char*> validationLayers = {"VK_LAYER_LUNARG_standard_validation"};
-
-		Log(LogType::Warning, "Failed to activate validation layer");
-
-		if (validationLayerFound)
+		else
 		{
-			instanceCreateInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
-			instanceCreateInfo.ppEnabledLayerNames = validationLayers.data();
+			instanceCreateInfo.enabledLayerCount = 0;
+			instanceCreateInfo.ppEnabledLayerNames = nullptr;
 		}
 #endif
 
@@ -511,10 +540,10 @@ bool PlatformVulkan::Initialize(Window* window, bool waitVSync)
 		deviceCreateInfo.ppEnabledExtensionNames = enabledExtensions.data();
 
 #if !defined(NDEBUG)
-		if (validationLayerFound)
+		if (optimalLayers.size() > 0)
 		{
-			deviceCreateInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
-			deviceCreateInfo.ppEnabledLayerNames = validationLayers.data();
+			deviceCreateInfo.enabledLayerCount = static_cast<uint32_t>(optimalLayers.size());
+			deviceCreateInfo.ppEnabledLayerNames = optimalLayers.data();
 		}
 		else
 		{

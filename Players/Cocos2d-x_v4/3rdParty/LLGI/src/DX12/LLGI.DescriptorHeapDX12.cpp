@@ -102,16 +102,22 @@ bool DescriptorHeapAllocator::Allocate(ID3D12DescriptorHeap*& heap,
 	}
 	else
 	{
+		offset_++;
+		if (offset_ < static_cast<int32_t>(blocks_.size()) && blocks_[offset_]->Allocate(cpuDescriptorHandle, gpuDescriptorHandle, requiredHandle))
+		{
+			heap = blocks_[offset_]->GetHeap();
+			return true;
+		}
+
 		auto block = DescriptorHeapBlock::Create(graphics_, type_, DescriptorPerBlock);
 		if (block == nullptr)
 		{
 			Log(LogType::Error, "Faled to allocate descriptor block.");
+			offset_--;
 			return false;
 		}
 
 		blocks_.emplace_back(block);
-		offset_++;
-
 		if (blocks_[offset_]->Allocate(cpuDescriptorHandle, gpuDescriptorHandle, requiredHandle))
 		{
 			heap = blocks_[offset_]->GetHeap();

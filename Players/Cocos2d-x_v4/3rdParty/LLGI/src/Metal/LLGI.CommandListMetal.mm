@@ -175,8 +175,11 @@ CommandListMetal::~CommandListMetal()
 	{
 		for (int f = 0; f < 2; f++)
 		{
-			[samplers[w][f] release];
-			[samplerStates[w][f] release];
+			for (int m = 0; m < 2; m++)
+			{
+				[samplers[w][f][m] release];
+				[samplerStates[w][f][m] release];
+			}
 		}
 	}
 
@@ -197,22 +200,31 @@ bool CommandListMetal::Initialize(Graphics* graphics)
 	{
 		for (int f = 0; f < 2; f++)
 		{
-			MTLSamplerAddressMode ws[2];
-			ws[0] = MTLSamplerAddressModeClampToEdge;
-			ws[1] = MTLSamplerAddressModeRepeat;
+			for (int m = 0; m < 3; m++)
+			{
+				MTLSamplerAddressMode ws[2];
+				ws[0] = MTLSamplerAddressModeClampToEdge;
+				ws[1] = MTLSamplerAddressModeRepeat;
 
-			MTLSamplerMinMagFilter fsmin[2];
-			fsmin[0] = MTLSamplerMinMagFilterNearest;
-			fsmin[1] = MTLSamplerMinMagFilterLinear;
+				MTLSamplerMinMagFilter fsmin[2];
+				fsmin[0] = MTLSamplerMinMagFilterNearest;
+				fsmin[1] = MTLSamplerMinMagFilterLinear;
 
-			MTLSamplerDescriptor* samplerDescriptor = [MTLSamplerDescriptor new];
-			samplerDescriptor.minFilter = fsmin[f];
-			samplerDescriptor.magFilter = fsmin[f];
-			samplerDescriptor.sAddressMode = ws[w];
-			samplerDescriptor.tAddressMode = ws[w];
+				MTLSamplerMipFilter msmip[3];
+				msmip[0] = MTLSamplerMipFilterNotMipmapped;
+				msmip[1] = MTLSamplerMipFilterLinear;
+				msmip[2] = MTLSamplerMipFilterNearest;
 
-			samplers[w][f] = samplerDescriptor;
-			samplerStates[w][f] = [graphics_metal_->GetImpl()->device newSamplerStateWithDescriptor:samplerDescriptor];
+				MTLSamplerDescriptor* samplerDescriptor = [MTLSamplerDescriptor new];
+				samplerDescriptor.minFilter = fsmin[f];
+				samplerDescriptor.magFilter = fsmin[f];
+				samplerDescriptor.mipFilter = msmip[m];
+				samplerDescriptor.sAddressMode = ws[w];
+				samplerDescriptor.tAddressMode = ws[w];
+
+				samplers[w][f][m] = samplerDescriptor;
+				samplerStates[w][f][m] = [graphics_metal_->GetImpl()->device newSamplerStateWithDescriptor:samplerDescriptor];
+			}
 		}
 	}
 
@@ -239,6 +251,8 @@ void CommandListMetal::Draw(int32_t primitiveCount, int32_t instanceCount)
 	BindingVertexBuffer vb_;
 	BindingIndexBuffer ib_;
 	PipelineState* pip_ = nullptr;
+
+	const int mipmapFilter = 1;
 
 	bool isVBDirtied = false;
 	bool isIBDirtied = false;
@@ -305,17 +319,22 @@ void CommandListMetal::Draw(int32_t primitiveCount, int32_t instanceCount)
 			auto texture = (TextureMetal*)currentTextures[stage_ind][unit_ind].texture;
 			auto wm = (int32_t)currentTextures[stage_ind][unit_ind].wrapMode;
 			auto mm = (int32_t)currentTextures[stage_ind][unit_ind].minMagFilter;
+			auto pm = 0;
+			if (texture->GetImpl()->texture.mipmapLevelCount >= 2)
+			{
+				pm = mipmapFilter;
+			}
 
 			if (stage_ind == (int32_t)ShaderStageType::Vertex)
 			{
 				[impl->renderEncoder setVertexTexture:texture->GetImpl()->texture atIndex:unit_ind];
-				[impl->renderEncoder setVertexSamplerState:samplerStates[wm][mm] atIndex:unit_ind];
+				[impl->renderEncoder setVertexSamplerState:samplerStates[wm][mm][pm] atIndex:unit_ind];
 			}
 
 			if (stage_ind == (int32_t)ShaderStageType::Pixel)
 			{
 				[impl->renderEncoder setFragmentTexture:texture->GetImpl()->texture atIndex:unit_ind];
-				[impl->renderEncoder setFragmentSamplerState:samplerStates[wm][mm] atIndex:unit_ind];
+				[impl->renderEncoder setFragmentSamplerState:samplerStates[wm][mm][pm] atIndex:unit_ind];
 			}
 		}
 	}
@@ -402,6 +421,15 @@ void CommandListMetal::CopyTexture(Texture* src, Texture* dst)
 
 	RegisterReferencedObject(src);
 	RegisterReferencedObject(dst);
+}
+
+void CommandListMetal::GenerateMipMap(Texture* src)
+{
+	auto srcTex = static_cast<TextureMetal*>(src);
+
+	id<MTLBlitCommandEncoder> blitEncoder = [impl->commandBuffer blitCommandEncoder];
+	[blitEncoder generateMipmapsForTexture:srcTex->GetImpl()->texture];
+	[blitEncoder endEncoding];
 }
 
 void CommandListMetal::BeginRenderPass(RenderPass* renderPass)

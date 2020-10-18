@@ -129,7 +129,7 @@ struct Texture_Impl
 	Texture_Impl();
 	virtual ~Texture_Impl();
 
-	bool Initialize(id<MTLDevice> device, const Vec2I& size, TextureFormatType format, int samplingCount, TextureType type);
+	bool Initialize(id<MTLDevice> device, const Vec2I& size, TextureFormatType format, int samplingCount, TextureType type, int MipMapCount);
 	bool Initialize(Graphics_Impl* graphics, const RenderTextureInitializationParameter& parameter);
 	void Reset(id<MTLTexture> nativeTexture); // for wrap swapchain backbuffer.
 

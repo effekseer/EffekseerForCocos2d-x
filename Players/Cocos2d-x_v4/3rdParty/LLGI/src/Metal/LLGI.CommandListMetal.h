@@ -19,8 +19,8 @@ class CommandListMetal : public CommandList
 	CommandList_Impl* impl = nullptr;
 	Graphics* graphics_ = nullptr;
 
-	MTLSamplerDescriptor* samplers[2][2];
-	id<MTLSamplerState> samplerStates[2][2];
+	MTLSamplerDescriptor* samplers[2][2][3];
+	id<MTLSamplerState> samplerStates[2][2][3];
 
 public:
 	CommandListMetal();
@@ -33,6 +33,7 @@ public:
 	void SetScissor(int32_t x, int32_t y, int32_t width, int32_t height) override;
 	void Draw(int32_t primitiveCount, int32_t instanceCount) override;
 	void CopyTexture(Texture* src, Texture* dst) override;
+	void GenerateMipMap(Texture* src) override;
 	void BeginRenderPass(RenderPass* renderPass) override;
 	void EndRenderPass() override;
 
