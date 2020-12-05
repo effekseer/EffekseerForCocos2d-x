@@ -254,17 +254,17 @@ bool PipelineStateVulkan::Compile()
 
 	depthStencilInfo.depthWriteEnable = IsDepthWriteEnabled;
 
-	std::array<vk::CompareOp, 10> depthCompareOps;
-	depthCompareOps[static_cast<int>(DepthFuncType::Never)] = vk::CompareOp::eNever;
-	depthCompareOps[static_cast<int>(DepthFuncType::Less)] = vk::CompareOp::eLess;
-	depthCompareOps[static_cast<int>(DepthFuncType::Equal)] = vk::CompareOp::eEqual;
-	depthCompareOps[static_cast<int>(DepthFuncType::LessEqual)] = vk::CompareOp::eLessOrEqual;
-	depthCompareOps[static_cast<int>(DepthFuncType::Greater)] = vk::CompareOp::eGreater;
-	depthCompareOps[static_cast<int>(DepthFuncType::NotEqual)] = vk::CompareOp::eNotEqual;
-	depthCompareOps[static_cast<int>(DepthFuncType::GreaterEqual)] = vk::CompareOp::eGreaterOrEqual;
-	depthCompareOps[static_cast<int>(DepthFuncType::Always)] = vk::CompareOp::eAlways;
+	std::array<vk::CompareOp, 10> compareOps;
+	compareOps[static_cast<int>(DepthFuncType::Never)] = vk::CompareOp::eNever;
+	compareOps[static_cast<int>(DepthFuncType::Less)] = vk::CompareOp::eLess;
+	compareOps[static_cast<int>(DepthFuncType::Equal)] = vk::CompareOp::eEqual;
+	compareOps[static_cast<int>(DepthFuncType::LessEqual)] = vk::CompareOp::eLessOrEqual;
+	compareOps[static_cast<int>(DepthFuncType::Greater)] = vk::CompareOp::eGreater;
+	compareOps[static_cast<int>(DepthFuncType::NotEqual)] = vk::CompareOp::eNotEqual;
+	compareOps[static_cast<int>(DepthFuncType::GreaterEqual)] = vk::CompareOp::eGreaterOrEqual;
+	compareOps[static_cast<int>(DepthFuncType::Always)] = vk::CompareOp::eAlways;
 
-	depthStencilInfo.depthCompareOp = depthCompareOps[static_cast<int>(DepthFunc)];
+	depthStencilInfo.depthCompareOp = compareOps[static_cast<int>(DepthFunc)];
 
 	if (!IsDepthTestEnabled)
 	{
@@ -274,15 +274,39 @@ bool PipelineStateVulkan::Compile()
 	vk::StencilOpState stencil;
 	depthStencilInfo.stencilTestEnable = true;
 
+	/*
+	enum class StencilOperatorType
+{
+	Keep,
+	Zero,
+	Replace,
+	IncClamp,
+	DecClamp,
+	Invert,
+	IncRepeat,
+	DecRepeat,
+};
+
+	*/
+	std::array<vk::StencilOp, 8> stencilOps;
+	stencilOps[static_cast<int>(StencilOperatorType::Keep)] = vk::StencilOp::eKeep;
+	stencilOps[static_cast<int>(StencilOperatorType::Zero)] = vk::StencilOp::eZero;
+	stencilOps[static_cast<int>(StencilOperatorType::Replace)] = vk::StencilOp::eReplace;
+	stencilOps[static_cast<int>(StencilOperatorType::IncClamp)] = vk::StencilOp::eIncrementAndClamp;
+	stencilOps[static_cast<int>(StencilOperatorType::DecClamp)] = vk::StencilOp::eDecrementAndClamp;
+	stencilOps[static_cast<int>(StencilOperatorType::Invert)] = vk::StencilOp::eInvert;
+	stencilOps[static_cast<int>(StencilOperatorType::IncRepeat)] = vk::StencilOp::eIncrementAndWrap;
+	stencilOps[static_cast<int>(StencilOperatorType::DecRepeat)] = vk::StencilOp::eDecrementAndWrap;
+
 	if (IsStencilTestEnabled)
 	{
-		stencil.depthFailOp = vk::StencilOp::eKeep;
-		stencil.failOp = vk::StencilOp::eKeep;
-		stencil.passOp = vk::StencilOp::eKeep;
-		stencil.compareOp = vk::CompareOp::eEqual;
-		stencil.writeMask = 0xff;
-		stencil.compareMask = 0xff;
-		stencil.reference = 0xff;
+		stencil.depthFailOp = stencilOps[static_cast<int>(StencilDepthFailOp)];
+		stencil.failOp = stencilOps[static_cast<int>(StencilFailOp)];
+		stencil.passOp = stencilOps[static_cast<int>(StencilPassOp)];
+		stencil.compareOp = compareOps[static_cast<int>(StencilCompareFunc)];
+		stencil.writeMask = StencilWriteMask;
+		stencil.compareMask = StencilReadMask;
+		stencil.reference = StencilRef;
 	}
 	else
 	{

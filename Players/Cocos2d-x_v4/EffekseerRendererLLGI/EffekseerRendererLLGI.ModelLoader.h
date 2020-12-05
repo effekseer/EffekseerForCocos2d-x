@@ -11,20 +11,20 @@ namespace EffekseerRendererLLGI
 class ModelLoader : public ::Effekseer::ModelLoader
 {
 private:
-	GraphicsDevice* graphicsDevice_ = nullptr;
+	Backend::GraphicsDevice* graphicsDevice_ = nullptr;
 	::Effekseer::FileInterface* m_fileInterface;
 	::Effekseer::DefaultFileInterface m_defaultFileInterface;
 
 public:
-	ModelLoader(GraphicsDevice* graphicsDevice, ::Effekseer::FileInterface* fileInterface);
+	ModelLoader(Backend::GraphicsDevice* graphicsDevice, ::Effekseer::FileInterface* fileInterface);
 	virtual ~ModelLoader();
 
 public:
-	void* Load(const EFK_CHAR* path);
+	Effekseer::Model* Load(const char16_t* path) override;
 
-	void* Load(const void* data, int32_t size) override;
+	Effekseer::Model* Load(const void* data, int32_t size) override;
 
-	void Unload(void* data);
+	void Unload(Effekseer::Model* data) override;
 };
 
 } // namespace EffekseerRendererLLGI

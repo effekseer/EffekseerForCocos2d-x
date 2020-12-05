@@ -6,42 +6,43 @@
 
 #include "Effekseer.RectF.h"
 
+#include "Effekseer.CurveLoader.h"
 #include "Effekseer.EffectLoader.h"
-#include "Effekseer.TextureLoader.h"
-#include "Effekseer.ModelLoader.h"
-#include "Effekseer.SoundLoader.h"
 #include "Effekseer.MaterialLoader.h"
+#include "Effekseer.SoundLoader.h"
+#include "Effekseer.TextureLoader.h"
+#include "Model/ModelLoader.h"
 
-#include "Renderer/Effekseer.SpriteRenderer.h"
+#include "Renderer/Effekseer.ModelRenderer.h"
 #include "Renderer/Effekseer.RibbonRenderer.h"
 #include "Renderer/Effekseer.RingRenderer.h"
-#include "Renderer/Effekseer.ModelRenderer.h"
+#include "Renderer/Effekseer.SpriteRenderer.h"
 #include "Renderer/Effekseer.TrackRenderer.h"
 
 #include "Effekseer.Effect.h"
 #include "IO/Effekseer.EfkEfcFactory.h"
+#include "Model/ProcedualModelGenerator.h"
 
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-namespace Effekseer {
+namespace Effekseer
+{
 
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
 Setting::Setting()
 	: m_coordinateSystem(CoordinateSystem::RH)
-	, m_effectLoader(NULL)
-	, m_textureLoader(NULL)
-	, m_soundLoader(NULL)
-	, m_modelLoader(NULL)
 {
-	auto effectFactory = new EffectFactory();
-	effectFactories.push_back(effectFactory);
+	auto effectFactory = MakeRefPtr<EffectFactory>();
+	AddEffectFactory(effectFactory);
 
 	// this function is for 1.6
-	auto efkefcFactory = new EfkEfcFactory();
-	effectFactories.push_back(efkefcFactory);
+	auto efkefcFactory = MakeRefPtr<EfkEfcFactory>();
+	AddEffectFactory(efkefcFactory);
+
+	procedualMeshGenerator_ = ProcedualModelGeneratorRef(new ProcedualModelGenerator());
 }
 
 //----------------------------------------------------------------------------------
@@ -50,20 +51,14 @@ Setting::Setting()
 Setting::~Setting()
 {
 	ClearEffectFactory();
-
-	ES_SAFE_DELETE(m_effectLoader);
-	ES_SAFE_DELETE(m_textureLoader);
-	ES_SAFE_DELETE(m_soundLoader);
-	ES_SAFE_DELETE(m_modelLoader);
-	ES_SAFE_DELETE(m_materialLoader);
 }
 
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-Setting* Setting::Create()
+RefPtr<Setting> Setting::Create()
 {
-	return new Setting();
+	return RefPtr<Setting>(new Setting());
 }
 
 //----------------------------------------------------------------------------------
@@ -85,7 +80,7 @@ void Setting::SetCoordinateSystem(CoordinateSystem coordinateSystem)
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-EffectLoader* Setting::GetEffectLoader()
+EffectLoaderRef Setting::GetEffectLoader()
 {
 	return m_effectLoader;
 }
@@ -93,16 +88,15 @@ EffectLoader* Setting::GetEffectLoader()
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-void Setting::SetEffectLoader(EffectLoader* loader)
+void Setting::SetEffectLoader(EffectLoaderRef loader)
 {
-	ES_SAFE_DELETE(m_effectLoader);
 	m_effectLoader = loader;
 }
 
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-TextureLoader* Setting::GetTextureLoader()
+TextureLoaderRef Setting::GetTextureLoader()
 {
 	return m_textureLoader;
 }
@@ -110,16 +104,15 @@ TextureLoader* Setting::GetTextureLoader()
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-void Setting::SetTextureLoader(TextureLoader* loader)
+void Setting::SetTextureLoader(TextureLoaderRef loader)
 {
-	ES_SAFE_DELETE(m_textureLoader);
 	m_textureLoader = loader;
 }
 
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-ModelLoader* Setting::GetModelLoader()
+ModelLoaderRef Setting::GetModelLoader()
 {
 	return m_modelLoader;
 }
@@ -127,16 +120,15 @@ ModelLoader* Setting::GetModelLoader()
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-void Setting::SetModelLoader(ModelLoader* loader)
+void Setting::SetModelLoader(ModelLoaderRef loader)
 {
-	ES_SAFE_DELETE(m_modelLoader);
 	m_modelLoader = loader;
 }
 
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-SoundLoader* Setting::GetSoundLoader()
+SoundLoaderRef Setting::GetSoundLoader()
 {
 	return m_soundLoader;
 }
@@ -144,49 +136,68 @@ SoundLoader* Setting::GetSoundLoader()
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-void Setting::SetSoundLoader(SoundLoader* loader)
+void Setting::SetSoundLoader(SoundLoaderRef loader)
 {
-	ES_SAFE_DELETE(m_soundLoader);
 	m_soundLoader = loader;
 }
 
-MaterialLoader* Setting::GetMaterialLoader()
-{ return m_materialLoader;
+MaterialLoaderRef Setting::GetMaterialLoader()
+{
+	return m_materialLoader;
 }
 
-void Setting::SetMaterialLoader(MaterialLoader* loader)
+void Setting::SetMaterialLoader(MaterialLoaderRef loader)
 {
-	ES_SAFE_DELETE(m_materialLoader);
 	m_materialLoader = loader;
 }
 
-void Setting::AddEffectFactory(EffectFactory* effectFactory) { 
-	
-	if (effectFactory == nullptr)
+CurveLoaderRef Setting::GetCurveLoader()
+{
+	return m_curveLoader;
+}
+
+void Setting::SetCurveLoader(CurveLoaderRef loader)
+{
+	m_curveLoader = loader;
+}
+
+ProcedualModelGeneratorRef Setting::GetProcedualMeshGenerator() const
+{
+	return procedualMeshGenerator_;
+}
+
+void Setting::SetProcedualMeshGenerator(ProcedualModelGeneratorRef generator)
+{
+	procedualMeshGenerator_ = generator;
+}
+
+void Setting::AddEffectFactory(const RefPtr<EffectFactory>& effectFactory)
+{
+	if (effectFactory.Get() == nullptr)
+	{
 		return;
-	ES_SAFE_ADDREF(effectFactory); 
-	effectFactories.push_back(effectFactory);
+	}
+
+	auto effectFactoryCopied = effectFactory;
+	effectFactories.emplace_back(effectFactoryCopied);
 }
 
 void Setting::ClearEffectFactory()
 {
-	for (auto& e : effectFactories)
-	{
-		ES_SAFE_RELEASE(e);
-	}
 	effectFactories.clear();
 }
 
-EffectFactory* Setting::GetEffectFactory(int32_t ind) const
+const RefPtr<EffectFactory>& Setting::GetEffectFactory(int32_t ind) const
 {
-	return effectFactories[ind]; 
+	return effectFactories[ind];
 }
 
-int32_t Setting::GetEffectFactoryCount() const { 
-	return effectFactories.size();
+int32_t Setting::GetEffectFactoryCount() const
+{
+	return static_cast<int32_t>(effectFactories.size());
 }
 
-}
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
+} // namespace Effekseer
+  //----------------------------------------------------------------------------------
+  //
+  //----------------------------------------------------------------------------------

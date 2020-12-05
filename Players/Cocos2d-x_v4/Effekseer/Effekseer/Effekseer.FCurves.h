@@ -4,8 +4,9 @@
 
 #include "Effekseer.Base.h"
 #include "Effekseer.InternalStruct.h"
-#include "SIMD/Effekseer.Vec2f.h"
-#include "SIMD/Effekseer.Vec3f.h"
+#include "Effekseer.Random.h"
+#include "SIMD/Vec2f.h"
+#include "SIMD/Vec3f.h"
 
 namespace Effekseer
 {
@@ -44,16 +45,18 @@ public:
 
 	float GetValue(float living, float life, FCurveTimelineType type) const;
 
-	float GetOffset(InstanceGlobal& g) const;
+	float GetOffset(IRandObject& g) const;
 
-	void SetDefaultValue(float value) { defaultValue_ = value; }
+	void SetDefaultValue(float value)
+	{
+		defaultValue_ = value;
+	}
 
 	void ChangeCoordinate();
 
 	void Maginify(float value);
 };
 
-#ifdef __EFFEKSEER_BUILD_VERSION16__
 class FCurveScalar
 {
 public:
@@ -63,9 +66,8 @@ public:
 	int32_t Load(void* data, int32_t version);
 
 	float GetValues(float living, float life) const;
-	float GetOffsets(InstanceGlobal& g) const;
+	float GetOffsets(IRandObject& g) const;
 };
-#endif
 
 class FCurveVector2D
 {
@@ -76,8 +78,8 @@ public:
 
 	int32_t Load(void* data, int32_t version);
 
-	Vec2f GetValues(float living, float life) const;
-	Vec2f GetOffsets(InstanceGlobal& g) const;
+	SIMD::Vec2f GetValues(float living, float life) const;
+	SIMD::Vec2f GetOffsets(IRandObject& g) const;
 };
 
 class FCurveVector3D
@@ -90,8 +92,8 @@ public:
 
 	int32_t Load(void* data, int32_t version);
 
-	Vec3f GetValues(float living, float life) const;
-	Vec3f GetOffsets(InstanceGlobal& g) const;
+	SIMD::Vec3f GetValues(float living, float life) const;
+	SIMD::Vec3f GetOffsets(IRandObject& g) const;
 };
 
 class FCurveVectorColor
@@ -106,7 +108,7 @@ public:
 	int32_t Load(void* data, int32_t version);
 
 	std::array<float, 4> GetValues(float living, float life) const;
-	std::array<float, 4> GetOffsets(InstanceGlobal& g) const;
+	std::array<float, 4> GetOffsets(IRandObject& g) const;
 };
 
 } // namespace Effekseer

@@ -19,7 +19,7 @@ private:
 	bool isStrongRef_ = false;
 	vk::Image image_ = nullptr;
 	vk::ImageView view_ = nullptr;
-	vk::ImageLayout imageLayout_ = vk::ImageLayout::eUndefined;
+	std::vector<vk::ImageLayout> imageLayouts_;
 	vk::DeviceMemory devMem_ = nullptr;
 	vk::Format vkTextureFormat_;
 	vk::ImageSubresourceRange subresourceRange_;
@@ -32,12 +32,19 @@ private:
 
 	bool isExternalResource_ = false;
 
+	void ResetImageLayouts(int32_t count, vk::ImageLayout layout);
+
 public:
 	TextureVulkan();
 	~TextureVulkan() override;
 
-	bool Initialize(
-		GraphicsVulkan* graphics, bool isStrongRef, const Vec2I& size, vk::Format format, int samplingCount, TextureType textureType);
+	bool Initialize(GraphicsVulkan* graphics,
+					bool isStrongRef,
+					const Vec2I& size,
+					vk::Format format,
+					int samplingCount,
+					int mipmapCount,
+					TextureType textureType);
 
 	bool InitializeAsRenderTexture(GraphicsVulkan* graphics, bool isStrongRef, const RenderTextureInitializationParameter& parameter);
 
@@ -65,13 +72,17 @@ public:
 	vk::Format GetVulkanFormat() const { return vkTextureFormat_; }
 	int32_t GetMemorySize() const { return memorySize; }
 
-	vk::ImageLayout GetImageLayout() const;
+	std::vector<vk::ImageLayout> GetImageLayouts() const;
 
 	vk::ImageSubresourceRange GetSubresourceRange() const { return subresourceRange_; }
 
 	void ChangeImageLayout(const vk::ImageLayout& imageLayout);
 
+	void ChangeImageLayout(int32_t mipLevel, const vk::ImageLayout& imageLayout);
+
 	void ResourceBarrior(vk::CommandBuffer& commandBuffer, const vk::ImageLayout& imageLayout);
+
+	void ResourceBarrior(int32_t mipLevel, vk::CommandBuffer& commandBuffer, const vk::ImageLayout& imageLayout);
 };
 
 } // namespace LLGI

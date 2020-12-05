@@ -486,6 +486,13 @@ inline int32_t GetTextureMemorySize(TextureFormatType format, Vec2I size)
 	}
 }
 
+inline uint32_t GetMaximumMipLevels(const Vec2I& size)
+{
+	// (std::max) HACK for MSVC
+	const auto largeSize = static_cast<float>((std::max)(size.X, size.Y));
+	return static_cast<uint32_t>(floorf(log2f(largeSize))) + 1;
+}
+
 /**
 	@brief	window abstraction class
 */

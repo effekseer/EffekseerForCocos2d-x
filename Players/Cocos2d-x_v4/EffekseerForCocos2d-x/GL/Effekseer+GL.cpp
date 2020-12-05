@@ -4,7 +4,6 @@
 #include "../../EffekseerRendererGL/EffekseerRendererGL.h"
 #include "../../EffekseerRendererGL/EffekseerRenderer/EffekseerRendererGL.ModelLoader.h"
 #include "../../EffekseerRendererGL/EffekseerRenderer/EffekseerRendererGL.MaterialLoader.h"
-#include "../../EffekseerRendererGL/EffekseerRenderer/EffekseerRendererGL.DeviceObjectCollection.h"
 #include "renderer/backend/opengl/TextureGL.h"
 
 namespace efk {
@@ -19,24 +18,21 @@ class DistortingCallbackGL
 	uint32_t backGroundTextureHeight = 0;
 	GLuint backGroundTextureInternalFormat = 0;
 
-	EffekseerRendererGL::Renderer*	renderer = nullptr;
-
 public:
-	DistortingCallbackGL(EffekseerRendererGL::Renderer* renderer);
+	DistortingCallbackGL();
 
-	virtual ~DistortingCallbackGL();
+	~DistortingCallbackGL() override;
 
 	void ReleaseTexture();
 
 	// prepare a taget
 	void PrepareTexture(uint32_t width, uint32_t height, GLint internalFormat);
 
-	virtual bool OnDistorting() override;
+	virtual bool OnDistorting(EffekseerRenderer::Renderer* renderer) override;
 };
 
-DistortingCallbackGL::DistortingCallbackGL(EffekseerRendererGL::Renderer* renderer)
+DistortingCallbackGL::DistortingCallbackGL()
 {
-	this->renderer = renderer;
 	glGenTextures(1, &backGroundTexture);
 #ifndef _WIN32
 	glGenFramebuffers(1, &framebufferForCopy);
@@ -66,7 +62,7 @@ void DistortingCallbackGL::PrepareTexture(uint32_t width, uint32_t height, GLint
 	backGroundTextureInternalFormat = internalFormat;
 }
 
-bool DistortingCallbackGL::OnDistorting()
+bool DistortingCallbackGL::OnDistorting(EffekseerRenderer::Renderer* renderer)
 {
 	GLint viewport[4];
 	glGetIntegerv(GL_VIEWPORT, viewport);
@@ -84,57 +80,68 @@ bool DistortingCallbackGL::OnDistorting()
 	glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, viewport[0], viewport[1], width, height);
 	glBindTexture(GL_TEXTURE_2D, 0);
 
-	renderer->SetBackground(backGroundTexture);
+	auto r = static_cast<EffekseerRendererGL::Renderer*>(renderer);
+	r->SetBackground(backGroundTexture);
 
 	return true;
 }
 #pragma endregion
 
-static ::EffekseerRendererGL::DeviceObjectCollection* g_deviceObjectCollection = nullptr;
+static ::Effekseer::Backend::GraphicsDeviceRef g_deviceObjectCollection = nullptr;
 
-class EffekseerDeviceObjectCollection : public ::EffekseerRendererGL::DeviceObjectCollection
+class EffekseerGraphicsDevice : public ::EffekseerRendererGL::Backend::GraphicsDevice
 {
 private:
 
 public:
-	EffekseerDeviceObjectCollection()
+	EffekseerGraphicsDevice(::EffekseerRendererGL::OpenGLDeviceType deviceType)
+		: ::EffekseerRendererGL::Backend::GraphicsDevice(deviceType)
 	{
 	}
 
-	virtual ~EffekseerDeviceObjectCollection()
+	virtual ~EffekseerGraphicsDevice()
 	{
-		g_deviceObjectCollection = nullptr;
+
 	}
 
-	static ::EffekseerRendererGL::DeviceObjectCollection* create()
+	static ::Effekseer::Backend::GraphicsDeviceRef create()
 	{
 		if (g_deviceObjectCollection == nullptr)
 		{
-			g_deviceObjectCollection = new ::EffekseerRendererGL::DeviceObjectCollection();
-		}
-		else
-		{
-			g_deviceObjectCollection->AddRef();
+#if (CC_TARGET_PLATFORM == CC_PLATFORM_IOS || CC_TARGET_PLATFORM == CC_PLATFORM_ANDROID)
+			g_deviceObjectCollection = Effekseer::MakeRefPtr<EffekseerGraphicsDevice>(EffekseerRendererGL::OpenGLDeviceType::OpenGLES2);
+#else
+			g_deviceObjectCollection = Effekseer::MakeRefPtr<EffekseerGraphicsDevice>(EffekseerRendererGL::OpenGLDeviceType::OpenGL2);
+#endif
 		}
 
 		return g_deviceObjectCollection;
 	}
+
+	int Release() override
+	{
+		auto ret = ::EffekseerRendererGL::Backend::GraphicsDevice::Release();
+		if (ret == 0)
+		{
+			g_deviceObjectCollection = nullptr;
+		}
+
+		return ret;
+	}
 };
 
-Effekseer::ModelLoader* CreateModelLoader(Effekseer::FileInterface* effectFile)
+Effekseer::ModelLoaderRef CreateModelLoader(Effekseer::FileInterface* effectFile)
 {
-    return new ::EffekseerRendererGL::ModelLoader(effectFile);
+#if (CC_TARGET_PLATFORM == CC_PLATFORM_IOS || CC_TARGET_PLATFORM == CC_PLATFORM_ANDROID)
+    return Effekseer::MakeRefPtr<::EffekseerRendererGL::ModelLoader>(effectFile, EffekseerRendererGL::OpenGLDeviceType::OpenGLES2);
+#else
+	return Effekseer::MakeRefPtr<::EffekseerRendererGL::ModelLoader>(effectFile, EffekseerRendererGL::OpenGLDeviceType::OpenGL2);
+#endif
 }
 
-::Effekseer::MaterialLoader* CreateMaterialLoader(Effekseer::FileInterface* effectFile)
+::Effekseer::MaterialLoaderRef CreateMaterialLoader(Effekseer::FileInterface* effectFile)
 {
-    #if (CC_TARGET_PLATFORM == CC_PLATFORM_IOS || CC_TARGET_PLATFORM == CC_PLATFORM_ANDROID)
-            return new ::EffekseerRendererGL::MaterialLoader(
-                EffekseerRendererGL::OpenGLDeviceType::OpenGLES2, nullptr, EffekseerDeviceObjectCollection::create(), effectFile);
-    #else
-            return new ::EffekseerRendererGL::MaterialLoader(
-                EffekseerRendererGL::OpenGLDeviceType::OpenGL2, nullptr, EffekseerDeviceObjectCollection::create(), effectFile);
-    #endif
+	return Effekseer::MakeRefPtr<::EffekseerRendererGL::MaterialLoader>(EffekseerGraphicsDevice::create().DownCast<::EffekseerRendererGL::Backend::GraphicsDevice>(), effectFile);
 }
 
 void UpdateTextureData(::Effekseer::TextureData* textureData, cocos2d::Texture2D* texture)
@@ -145,10 +152,9 @@ void UpdateTextureData(::Effekseer::TextureData* textureData, cocos2d::Texture2D
 
 void CleanupTextureData(::Effekseer::TextureData* textureData) {}
 
-::EffekseerRenderer::DistortingCallback* CreateDistortingCallback(::EffekseerRenderer::Renderer* renderer, ::EffekseerRenderer::CommandList* commandList)
+::EffekseerRenderer::DistortingCallback* CreateDistortingCallback(::EffekseerRenderer::RendererRef renderer, ::EffekseerRenderer::CommandList* commandList)
 {
-	auto renderGL = static_cast<::EffekseerRendererGL::Renderer*>(renderer);
-	return new DistortingCallbackGL(renderGL);
+	return new DistortingCallbackGL();
 }
 
 void EffectEmitter::beforeRender(EffekseerRenderer::Renderer* renderer, EffekseerRenderer::CommandList* commandList)
@@ -165,18 +171,14 @@ void EffectManager::onDestructor()
 
 void EffectManager::CreateRenderer(int32_t spriteSize)
 {
-#if (CC_TARGET_PLATFORM == CC_PLATFORM_IOS || CC_TARGET_PLATFORM == CC_PLATFORM_ANDROID)
-	renderer2d = ::EffekseerRendererGL::Renderer::Create(spriteSize, EffekseerRendererGL::OpenGLDeviceType::OpenGLES2, EffekseerDeviceObjectCollection::create());
-#else
-	renderer2d = ::EffekseerRendererGL::Renderer::Create(spriteSize, EffekseerRendererGL::OpenGLDeviceType::OpenGL2, EffekseerDeviceObjectCollection::create());
-#endif
+	renderer2d = ::EffekseerRendererGL::Renderer::Create(EffekseerGraphicsDevice::create(), spriteSize);
 }
 
 void EffectManager::newFrame() {}
 
-void ResetBackground(::EffekseerRenderer::Renderer* renderer)
+void ResetBackground(::EffekseerRenderer::RendererRef renderer)
 {
-    auto r = static_cast<::EffekseerRendererGL::Renderer*>(renderer);
+    auto r = static_cast<::EffekseerRendererGL::Renderer*>(renderer.Get());
     r->SetBackground(0);
 }
 

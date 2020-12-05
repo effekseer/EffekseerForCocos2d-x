@@ -51,10 +51,7 @@ bool VertexBufferVulkan::Initialize(GraphicsVulkan* graphics, int32_t size)
 	return true;
 }
 
-bool VertexBufferVulkan::InitializeAsShortTime(SingleFrameMemoryPoolVulkan* memoryPool, int32_t size)
-{
-	throw "Not implemented.";
-}
+bool VertexBufferVulkan::InitializeAsShortTime(SingleFrameMemoryPoolVulkan* memoryPool, int32_t size) { throw "Not implemented."; }
 
 VertexBufferVulkan::VertexBufferVulkan() {}
 
@@ -74,35 +71,29 @@ void* VertexBufferVulkan::Lock(int32_t offset, int32_t size)
 
 void VertexBufferVulkan::Unlock()
 {
-
+	isMemoryDirtied_ = true;
 	graphics_->GetDevice().unmapMemory(cpuBuf->devMem());
 
-	// copy buffer
-	vk::CommandBufferAllocateInfo cmdBufInfo;
-	cmdBufInfo.commandPool = graphics_->GetCommandPool();
-	cmdBufInfo.level = vk::CommandBufferLevel::ePrimary;
-	cmdBufInfo.commandBufferCount = 1;
-	vk::CommandBuffer copyCommandBuffer = graphics_->GetDevice().allocateCommandBuffers(cmdBufInfo)[0];
+	VkCommandBuffer commandBuffer = graphics_->BeginSingleTimeCommands();
+	vk::CommandBuffer commandBufferCpp = static_cast<vk::CommandBuffer>(commandBuffer);
 
-	vk::CommandBufferBeginInfo cmdBufferBeginInfo;
+	SendMemoryToGPU(commandBufferCpp);
 
-	copyCommandBuffer.begin(cmdBufferBeginInfo);
+	graphics_->EndSingleTimeCommands(commandBuffer);
+}
+
+void VertexBufferVulkan::SendMemoryToGPU(vk::CommandBuffer& commandBuffer)
+{
+	if (!isMemoryDirtied_)
+	{
+		return;
+	}
 
 	vk::BufferCopy copyRegion;
 	copyRegion.size = memSize;
-	copyCommandBuffer.copyBuffer(cpuBuf->buffer(), gpuBuf->buffer(), copyRegion);
+	commandBuffer.copyBuffer(cpuBuf->buffer(), gpuBuf->buffer(), copyRegion);
 
-	copyCommandBuffer.end();
-
-	// submit and wait to execute command
-	std::array<vk::SubmitInfo, 1> copySubmitInfos;
-	copySubmitInfos[0].commandBufferCount = 1;
-	copySubmitInfos[0].pCommandBuffers = &copyCommandBuffer;
-
-	graphics_->GetQueue().submit(static_cast<uint32_t>(copySubmitInfos.size()), copySubmitInfos.data(), vk::Fence());
-	graphics_->GetQueue().waitIdle();
-
-	graphics_->GetDevice().freeCommandBuffers(graphics_->GetCommandPool(), copyCommandBuffer);
+	isMemoryDirtied_ = false;
 }
 
 int32_t VertexBufferVulkan::GetSize() { return memSize; }

@@ -4,9 +4,9 @@
 //----------------------------------------------------------------------------------
 // Include
 //----------------------------------------------------------------------------------
-#include "EffekseerRendererGL.RendererImplemented.h"
 #include "../../EffekseerRendererCommon/EffekseerRenderer.IndexBufferBase.h"
 #include "EffekseerRendererGL.DeviceObject.h"
+#include "EffekseerRendererGL.RendererImplemented.h"
 
 //-----------------------------------------------------------------------------------
 //
@@ -16,25 +16,26 @@ namespace EffekseerRendererGL
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
-class IndexBuffer
-	: public DeviceObject
-	, public ::EffekseerRenderer::IndexBufferBase
+class IndexBuffer : public DeviceObject, public ::EffekseerRenderer::IndexBufferBase
 {
 private:
-	GLuint					m_buffer;
-	
-	IndexBuffer(RendererImplemented* renderer, GLuint buffer, int maxCount, bool isDynamic, int32_t stride, bool hasRefCount);
+	GLuint m_buffer;
+
+	IndexBuffer(const Backend::GraphicsDeviceRef& graphicsDevice, GLuint buffer, int maxCount, bool isDynamic, int32_t stride);
 
 public:
 	virtual ~IndexBuffer();
 
-	static IndexBuffer* Create(RendererImplemented* renderer, int maxCount, bool isDynamic, int32_t stride, bool hasRefCount);
+	static IndexBuffer* Create(const Backend::GraphicsDeviceRef& graphicsDevice, int maxCount, bool isDynamic, int32_t stride);
 
-	GLuint GetInterface() { return m_buffer; }
+	GLuint GetInterface()
+	{
+		return m_buffer;
+	}
 
-public:	// デバイス復旧用
-	virtual void OnLostDevice() override;
-	virtual void OnResetDevice() override;
+public:
+	void OnLostDevice() override;
+	void OnResetDevice() override;
 
 public:
 	void Lock() override;
@@ -42,13 +43,16 @@ public:
 
 	bool IsValid();
 
-	int32_t GetStride() const { return stride_; }
+	int32_t GetStride() const
+	{
+		return stride_;
+	}
 };
 
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
-}
+} // namespace EffekseerRendererGL
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------

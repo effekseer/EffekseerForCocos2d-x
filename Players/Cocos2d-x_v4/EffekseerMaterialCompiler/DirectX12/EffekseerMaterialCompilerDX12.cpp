@@ -21,26 +21,26 @@ static void Serialize(std::vector<uint8_t>& dst, const LLGI::CompilerResult& res
 	for (size_t i = 0; i < result.Binary.size(); i++)
 	{
 		binarySize += sizeof(uint32_t);
-		binarySize += result.Binary[i].size();
+		binarySize += (uint32_t)result.Binary[i].size();
 	}
 
 	dst.resize(binarySize);
 
 	uint32_t offset = 0;
-	uint32_t count = result.Binary.size();
+	uint32_t count = (uint32_t)result.Binary.size();
 
-	memcpy(dst.data() + offset, &count, sizeof(int32_t));
-	offset += sizeof(int32_t);
+	memcpy(dst.data() + offset, &count, sizeof(uint32_t));
+	offset += (uint32_t)sizeof(int32_t);
 
 	for (size_t i = 0; i < result.Binary.size(); i++)
 	{
-		uint32_t size = result.Binary[i].size();
+		uint32_t size = (uint32_t)result.Binary[i].size();
 
-		memcpy(dst.data() + offset, &size, sizeof(int32_t));
+		memcpy(dst.data() + offset, &size, sizeof(uint32_t));
 		offset += sizeof(int32_t);
 
 		memcpy(dst.data() + offset, result.Binary[i].data(), result.Binary[i].size());
-		offset += result.Binary[i].size();
+		offset += (uint32_t)result.Binary[i].size();
 	}
 }
 
@@ -57,6 +57,8 @@ namespace DX12
 namespace Effekseer
 {
 
+static const int32_t DX12_InstanceCount = 40;
+
 class CompiledMaterialBinaryDX12 : public CompiledMaterialBinary, ReferenceObject
 {
 private:
@@ -65,30 +67,58 @@ private:
 	std::array<std::vector<uint8_t>, static_cast<int32_t>(MaterialShaderType::Max)> pixelShaders_;
 
 public:
-	CompiledMaterialBinaryDX12() {}
+	CompiledMaterialBinaryDX12()
+	{
+	}
 
-	virtual ~CompiledMaterialBinaryDX12() {}
+	virtual ~CompiledMaterialBinaryDX12()
+	{
+	}
 
 	void SetVertexShaderData(MaterialShaderType type, const std::vector<uint8_t>& data)
 	{
 		vertexShaders_.at(static_cast<int>(type)) = data;
 	}
 
-	void SetPixelShaderData(MaterialShaderType type, const std::vector<uint8_t>& data) { pixelShaders_.at(static_cast<int>(type)) = data; }
+	void SetPixelShaderData(MaterialShaderType type, const std::vector<uint8_t>& data)
+	{
+		pixelShaders_.at(static_cast<int>(type)) = data;
+	}
 
-	const uint8_t* GetVertexShaderData(MaterialShaderType type) const override { return vertexShaders_.at(static_cast<int>(type)).data(); }
+	const uint8_t* GetVertexShaderData(MaterialShaderType type) const override
+	{
+		return vertexShaders_.at(static_cast<int>(type)).data();
+	}
 
-	int32_t GetVertexShaderSize(MaterialShaderType type) const override { return vertexShaders_.at(static_cast<int>(type)).size(); }
+	int32_t GetVertexShaderSize(MaterialShaderType type) const override
+	{
+		return (int32_t)vertexShaders_.at(static_cast<int>(type)).size();
+	}
 
-	const uint8_t* GetPixelShaderData(MaterialShaderType type) const override { return pixelShaders_.at(static_cast<int>(type)).data(); }
+	const uint8_t* GetPixelShaderData(MaterialShaderType type) const override
+	{
+		return pixelShaders_.at(static_cast<int>(type)).data();
+	}
 
-	int32_t GetPixelShaderSize(MaterialShaderType type) const override { return pixelShaders_.at(static_cast<int>(type)).size(); }
+	int32_t GetPixelShaderSize(MaterialShaderType type) const override
+	{
+		return (int32_t)pixelShaders_.at(static_cast<int>(type)).size();
+	}
 
-	int AddRef() override { return ReferenceObject::AddRef(); }
+	int AddRef() override
+	{
+		return ReferenceObject::AddRef();
+	}
 
-	int Release() override { return ReferenceObject::Release(); }
+	int Release() override
+	{
+		return ReferenceObject::Release();
+	}
 
-	int GetRef() override { return ReferenceObject::GetRef(); }
+	int GetRef() override
+	{
+		return ReferenceObject::GetRef();
+	}
 };
 
 CompiledMaterialBinary* MaterialCompilerDX12::Compile(Material* material, int32_t maximumTextureCount)
@@ -155,7 +185,7 @@ CompiledMaterialBinary* MaterialCompilerDX12::Compile(Material* material, int32_
 												  DX12::g_material_ps_suf2_refraction,
 												  DirectX::ShaderGeneratorTarget::DirectX12);
 
-		auto shader = generator.GenerateShader(material, type, maximumTextureCount, 0, 1);
+		auto shader = generator.GenerateShader(material, type, maximumTextureCount, 0, DX12_InstanceCount);
 		binary->SetVertexShaderData(type, convertToVectorVS(shader.CodeVS));
 		binary->SetPixelShaderData(type, convertToVectorPS(shader.CodePS));
 	};
@@ -172,7 +202,10 @@ CompiledMaterialBinary* MaterialCompilerDX12::Compile(Material* material, int32_
 	return binary;
 }
 
-CompiledMaterialBinary* MaterialCompilerDX12::Compile(Material* material) { return Compile(material, Effekseer::UserTextureSlotMax); }
+CompiledMaterialBinary* MaterialCompilerDX12::Compile(Material* material)
+{
+	return Compile(material, Effekseer::UserTextureSlotMax);
+}
 
 } // namespace Effekseer
 
@@ -187,6 +220,9 @@ extern "C"
 #define EFK_EXPORT
 #endif
 
-	EFK_EXPORT Effekseer::MaterialCompiler* EFK_STDCALL CreateCompiler() { return new Effekseer::MaterialCompilerDX12(); }
+	EFK_EXPORT Effekseer::MaterialCompiler* EFK_STDCALL CreateCompiler()
+	{
+		return new Effekseer::MaterialCompilerDX12();
+	}
 }
 #endif
