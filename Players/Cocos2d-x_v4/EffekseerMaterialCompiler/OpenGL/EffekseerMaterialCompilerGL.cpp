@@ -15,7 +15,7 @@ static char* material_common_define = R"(
 #define LERP mix
 
 float atan2(in float y, in float x) {
-    return x == 0.0 ? sign(y)* 3.141592 / 2.0 : atan(y, x);
+	return x == 0.0 ? sign(y)* 3.141592 / 2.0 : atan(y, x);
 }
 
 )";
@@ -123,7 +123,7 @@ void main()
 	//uv1.y = mUVInversed.x + mUVInversed.y * uv1.y;
 
 	vec3 pixelNormalDir = worldNormal;
-	
+
 	vec4 vcolor = modelColor;
 )";
 
@@ -451,7 +451,7 @@ static const char g_material_fs_src_suf2_refraction[] =
 	vec2 distortUV = dir.xy * (refraction - airRefraction);
 
 	distortUV += v_ScreenUV;
-	distortUV = GetUVBack(distortUV);	
+	distortUV = GetUVBack(distortUV);
 
 	vec4 bg = TEX2D(background, distortUV);
 	FRAGCOLOR = bg;
@@ -788,6 +788,8 @@ ShaderData GenerateShader(Material* material, MaterialShaderType shaderType, int
 namespace Effekseer
 {
 
+static const int InstanceCount = 10;
+
 class CompiledMaterialBinaryGL : public CompiledMaterialBinary, ReferenceObject
 {
 private:
@@ -796,30 +798,58 @@ private:
 	std::array<std::vector<uint8_t>, static_cast<int32_t>(MaterialShaderType::Max)> pixelShaders_;
 
 public:
-	CompiledMaterialBinaryGL() {}
+	CompiledMaterialBinaryGL()
+	{
+	}
 
-	virtual ~CompiledMaterialBinaryGL() {}
+	virtual ~CompiledMaterialBinaryGL()
+	{
+	}
 
 	void SetVertexShaderData(MaterialShaderType type, const std::vector<uint8_t>& data)
 	{
 		vertexShaders_.at(static_cast<int>(type)) = data;
 	}
 
-	void SetPixelShaderData(MaterialShaderType type, const std::vector<uint8_t>& data) { pixelShaders_.at(static_cast<int>(type)) = data; }
+	void SetPixelShaderData(MaterialShaderType type, const std::vector<uint8_t>& data)
+	{
+		pixelShaders_.at(static_cast<int>(type)) = data;
+	}
 
-	const uint8_t* GetVertexShaderData(MaterialShaderType type) const override { return vertexShaders_.at(static_cast<int>(type)).data(); }
+	const uint8_t* GetVertexShaderData(MaterialShaderType type) const override
+	{
+		return vertexShaders_.at(static_cast<int>(type)).data();
+	}
 
-	int32_t GetVertexShaderSize(MaterialShaderType type) const override { return vertexShaders_.at(static_cast<int>(type)).size(); }
+	int32_t GetVertexShaderSize(MaterialShaderType type) const override
+	{
+		return static_cast<int32_t>(vertexShaders_.at(static_cast<int>(type)).size());
+	}
 
-	const uint8_t* GetPixelShaderData(MaterialShaderType type) const override { return pixelShaders_.at(static_cast<int>(type)).data(); }
+	const uint8_t* GetPixelShaderData(MaterialShaderType type) const override
+	{
+		return pixelShaders_.at(static_cast<int>(type)).data();
+	}
 
-	int32_t GetPixelShaderSize(MaterialShaderType type) const override { return pixelShaders_.at(static_cast<int>(type)).size(); }
+	int32_t GetPixelShaderSize(MaterialShaderType type) const override
+	{
+		return static_cast<int32_t>(pixelShaders_.at(static_cast<int>(type)).size());
+	}
 
-	int AddRef() override { return ReferenceObject::AddRef(); }
+	int AddRef() override
+	{
+		return ReferenceObject::AddRef();
+	}
 
-	int Release() override { return ReferenceObject::Release(); }
+	int Release() override
+	{
+		return ReferenceObject::Release();
+	}
 
-	int GetRef() override { return ReferenceObject::GetRef(); }
+	int GetRef() override
+	{
+		return ReferenceObject::GetRef();
+	}
 };
 
 CompiledMaterialBinary* MaterialCompilerGL::Compile(Material* material, int32_t maximumTextureCount)
@@ -835,9 +865,8 @@ CompiledMaterialBinary* MaterialCompilerGL::Compile(Material* material, int32_t 
 	};
 
 	auto saveBinary = [&material, &binary, &convertToVector, &maximumTextureCount](MaterialShaderType type) {
-
 		GLSL::ShaderGenerator generator;
-		auto shader = generator.GenerateShader(material, type, maximumTextureCount, false, false, false, false, 0);
+		auto shader = generator.GenerateShader(material, type, maximumTextureCount, false, false, false, false, 0, false, InstanceCount);
 		binary->SetVertexShaderData(type, convertToVector(shader.CodeVS));
 		binary->SetPixelShaderData(type, convertToVector(shader.CodePS));
 	};
@@ -854,7 +883,10 @@ CompiledMaterialBinary* MaterialCompilerGL::Compile(Material* material, int32_t 
 	return binary;
 }
 
-CompiledMaterialBinary* MaterialCompilerGL::Compile(Material* material) { return Compile(material, Effekseer::UserTextureSlotMax); }
+CompiledMaterialBinary* MaterialCompilerGL::Compile(Material* material)
+{
+	return Compile(material, Effekseer::UserTextureSlotMax);
+}
 
 } // namespace Effekseer
 
@@ -868,6 +900,9 @@ extern "C"
 #define EFK_EXPORT
 #endif
 
-	EFK_EXPORT Effekseer::MaterialCompiler* EFK_STDCALL CreateCompiler() { return new Effekseer::MaterialCompilerGL(); }
+	EFK_EXPORT Effekseer::MaterialCompiler* EFK_STDCALL CreateCompiler()
+	{
+		return new Effekseer::MaterialCompilerGL();
+	}
 }
 #endif

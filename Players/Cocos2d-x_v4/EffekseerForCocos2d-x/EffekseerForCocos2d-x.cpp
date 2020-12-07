@@ -15,17 +15,17 @@ public:
 	static bool getPngPremultipledAlphaEnabled() { return PNG_PREMULTIPLIED_ALPHA_ENABLED; }
 };
 
-Effekseer::ModelLoader* CreateModelLoader(Effekseer::FileInterface*);
+Effekseer::ModelLoaderRef CreateModelLoader(Effekseer::FileInterface*);
 
-::Effekseer::MaterialLoader* CreateMaterialLoader(Effekseer::FileInterface*);
+::Effekseer::MaterialLoaderRef CreateMaterialLoader(Effekseer::FileInterface*);
 
 void UpdateTextureData(::Effekseer::TextureData* textureData, cocos2d::Texture2D* texture);
 
 void CleanupTextureData(::Effekseer::TextureData* textureData);
 
-::EffekseerRenderer::DistortingCallback* CreateDistortingCallback(::EffekseerRenderer::Renderer*, ::EffekseerRenderer::CommandList*);
+::EffekseerRenderer::DistortingCallback* CreateDistortingCallback(::EffekseerRenderer::RendererRef, ::EffekseerRenderer::CommandList*);
 
-void ResetBackground(::EffekseerRenderer::Renderer* renderer);
+void ResetBackground(::EffekseerRenderer::RendererRef renderer);
 
 int ccNextPOT(int x)
 {
@@ -277,14 +277,14 @@ private:
 		}
 	};
 
-	::Effekseer::MaterialLoader* loader_;
+	::Effekseer::MaterialLoaderRef loader_;
 	std::map<std::basic_string<EFK_CHAR>, Cached> cache_;
 	std::map<void*, std::basic_string<EFK_CHAR>> data2key_;
 
 public:
-	CachedMaterialLoader(::Effekseer::MaterialLoader* loader) { this->loader_ = loader; }
+	CachedMaterialLoader(::Effekseer::MaterialLoaderRef loader) { this->loader_ = loader; }
 
-	virtual ~CachedMaterialLoader() { ES_SAFE_DELETE(loader_); }
+	~CachedMaterialLoader() override = default;
 
 	virtual ::Effekseer::MaterialData* Load(const EFK_CHAR* path) override
 	{
@@ -333,48 +333,55 @@ public:
 
 class EffekseerSetting;
 
-static EffekseerSetting* g_effekseerSetting = nullptr;
+static Effekseer::RefPtr<EffekseerSetting> g_effekseerSetting = nullptr;
 
 class EffekseerSetting : public ::Effekseer::Setting
 {
 protected:
 	Effekseer::FileInterface* effectFile = nullptr;
 
+public:
+
 	EffekseerSetting()
 	{
 		effectFile = new EffekseerFile();
 		SetEffectLoader(Effekseer::Effect::CreateEffectLoader(effectFile));
-		SetTextureLoader(new TextureLoader(effectFile));
+		SetTextureLoader(Effekseer::MakeRefPtr<TextureLoader>(effectFile));
 		SetModelLoader(CreateModelLoader(effectFile));
-        SetMaterialLoader(new CachedMaterialLoader(CreateMaterialLoader(effectFile)));
+        SetMaterialLoader(Effekseer::MakeRefPtr<CachedMaterialLoader>(CreateMaterialLoader(effectFile)));
 		// TODO sound
 	}
 
 	virtual ~EffekseerSetting()
 	{
 		delete effectFile;
-		g_effekseerSetting = nullptr;
 	}
 
-public:
-	static EffekseerSetting* create()
+	static Effekseer::RefPtr<EffekseerSetting> create()
 	{
 		if (g_effekseerSetting == nullptr)
 		{
-			g_effekseerSetting = new EffekseerSetting();
-		}
-		else
-		{
-			g_effekseerSetting->AddRef();
+			g_effekseerSetting = Effekseer::MakeRefPtr<EffekseerSetting>();
 		}
 
 		return g_effekseerSetting;
+	}
+
+	int Release() override
+	{
+		auto ret = ::Effekseer::Setting::Release();
+		if (ret == 1)
+		{
+			g_effekseerSetting = nullptr;
+		}
+
+		return ret;
 	}
 };
 
 struct EffectResource
 {
-	Effekseer::Effect* effect = nullptr;
+	Effekseer::EffectRef effect = nullptr;
 	int counter = 0;
 };
 
@@ -383,10 +390,10 @@ static InternalManager* g_internalManager = nullptr;
 class InternalManager : public Effekseer::ReferenceObject
 {
 	std::map<std::u16string, EffectResource> path2effect;
-	std::map<Effekseer::Effect*, std::u16string> effect2path;
+	std::map<Effekseer::EffectRef, std::u16string> effect2path;
 
-	std::set<Effekseer::Manager*> managers;
-	std::vector<Effekseer::Manager*> managersVector;
+	std::set<Effekseer::ManagerRef> managers;
+	std::vector<Effekseer::ManagerRef> managersVector;
 
 	Effekseer::Server* server = nullptr;
 
@@ -404,7 +411,7 @@ public:
 		g_internalManager = nullptr;
 	}
 
-	Effekseer::Effect* loadEffect(const EFK_CHAR* path, float maginification)
+	Effekseer::EffectRef loadEffect(const EFK_CHAR* path, float maginification)
 	{
 		auto it_effect = path2effect.find(path);
 
@@ -412,8 +419,7 @@ public:
 		{
 			EffectResource resource;
             auto setting = EffekseerSetting::create();
-			resource.effect = Effekseer::Effect::Create(setting, path, maginification);
-            ES_SAFE_RELEASE(setting);
+			resource.effect = Effekseer::Effect::Create(setting.DownCast<Effekseer::Setting>(), path, maginification);
 			resource.counter = 1;
 
 			if (resource.effect != nullptr)
@@ -438,7 +444,7 @@ public:
 		}
 	}
 
-	void unloadEffect(Effekseer::Effect* effect)
+	void unloadEffect(Effekseer::EffectRef effect)
 	{
 		auto it_path = effect2path.find(effect);
 		if (it_path == effect2path.end())
@@ -456,13 +462,13 @@ public:
 				server->Unregister(it_effect->second.effect);
 			}
 
-			ES_SAFE_RELEASE(it_effect->second.effect);
+			it_effect->second.effect = nullptr;
 			effect2path.erase(it_path);
 			path2effect.erase(it_effect);
 		}
 	}
 
-	void registerManager(Effekseer::Manager* manager)
+	void registerManager(Effekseer::ManagerRef manager)
 	{
 		managers.insert(manager);
 
@@ -473,7 +479,7 @@ public:
 		}
 	}
 
-	void unregisterManager(Effekseer::Manager* manager)
+	void unregisterManager(Effekseer::ManagerRef manager)
 	{
 		managers.erase(manager);
 		managersVector.clear();
@@ -904,13 +910,11 @@ EffectManager::~EffectManager()
 	if (manager2d != nullptr)
 	{
 		internalManager_->unregisterManager(manager2d);
-		manager2d->Destroy();
 		manager2d = nullptr;
 	}
 
 	if (renderer2d != nullptr)
 	{
-		renderer2d->Destroy();
 		renderer2d = nullptr;
 	}
 

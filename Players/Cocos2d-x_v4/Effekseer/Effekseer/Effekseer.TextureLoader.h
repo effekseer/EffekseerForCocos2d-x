@@ -1,6 +1,6 @@
 ﻿
-#ifndef	__EFFEKSEER_TEXTURELOADER_H__
-#define	__EFFEKSEER_TEXTURELOADER_H__
+#ifndef __EFFEKSEER_TEXTURELOADER_H__
+#define __EFFEKSEER_TEXTURELOADER_H__
 
 //----------------------------------------------------------------------------------
 // Include
@@ -10,25 +10,30 @@
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-namespace Effekseer { 
+namespace Effekseer
+{
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
 /**
 	@brief	テクスチャ読み込み破棄関数指定クラス
 */
-class TextureLoader
+class TextureLoader : public ReferenceObject
 {
 public:
 	/**
 		@brief	コンストラクタ
 	*/
-	TextureLoader() {}
+	TextureLoader()
+	{
+	}
 
 	/**
 		@brief	デストラクタ
 	*/
-	virtual ~TextureLoader() {}
+	virtual ~TextureLoader()
+	{
+	}
 
 	/**
 		@brief	テクスチャを読み込む。
@@ -39,7 +44,10 @@ public:
 		テクスチャを読み込む。
 		::Effekseer::Effect::Create実行時に使用される。
 	*/
-	virtual TextureData* Load( const EFK_CHAR* path, TextureType textureType ) { return nullptr; }
+	virtual TextureData* Load(const char16_t* path, TextureType textureType)
+	{
+		return nullptr;
+	}
 
 	/**
 		@brief
@@ -54,11 +62,17 @@ public:
 		@param	textureType
 		\~English	a kind of texture
 		\~Japanese	テクスチャの種類
+		@param	isMipMapEnabled
+		\~English	whether is a mipmap enabled
+		\~Japanese	MipMapが有効かどうか
 		@return
 		\~English	a pointer of loaded texture
 		\~Japanese	読み込まれたテクスチャのポインタ
 	*/
-	virtual TextureData* Load(const void* data, int32_t size, TextureType textureType) { return nullptr; }
+	virtual TextureData* Load(const void* data, int32_t size, TextureType textureType, bool isMipMapEnabled)
+	{
+		return nullptr;
+	}
 
 	/**
 		@brief	テクスチャを破棄する。
@@ -67,14 +81,16 @@ public:
 		テクスチャを破棄する。
 		::Effekseer::Effectのインスタンスが破棄された時に使用される。
 	*/
-	virtual void Unload(TextureData* data ) {}
+	virtual void Unload(TextureData* data)
+	{
+	}
 };
 
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
- } 
+} // namespace Effekseer
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-#endif	// __EFFEKSEER_TEXTURELOADER_H__
+#endif // __EFFEKSEER_TEXTURELOADER_H__

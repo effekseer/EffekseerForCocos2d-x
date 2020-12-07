@@ -1,6 +1,6 @@
 ﻿
-#ifndef	__EFFEKSEER_SOUNDLOADER_H__
-#define	__EFFEKSEER_SOUNDLOADER_H__
+#ifndef __EFFEKSEER_SOUNDLOADER_H__
+#define __EFFEKSEER_SOUNDLOADER_H__
 
 //----------------------------------------------------------------------------------
 // Include
@@ -10,25 +10,30 @@
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-namespace Effekseer {
+namespace Effekseer
+{
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
 /**
 	@brief	サウンド読み込み破棄関数指定クラス
 */
-class SoundLoader
+class SoundLoader : public ReferenceObject
 {
 public:
 	/**
 		@brief	コンストラクタ
 	*/
-	SoundLoader() {}
+	SoundLoader()
+	{
+	}
 
 	/**
 		@brief	デストラクタ
 	*/
-	virtual ~SoundLoader() {}
+	virtual ~SoundLoader()
+	{
+	}
 
 	/**
 		@brief	サウンドを読み込む。
@@ -38,7 +43,10 @@ public:
 		サウンドを読み込む。
 		::Effekseer::Effect::Create実行時に使用される。
 	*/
-	virtual void* Load( const EFK_CHAR* path ) { return NULL; }
+	virtual void* Load(const char16_t* path)
+	{
+		return nullptr;
+	}
 
 	/**
 		@brief
@@ -54,7 +62,10 @@ public:
 		\~English	a pointer of loaded texture
 		\~Japanese	読み込まれたサウンドのポインタ
 	*/
-	virtual void* Load(const void* data, int32_t size) { return nullptr; }
+	virtual void* Load(const void* data, int32_t size)
+	{
+		return nullptr;
+	}
 
 	/**
 		@brief	サウンドを破棄する。
@@ -63,14 +74,16 @@ public:
 		サウンドを破棄する。
 		::Effekseer::Effectのインスタンスが破棄された時に使用される。
 	*/
-	virtual void Unload( void* source ) {}
+	virtual void Unload(void* source)
+	{
+	}
 };
 
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
- } 
+} // namespace Effekseer
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-#endif	// __EFFEKSEER_SOUNDLOADER_H__
+#endif // __EFFEKSEER_SOUNDLOADER_H__

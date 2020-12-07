@@ -1,22 +1,25 @@
 ﻿
-#ifndef	__EFFEKSEER_EFFECTNODE_H__
-#define	__EFFEKSEER_EFFECTNODE_H__
+#ifndef __EFFEKSEER_EFFECTNODE_H__
+#define __EFFEKSEER_EFFECTNODE_H__
 
 //----------------------------------------------------------------------------------
 // Include
 //----------------------------------------------------------------------------------
 #include "Effekseer.Base.h"
 #include "Effekseer.Color.h"
-#include "Effekseer.Vector3D.h"
-#include "Effekseer.RectF.h"
-#include "Effekseer.InternalStruct.h"
 #include "Effekseer.FCurves.h"
+#include "Effekseer.InternalStruct.h"
+#include "Effekseer.RectF.h"
+#include "Effekseer.Vector3D.h"
 #include "Sound/Effekseer.SoundPlayer.h"
 
 #include "Effekseer.Effect.h"
-#include "Parameter/Effekseer.Parameters.h"
-#include "SIMD/Effekseer.SIMDUtils.h"
+#include "ForceField/ForceFields.h"
 #include "Noise/CurlNoise.h"
+#include "Parameter/DynamicParameter.h"
+#include "Parameter/Easing.h"
+#include "Parameter/Effekseer.Parameters.h"
+#include "SIMD/Utils.h"
 
 //----------------------------------------------------------------------------------
 //
@@ -35,13 +38,22 @@ enum class BindType : int32_t
 	Always = 2,
 };
 
-/**!
-	@brief indexes of dynamic parameter
-*/
-struct RefMinMax
+enum class TranslationParentBindType : int32_t
 {
-	int32_t Max = -1;
-	int32_t Min = -1;
+	NotBind = 0,
+	NotBind_Root = 3,
+	WhenCreating = 1,
+	Always = 2,
+	NotBind_FollowParent = 4,
+	WhenCreating_FollowParent = 5,
+};
+
+bool operator==(const TranslationParentBindType& lhs, const BindType& rhs);
+
+enum class ModelReferenceType : int32_t
+{
+	File,
+	Procedual,
 };
 
 //----------------------------------------------------------------------------------
@@ -130,10 +142,10 @@ struct ParameterCommonValues_8
 	BindType TranslationBindType;
 	BindType RotationBindType;
 	BindType ScalingBindType;
-	int		RemoveWhenLifeIsExtinct;
-	int		RemoveWhenParentIsRemoved;
-	int		RemoveWhenChildrenIsExtinct;
-	random_int	life;
+	int RemoveWhenLifeIsExtinct;
+	int RemoveWhenParentIsRemoved;
+	int RemoveWhenChildrenIsExtinct;
+	random_int life;
 	float GenerationTime;
 	float GenerationTimeOffset;
 };
@@ -146,13 +158,13 @@ struct ParameterCommonValues
 	RefMinMax RefEqGenerationTimeOffset;
 
 	int MaxGeneration = 1;
-	BindType TranslationBindType = BindType::Always;
+	TranslationParentBindType TranslationBindType = TranslationParentBindType::Always;
 	BindType RotationBindType = BindType::Always;
 	BindType ScalingBindType = BindType::Always;
 	int RemoveWhenLifeIsExtinct = 1;
 	int RemoveWhenParentIsRemoved = 0;
 	int RemoveWhenChildrenIsExtinct = 0;
-	random_int	life;
+	random_int life;
 	random_float GenerationTime;
 	random_float GenerationTimeOffset;
 
@@ -169,12 +181,12 @@ struct ParameterCommonValues
 
 struct ParameterDepthValues
 {
-	float	DepthOffset;
-	bool	IsDepthOffsetScaledWithCamera;
-	bool	IsDepthOffsetScaledWithParticleScale;
-	ZSortType	ZSort;
-	int32_t	DrawingPriority;
-	float	SoftParticle;
+	float DepthOffset;
+	bool IsDepthOffsetScaledWithCamera;
+	bool IsDepthOffsetScaledWithParticleScale;
+	ZSortType ZSort;
+	int32_t DrawingPriority;
+	float SoftParticle;
 
 	NodeRendererDepthParameter DepthParameter;
 
@@ -189,6 +201,12 @@ struct ParameterDepthValues
 	}
 };
 
+struct SteeringBehaviorParameter
+{
+	random_float MaxFollowSpeed;
+	random_float SteeringSpeed;
+};
+
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
@@ -198,6 +216,8 @@ enum ParameterTranslationType
 	ParameterTranslationType_PVA = 1,
 	ParameterTranslationType_Easing = 2,
 	ParameterTranslationType_FCurve = 3,
+	ParameterTranslationType_NurbsCurve = 4,
+	ParameterTranslationType_ViewOffset = 5,
 
 	ParameterTranslationType_None = 0x7fffffff - 1,
 
@@ -222,9 +242,9 @@ struct ParameterTranslationPVA
 	RefMinMax RefEqP;
 	RefMinMax RefEqV;
 	RefMinMax RefEqA;
-	random_vector3d	location;
-	random_vector3d	velocity;
-	random_vector3d	acceleration;
+	random_vector3d location;
+	random_vector3d velocity;
+	random_vector3d acceleration;
 };
 
 struct ParameterTranslationEasing
@@ -234,31 +254,22 @@ struct ParameterTranslationEasing
 	easing_vector3d location;
 };
 
+struct ParameterTranslationNurbsCurve
+{
+	int32_t Index;
+	float Scale;
+	float MoveSpeed;
+	int32_t LoopType;
+};
+
+struct ParameterTranslationViewOffset
+{
+	random_float distance;
+};
+
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-
-enum class LocalForceFieldType : int32_t
-{
-	None = 0,
-	Turbulence = 1,
-};
-
-struct LocalForceFieldTurbulenceParameter
-{
-	float Strength = 0.1f;
-	CurlNoise Noise;
-
-	LocalForceFieldTurbulenceParameter(int32_t seed, float scale, float strength, int octave);
-};
-
-struct LocalForceFieldParameter
-{
-	std::unique_ptr <LocalForceFieldTurbulenceParameter> Turbulence;
-
-	bool Load(uint8_t*& pos, int32_t version);
-};
-
 
 enum class LocationAbsType : int32_t
 {
@@ -278,13 +289,14 @@ struct LocationAbsParameter
 
 		} none;
 
-		Vec3f	gravity;
+		SIMD::Vec3f gravity;
 
-		struct {
-			float	force;
-			float	control;
-			float	minRange;
-			float	maxRange;
+		struct
+		{
+			float force;
+			float control;
+			float minRange;
+			float maxRange;
 		} attractiveForce;
 	};
 };
@@ -324,9 +336,9 @@ struct ParameterRotationPVA
 	RefMinMax RefEqP;
 	RefMinMax RefEqV;
 	RefMinMax RefEqA;
-	random_vector3d	rotation;
-	random_vector3d	velocity;
-	random_vector3d	acceleration;
+	random_vector3d rotation;
+	random_vector3d velocity;
+	random_vector3d acceleration;
 };
 
 struct ParameterRotationEasing
@@ -341,10 +353,10 @@ struct ParameterRotationEasing
 //----------------------------------------------------------------------------------
 struct ParameterRotationAxisPVA
 {
-	random_vector3d	axis;
-	random_float	rotation;
-	random_float	velocity;
-	random_float	acceleration;
+	random_vector3d axis;
+	random_float rotation;
+	random_float velocity;
+	random_float acceleration;
 };
 
 //----------------------------------------------------------------------------------
@@ -352,8 +364,8 @@ struct ParameterRotationAxisPVA
 //----------------------------------------------------------------------------------
 struct ParameterRotationAxisEasing
 {
-	random_vector3d	axis;
-	easing_float	easing;
+	random_vector3d axis;
+	easing_float easing;
 };
 
 //----------------------------------------------------------------------------------
@@ -367,6 +379,7 @@ enum ParameterScalingType
 	ParameterScalingType_SinglePVA = 3,
 	ParameterScalingType_SingleEasing = 4,
 	ParameterScalingType_FCurve = 5,
+	ParameterScalingType_SingleFCurve = 6,
 
 	ParameterScalingType_None = 0x7fffffff - 1,
 
@@ -419,7 +432,7 @@ struct ParameterScalingSinglePVA
 //----------------------------------------------------------------------------------
 struct ParameterGenerationLocation
 {
-	int	EffectsRotation;
+	int EffectsRotation;
 
 	enum class AxisType : int32_t
 	{
@@ -479,28 +492,29 @@ struct ParameterGenerationLocation
 
 		struct
 		{
-			int32_t		index;
-			eModelType	type;
+			ModelReferenceType Reference;
+			int32_t index;
+			eModelType type;
 		} model;
 
 		struct
 		{
-			int32_t			division;
-			random_float	radius;
-			random_float	angle_start;
-			random_float	angle_end;
-			eCircleType		type;
-			AxisType		axisDirection;
-			random_float	angle_noize;
+			int32_t division;
+			random_float radius;
+			random_float angle_start;
+			random_float angle_end;
+			eCircleType type;
+			AxisType axisDirection;
+			random_float angle_noize;
 		} circle;
 
 		struct
 		{
-			int32_t			division;
-			random_vector3d	position_start;
-			random_vector3d	position_end;
-			random_float	position_noize;
-			LineType		type;
+			int32_t division;
+			random_vector3d position_start;
+			random_vector3d position_end;
+			random_float position_noize;
+			LineType type;
 		} line;
 	};
 
@@ -524,8 +538,19 @@ struct ParameterGenerationLocation
 		}
 		else if (type == TYPE_MODEL)
 		{
-			memcpy(&model, pos, sizeof(model));
-			pos += sizeof(model);
+			model.Reference = ModelReferenceType::File;
+
+			if (version >= Version16Alpha3)
+			{
+				memcpy(&model.Reference, pos, sizeof(int32_t));
+				pos += sizeof(int32_t);
+			}
+
+			memcpy(&model.index, pos, sizeof(int32_t));
+			pos += sizeof(int32_t);
+
+			memcpy(&model.type, pos, sizeof(int32_t));
+			pos += sizeof(int32_t);
 		}
 		else if (type == TYPE_CIRCLE)
 		{
@@ -592,7 +617,8 @@ struct ParameterCustomData
 {
 	ParameterCustomDataType Type = ParameterCustomDataType::None;
 
-	union {
+	union
+	{
 		ParameterCustomDataFixed Fixed;
 		ParameterCustomDataRandom Random;
 		ParameterCustomDataEasing Easing;
@@ -661,25 +687,32 @@ struct ParameterCustomData
 	}
 };
 
-
 struct ParameterRendererCommon
 {
-#ifdef __EFFEKSEER_BUILD_VERSION16__
-	static const int32_t UVParameterNum = 2;
-#endif
+	static const int32_t UVParameterNum = 6;
 
 	RendererMaterialType MaterialType = RendererMaterialType::Default;
 
 	//! texture index except a file
-	int32_t				ColorTextureIndex = -1;
+	int32_t ColorTextureIndex = -1;
 
 	//! texture index except a file
 	int32_t Texture2Index = -1;
 
-#ifdef __EFFEKSEER_BUILD_VERSION16__
 	//! texture index except a file
 	int32_t AlphaTextureIndex = -1;
-#endif
+
+	//! texture index except a file
+	int32_t UVDistortionTextureIndex = -1;
+
+	//! texture index except a file
+	int32_t BlendTextureIndex = -1;
+
+	//! texture index except a file
+	int32_t BlendAlphaTextureIndex = -1;
+
+	//! texture index except a file
+	int32_t BlendUVDistortionTextureIndex = -1;
 
 	//! material index in MaterialType::File
 	MaterialParameter Material;
@@ -694,20 +727,42 @@ struct ParameterRendererCommon
 
 	TextureWrapType Wrap2Type = TextureWrapType::Repeat;
 
-#ifdef __EFFEKSEER_BUILD_VERSION16__
 	TextureFilterType Filter3Type = TextureFilterType::Nearest;
 
 	TextureWrapType Wrap3Type = TextureWrapType::Repeat;
-#endif
 
-	bool				ZWrite = false;
+	TextureFilterType Filter4Type = TextureFilterType::Nearest;
 
-	bool				ZTest = false;
+	TextureWrapType Wrap4Type = TextureWrapType::Repeat;
+
+	TextureFilterType Filter5Type = TextureFilterType::Nearest;
+
+	TextureWrapType Wrap5Type = TextureWrapType::Repeat;
+
+	TextureFilterType Filter6Type = TextureFilterType::Nearest;
+
+	TextureWrapType Wrap6Type = TextureWrapType::Repeat;
+
+	float UVDistortionIntensity = 1.0f;
+
+	int32_t TextureBlendType = -1;
+
+	TextureFilterType Filter7Type = TextureFilterType::Nearest;
+
+	TextureWrapType Wrap7Type = TextureWrapType::Repeat;
+
+	float BlendUVDistortionIntensity = 1.0f;
+
+	float EmissiveScaling = 1.0f;
+
+	bool ZWrite = false;
+
+	bool ZTest = false;
 
 	//! this value is not unused
-	bool				Distortion = false;
+	bool Distortion = false;
 
-	float				DistortionIntensity = 0;
+	float DistortionIntensity = 0;
 
 	BindType ColorBindType = BindType::NotBind;
 
@@ -727,8 +782,8 @@ struct ParameterRendererCommon
 
 	struct
 	{
-		float	Frame;
-		easing_float_without_random	Value;
+		float Frame;
+		easing_float_without_random Value;
 	} FadeIn;
 
 	enum
@@ -741,8 +796,8 @@ struct ParameterRendererCommon
 
 	struct
 	{
-		float	Frame;
-		easing_float_without_random	Value;
+		float Frame;
+		easing_float_without_random Value;
 	} FadeOut;
 
 	enum
@@ -754,11 +809,7 @@ struct ParameterRendererCommon
 		UV_FCURVE = 4,
 
 		UV_DWORD = 0x7fffffff,
-#ifdef __EFFEKSEER_BUILD_VERSION16__
 	} UVTypes[UVParameterNum];
-#else
-	} UVType;
-#endif
 
 	/**
 	@brief	UV Parameter
@@ -767,8 +818,8 @@ struct ParameterRendererCommon
 	*/
 	struct UVScroll_09
 	{
-		rectf		Position;
-		vector2d	Speed;
+		rectf Position;
+		vector2d Speed;
 	};
 
 	union
@@ -779,15 +830,15 @@ struct ParameterRendererCommon
 
 		struct
 		{
-			rectf	Position;
+			rectf Position;
 		} Fixed;
 
 		struct
 		{
-			rectf	Position;
-			int32_t	FrameLength;
-			int32_t	FrameCountX;
-			int32_t	FrameCountY;
+			rectf Position;
+			int32_t FrameLength;
+			int32_t FrameCountX;
+			int32_t FrameCountY;
 
 			enum
 			{
@@ -798,23 +849,21 @@ struct ParameterRendererCommon
 				LOOPTYPE_DWORD = 0x7fffffff,
 			} LoopType;
 
-			random_int	StartFrame;
+			random_int StartFrame;
 
-#ifdef __EFFEKSEER_BUILD_VERSION16__
 			enum
 			{
 				NONE = 0,
 				LERP = 1,
 			} InterpolationType;
-#endif
 
 		} Animation;
 
 		struct
 		{
-			random_vector2d	Position;
-			random_vector2d	Size;
-			random_vector2d	Speed;
+			random_vector2d Position;
+			random_vector2d Size;
+			random_vector2d Speed;
 		} Scroll;
 
 		struct
@@ -822,31 +871,21 @@ struct ParameterRendererCommon
 			FCurveVector2D* Position;
 			FCurveVector2D* Size;
 		} FCurve;
-
-#ifdef __EFFEKSEER_BUILD_VERSION16__
 	} UVs[UVParameterNum];
-#else
-	} UV;
-#endif
 
 	ParameterRendererCommon()
 	{
 		FadeInType = FADEIN_OFF;
 		FadeOutType = FADEOUT_OFF;
-#ifdef __EFFEKSEER_BUILD_VERSION16__
 		const int32_t ArraySize = sizeof(UVTypes) / sizeof(UVTypes[0]);
 		for (int32_t i = 0; i < ArraySize; i++)
 		{
 			UVTypes[i] = UV_DEFAULT;
 		}
-#else
-		UVType = UV_DEFAULT;
-#endif
 	}
 
 	~ParameterRendererCommon()
 	{
-#ifdef __EFFEKSEER_BUILD_VERSION16__
 		const int32_t ArraySize = sizeof(UVTypes) / sizeof(UVTypes[0]);
 		for (int32_t i = 0; i < ArraySize; i++)
 		{
@@ -856,32 +895,39 @@ struct ParameterRendererCommon
 				ES_SAFE_DELETE(UVs[i].FCurve.Size);
 			}
 		}
-#else
-		if (UVType == UV_FCURVE)
-		{
-			ES_SAFE_DELETE(UV.FCurve.Position);
-			ES_SAFE_DELETE(UV.FCurve.Size);
-		}
-#endif
 	}
 
 	void reset()
 	{
 		// with constructor
-		//memset(this, 0, sizeof(ParameterRendererCommon));
+		// memset(this, 0, sizeof(ParameterRendererCommon));
 	}
 
 	void load(uint8_t*& pos, int32_t version)
 	{
-		//memset(this, 0, sizeof(ParameterRendererCommon));
+		// memset(this, 0, sizeof(ParameterRendererCommon));
 
 		if (version >= 15)
 		{
 			memcpy(&MaterialType, pos, sizeof(int));
 			pos += sizeof(int);
 
-			if (MaterialType == RendererMaterialType::Default ||
-				MaterialType == RendererMaterialType::BackDistortion ||
+			Distortion = MaterialType == RendererMaterialType::BackDistortion;
+
+			if (MaterialType == RendererMaterialType::Default || MaterialType == RendererMaterialType::Lighting)
+			{
+				if (version >= 1600)
+				{
+					memcpy(&EmissiveScaling, pos, sizeof(float));
+					pos += sizeof(float);
+				}
+				else
+				{
+					EmissiveScaling = 1.0f;
+				}
+			}
+
+			if (MaterialType == RendererMaterialType::Default || MaterialType == RendererMaterialType::BackDistortion ||
 				MaterialType == RendererMaterialType::Lighting)
 			{
 				memcpy(&ColorTextureIndex, pos, sizeof(int));
@@ -890,10 +936,23 @@ struct ParameterRendererCommon
 				memcpy(&Texture2Index, pos, sizeof(int));
 				pos += sizeof(int);
 
-#ifdef __EFFEKSEER_BUILD_VERSION16__
-				memcpy(&AlphaTextureIndex, pos, sizeof(int));
-				pos += sizeof(int);
-#endif
+				if (version >= 1600)
+				{
+					memcpy(&AlphaTextureIndex, pos, sizeof(int));
+					pos += sizeof(int);
+
+					memcpy(&UVDistortionTextureIndex, pos, sizeof(int));
+					pos += sizeof(int);
+
+					memcpy(&BlendTextureIndex, pos, sizeof(int));
+					pos += sizeof(int);
+
+					memcpy(&BlendAlphaTextureIndex, pos, sizeof(int));
+					pos += sizeof(int);
+
+					memcpy(&BlendUVDistortionTextureIndex, pos, sizeof(int));
+					pos += sizeof(int);
+				}
 			}
 			else
 			{
@@ -906,16 +965,21 @@ struct ParameterRendererCommon
 				memcpy(&textures, pos, sizeof(int));
 				pos += sizeof(int);
 
-
 				Material.MaterialTextures.resize(textures);
-				memcpy(Material.MaterialTextures.data(), pos, sizeof(MaterialTextureParameter) * textures);
+				if (Material.MaterialTextures.size() > 0)
+				{
+					memcpy(Material.MaterialTextures.data(), pos, sizeof(MaterialTextureParameter) * textures);
+				}
 				pos += (sizeof(MaterialTextureParameter) * textures);
 
 				memcpy(&uniforms, pos, sizeof(int));
 				pos += sizeof(int);
 
 				Material.MaterialUniforms.resize(uniforms);
-				memcpy(Material.MaterialUniforms.data(), pos, sizeof(float) * 4 * uniforms);
+				if (Material.MaterialUniforms.size() > 0)
+				{
+					memcpy(Material.MaterialUniforms.data(), pos, sizeof(float) * 4 * uniforms);
+				}
 				pos += (sizeof(float) * 4 * uniforms);
 			}
 		}
@@ -948,21 +1012,55 @@ struct ParameterRendererCommon
 			Wrap2Type = WrapType;
 		}
 
-#ifdef __EFFEKSEER_BUILD_VERSION16__
-		if (version >= 16)
+		if (version >= 1600)
 		{
 			memcpy(&Filter3Type, pos, sizeof(int));
 			pos += sizeof(int);
 
 			memcpy(&Wrap3Type, pos, sizeof(int));
 			pos += sizeof(int);
+
+			memcpy(&Filter4Type, pos, sizeof(int));
+			pos += sizeof(int);
+
+			memcpy(&Wrap4Type, pos, sizeof(int));
+			pos += sizeof(int);
+
+			memcpy(&Filter5Type, pos, sizeof(int));
+			pos += sizeof(int);
+
+			memcpy(&Wrap5Type, pos, sizeof(int));
+			pos += sizeof(int);
+
+			memcpy(&Filter6Type, pos, sizeof(int));
+			pos += sizeof(int);
+
+			memcpy(&Wrap6Type, pos, sizeof(int));
+			pos += sizeof(int);
+
+			memcpy(&Filter7Type, pos, sizeof(int));
+			pos += sizeof(int);
+
+			memcpy(&Wrap7Type, pos, sizeof(int));
+			pos += sizeof(int);
 		}
 		else
 		{
 			Filter3Type = FilterType;
 			Wrap3Type = WrapType;
+
+			Filter4Type = FilterType;
+			Wrap4Type = WrapType;
+
+			Filter5Type = FilterType;
+			Wrap5Type = WrapType;
+
+			Filter6Type = FilterType;
+			Wrap6Type = WrapType;
+
+			Filter7Type = FilterType;
+			Wrap7Type = WrapType;
 		}
-#endif
 
 		if (version >= 5)
 		{
@@ -1001,116 +1099,107 @@ struct ParameterRendererCommon
 			pos += sizeof(FadeOut);
 		}
 
-#ifdef __EFFEKSEER_BUILD_VERSION16__
 		memcpy(&UVTypes[0], pos, sizeof(int));
-#else
-		memcpy(&UVType, pos, sizeof(int));
-#endif
 		pos += sizeof(int);
 
-#ifdef __EFFEKSEER_BUILD_VERSION16__
-		if (version >= 16)
-		{
-			auto LoadUVParameter = [&](const int UVIndex)
+		auto LoadUVParameter = [&](const int UVIndex) {
+			const auto& UVType = UVTypes[UVIndex];
+			auto& UV = UVs[UVIndex];
+
+			if (UVType == UV_DEFAULT)
 			{
-				const auto& UVType = UVTypes[UVIndex];
-				auto& UV = UVs[UVIndex];
-
-				if (UVType == UV_DEFAULT)
-				{
-				}
-				else if (UVType == UV_FIXED)
-				{
-					memcpy(&UV.Fixed, pos, sizeof(UV.Fixed));
-					pos += sizeof(UV.Fixed);
-				}
-				else if (UVType == UV_ANIMATION)
-				{
-					memcpy(&UV.Animation, pos, sizeof(UV.Animation));
-					pos += sizeof(UV.Animation);
-				}
-				else if (UVType == UV_SCROLL)
-				{
-					memcpy(&UV.Scroll, pos, sizeof(UV.Scroll));
-					pos += sizeof(UV.Scroll);
-				}
-				else if (UVType == UV_FCURVE)
-				{
-					UV.FCurve.Position = new FCurveVector2D();
-					UV.FCurve.Size = new FCurveVector2D();
-					pos += UV.FCurve.Position->Load(pos, version);
-					pos += UV.FCurve.Size->Load(pos, version);
-				}
-			};
-
-			LoadUVParameter(0);
-
-			memcpy(&UVTypes[1], pos, sizeof(int));
-			pos += sizeof(int);
-
-			LoadUVParameter(1);
-		}
-
-#else
-		if (UVType == UV_DEFAULT)
-		{
-		}
-		else if (UVType == UV_FIXED)
-		{
-			memcpy(&UV.Fixed, pos, sizeof(UV.Fixed));
-			pos += sizeof(UV.Fixed);
-		}
-		else if (UVType == UV_ANIMATION)
-		{
-			if (version < 10)
-			{
-				// without start frame
-				memcpy(&UV.Animation, pos, sizeof(UV.Animation) - sizeof(UV.Animation.StartFrame));
-				pos += sizeof(UV.Animation) - sizeof(UV.Animation.StartFrame);
-				UV.Animation.StartFrame.max = 0;
-				UV.Animation.StartFrame.min = 0;
 			}
-			else
+			else if (UVType == UV_FIXED)
 			{
-				memcpy(&UV.Animation, pos, sizeof(UV.Animation));
-				pos += sizeof(UV.Animation);
+				memcpy(&UV.Fixed, pos, sizeof(UV.Fixed));
+				pos += sizeof(UV.Fixed);
 			}
-		}
-		else if (UVType == UV_SCROLL)
-		{
-			if (version < 10)
+			else if (UVType == UV_ANIMATION)
 			{
-				// compatibility
-				UVScroll_09 values;
-				memcpy(&values, pos, sizeof(values));
-				pos += sizeof(values);
-				UV.Scroll.Position.max.x = values.Position.x;
-				UV.Scroll.Position.max.y = values.Position.y;
-				UV.Scroll.Position.min = UV.Scroll.Position.max;
+				memcpy(&UV.Animation.Position, pos, sizeof(UV.Animation.Position));
+				pos += sizeof(UV.Animation.Position);
 
-				UV.Scroll.Size.max.x = values.Position.w;
-				UV.Scroll.Size.max.y = values.Position.h;
-				UV.Scroll.Size.min = UV.Scroll.Size.max;
+				memcpy(&UV.Animation.FrameLength, pos, sizeof(UV.Animation.FrameLength));
+				pos += sizeof(UV.Animation.FrameLength);
 
-				UV.Scroll.Speed.max.x = values.Speed.x;
-				UV.Scroll.Speed.max.y = values.Speed.y;
-				UV.Scroll.Speed.min = UV.Scroll.Speed.max;
+				memcpy(&UV.Animation.FrameCountX, pos, sizeof(UV.Animation.FrameCountX));
+				pos += sizeof(UV.Animation.FrameCountX);
 
+				memcpy(&UV.Animation.FrameCountY, pos, sizeof(UV.Animation.FrameCountY));
+				pos += sizeof(UV.Animation.FrameCountY);
+
+				memcpy(&UV.Animation.LoopType, pos, sizeof(UV.Animation.LoopType));
+				pos += sizeof(UV.Animation.LoopType);
+
+				memcpy(&UV.Animation.StartFrame, pos, sizeof(UV.Animation.StartFrame));
+				pos += sizeof(UV.Animation.StartFrame);
+
+				if (version >= 1600 && UVIndex == 0)
+				{
+					memcpy(&UV.Animation.InterpolationType, pos, sizeof(UV.Animation.InterpolationType));
+					pos += sizeof(UV.Animation.InterpolationType);
+				}
 			}
-			else
+			else if (UVType == UV_SCROLL)
 			{
 				memcpy(&UV.Scroll, pos, sizeof(UV.Scroll));
 				pos += sizeof(UV.Scroll);
 			}
-		}
-		else if (UVType == UV_FCURVE)
+			else if (UVType == UV_FCURVE)
+			{
+				UV.FCurve.Position = new FCurveVector2D();
+				UV.FCurve.Size = new FCurveVector2D();
+				pos += UV.FCurve.Position->Load(pos, version);
+				pos += UV.FCurve.Size->Load(pos, version);
+			}
+		};
+
+		LoadUVParameter(0);
+
+		if (version >= 1600)
 		{
-			UV.FCurve.Position = new FCurveVector2D();
-			UV.FCurve.Size = new FCurveVector2D();
-			pos += UV.FCurve.Position->Load(pos, version);
-			pos += UV.FCurve.Size->Load(pos, version);
+			// alpha texture
+			memcpy(&UVTypes[1], pos, sizeof(int));
+			pos += sizeof(int);
+
+			LoadUVParameter(1);
+
+			// uv distortion texture
+			memcpy(&UVTypes[2], pos, sizeof(int));
+			pos += sizeof(int);
+
+			LoadUVParameter(2);
+
+			// uv distortion intensity
+			memcpy(&UVDistortionIntensity, pos, sizeof(int));
+			pos += sizeof(int);
+
+			// blend texture
+			memcpy(&UVTypes[3], pos, sizeof(int));
+			pos += sizeof(int);
+
+			LoadUVParameter(3);
+
+			// blend type
+			memcpy(&TextureBlendType, pos, sizeof(int));
+			pos += sizeof(int);
+
+			// blend alpha texture
+			memcpy(&UVTypes[4], pos, sizeof(int));
+			pos += sizeof(int);
+
+			LoadUVParameter(4);
+
+			// blend alpha texture
+			memcpy(&UVTypes[5], pos, sizeof(int));
+			pos += sizeof(int);
+
+			LoadUVParameter(5);
+
+			// blend uv distortion intensity
+			memcpy(&BlendUVDistortionIntensity, pos, sizeof(int));
+			pos += sizeof(int);
 		}
-#endif
 
 		if (version >= 10)
 		{
@@ -1153,24 +1242,37 @@ struct ParameterRendererCommon
 		BasicParameter.AlphaBlend = AlphaBlend;
 		BasicParameter.TextureFilter1 = FilterType;
 		BasicParameter.TextureFilter2 = Filter2Type;
-#ifdef __EFFEKSEER_BUILD_VERSION16__
 		BasicParameter.TextureFilter3 = Filter3Type;
-#endif
+		BasicParameter.TextureFilter4 = Filter4Type;
+		BasicParameter.TextureFilter5 = Filter5Type;
+		BasicParameter.TextureFilter6 = Filter6Type;
+		BasicParameter.TextureFilter7 = Filter7Type;
+
 		BasicParameter.TextureWrap1 = WrapType;
 		BasicParameter.TextureWrap2 = Wrap2Type;
-#ifdef __EFFEKSEER_BUILD_VERSION16__
+
 		BasicParameter.TextureWrap3 = Wrap3Type;
-#endif
+		BasicParameter.TextureWrap4 = Wrap4Type;
+		BasicParameter.TextureWrap5 = Wrap5Type;
+		BasicParameter.TextureWrap6 = Wrap6Type;
+		BasicParameter.TextureWrap7 = Wrap7Type;
 
 		BasicParameter.DistortionIntensity = DistortionIntensity;
 		BasicParameter.MaterialType = MaterialType;
 		BasicParameter.Texture1Index = ColorTextureIndex;
 		BasicParameter.Texture2Index = Texture2Index;
-#ifdef __EFFEKSEER_BUILD_VERSION16__
 		BasicParameter.Texture3Index = AlphaTextureIndex;
-#endif
+		BasicParameter.Texture4Index = UVDistortionTextureIndex;
+		BasicParameter.Texture5Index = BlendTextureIndex;
+		BasicParameter.Texture6Index = BlendAlphaTextureIndex;
+		BasicParameter.Texture7Index = BlendUVDistortionTextureIndex;
 
-#ifdef __EFFEKSEER_BUILD_VERSION16__
+		BasicParameter.UVDistortionIntensity = UVDistortionIntensity;
+
+		BasicParameter.TextureBlendType = TextureBlendType;
+
+		BasicParameter.BlendUVDistortionIntensity = BlendUVDistortionIntensity;
+
 		if (UVTypes[0] == UV_ANIMATION)
 		{
 			BasicParameter.EnableInterpolation = (UVs[0].Animation.InterpolationType != UVs[0].Animation.NONE);
@@ -1183,7 +1285,8 @@ struct ParameterRendererCommon
 		{
 			BasicParameter.EnableInterpolation = false;
 		}
-#endif
+
+		BasicParameter.EmissiveScaling = EmissiveScaling;
 
 		if (BasicParameter.MaterialType == RendererMaterialType::File)
 		{
@@ -1202,8 +1305,7 @@ struct ParameterRendererCommon
 	}
 };
 
-#ifdef __EFFEKSEER_BUILD_VERSION16__
-struct ParameterAlphaCrunch
+struct ParameterAlphaCutoff
 {
 	enum EType : int32_t
 	{
@@ -1215,41 +1317,39 @@ struct ParameterAlphaCrunch
 		FPI = FOUR_POINT_INTERPOLATION,
 	} Type;
 
-	union
+	struct
 	{
-		struct
-		{
-			int32_t RefEq;
-			float Threshold;
-		} Fixed;
+		int32_t RefEq = -1;
+		float Threshold = 0.0f;
+	} Fixed;
 
-		struct
-		{
-			random_float BeginThreshold;
-			random_int TransitionFrameNum;
-			random_float No2Threshold;
-			random_float No3Threshold;
-			random_int TransitionFrameNum2;
-			random_float EndThreshold;
-		} FourPointInterpolation;
+	struct
+	{
+		random_float BeginThreshold;
+		random_int TransitionFrameNum;
+		random_float No2Threshold;
+		random_float No3Threshold;
+		random_int TransitionFrameNum2;
+		random_float EndThreshold;
+	} FourPointInterpolation;
 
-		struct
-		{
-			RefMinMax RefEqS;
-			RefMinMax RefEqE;
-			easing_float Threshold;
-		} Easing;
+	ParameterEasingFloat Easing;
 
-		struct
-		{
-			FCurveScalar* Threshold;
-		} FCurve;
-	};
+	struct
+	{
+		FCurveScalar* Threshold;
+	} FCurve;
 
-	ParameterAlphaCrunch()
-	{}
+	float EdgeThreshold;
+	Color EdgeColor;
+	int32_t EdgeColorScaling;
 
-	~ParameterAlphaCrunch()
+	ParameterAlphaCutoff()
+		: Type(ParameterAlphaCutoff::EType::FIXED)
+	{
+	}
+
+	~ParameterAlphaCutoff()
 	{
 		if (Type == EType::F_CURVE)
 		{
@@ -1268,16 +1368,33 @@ struct ParameterAlphaCrunch
 
 		switch (Type)
 		{
-		case Effekseer::ParameterAlphaCrunch::EType::FIXED: memcpy(&Fixed, pos, BufferSize); break;
-		case Effekseer::ParameterAlphaCrunch::EType::FPI: memcpy(&FourPointInterpolation, pos, BufferSize); break;
-		case Effekseer::ParameterAlphaCrunch::EType::EASING: memcpy(&Easing, pos, BufferSize); break;
-		case Effekseer::ParameterAlphaCrunch::EType::F_CURVE: FCurve.Threshold = new FCurveScalar();  FCurve.Threshold->Load(pos, version); break;
+		case Effekseer::ParameterAlphaCutoff::EType::FIXED:
+			memcpy(&Fixed, pos, BufferSize);
+			break;
+		case Effekseer::ParameterAlphaCutoff::EType::FPI:
+			memcpy(&FourPointInterpolation, pos, BufferSize);
+			break;
+		case Effekseer::ParameterAlphaCutoff::EType::EASING:
+			Easing.Load(pos, BufferSize, version);
+			break;
+		case Effekseer::ParameterAlphaCutoff::EType::F_CURVE:
+			FCurve.Threshold = new FCurveScalar();
+			FCurve.Threshold->Load(pos, version);
+			break;
 		}
 
 		pos += BufferSize;
+
+		memcpy(&EdgeThreshold, pos, sizeof(int32_t));
+		pos += sizeof(int32_t);
+
+		memcpy(&EdgeColor, pos, sizeof(Color));
+		pos += sizeof(int32_t);
+
+		memcpy(&EdgeColorScaling, pos, sizeof(int32_t));
+		pos += sizeof(int32_t);
 	}
 };
-#endif
 
 //----------------------------------------------------------------------------------
 //
@@ -1306,13 +1423,13 @@ enum ParameterSoundPanType
 //----------------------------------------------------------------------------------
 struct ParameterSound
 {
-	int32_t			WaveId;
-	random_float	Volume;
-	random_float	Pitch;
+	int32_t WaveId;
+	random_float Volume;
+	random_float Pitch;
 	ParameterSoundPanType PanType;
-	random_float	Pan;
-	float			Distance;
-	random_int		Delay;
+	random_float Pan;
+	float Distance;
+	random_int Delay;
 };
 
 /**
@@ -1328,7 +1445,7 @@ struct DynamicFactorParameter
 	std::array<float, 3> ScaleInv;
 
 	DynamicFactorParameter()
-	{ 
+	{
 		Tra.fill(1.0f);
 		TraInv.fill(1.0f);
 		Rot.fill(1.0f);
@@ -1337,7 +1454,6 @@ struct DynamicFactorParameter
 		ScaleInv.fill(1.0f);
 	}
 };
-
 
 //----------------------------------------------------------------------------------
 //
@@ -1350,15 +1466,12 @@ enum eRenderingOrder
 	RenderingOrder_DWORD = 0x7fffffff,
 };
 
-
 /**
 @brief	ノードインスタンス生成クラス
 @note
 エフェクトのノードの実体を生成する。
 */
-class EffectNodeImplemented
-	: public EffectNode
-	, public AlignedAllocationPolicy<16>
+class EffectNodeImplemented : public EffectNode, public SIMD::AlignedAllocationPolicy<16>
 {
 	friend class Manager;
 	friend class EffectImplemented;
@@ -1366,16 +1479,15 @@ class EffectNodeImplemented
 
 protected:
 	// 所属しているパラメーター
-	Effect*	m_effect;
-	
+	Effect* m_effect;
+
 	//! a generation in the node tree
 	int generation_;
 
 	// 子ノード
-	std::vector<EffectNodeImplemented*>	m_Nodes;
+	std::vector<EffectNodeImplemented*> m_Nodes;
 
-	// ユーザーデータ
-	void* m_userData;
+	RefPtr<RenderingUserData> renderingUserData_;
 
 	// コンストラクタ
 	EffectNodeImplemented(Effect* effect, unsigned char*& pos);
@@ -1383,8 +1495,7 @@ protected:
 	// デストラクタ
 	virtual ~EffectNodeImplemented();
 
-	// 読込
-	void LoadParameter(unsigned char*& pos, EffectNode* parent, Setting* setting);
+	void LoadParameter(unsigned char*& pos, EffectNode* parent, const RefPtr<Setting>& setting);
 
 	// 初期化
 	void Initialize();
@@ -1393,61 +1504,70 @@ protected:
 	void CalcCustomData(const Instance* instance, std::array<float, 4>& customData1, std::array<float, 4>& customData2);
 
 public:
-
 	/**
 	@brief	\~english Whether to draw the node.
 	\~japanese このノードを描画するか?
 
 	@note
-	\~english 普通は描画されないノードは、描画の種類が変更されて、描画しないノードになる。ただし、色の継承をする場合、描画のみを行わないノードになる。
-	\~japanese For nodes that are not normally rendered, the rendering type is changed to become a node that does not render. However, when color inheritance is done, it becomes a node which does not perform drawing only.
+	\~english
+	普通は描画されないノードは、描画の種類が変更されて、描画しないノードになる。ただし、色の継承をする場合、描画のみを行わないノードになる。
+	\~japanese For nodes that are not normally rendered, the rendering type is changed to become a node that does not render. However, when
+	color inheritance is done, it becomes a node which does not perform drawing only.
 	*/
 	bool IsRendered;
 
-	ParameterCommonValues		CommonValues;
+	ParameterCommonValues CommonValues;
 
-	ParameterTranslationType	TranslationType;
-	ParameterTranslationFixed	TranslationFixed;
-	ParameterTranslationPVA		TranslationPVA;
-	ParameterTranslationEasing TranslationEasing;
-	FCurveVector3D*				TranslationFCurve;
+	SteeringBehaviorParameter SteeringBehaviorParam;
 
-	std::array<LocalForceFieldParameter, LocalFieldSlotMax> LocalForceFields;
-	LocationAbsParameter		LocationAbs;
+	ParameterTranslationType TranslationType;
+	ParameterTranslationFixed TranslationFixed;
+	ParameterTranslationPVA TranslationPVA;
+	ParameterEasingSIMDVec3 TranslationEasing;
+	// ParameterTranslationEasing TranslationEasing;
+	FCurveVector3D* TranslationFCurve;
+	ParameterTranslationNurbsCurve TranslationNurbsCurve;
+	ParameterTranslationViewOffset TranslationViewOffset;
+	LocalForceFieldParameter LocalForceField;
 
-	ParameterRotationType		RotationType;
-	ParameterRotationFixed		RotationFixed;
-	ParameterRotationPVA		RotationPVA;
-	ParameterRotationEasing RotationEasing;
-	FCurveVector3D*				RotationFCurve;
+	ParameterRotationType RotationType;
+	ParameterRotationFixed RotationFixed;
+	ParameterRotationPVA RotationPVA;
 
-	ParameterRotationAxisPVA	RotationAxisPVA;
-	ParameterRotationAxisEasing	RotationAxisEasing;
+	ParameterEasingSIMDVec3 RotationEasing;
+	// ParameterRotationEasing RotationEasing;
+	FCurveVector3D* RotationFCurve;
 
-	ParameterScalingType		ScalingType;
-	ParameterScalingFixed		ScalingFixed;
-	ParameterScalingPVA			ScalingPVA;
-	ParameterScalingEasing ScalingEasing;
-	ParameterScalingSinglePVA	ScalingSinglePVA;
-	easing_float				ScalingSingleEasing;
-	FCurveVector3D*				ScalingFCurve;
+	ParameterRotationAxisPVA RotationAxisPVA;
+	ParameterRotationAxisEasing RotationAxisEasing;
 
-	ParameterGenerationLocation	GenerationLocation;
+	ParameterScalingType ScalingType;
+	ParameterScalingFixed ScalingFixed;
+	ParameterScalingPVA ScalingPVA;
+	ParameterEasingSIMDVec3 ScalingEasing;
+	// ParameterScalingEasing ScalingEasing;
+	ParameterScalingSinglePVA ScalingSinglePVA;
+	easing_float ScalingSingleEasing;
+	FCurveVector3D* ScalingFCurve;
+	FCurveScalar* ScalingSingleFCurve = nullptr;
 
-	ParameterDepthValues		DepthValues;
+	ParameterGenerationLocation GenerationLocation;
 
-	ParameterRendererCommon		RendererCommon;
+	ParameterDepthValues DepthValues;
 
-#ifdef __EFFEKSEER_BUILD_VERSION16__
-	ParameterAlphaCrunch		AlphaCrunch;
-#endif
+	ParameterRendererCommon RendererCommon;
 
-	ParameterSoundType			SoundType;
-	ParameterSound				Sound;
+	ParameterAlphaCutoff AlphaCutoff;
 
-	eRenderingOrder				RenderingOrder;
+	bool EnableFalloff = false;
+	FalloffParameter FalloffParam {};
 
-	int32_t						RenderingPriority = -1;
+	ParameterSoundType SoundType;
+	ParameterSound Sound;
+
+	eRenderingOrder RenderingOrder;
+
+	int32_t RenderingPriority = -1;
 
 	DynamicFactorParameter DynamicFactor;
 
@@ -1465,10 +1585,7 @@ public:
 
 	EffectModelParameter GetEffectModelParameter() override;
 
-	/**
-	@brief	描画部分の読込
-	*/
-	virtual void LoadRendererParameter(unsigned char*& pos, Setting* setting);
+	virtual void LoadRendererParameter(unsigned char*& pos, const RefPtr<Setting>& setting);
 
 	/**
 	@brief	描画開始
@@ -1527,14 +1644,27 @@ public:
 	/**
 	@brief	ノードの種類取得
 	*/
-	virtual eEffectNodeType GetType() const { return EFFECT_NODE_TYPE_NONE; }
+	virtual eEffectNodeType GetType() const
+	{
+		return EFFECT_NODE_TYPE_NONE;
+	}
+
+	RefPtr<RenderingUserData> GetRenderingUserData() override
+	{
+		return renderingUserData_;
+	}
+
+	void SetRenderingUserData(const RefPtr<RenderingUserData>& renderingUserData) override
+	{
+		renderingUserData_ = renderingUserData;
+	}
 };
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
 
-}
+} // namespace Effekseer
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-#endif	// __EFFEKSEER_EFFECTNODE_H__
+#endif // __EFFEKSEER_EFFECTNODE_H__

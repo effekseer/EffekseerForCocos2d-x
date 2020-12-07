@@ -20,10 +20,10 @@ GraphicsVulkan::GraphicsVulkan(const vk::Device& device,
 							   std::function<void(vk::CommandBuffer, vk::Fence)> addCommand,
 							   RenderPassPipelineStateCacheVulkan* renderPassPipelineStateCache,
 							   ReferenceObject* owner)
-	: vkDevice(device)
-	, vkQueue(quque)
-	, vkCmdPool(commandPool)
-	, vkPysicalDevice(pysicalDevice)
+	: vkDevice_(device)
+	, vkQueue_(quque)
+	, vkCmdPool_(commandPool)
+	, vkPysicalDevice_(pysicalDevice)
 	, addCommand_(addCommand)
 	, renderPassPipelineStateCache_(renderPassPipelineStateCache)
 	, owner_(owner)
@@ -55,7 +55,7 @@ void GraphicsVulkan::Execute(CommandList* commandList)
 	addCommand_(cmdBuf, commandList_->GetFence());
 }
 
-void GraphicsVulkan::WaitFinish() { vkQueue.waitIdle(); }
+void GraphicsVulkan::WaitFinish() { vkQueue_.waitIdle(); }
 
 VertexBuffer* GraphicsVulkan::CreateVertexBuffer(int32_t size)
 {
@@ -198,7 +198,7 @@ Texture* GraphicsVulkan::CreateTexture(const TextureInitializationParameter& par
 	auto obj = new TextureVulkan();
 
 	if (!obj->Initialize(
-			this, true, parameter.Size, (vk::Format)VulkanHelper::TextureFormatToVkFormat(parameter.Format), 1, TextureType::Color))
+			this, true, parameter.Size, (vk::Format)VulkanHelper::TextureFormatToVkFormat(parameter.Format), 1, parameter.MipMapCount, TextureType::Color))
 	{
 		SafeRelease(obj);
 		return nullptr;
@@ -229,8 +229,8 @@ Texture* GraphicsVulkan::CreateDepthTexture(const DepthTextureInitializationPara
 		format = TextureFormatType::D24S8;
 	}
 
-	if (!obj->InitializeAsDepthStencil(this->vkDevice,
-									   this->vkPysicalDevice,
+	if (!obj->InitializeAsDepthStencil(this->vkDevice_,
+									   this->vkPysicalDevice_,
 									   parameter.Size,
 									   (vk::Format)VulkanHelper::TextureFormatToVkFormat(format),
 									   parameter.SamplingCount,
@@ -270,7 +270,7 @@ std::vector<uint8_t> GraphicsVulkan::CaptureRenderTarget(Texture* renderTarget)
 	{
 		VkCommandBuffer commandBuffer = BeginSingleTimeCommands();
 		vk::CommandBuffer commandBufferCpp = static_cast<vk::CommandBuffer>(commandBuffer);
-		auto oldLayout = texture->GetImageLayout();
+		auto oldLayout = texture->GetImageLayouts()[0];
 		texture->ResourceBarrior(commandBufferCpp, vk::ImageLayout::eTransferSrcOptimal);
 
 		/*
@@ -379,7 +379,7 @@ int32_t GraphicsVulkan::GetSwapBufferCount() const { return swapBufferCount_; }
 
 uint32_t GraphicsVulkan::GetMemoryTypeIndex(uint32_t bits, const vk::MemoryPropertyFlags& properties)
 {
-	return LLGI::GetMemoryTypeIndex(vkPysicalDevice, bits, properties);
+	return LLGI::GetMemoryTypeIndex(vkPysicalDevice_, bits, properties);
 }
 
 VkCommandBuffer GraphicsVulkan::BeginSingleTimeCommands()
@@ -411,8 +411,8 @@ bool GraphicsVulkan::EndSingleTimeCommands(VkCommandBuffer commandBuffer)
 	submitInfo.commandBufferCount = 1;
 	submitInfo.pCommandBuffers = &commandBuffer;
 
-	LLGI_VK_CHECK(vkQueueSubmit(static_cast<VkQueue>(vkQueue), 1, &submitInfo, VK_NULL_HANDLE));
-	LLGI_VK_CHECK(vkQueueWaitIdle(static_cast<VkQueue>(vkQueue)));
+	LLGI_VK_CHECK(vkQueueSubmit(static_cast<VkQueue>(vkQueue_), 1, &submitInfo, VK_NULL_HANDLE));
+	LLGI_VK_CHECK(vkQueueWaitIdle(static_cast<VkQueue>(vkQueue_)));
 
 	vkFreeCommandBuffers(static_cast<VkDevice>(GetDevice()), static_cast<VkCommandPool>(GetCommandPool()), 1, &commandBuffer);
 

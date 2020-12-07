@@ -37,22 +37,20 @@ class DistortingCallbackMetal
     : public EffekseerRenderer::DistortingCallback
 {
 
-    EffekseerRendererMetal::RendererImplemented*    renderer = nullptr;
     EffekseerRenderer::CommandList* commandList_ = nullptr;
     id<MTLTexture>                                  texture = nullptr;
     LLGI::Texture*                                  textureLLGI = nullptr;
 
 public:
-    DistortingCallbackMetal(EffekseerRendererMetal::RendererImplemented* renderer, EffekseerRenderer::CommandList* commandList);
+    DistortingCallbackMetal(EffekseerRenderer::CommandList* commandList);
 
     virtual ~DistortingCallbackMetal();
 
-    virtual bool OnDistorting() override;
+    virtual bool OnDistorting(EffekseerRenderer::Renderer* renderer) override;
 };
 
-DistortingCallbackMetal::DistortingCallbackMetal(EffekseerRendererMetal::RendererImplemented* r, EffekseerRenderer::CommandList* commandList)
-: renderer(r)
-, commandList_(commandList)
+DistortingCallbackMetal::DistortingCallbackMetal(EffekseerRenderer::CommandList* commandList)
+: commandList_(commandList)
 {
 }
 
@@ -65,7 +63,7 @@ DistortingCallbackMetal::~DistortingCallbackMetal()
     }
 }
 
-bool DistortingCallbackMetal::OnDistorting()
+bool DistortingCallbackMetal::OnDistorting(EffekseerRenderer::Renderer* renderer)
 {
     // to get viewport
     auto drawable = cocos2d::backend::DeviceMTL::getCurrentDrawable();
@@ -106,21 +104,22 @@ bool DistortingCallbackMetal::OnDistorting()
     
     SetMTLObjectsFromCocos2d(commandList_);
     
-    renderer->SetBackground(textureLLGI);
+    auto r = static_cast<EffekseerRendererLLGI::Renderer*>(renderer);
+    r->SetBackground(textureLLGI);
 
     return true;
 }
 #pragma endregion
 
-static ::EffekseerRenderer::GraphicsDevice* g_graphicsDevice = nullptr;
+static ::Effekseer::Backend::GraphicsDeviceRef g_graphicsDevice = nullptr;
 
-class EffekseerGraphicsDevice : public ::EffekseerRendererLLGI::GraphicsDevice
+class EffekseerGraphicsDevice : public ::EffekseerRendererLLGI::Backend::GraphicsDevice
 {
 private:
 
 public:
     EffekseerGraphicsDevice(LLGI::Graphics* graphics)
-        : ::EffekseerRendererLLGI::GraphicsDevice(graphics)
+        : ::EffekseerRendererLLGI::Backend::GraphicsDevice(graphics)
     {
     }
 
@@ -129,37 +128,45 @@ public:
         g_graphicsDevice = nullptr;
     }
 
-    static ::EffekseerRenderer::GraphicsDevice* create()
+    static ::Effekseer::Backend::GraphicsDeviceRef create()
     {
         if (g_graphicsDevice == nullptr)
         {
             auto graphics = new LLGI::GraphicsMetal();
             graphics->Initialize(nullptr);
 
-            g_graphicsDevice = new EffekseerGraphicsDevice(graphics);
+            g_graphicsDevice = std::move(Effekseer::MakeRefPtr<EffekseerGraphicsDevice>(graphics));
             ES_SAFE_RELEASE(graphics);
         }
-        else
-        {
-            g_graphicsDevice->AddRef();
-        }
 
+        //creating_ = false;
+        
         return g_graphicsDevice;
     }
+    
+    int Release() override
+    {
+        auto ret = ::EffekseerRendererLLGI::Backend::GraphicsDevice::Release();
+        if (ret == 1)
+        {
+            g_graphicsDevice = nullptr;
+        }
+
+        return ret;
+    }
 };
-Effekseer::ModelLoader* CreateModelLoader(Effekseer::FileInterface* effectFile)
+
+Effekseer::ModelLoaderRef CreateModelLoader(Effekseer::FileInterface* effectFile)
 {
     auto device = EffekseerGraphicsDevice::create();
-    auto ret = EffekseerRendererMetal::CreateModelLoader(device, effectFile);
-    ES_SAFE_RELEASE(device);
+    auto ret = EffekseerRendererMetal::CreateModelLoader(device.Get(), effectFile);
     return ret;
 }
 
-::Effekseer::MaterialLoader* CreateMaterialLoader(Effekseer::FileInterface* effectFile)
+::Effekseer::MaterialLoaderRef CreateMaterialLoader(Effekseer::FileInterface* effectFile)
 {
     auto device = EffekseerGraphicsDevice::create();
-    auto ret = EffekseerRendererMetal::CreateMaterialLoader(device, effectFile);
-    ES_SAFE_RELEASE(device);
+    auto ret = EffekseerRendererMetal::CreateMaterialLoader(device.Get(), effectFile);
     return ret;
 }
 
@@ -177,19 +184,18 @@ void CleanupTextureData(::Effekseer::TextureData* textureData)
     tex->Release();
 }
 
-::EffekseerRenderer::DistortingCallback* CreateDistortingCallback(::EffekseerRenderer::Renderer* renderer, ::EffekseerRenderer::CommandList* commandList)
+::EffekseerRenderer::DistortingCallback* CreateDistortingCallback(::EffekseerRenderer::RendererRef renderer, ::EffekseerRenderer::CommandList* commandList)
 {
-    auto r = static_cast<::EffekseerRendererMetal::RendererImplemented*>(renderer);
-    return new DistortingCallbackMetal(r, commandList);
+    return new DistortingCallbackMetal(commandList);
 }
 
 
-void EffectEmitter::beforeRender(EffekseerRenderer::Renderer* renderer, EffekseerRenderer::CommandList* commandList)
+void EffectEmitter::beforeRender(EffekseerRenderer::RendererRef renderer, EffekseerRenderer::CommandList* commandList)
 {
     SetMTLObjectsFromCocos2d(commandList);
 }
 
-void EffectEmitter::afterRender(EffekseerRenderer::Renderer* renderer, EffekseerRenderer::CommandList* commandList)
+void EffectEmitter::afterRender(EffekseerRenderer::RendererRef renderer, EffekseerRenderer::CommandList* commandList)
 {
     EffekseerRendererMetal::EndCommandList(commandList);
 }
@@ -211,8 +217,6 @@ void EffectManager::CreateRenderer(int32_t spriteSize)
     memoryPool_ = EffekseerRendererMetal::CreateSingleFrameMemoryPool(renderer2d);
     commandList_ = EffekseerRendererMetal::CreateCommandList(renderer2d, memoryPool_);
     renderer2d->SetCommandList(commandList_);
-    
-    ES_SAFE_RELEASE(device);
 }
 
 void EffectManager::newFrame()
@@ -222,14 +226,14 @@ void EffectManager::newFrame()
         memoryPool_->NewFrame();
     }
     
-    auto r = static_cast<::EffekseerRendererMetal::RendererImplemented*>(renderer2d);
+    auto r = static_cast<::EffekseerRendererMetal::RendererImplemented*>(renderer2d.Get());
     auto vb = static_cast<::EffekseerRendererMetal::VertexBuffer*>(r->GetVertexBuffer());
     vb->NewFrame();
 }
 
-void ResetBackground(::EffekseerRenderer::Renderer* renderer)
+void ResetBackground(::EffekseerRenderer::RendererRef renderer)
 {
-    auto r = static_cast<::EffekseerRendererMetal::RendererImplemented*>(renderer);
+    auto r = static_cast<::EffekseerRendererMetal::RendererImplemented*>(renderer.Get());
     r->SetBackground(nullptr);
 }
 

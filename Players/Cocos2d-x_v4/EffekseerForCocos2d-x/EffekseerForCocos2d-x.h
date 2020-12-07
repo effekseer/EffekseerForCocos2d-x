@@ -30,7 +30,7 @@ class InternalManager;
 class Effect : public cocos2d::Ref
 {
 private:
-	::Effekseer::Effect* effect = nullptr;
+	::Effekseer::EffectRef effect = nullptr;
 	InternalManager* internalManager_ = nullptr;
 
 public:
@@ -48,7 +48,7 @@ public:
 		\~English　	The pointer of Effekseer::Effect
 		\~Japanese	Effekseer::Effectのポインタ
 	*/
-	::Effekseer::Effect* getInternalPtr() { return effect; }
+	::Effekseer::EffectRef getInternalPtr() { return effect; }
 };
 
 /**
@@ -86,8 +86,8 @@ private:
 
 	cocos2d::CallbackCommand renderCommand;
 	
-	void beforeRender(EffekseerRenderer::Renderer*, EffekseerRenderer::CommandList*);
-    void afterRender(EffekseerRenderer::Renderer*, EffekseerRenderer::CommandList*);
+	void beforeRender(EffekseerRenderer::RendererRef, EffekseerRenderer::CommandList*);
+    void afterRender(EffekseerRenderer::RendererRef, EffekseerRenderer::CommandList*);
 
 public:
 	/**
@@ -312,8 +312,8 @@ class EffectManager : public cocos2d::Ref
 	friend class EffectEmitter;
 
 private:
-	::Effekseer::Manager* manager2d = NULL;
-	::EffekseerRenderer::Renderer* renderer2d = NULL;
+	::Effekseer::ManagerRef manager2d = nullptr;
+	::EffekseerRenderer::RendererRef renderer2d = nullptr;
 	::EffekseerRenderer::DistortingCallback* distortingCallback = NULL;
     ::EffekseerRenderer::SingleFrameMemoryPool* memoryPool_ = nullptr;
     ::EffekseerRenderer::CommandList* commandList_ = nullptr;
@@ -417,7 +417,7 @@ public:
 		\~English　	The pointer of Effekseer::Manager
 		\~Japanese	Effekseer::Managerのポインタ
 	*/
-	::Effekseer::Manager* getInternalManager() { return manager2d; }
+	::Effekseer::ManagerRef getInternalManager() { return manager2d; }
 
 	/**
 		@brief
@@ -427,7 +427,7 @@ public:
 		\~English　	The pointer of Effekseer::Renderer
 		\~Japanese	Effekseer::Rendererのポインタ
 	*/
-	::EffekseerRenderer::Renderer* getInternalRenderer() { return renderer2d; }
+	::EffekseerRenderer::RendererRef getInternalRenderer() { return renderer2d; }
 
 	void setCameraMatrix(const cocos2d::Mat4& mat);
 	void setProjectionMatrix(const cocos2d::Mat4& mat);

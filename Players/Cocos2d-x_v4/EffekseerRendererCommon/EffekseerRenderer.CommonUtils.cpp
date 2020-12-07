@@ -6,12 +6,12 @@ namespace EffekseerRenderer
 {
 
 void CalcBillboard(::Effekseer::BillboardType billboardType,
-				   Effekseer::Mat43f& dst,
-				   ::Effekseer::Vec3f& s,
-				   ::Effekseer::Vec3f& R,
-				   ::Effekseer::Vec3f& F,
-				   const ::Effekseer::Mat43f& src,
-				   const ::Effekseer::Vec3f& frontDirection)
+				   Effekseer::SIMD::Mat43f& dst,
+				   ::Effekseer::SIMD::Vec3f& s,
+				   ::Effekseer::SIMD::Vec3f& R,
+				   ::Effekseer::SIMD::Vec3f& F,
+				   const ::Effekseer::SIMD::Mat43f& src,
+				   const ::Effekseer::SIMD::Vec3f& frontDirection)
 {
 	auto frontDir = frontDirection;
 
@@ -20,29 +20,29 @@ void CalcBillboard(::Effekseer::BillboardType billboardType,
 	if (billboardType == ::Effekseer::BillboardType::Billboard || billboardType == ::Effekseer::BillboardType::RotatedBillboard ||
 		billboardType == ::Effekseer::BillboardType::YAxisFixed)
 	{
-		::Effekseer::Mat43f r;
-		::Effekseer::Vec3f t;
+		::Effekseer::SIMD::Mat43f r;
+		::Effekseer::SIMD::Vec3f t;
 		src.GetSRT(s, r, t);
 
-		::Effekseer::Vec3f U;
+		::Effekseer::SIMD::Vec3f U;
 
 		if (billboardType == ::Effekseer::BillboardType::Billboard)
 		{
-			::Effekseer::Vec3f Up(0.0f, 1.0f, 0.0f);
+			::Effekseer::SIMD::Vec3f Up(0.0f, 1.0f, 0.0f);
 
 			F = frontDir;
-			R = ::Effekseer::Vec3f::Cross(Up, F).Normalize();
-			U = ::Effekseer::Vec3f::Cross(F, R).Normalize();
+			R = ::Effekseer::SIMD::Vec3f::Cross(Up, F).Normalize();
+			U = ::Effekseer::SIMD::Vec3f::Cross(F, R).Normalize();
 		}
 		else if (billboardType == ::Effekseer::BillboardType::RotatedBillboard)
 		{
-			::Effekseer::Vec3f Up(0.0f, 1.0f, 0.0f);
+			::Effekseer::SIMD::Vec3f Up(0.0f, 1.0f, 0.0f);
 
 			F = frontDir;
-			R = ::Effekseer::Vec3f::Cross(Up, F).Normalize();
-			U = ::Effekseer::Vec3f::Cross(F, R).Normalize();
+			R = ::Effekseer::SIMD::Vec3f::Cross(Up, F).Normalize();
+			U = ::Effekseer::SIMD::Vec3f::Cross(F, R).Normalize();
 
-			float c_zx2 = Effekseer::Vec3f::Dot(r.Y, r.Y) - r.Y.GetZ() * r.Y.GetZ();
+			float c_zx2 = Effekseer::SIMD::Vec3f::Dot(r.Y, r.Y) - r.Y.GetZ() * r.Y.GetZ();
 			float c_zx = sqrt(std::max(0.0f, c_zx2));
 			float s_z = 0.0f;
 			float c_z = 0.0f;
@@ -58,18 +58,18 @@ void CalcBillboard(::Effekseer::BillboardType billboardType,
 				c_z = 1.0f;
 			}
 
-			::Effekseer::Vec3f r_temp = R;
-			::Effekseer::Vec3f u_temp = U;
+			::Effekseer::SIMD::Vec3f r_temp = R;
+			::Effekseer::SIMD::Vec3f u_temp = U;
 
 			R = r_temp * c_z + u_temp * s_z;
 			U = u_temp * c_z - r_temp * s_z;
 		}
 		else if (billboardType == ::Effekseer::BillboardType::YAxisFixed)
 		{
-			U = ::Effekseer::Vec3f(r.X.GetY(), r.Y.GetY(), r.Z.GetY());
+			U = ::Effekseer::SIMD::Vec3f(r.X.GetY(), r.Y.GetY(), r.Z.GetY());
 			F = frontDir;
-			R = ::Effekseer::Vec3f::Cross(U, F).Normalize();
-			F = ::Effekseer::Vec3f::Cross(R, U).Normalize();
+			R = ::Effekseer::SIMD::Vec3f::Cross(U, F).Normalize();
+			F = ::Effekseer::SIMD::Vec3f::Cross(R, U).Normalize();
 		}
 
 		dst.X = {R.GetX(), U.GetX(), F.GetX(), t.GetX()};
@@ -78,83 +78,7 @@ void CalcBillboard(::Effekseer::BillboardType billboardType,
 	}
 }
 
-void SplineGenerator::AddVertex(const Effekseer::Vec3f& v)
-{
-	a.push_back(v);
-	if (a.size() >= 2)
-	{
-		isSame.push_back(a[a.size() - 1] == a[a.size() - 2]);
-	}
-}
-
-void SplineGenerator::Calculate()
-{
-	b.resize(a.size());
-	c.resize(a.size());
-	d.resize(a.size());
-	w.resize(a.size());
-
-	b[0] = b[b.size() - 1] = ::Effekseer::Vec3f(0.0f, 0.0f, 0.0f);
-	c[0] = c[c.size() - 1] = ::Effekseer::Vec3f(0.0f, 0.0f, 0.0f);
-	w[0] = ::Effekseer::Vec3f(0.0f, 0.0f, 0.0f);
-
-	for (size_t i = 1; i < a.size() - 1; i++)
-	{
-		c[i] = (a[i - 1] + a[i] * (-2.0) + a[i + 1]) * 3.0;
-	}
-
-	for (size_t i = 1; i < a.size() - 1; i++)
-	{
-		auto tmp = Effekseer::Vec3f(4.0, 4.0, 4.0) - w[i - 1];
-		c[i] = (c[i] - c[i - 1]) / tmp;
-		w[i] = Effekseer::Vec3f(1.0, 1.0, 1.0) / tmp;
-	}
-
-	for (size_t i = (a.size() - 1) - 1; i > 0; i--)
-	{
-		c[i] = c[i] - c[i + 1] * w[i];
-	}
-
-	for (size_t i = 0; i < a.size() - 1; i++)
-	{
-		d[i] = (c[i + 1] - c[i]) / 3.0;
-		b[i] = a[i + 1] - a[i] - c[i] - d[i];
-	}
-}
-
-void SplineGenerator::Reset()
-{
-	a.clear();
-	b.clear();
-	c.clear();
-	d.clear();
-	w.clear();
-	isSame.clear();
-}
-
-Effekseer::Vec3f SplineGenerator::GetValue(float t) const
-{
-	int32_t j = (int32_t)floorf(t);
-
-	if (j < 0)
-	{
-		j = 0;
-	}
-
-	if (j > (int32_t)a.size())
-	{
-		j = (int32_t)a.size() - 1;
-	}
-
-	auto dt = t - j;
-
-	if (j < (int32_t)isSame.size() && isSame[j])
-		return a[j];
-
-	return a[j] + (b[j] + (c[j] + d[j] * dt) * dt) * dt;
-}
-
-static void FastScale(::Effekseer::Mat43f& mat, float scale)
+static void FastScale(::Effekseer::SIMD::Mat43f& mat, float scale)
 {
 	float x = mat.X.GetW();
 	float y = mat.Y.GetW();
@@ -169,7 +93,7 @@ static void FastScale(::Effekseer::Mat43f& mat, float scale)
 	mat.Z.SetW(z);
 }
 
-static void FastScale(::Effekseer::Mat44f& mat, float scale)
+static void FastScale(::Effekseer::SIMD::Mat44f& mat, float scale)
 {
 	float x = mat.X.GetW();
 	float y = mat.Y.GetW();
@@ -184,9 +108,9 @@ static void FastScale(::Effekseer::Mat44f& mat, float scale)
 	mat.Z.SetW(z);
 }
 
-void ApplyDepthParameters(::Effekseer::Mat43f& mat,
-						  const ::Effekseer::Vec3f& cameraFront,
-						  const ::Effekseer::Vec3f& cameraPos,
+void ApplyDepthParameters(::Effekseer::SIMD::Mat43f& mat,
+						  const ::Effekseer::SIMD::Vec3f& cameraFront,
+						  const ::Effekseer::SIMD::Vec3f& cameraPos,
 						  ::Effekseer::NodeRendererDepthParameter* depthParameter,
 						  bool isRightHand)
 {
@@ -248,11 +172,11 @@ void ApplyDepthParameters(::Effekseer::Mat43f& mat,
 	}
 }
 
-void ApplyDepthParameters(::Effekseer::Mat43f& mat,
-						  ::Effekseer::Vec3f& translationValues,
-						  ::Effekseer::Vec3f& scaleValues,
-						  const ::Effekseer::Vec3f& cameraFront,
-						  const ::Effekseer::Vec3f& cameraPos,
+void ApplyDepthParameters(::Effekseer::SIMD::Mat43f& mat,
+						  ::Effekseer::SIMD::Vec3f& translationValues,
+						  ::Effekseer::SIMD::Vec3f& scaleValues,
+						  const ::Effekseer::SIMD::Vec3f& cameraFront,
+						  const ::Effekseer::SIMD::Vec3f& cameraPos,
 						  ::Effekseer::NodeRendererDepthParameter* depthParameter,
 						  bool isRightHand)
 {
@@ -316,10 +240,10 @@ void ApplyDepthParameters(::Effekseer::Mat43f& mat,
 	}
 }
 
-void ApplyDepthParameters(::Effekseer::Mat43f& mat,
-						  const ::Effekseer::Vec3f& cameraFront,
-						  const ::Effekseer::Vec3f& cameraPos,
-						  ::Effekseer::Vec3f& scaleValues,
+void ApplyDepthParameters(::Effekseer::SIMD::Mat43f& mat,
+						  const ::Effekseer::SIMD::Vec3f& cameraFront,
+						  const ::Effekseer::SIMD::Vec3f& cameraPos,
+						  ::Effekseer::SIMD::Vec3f& scaleValues,
 						  ::Effekseer::NodeRendererDepthParameter* depthParameter,
 						  bool isRightHand)
 {
@@ -378,9 +302,9 @@ void ApplyDepthParameters(::Effekseer::Mat43f& mat,
 	}
 }
 
-void ApplyDepthParameters(::Effekseer::Mat44f& mat,
-						  const ::Effekseer::Vec3f& cameraFront,
-						  const ::Effekseer::Vec3f& cameraPos,
+void ApplyDepthParameters(::Effekseer::SIMD::Mat44f& mat,
+						  const ::Effekseer::SIMD::Vec3f& cameraFront,
+						  const ::Effekseer::SIMD::Vec3f& cameraPos,
 						  ::Effekseer::NodeRendererDepthParameter* depthParameter,
 						  bool isRightHand)
 {
@@ -438,6 +362,112 @@ void ApplyDepthParameters(::Effekseer::Mat44f& mat,
 			auto scale = cl / 32.0f * (1.0f - depthParameter->SuppressionOfScalingByDepth) + depthParameter->SuppressionOfScalingByDepth;
 			FastScale(mat, scale);
 		}
+	}
+}
+
+void ApplyViewOffset(::Effekseer::SIMD::Mat43f& mat,
+					 const ::Effekseer::SIMD::Mat44f& camera,
+					 float distance)
+{
+	::Effekseer::Matrix44 cameraMat;
+	::Effekseer::Matrix44::Inverse(cameraMat, ToStruct(camera));
+
+	::Effekseer::SIMD::Vec3f ViewOffset = ::Effekseer::SIMD::Vec3f::Load(cameraMat.Values[3]) + -::Effekseer::SIMD::Vec3f::Load(cameraMat.Values[2]) * distance;
+
+	::Effekseer::SIMD::Vec3f localPos = mat.GetTranslation();
+	ViewOffset += (::Effekseer::SIMD::Vec3f::Load(cameraMat.Values[0]) * localPos.GetX()+ 
+				   ::Effekseer::SIMD::Vec3f::Load(cameraMat.Values[1]) * localPos.GetY() + 
+				   -::Effekseer::SIMD::Vec3f::Load(cameraMat.Values[2]) * localPos.GetZ());
+
+	mat.SetTranslation(ViewOffset);
+}
+
+void ApplyViewOffset(::Effekseer::SIMD::Mat44f& mat,
+					 const ::Effekseer::SIMD::Mat44f& camera,
+					 float distance)
+{
+	::Effekseer::Matrix44 cameraMat;
+	::Effekseer::Matrix44::Inverse(cameraMat, ToStruct(camera));
+
+	::Effekseer::SIMD::Vec3f ViewOffset = ::Effekseer::SIMD::Vec3f::Load(cameraMat.Values[3]) + -::Effekseer::SIMD::Vec3f::Load(cameraMat.Values[2]) * distance;
+
+	::Effekseer::SIMD::Vec3f localPos = mat.GetTranslation();
+	ViewOffset += (::Effekseer::SIMD::Vec3f::Load(cameraMat.Values[0]) * localPos.GetX()+ 
+				   ::Effekseer::SIMD::Vec3f::Load(cameraMat.Values[1]) * localPos.GetY() + 
+				   -::Effekseer::SIMD::Vec3f::Load(cameraMat.Values[2]) * localPos.GetZ());
+
+	mat.SetTranslation(ViewOffset);
+}
+
+void CalculateAlignedTextureInformation(Effekseer::Backend::TextureFormatType format, const std::array<int, 2>& size, int32_t& sizePerWidth, int32_t& height)
+{
+	sizePerWidth = 0;
+	height = 0;
+
+	const int32_t blockSize = 4;
+	auto aligned = [](int32_t size, int32_t alignement) -> int32_t {
+		return ((size + alignement - 1) / alignement) * alignement;
+	};
+
+	if (format == Effekseer::Backend::TextureFormatType::R8G8B8A8_UNORM)
+	{
+		sizePerWidth = 4 * size[0];
+		height = size[1];
+	}
+	else if (format == Effekseer::Backend::TextureFormatType::R8G8B8A8_UNORM_SRGB)
+	{
+		sizePerWidth = 4 * size[0];
+		height = size[1];
+	}
+	else if (format == Effekseer::Backend::TextureFormatType::R8_UNORM)
+	{
+		sizePerWidth = 1 * size[0];
+		height = size[1];
+	}
+	else if (format == Effekseer::Backend::TextureFormatType::R16G16_FLOAT)
+	{
+		sizePerWidth = sizeof(float) * 2 * size[0];
+		height = size[1];
+	}
+	else if (format == Effekseer::Backend::TextureFormatType::R16G16B16A16_FLOAT)
+	{
+		sizePerWidth = sizeof(float) * 4 / 2 * size[0];
+		height = size[1];
+	}
+	else if (format == Effekseer::Backend::TextureFormatType::R32G32B32A32_FLOAT)
+	{
+		sizePerWidth = sizeof(float) * 4 * size[0];
+		height = size[1];
+	}
+	else if (format == Effekseer::Backend::TextureFormatType::BC1)
+	{
+		sizePerWidth = 8 * aligned(size[0], blockSize) / blockSize;
+		height = aligned(size[1], blockSize) / blockSize;
+	}
+	else if (format == Effekseer::Backend::TextureFormatType::BC2)
+	{
+		sizePerWidth = 16 * aligned(size[0], blockSize) / blockSize;
+		height = aligned(size[1], blockSize) / blockSize;
+	}
+	else if (format == Effekseer::Backend::TextureFormatType::BC3)
+	{
+		sizePerWidth = 16 * aligned(size[0], blockSize) / blockSize;
+		height = aligned(size[1], blockSize) / blockSize;
+	}
+	else if (format == Effekseer::Backend::TextureFormatType::BC1_SRGB)
+	{
+		sizePerWidth = 8 * aligned(size[0], blockSize) / blockSize;
+		height = aligned(size[1], blockSize) / blockSize;
+	}
+	else if (format == Effekseer::Backend::TextureFormatType::BC2_SRGB)
+	{
+		sizePerWidth = 16 * aligned(size[0], blockSize) / blockSize;
+		height = aligned(size[1], blockSize) / blockSize;
+	}
+	else if (format == Effekseer::Backend::TextureFormatType::BC3_SRGB)
+	{
+		sizePerWidth = 16 * aligned(size[0], blockSize) / blockSize;
+		height = aligned(size[1], blockSize) / blockSize;
 	}
 }
 

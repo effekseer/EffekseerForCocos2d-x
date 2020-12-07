@@ -4,6 +4,16 @@
 namespace LLGI
 {
 
+void TextureVulkan::ResetImageLayouts(int32_t count, vk::ImageLayout layout)
+{
+	imageLayouts_.resize(count);
+
+	for (int32_t i = 0; i < count; i++)
+	{
+		imageLayouts_[i] = layout;
+	}
+}
+
 TextureVulkan::TextureVulkan() {}
 
 TextureVulkan::~TextureVulkan()
@@ -32,8 +42,13 @@ TextureVulkan::~TextureVulkan()
 	SafeRelease(owner_);
 }
 
-bool TextureVulkan::Initialize(
-	GraphicsVulkan* graphics, bool isStrongRef, const Vec2I& size, vk::Format format, int samplingCount, TextureType textureType)
+bool TextureVulkan::Initialize(GraphicsVulkan* graphics,
+							   bool isStrongRef,
+							   const Vec2I& size,
+							   vk::Format format,
+							   int samplingCount,
+							   int mipmapCount,
+							   TextureType textureType)
 {
 	graphics_ = graphics;
 	if (isStrongRef_)
@@ -45,6 +60,13 @@ bool TextureVulkan::Initialize(
 	format_ = VulkanHelper::VkFormatToTextureFormat(static_cast<VkFormat>(format));
 	samplingCount_ = samplingCount;
 
+	// check whether is mipmap enabled?
+	auto properties = graphics_->GetPysicalDevice().getFormatProperties(format);
+	if (!(properties.optimalTilingFeatures & vk::FormatFeatureFlagBits::eSampledImageFilterLinear))
+	{
+		mipmapCount = 1;
+	}
+
 	cpuBuf = std::unique_ptr<Buffer>(new Buffer(graphics_));
 
 	// image
@@ -54,7 +76,7 @@ bool TextureVulkan::Initialize(
 	imageCreateInfo.extent.width = size.X;
 	imageCreateInfo.extent.height = size.Y;
 	imageCreateInfo.extent.depth = 1;
-	imageCreateInfo.mipLevels = 1;
+	imageCreateInfo.mipLevels = mipmapCount;
 	imageCreateInfo.arrayLayers = 1;
 	imageCreateInfo.format = format;
 	imageCreateInfo.tiling = vk::ImageTiling::eOptimal;
@@ -118,7 +140,7 @@ bool TextureVulkan::Initialize(
 		imageViewInfo.format = format;
 		imageViewInfo.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
 		imageViewInfo.subresourceRange.baseMipLevel = 0;
-		imageViewInfo.subresourceRange.levelCount = 1;
+		imageViewInfo.subresourceRange.levelCount = mipmapCount;
 		imageViewInfo.subresourceRange.baseArrayLayer = 0;
 		imageViewInfo.subresourceRange.layerCount = 1;
 		subresourceRange_ = imageViewInfo.subresourceRange;
@@ -126,9 +148,12 @@ bool TextureVulkan::Initialize(
 	}
 
 	textureSize = size;
+	mipmapCount_ = mipmapCount;
 	vkTextureFormat_ = imageCreateInfo.format;
 	format_ = VulkanHelper::VkFormatToTextureFormat(static_cast<VkFormat>(vkTextureFormat_));
 	device_ = graphics_->GetDevice();
+
+	ResetImageLayouts(mipmapCount_, imageCreateInfo.initialLayout);
 
 	return true;
 }
@@ -142,6 +167,7 @@ bool TextureVulkan::InitializeAsRenderTexture(GraphicsVulkan* graphics,
 					  parameter.Size,
 					  (vk::Format)VulkanHelper::TextureFormatToVkFormat(parameter.Format),
 					  parameter.SamplingCount,
+					  1,
 					  TextureType::Render);
 }
 
@@ -163,6 +189,10 @@ bool TextureVulkan::InitializeAsScreen(const vk::Image& image, const vk::ImageVi
 	subresourceRange_.layerCount = 1;
 
 	isExternalResource_ = true;
+
+	mipmapCount_ = 1;
+	ResetImageLayouts(mipmapCount_, vk::ImageLayout::eUndefined);
+
 	return true;
 }
 
@@ -183,7 +213,7 @@ bool TextureVulkan::InitializeAsDepthStencil(
 	format_ = VulkanHelper::VkFormatToTextureFormat(static_cast<VkFormat>(format));
 
 	vk::FormatProperties formatProps = physicalDevice.getFormatProperties(depthFormat);
-	if(!(formatProps.optimalTilingFeatures & vk::FormatFeatureFlagBits::eDepthStencilAttachment))
+	if (!(formatProps.optimalTilingFeatures & vk::FormatFeatureFlagBits::eDepthStencilAttachment))
 	{
 		throw "Invalid formatProps";
 	}
@@ -227,6 +257,9 @@ bool TextureVulkan::InitializeAsDepthStencil(
 	subresourceRange_ = viewCreateInfo.subresourceRange;
 	vkTextureFormat_ = depthFormat;
 
+	mipmapCount_ = 1;
+	ResetImageLayouts(mipmapCount_, imageCreateInfo.initialLayout);
+
 	return true;
 }
 
@@ -255,6 +288,9 @@ bool TextureVulkan::InitializeAsExternal(vk::Device device, const VulkanImageInf
 	{
 		return false;
 	}
+
+	mipmapCount_ = 1;
+	ResetImageLayouts(mipmapCount_, vk::ImageLayout::eUndefined);
 
 	isExternalResource_ = true;
 
@@ -328,17 +364,38 @@ void TextureVulkan::Unlock()
 
 Vec2I TextureVulkan::GetSizeAs2D() const { return textureSize; }
 
-vk::ImageLayout TextureVulkan::GetImageLayout() const { return imageLayout_; }
+std::vector<vk::ImageLayout> TextureVulkan::GetImageLayouts() const { return imageLayouts_; }
 
-void TextureVulkan::ChangeImageLayout(const vk::ImageLayout& imageLayout) { imageLayout_ = imageLayout; }
+void TextureVulkan::ChangeImageLayout(const vk::ImageLayout& imageLayout)
+{
+	for (int32_t i = 0; i < mipmapCount_; i++)
+	{
+		ChangeImageLayout(i, imageLayout);
+	}
+}
+
+void TextureVulkan::ChangeImageLayout(int32_t mipLevel, const vk::ImageLayout& imageLayout) { imageLayouts_[mipLevel] = imageLayout; }
 
 void TextureVulkan::ResourceBarrior(vk::CommandBuffer& commandBuffer, const vk::ImageLayout& imageLayout)
 {
-	if (imageLayout == imageLayout_)
-		return;
+	for (int32_t i = 0; i < mipmapCount_; i++)
+	{
+		ResourceBarrior(i, commandBuffer, imageLayout);
+	}
+}
 
-	SetImageLayout(commandBuffer, image_, imageLayout_, imageLayout, subresourceRange_);
-	ChangeImageLayout(imageLayout);
+void TextureVulkan::ResourceBarrior(int32_t mipLevel, vk::CommandBuffer& commandBuffer, const vk::ImageLayout& imageLayout)
+{
+	if (imageLayouts_[mipLevel] == imageLayout)
+	{
+		return;
+	}
+
+	auto subresourceRange = subresourceRange_;
+	subresourceRange.baseMipLevel = mipLevel;
+	subresourceRange.levelCount = 1;
+	SetImageLayout(commandBuffer, image_, imageLayouts_[mipLevel], imageLayout, subresourceRange);
+	ChangeImageLayout(mipLevel, imageLayout);
 }
 
 } // namespace LLGI

@@ -13,72 +13,120 @@
 
 #include "../../EffekseerMaterialCompiler/Metal/EffekseerMaterialCompilerMetal.h"
 
-#include "Shaders.h"
+// #include "Shaders.h"
+
+#include "ShaderHeader/ad_sprite_distortion_ps.h"
+#include "ShaderHeader/ad_sprite_distortion_vs.h"
+#include "ShaderHeader/ad_sprite_lit_ps.h"
+#include "ShaderHeader/ad_sprite_lit_vs.h"
+#include "ShaderHeader/ad_sprite_unlit_ps.h"
+#include "ShaderHeader/ad_sprite_unlit_vs.h"
+
+#include "ShaderHeader/ad_model_distortion_ps.h"
+#include "ShaderHeader/ad_model_distortion_vs.h"
+#include "ShaderHeader/ad_model_lit_ps.h"
+#include "ShaderHeader/ad_model_lit_vs.h"
+#include "ShaderHeader/ad_model_unlit_ps.h"
+#include "ShaderHeader/ad_model_unlit_vs.h"
+
+#include "ShaderHeader/sprite_unlit_vs.h"
+#include "ShaderHeader/sprite_unlit_ps.h"
+#include "ShaderHeader/sprite_lit_vs.h"
+#include "ShaderHeader/sprite_lit_ps.h"
+#include "ShaderHeader/sprite_distortion_vs.h"
+#include "ShaderHeader/sprite_distortion_ps.h"
+
+#include "ShaderHeader/model_unlit_vs.h"
+#include "ShaderHeader/model_unlit_ps.h"
+#include "ShaderHeader/model_lit_vs.h"
+#include "ShaderHeader/model_lit_ps.h"
+#include "ShaderHeader/model_distortion_vs.h"
+#include "ShaderHeader/model_distortion_ps.h"
+
+#define GENERATE_VIEW(x) {{x, static_cast<int32_t>(sizeof(x))}};
 
 namespace EffekseerRendererMetal
 {
 
-::Effekseer::TextureLoader* CreateTextureLoader(::EffekseerRenderer::GraphicsDevice* graphicsDevice, ::Effekseer::FileInterface* fileInterface)
+::Effekseer::TextureLoaderRef CreateTextureLoader(::Effekseer::Backend::GraphicsDevice* graphicsDevice, ::Effekseer::FileInterface* fileInterface)
 {
-    auto gd = static_cast<EffekseerRendererLLGI::GraphicsDevice*>(graphicsDevice);
+    auto gd = static_cast<EffekseerRendererLLGI::Backend::GraphicsDevice*>(graphicsDevice);
     return EffekseerRendererLLGI::CreateTextureLoader(gd, fileInterface);
 }
 
-::Effekseer::ModelLoader* CreateModelLoader(::EffekseerRenderer::GraphicsDevice*graphicsDevice, ::Effekseer::FileInterface* fileInterface)
+::Effekseer::ModelLoaderRef CreateModelLoader(::Effekseer::Backend::GraphicsDevice*graphicsDevice, ::Effekseer::FileInterface* fileInterface)
 {
-    auto gd = static_cast<EffekseerRendererLLGI::GraphicsDevice*>(graphicsDevice);
+    auto gd = static_cast<EffekseerRendererLLGI::Backend::GraphicsDevice*>(graphicsDevice);
     return EffekseerRendererLLGI::CreateModelLoader(gd, fileInterface);
 }
 
-::Effekseer::MaterialLoader* CreateMaterialLoader(::EffekseerRenderer::GraphicsDevice*graphicsDevice, ::Effekseer::FileInterface* fileInterface)
+::Effekseer::MaterialLoaderRef CreateMaterialLoader(::Effekseer::Backend::GraphicsDevice*graphicsDevice, ::Effekseer::FileInterface* fileInterface)
 {
-    auto gd = static_cast<EffekseerRendererLLGI::GraphicsDevice*>(graphicsDevice);
+    auto gd = static_cast<EffekseerRendererLLGI::Backend::GraphicsDevice*>(graphicsDevice);
     auto compiler = new ::Effekseer::MaterialCompilerMetal();
-    auto ret = new ::EffekseerRendererLLGI::MaterialLoader(gd, fileInterface, ::Effekseer::CompiledMaterialPlatformType::Metal, compiler);
+    auto ret = ::Effekseer::MaterialLoaderRef(new ::EffekseerRendererLLGI::MaterialLoader(gd, fileInterface, ::Effekseer::CompiledMaterialPlatformType::Metal, compiler));
     ES_SAFE_RELEASE(compiler);
     return ret;
 }
 
-::EffekseerRenderer::GraphicsDevice* CreateDevice()
+::Effekseer::Backend::GraphicsDeviceRef CreateDevice()
 {
     auto graphics = new LLGI::GraphicsMetal();
     graphics->Initialize(nullptr);
 
-	auto ret = new EffekseerRendererLLGI::GraphicsDevice(graphics);
+	auto ret = Effekseer::MakeRefPtr<EffekseerRendererLLGI::Backend::GraphicsDevice>(graphics);
 	ES_SAFE_RELEASE(graphics);
 	return ret;
 }
 
-::EffekseerRenderer::Renderer* Create(
-                                      ::EffekseerRenderer::GraphicsDevice* graphicsDevice,
+static void CreateFixedShaderForMetal(EffekseerRendererLLGI::FixedShader* shader)
+{
+    assert(shader);
+    if (!shader)
+        return;
+
+	shader->AdvancedSpriteUnlit_VS = GENERATE_VIEW(metal_ad_sprite_unlit_vs);
+	shader->AdvancedSpriteUnlit_PS = GENERATE_VIEW(metal_ad_sprite_unlit_ps);
+	shader->AdvancedSpriteLit_VS = GENERATE_VIEW(metal_ad_sprite_lit_vs);
+	shader->AdvancedSpriteLit_PS = GENERATE_VIEW(metal_ad_sprite_lit_ps);
+	shader->AdvancedSpriteDistortion_VS = GENERATE_VIEW(metal_ad_sprite_distortion_vs);
+	shader->AdvancedSpriteDistortion_PS = GENERATE_VIEW(metal_ad_sprite_distortion_ps);
+
+	shader->AdvancedModelUnlit_VS = GENERATE_VIEW(metal_ad_model_unlit_vs);
+	shader->AdvancedModelUnlit_PS = GENERATE_VIEW(metal_ad_model_unlit_ps);
+	shader->AdvancedModelLit_VS = GENERATE_VIEW(metal_ad_model_lit_vs);
+	shader->AdvancedModelLit_PS = GENERATE_VIEW(metal_ad_model_lit_ps);
+	shader->AdvancedModelDistortion_VS = GENERATE_VIEW(metal_ad_model_distortion_vs);
+	shader->AdvancedModelDistortion_PS = GENERATE_VIEW(metal_ad_model_distortion_ps);
+
+	shader->SpriteUnlit_VS = GENERATE_VIEW(metal_sprite_unlit_vs);
+	shader->SpriteUnlit_PS = GENERATE_VIEW(metal_sprite_unlit_ps);
+	shader->SpriteLit_VS = GENERATE_VIEW(metal_sprite_lit_vs);
+	shader->SpriteLit_PS = GENERATE_VIEW(metal_sprite_lit_ps);
+	shader->SpriteDistortion_VS = GENERATE_VIEW(metal_sprite_distortion_vs);
+	shader->SpriteDistortion_PS = GENERATE_VIEW(metal_sprite_distortion_ps);
+
+	shader->ModelUnlit_VS = GENERATE_VIEW(metal_model_unlit_vs);
+	shader->ModelUnlit_PS = GENERATE_VIEW(metal_model_unlit_ps);
+	shader->ModelLit_VS = GENERATE_VIEW(metal_model_lit_vs);
+	shader->ModelLit_PS = GENERATE_VIEW(metal_model_lit_ps);
+	shader->ModelDistortion_VS = GENERATE_VIEW(metal_model_distortion_vs);
+	shader->ModelDistortion_PS = GENERATE_VIEW(metal_model_distortion_ps);
+}
+
+::EffekseerRenderer::RendererRef Create(
+                                      ::Effekseer::Backend::GraphicsDeviceRef graphicsDevice,
                                       int32_t squareMaxCount,
                                       MTLPixelFormat renderTargetFormat,
                                       MTLPixelFormat depthStencilFormat,
 									  bool isReversedDepth)
 {
-    RendererImplemented* renderer = new RendererImplemented(squareMaxCount);
+    auto renderer = Effekseer::MakeRefPtr<RendererImplemented>(squareMaxCount);
     renderer->materialCompiler_ = new ::Effekseer::MaterialCompilerMetal();
 
-    auto allocate_ = [](std::vector<LLGI::DataStructure>& ds, const char* data, int32_t size) -> void {
-        ds.resize(1);
-        ds[0].Size = size;
-        ds[0].Data = data;
-        return;
-    };
-    
-    const char* sources[] = {
-        g_sprite_vs_src, g_sprite_vs_lighting_src, g_sprite_distortion_vs_src, g_model_lighting_vs_src, g_model_texture_vs_src, g_model_distortion_vs_src,
-        g_sprite_fs_texture_src, g_sprite_fs_lighting_src, g_sprite_fs_texture_distortion_src, g_model_lighting_fs_src, g_model_texture_fs_src, g_model_distortion_fs_src
-    };
-    
-    std::vector<LLGI::DataStructure>* dest = &renderer->fixedShader_.StandardTexture_VS;
+    CreateFixedShaderForMetal(&renderer->fixedShader_);
 
-    for (int i = 0; i < 12; ++i)
-    {
-        allocate_(dest[i], sources[i], sizeof(sources[i]));
-    }
-
-	auto gd = static_cast<EffekseerRendererLLGI::GraphicsDevice*>(graphicsDevice);
+	auto gd = graphicsDevice.DownCast<EffekseerRendererLLGI::Backend::GraphicsDevice>();
     auto g = static_cast<LLGI::GraphicsMetal*>(gd->GetGraphics());
     LLGI::RenderPassPipelineStateKey key;
     key.RenderTargetFormats.resize(1);
@@ -97,12 +145,10 @@ namespace EffekseerRendererMetal
 
     ES_SAFE_RELEASE(pipelineState);
 
-    ES_SAFE_DELETE(renderer);
-
     return nullptr;
 }
 
-::EffekseerRenderer::Renderer* Create(int32_t squareMaxCount,
+::EffekseerRenderer::RendererRef Create(int32_t squareMaxCount,
                                       MTLPixelFormat renderTargetFormat,
                                       MTLPixelFormat depthStencilFormat,
 									  bool isReversedDepth)
@@ -113,15 +159,10 @@ namespace EffekseerRendererMetal
 
 	if (ret != nullptr)
 	{
-		ES_SAFE_RELEASE(graphicDevice);
 		return ret;
 	}
 
-	ES_SAFE_RELEASE(graphicDevice);
 	return nullptr;
-
-	auto graphics = new LLGI::GraphicsMetal();
-    graphics->Initialize(nullptr);
 }
 
 Effekseer::TextureData* CreateTextureData(::EffekseerRenderer::Renderer* renderer, id<MTLTexture> texture)
@@ -139,24 +180,38 @@ Effekseer::TextureData* CreateTextureData(::EffekseerRenderer::Renderer* rendere
 	return textureData;
 }
 
-void DeleteTextureData(::EffekseerRenderer::Renderer* renderer, Effekseer::TextureData* textureData)
+Effekseer::TextureData* CreateTextureData(::Effekseer::Backend::GraphicsDeviceRef graphicsDevice, id<MTLTexture> texture)
+{
+    auto g = static_cast<::EffekseerRendererLLGI::Backend::GraphicsDevice*>(graphicsDevice.Get());
+    auto texturePtr = g->CreateTexture((uint64_t)texture, []()-> void{});
+
+    auto textureData = new Effekseer::TextureData();
+    textureData->TexturePtr = texturePtr;
+    textureData->UserID = 0;
+    textureData->TextureFormat = Effekseer::TextureFormatType::ABGR8;
+    textureData->Width = 0;
+    textureData->Height = 0;
+    return textureData;
+}
+
+void DeleteTextureData(Effekseer::TextureData* textureData)
 {
 	auto texture = (LLGI::Texture*)textureData->UserPtr;
-	texture->Release();
+	ES_SAFE_RELEASE(texture);
 	delete textureData;
 }
 
-void FlushAndWait(::EffekseerRenderer::Renderer* renderer)
+void FlushAndWait(::EffekseerRenderer::RendererRef renderer)
 {
-	auto r = static_cast<::EffekseerRendererLLGI::RendererImplemented*>(renderer);
+    auto r = static_cast<::EffekseerRendererLLGI::RendererImplemented*>(renderer.Get());
 	auto g = static_cast<LLGI::GraphicsMetal*>(r->GetGraphics());
 	g->WaitFinish();
 }
 
-EffekseerRenderer::CommandList* CreateCommandList(::EffekseerRenderer::GraphicsDevice* graphicsDevice,
+EffekseerRenderer::CommandList* CreateCommandList(::Effekseer::Backend::GraphicsDeviceRef graphicsDevice,
 												  ::EffekseerRenderer::SingleFrameMemoryPool* memoryPool)
 {
-	auto gd = static_cast<::EffekseerRendererLLGI::GraphicsDevice*>(graphicsDevice);
+	auto gd = static_cast<::EffekseerRendererLLGI::Backend::GraphicsDevice*>(graphicsDevice.Get());
 	auto g = static_cast<LLGI::GraphicsMetal*>(gd->GetGraphics());
 	auto mp = static_cast<::EffekseerRendererLLGI::SingleFrameMemoryPool*>(memoryPool);
 	auto commandList = g->CreateCommandList(mp->GetInternal());
@@ -165,16 +220,16 @@ EffekseerRenderer::CommandList* CreateCommandList(::EffekseerRenderer::GraphicsD
 	return ret;
 }
 
-EffekseerRenderer::CommandList* CreateCommandList(::EffekseerRenderer::Renderer* renderer,
+EffekseerRenderer::CommandList* CreateCommandList(::EffekseerRenderer::RendererRef renderer,
 												  ::EffekseerRenderer::SingleFrameMemoryPool* memoryPool)
 {
-	auto r = static_cast<::EffekseerRendererLLGI::RendererImplemented*>(renderer);
+    auto r = static_cast<::EffekseerRendererLLGI::RendererImplemented*>(renderer.Get());
 	return CreateCommandList(r->GetGraphicsDevice(), memoryPool);
 }
 
-EffekseerRenderer::SingleFrameMemoryPool* CreateSingleFrameMemoryPool(::EffekseerRenderer::GraphicsDevice* graphicsDevice)
+EffekseerRenderer::SingleFrameMemoryPool* CreateSingleFrameMemoryPool(::Effekseer::Backend::GraphicsDeviceRef graphicsDevice)
 {
-	auto gd = static_cast<::EffekseerRendererLLGI::GraphicsDevice*>(graphicsDevice);
+	auto gd = static_cast<::EffekseerRendererLLGI::Backend::GraphicsDevice*>(graphicsDevice.Get());
 	auto g = static_cast<LLGI::GraphicsMetal*>(gd->GetGraphics());
 	auto mp = g->CreateSingleFrameMemoryPool(1024 * 1024 * 8, 128);
 	auto ret = new EffekseerRendererLLGI::SingleFrameMemoryPool(mp);
@@ -182,9 +237,9 @@ EffekseerRenderer::SingleFrameMemoryPool* CreateSingleFrameMemoryPool(::Effeksee
 	return ret;
 }
 
-EffekseerRenderer::SingleFrameMemoryPool* CreateSingleFrameMemoryPool(::EffekseerRenderer::Renderer* renderer)
+EffekseerRenderer::SingleFrameMemoryPool* CreateSingleFrameMemoryPool(::EffekseerRenderer::RendererRef renderer)
 {
-	auto r = static_cast<::EffekseerRendererLLGI::RendererImplemented*>(renderer);
+    auto r = static_cast<::EffekseerRendererLLGI::RendererImplemented*>(renderer.Get());
     return CreateSingleFrameMemoryPool(r->GetGraphicsDevice());
 }
 
@@ -212,14 +267,14 @@ void RendererImplemented::GenerateVertexBuffer()
 {
     // Metal doesn't need to update buffer to make sure it has the correct size
     auto sc = std::max(4000, m_squareMaxCount);
-    m_vertexBuffer = VertexBuffer::Create(graphicsDevice_, EffekseerRenderer::GetMaximumVertexSizeInAllTypes() * sc * 4, true, false);
+    m_vertexBuffer = VertexBuffer::Create(graphicsDevice_.Get(), EffekseerRenderer::GetMaximumVertexSizeInAllTypes() * sc * 4, true, false);
 }
 
 void RendererImplemented::GenerateIndexBuffer()
 {
     auto sc = std::max(4000, m_squareMaxCount);
 
-	m_indexBuffer = EffekseerRendererLLGI::IndexBuffer::Create(graphicsDevice_, sc * 6, false, false);
+	m_indexBuffer = EffekseerRendererLLGI::IndexBuffer::Create(graphicsDevice_.Get(), sc * 6, false, false);
 	if (m_indexBuffer == nullptr)
 		return;
 
