@@ -121,7 +121,7 @@ public:
 	int Release() override
 	{
 		auto ret = ::EffekseerRendererGL::Backend::GraphicsDevice::Release();
-		if (ret == 0)
+		if (ret == 1)
 		{
 			g_deviceObjectCollection = nullptr;
 		}

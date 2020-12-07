@@ -370,7 +370,7 @@ public:
 	int Release() override
 	{
 		auto ret = ::Effekseer::Setting::Release();
-		if (ret == 0)
+		if (ret == 1)
 		{
 			g_effekseerSetting = nullptr;
 		}

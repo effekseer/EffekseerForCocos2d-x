@@ -86,8 +86,8 @@ private:
 
 	cocos2d::CallbackCommand renderCommand;
 	
-	void beforeRender(EffekseerRenderer::Renderer*, EffekseerRenderer::CommandList*);
-    void afterRender(EffekseerRenderer::Renderer*, EffekseerRenderer::CommandList*);
+	void beforeRender(EffekseerRenderer::RendererRef, EffekseerRenderer::CommandList*);
+    void afterRender(EffekseerRenderer::RendererRef, EffekseerRenderer::CommandList*);
 
 public:
 	/**
