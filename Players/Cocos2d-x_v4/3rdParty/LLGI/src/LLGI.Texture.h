@@ -13,6 +13,7 @@ protected:
 	TextureType type_ = TextureType::Unknown;
 	TextureFormatType format_ = TextureFormatType::Unknown;
 	int32_t samplingCount_ = 1;
+	int32_t mipmapCount_ = 1;
 
 public:
 	Texture() = default;
@@ -41,6 +42,8 @@ public:
 	virtual TextureFormatType GetFormat() const;
 
 	int32_t GetSamplingCount() const { return samplingCount_; }
+
+	int32_t GetMipmapCount() const { return mipmapCount_; }
 };
 
 } // namespace LLGI

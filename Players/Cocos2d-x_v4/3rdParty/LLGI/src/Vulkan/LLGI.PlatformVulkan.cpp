@@ -277,6 +277,12 @@ void PlatformVulkan::Reset()
 			vkRenderComplete_ = nullptr;
 		}
 
+		if (vkCmdBuffers.size() > 0)
+		{
+			vkDevice_.freeCommandBuffers(vkCmdPool_, vkCmdBuffers);
+			vkCmdBuffers.clear();
+		}
+
 		if (vkCmdPool_)
 		{
 			vkDevice_.destroyCommandPool(vkCmdPool_);

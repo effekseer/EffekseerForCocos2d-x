@@ -29,7 +29,8 @@
 namespace Effekseer
 {
 
-LocalForceFieldTurbulenceParameter::LocalForceFieldTurbulenceParameter(int32_t seed, float scale, float strength, int octave) : Noise(seed)
+LocalForceFieldTurbulenceParameter::LocalForceFieldTurbulenceParameter(int32_t seed, float scale, float strength, int octave)
+	: Noise(seed)
 {
 	Noise.Octave = octave;
 	Noise.Scale = scale;
@@ -804,14 +805,23 @@ void EffectNodeImplemented::CalcCustomData(const Instance* instance, std::array<
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-Effect* EffectNodeImplemented::GetEffect() const { return m_effect; }
+Effect* EffectNodeImplemented::GetEffect() const
+{
+	return m_effect;
+}
 
-int EffectNodeImplemented::GetGeneration() const { return generation_; }
+int EffectNodeImplemented::GetGeneration() const
+{
+	return generation_;
+}
 
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-int EffectNodeImplemented::GetChildrenCount() const { return (int)m_Nodes.size(); }
+int EffectNodeImplemented::GetChildrenCount() const
+{
+	return (int)m_Nodes.size();
+}
 
 //----------------------------------------------------------------------------------
 //
@@ -879,39 +889,55 @@ void EffectNodeImplemented::LoadRendererParameter(unsigned char*& pos, Setting* 
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-void EffectNodeImplemented::BeginRendering(int32_t count, Manager* manager) {}
+void EffectNodeImplemented::BeginRendering(int32_t count, Manager* manager)
+{
+}
 
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-void EffectNodeImplemented::BeginRenderingGroup(InstanceGroup* group, Manager* manager) {}
+void EffectNodeImplemented::BeginRenderingGroup(InstanceGroup* group, Manager* manager)
+{
+}
 
-void EffectNodeImplemented::EndRenderingGroup(InstanceGroup* group, Manager* manager) {}
-
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-void EffectNodeImplemented::Rendering(const Instance& instance, const Instance* next_instance, Manager* manager) {}
-
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-void EffectNodeImplemented::EndRendering(Manager* manager) {}
+void EffectNodeImplemented::EndRenderingGroup(InstanceGroup* group, Manager* manager)
+{
+}
 
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-void EffectNodeImplemented::InitializeRenderedInstanceGroup(InstanceGroup& instanceGroup, Manager* manager) {}
+void EffectNodeImplemented::Rendering(const Instance& instance, const Instance* next_instance, Manager* manager)
+{
+}
 
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-void EffectNodeImplemented::InitializeRenderedInstance(Instance& instance, Manager* manager) {}
+void EffectNodeImplemented::EndRendering(Manager* manager)
+{
+}
 
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-void EffectNodeImplemented::UpdateRenderedInstance(Instance& instance, Manager* manager) {}
+void EffectNodeImplemented::InitializeRenderedInstanceGroup(InstanceGroup& instanceGroup, Manager* manager)
+{
+}
+
+//----------------------------------------------------------------------------------
+//
+//----------------------------------------------------------------------------------
+void EffectNodeImplemented::InitializeRenderedInstance(Instance& instance, Manager* manager)
+{
+}
+
+//----------------------------------------------------------------------------------
+//
+//----------------------------------------------------------------------------------
+void EffectNodeImplemented::UpdateRenderedInstance(Instance& instance, Manager* manager)
+{
+}
 
 //----------------------------------------------------------------------------------
 //
@@ -941,7 +967,7 @@ float EffectNodeImplemented::GetFadeAlpha(const Instance& instance)
 		alpha *= v;
 	}
 
-	return alpha;
+	return Clamp(alpha, 1.0f, 0.0f);
 }
 
 //----------------------------------------------------------------------------------
@@ -999,8 +1025,8 @@ EffectInstanceTerm EffectNodeImplemented::CalculateInstanceTerm(EffectInstanceTe
 		lifeMax = INT_MAX;
 	}
 
-	auto firstBeginMin = CommonValues.GenerationTimeOffset.min;
-	auto firstBeginMax = CommonValues.GenerationTimeOffset.max;
+	auto firstBeginMin = static_cast<int32_t>(CommonValues.GenerationTimeOffset.min);
+	auto firstBeginMax = static_cast<int32_t>(CommonValues.GenerationTimeOffset.max);
 	auto firstEndMin = addWithClip(firstBeginMin, lifeMin);
 	auto firstEndMax = addWithClip(firstBeginMax, lifeMax);
 
@@ -1012,7 +1038,7 @@ EffectInstanceTerm EffectNodeImplemented::CalculateInstanceTerm(EffectInstanceTe
 	}
 	else
 	{
-		lastBeginMin = CommonValues.GenerationTimeOffset.min + (CommonValues.MaxGeneration - 1) * (CommonValues.GenerationTime.min);
+		lastBeginMin = firstBeginMin + static_cast<int32_t>((CommonValues.MaxGeneration - 1) * CommonValues.GenerationTime.min);
 	}
 
 	if (CommonValues.MaxGeneration > INT_MAX / 2)
@@ -1021,7 +1047,7 @@ EffectInstanceTerm EffectNodeImplemented::CalculateInstanceTerm(EffectInstanceTe
 	}
 	else
 	{
-		lastBeginMax = CommonValues.GenerationTimeOffset.max + (CommonValues.MaxGeneration - 1) * (CommonValues.GenerationTime.max);
+		lastBeginMax = firstBeginMax + static_cast<int32_t>((CommonValues.MaxGeneration - 1) * CommonValues.GenerationTime.max);
 	}
 
 	auto lastEndMin = addWithClip(lastBeginMin, lifeMin);

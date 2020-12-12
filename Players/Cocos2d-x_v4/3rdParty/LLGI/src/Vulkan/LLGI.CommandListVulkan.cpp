@@ -60,7 +60,11 @@ CommandListVulkan::CommandListVulkan() {}
 
 CommandListVulkan::~CommandListVulkan()
 {
-	commandBuffers.clear();
+	if (commandBuffers_.size() > 0)
+	{
+		graphics_->GetDevice().freeCommandBuffers(graphics_->GetCommandPool(), commandBuffers_);
+	}
+	commandBuffers_.clear();
 
 	descriptorPools.clear();
 
@@ -82,22 +86,16 @@ CommandListVulkan::~CommandListVulkan()
 	}
 }
 
-bool CommandListVulkan::Initialize(GraphicsVulkan* graphics, int32_t drawingCount, CommandListPreCondition precondition)
+bool CommandListVulkan::Initialize(GraphicsVulkan* graphics, int32_t drawingCount)
 {
 	SafeAddRef(graphics);
 	graphics_ = CreateSharedPtr(graphics);
 
-	if (precondition == CommandListPreCondition::Standalone)
-	{
-		vk::CommandBufferAllocateInfo allocInfo;
-		allocInfo.commandPool = graphics->GetCommandPool();
-		allocInfo.commandBufferCount = graphics->GetSwapBufferCount();
-		commandBuffers = graphics->GetDevice().allocateCommandBuffers(allocInfo);
-	}
-	else
-	{
-		commandBuffers.resize(graphics_->GetSwapBufferCount());
-	}
+	vk::CommandBufferAllocateInfo allocInfo;
+	allocInfo.commandPool = graphics->GetCommandPool();
+	allocInfo.level = vk::CommandBufferLevel::ePrimary;
+	allocInfo.commandBufferCount = graphics->GetSwapBufferCount();
+	commandBuffers_ = graphics->GetDevice().allocateCommandBuffers(allocInfo);
 
 	for (size_t i = 0; i < static_cast<size_t>(graphics_->GetSwapBufferCount()); i++)
 	{
@@ -135,7 +133,7 @@ bool CommandListVulkan::Initialize(GraphicsVulkan* graphics, int32_t drawingCoun
 			samplerInfo.mipmapMode = vk::SamplerMipmapMode::eLinear;
 			samplerInfo.mipLodBias = 0.0f;
 			samplerInfo.minLod = 0.0f;
-			samplerInfo.maxLod = 0.0f;
+			samplerInfo.maxLod = 8.0f;
 
 			samplers_[w][f] = graphics_->GetDevice().createSampler(samplerInfo);
 		}
@@ -145,33 +143,18 @@ bool CommandListVulkan::Initialize(GraphicsVulkan* graphics, int32_t drawingCoun
 	return true;
 }
 
-void CommandListVulkan::BeginExternal(VkCommandBuffer nativeCommandBuffer)
-{
-	currentSwapBufferIndex_++;
-	currentSwapBufferIndex_ %= commandBuffers.size();
-
-	commandBuffers[currentSwapBufferIndex_] = vk::CommandBuffer(nativeCommandBuffer);
-
-	auto& dp = descriptorPools[currentSwapBufferIndex_];
-	dp->Reset();
-
-	CommandList::Begin();
-}
-
-void CommandListVulkan::EndExternal() { commandBuffers[currentSwapBufferIndex_] = vk::CommandBuffer(); }
-
 void CommandListVulkan::Begin()
 {
 	currentSwapBufferIndex_++;
-	currentSwapBufferIndex_ %= commandBuffers.size();
+	currentSwapBufferIndex_ %= commandBuffers_.size();
 
 	graphics_->GetDevice().resetFences(1, &(fences_[currentSwapBufferIndex_]));
 
-	auto& cmdBuffer = commandBuffers[currentSwapBufferIndex_];
+	currentCommandBuffer_ = commandBuffers_[currentSwapBufferIndex_];
 
-	cmdBuffer.reset(vk::CommandBufferResetFlagBits::eReleaseResources);
+	currentCommandBuffer_.reset(vk::CommandBufferResetFlagBits::eReleaseResources);
 	vk::CommandBufferBeginInfo cmdBufInfo;
-	cmdBuffer.begin(cmdBufInfo);
+	currentCommandBuffer_.begin(cmdBufInfo);
 
 	auto& dp = descriptorPools[currentSwapBufferIndex_];
 	dp->Reset();
@@ -181,16 +164,35 @@ void CommandListVulkan::Begin()
 
 void CommandListVulkan::End()
 {
-	auto& cmdBuffer = commandBuffers[currentSwapBufferIndex_];
-	cmdBuffer.end();
+	currentCommandBuffer_.end();
+	CommandList::End();
+}
+
+bool CommandListVulkan::BeginWithPlatform(void* platformContextPtr)
+{
+	auto ptr = reinterpret_cast<PlatformContextVulkan*>(platformContextPtr);
+
+	currentSwapBufferIndex_++;
+	currentSwapBufferIndex_ %= commandBuffers_.size();
+
+	currentCommandBuffer_ = ptr->commandBuffer;
+
+	auto& dp = descriptorPools[currentSwapBufferIndex_];
+	dp->Reset();
+
+	return CommandList::BeginWithPlatform(platformContextPtr);
+}
+
+void CommandListVulkan::EndWithPlatform()
+{
+	currentCommandBuffer_ = vk::CommandBuffer();
+	CommandList::EndWithPlatform();
 }
 
 void CommandListVulkan::SetScissor(int32_t x, int32_t y, int32_t width, int32_t height)
 {
-	auto& cmdBuffer = commandBuffers[currentSwapBufferIndex_];
-
 	vk::Rect2D scissor = vk::Rect2D(vk::Offset2D(x, y), vk::Extent2D(width, height));
-	cmdBuffer.setScissor(0, scissor);
+	currentCommandBuffer_.setScissor(0, scissor);
 }
 
 void CommandListVulkan::Draw(int32_t primitiveCount, int32_t instanceCount)
@@ -215,14 +217,12 @@ void CommandListVulkan::Draw(int32_t primitiveCount, int32_t instanceCount)
 	auto ib = static_cast<IndexBufferVulkan*>(ib_.indexBuffer);
 	auto pip = static_cast<PipelineStateVulkan*>(pip_);
 
-	auto& cmdBuffer = commandBuffers[currentSwapBufferIndex_];
-
 	// assign a vertex buffer
 	if (isVBDirtied)
 	{
 		vk::DeviceSize vertexOffsets = vb_.offset;
 		vk::Buffer vkBuf = vb->GetBuffer();
-		cmdBuffer.bindVertexBuffers(0, 1, &(vkBuf), &vertexOffsets);
+		currentCommandBuffer_.bindVertexBuffers(0, 1, &(vkBuf), &vertexOffsets);
 	}
 
 	// assign an index vuffer
@@ -236,7 +236,7 @@ void CommandListVulkan::Draw(int32_t primitiveCount, int32_t instanceCount)
 		if (ib->GetStride() == 4)
 			indexType = vk::IndexType::eUint32;
 
-		cmdBuffer.bindIndexBuffer(ib->GetBuffer(), indexOffset, indexType);
+		currentCommandBuffer_.bindIndexBuffer(ib->GetBuffer(), indexOffset, indexType);
 	}
 
 	auto& dp = descriptorPools[currentSwapBufferIndex_];
@@ -251,13 +251,13 @@ void CommandListVulkan::Draw(int32_t primitiveCount, int32_t instanceCount)
 	std::vector<vk::DescriptorSet> descriptorSets = graphics_->GetDevice().allocateDescriptorSets(allocateInfo);
 	*/
 
-	std::array<vk::WriteDescriptorSet, 16> writeDescriptorSets;
+	std::array<vk::WriteDescriptorSet, NumTexture * 2 + 2> writeDescriptorSets;
 	int writeDescriptorIndex = 0;
 
-	std::array<vk::DescriptorBufferInfo, 16> descriptorBufferInfos;
+	std::array<vk::DescriptorBufferInfo, NumTexture * 2 + 2> descriptorBufferInfos;
 	int descriptorBufferIndex = 0;
 
-	std::array<vk::DescriptorImageInfo, 16> descriptorImageInfos;
+	std::array<vk::DescriptorImageInfo, NumTexture * 2 + 2> descriptorImageInfos;
 	int descriptorImageIndex = 0;
 
 	std::array<bool, static_cast<int>(ShaderStageType::Max)> stages;
@@ -365,14 +365,14 @@ void CommandListVulkan::Draw(int32_t primitiveCount, int32_t instanceCount)
 
 	if (stages[0] || stages[1])
 	{
-		cmdBuffer.bindDescriptorSets(
+		currentCommandBuffer_.bindDescriptorSets(
 			vk::PipelineBindPoint::eGraphics, pip->GetPipelineLayout(), 0, 2, descriptorSets.data(), 2, offsets.data());
 	}
 
 	// assign a pipeline
 	if (isPipDirtied)
 	{
-		cmdBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pip->GetPipeline());
+		currentCommandBuffer_.bindPipeline(vk::PipelineBindPoint::eGraphics, pip->GetPipeline());
 	}
 
 	// draw
@@ -394,7 +394,7 @@ void CommandListVulkan::Draw(int32_t primitiveCount, int32_t instanceCount)
 		assert(0);
 	}
 
-	cmdBuffer.drawIndexed(indexPerPrim * primitiveCount, instanceCount, 0, 0, 0);
+	currentCommandBuffer_.drawIndexed(indexPerPrim * primitiveCount, instanceCount, 0, 0, 0);
 
 	CommandList::Draw(primitiveCount, instanceCount);
 }
@@ -407,10 +407,20 @@ void CommandListVulkan::CopyTexture(Texture* src, Texture* dst)
 		return;
 	}
 
-	auto& cmdBuffer = commandBuffers[currentSwapBufferIndex_];
-
 	auto srcTex = static_cast<TextureVulkan*>(src);
 	auto dstTex = static_cast<TextureVulkan*>(dst);
+
+	if (srcTex->GetMipmapCount() != dstTex->GetMipmapCount())
+	{
+		Log(LogType::Error, "CopyTexture : MipLevel is different.");
+		return;
+	}
+
+	if (srcTex->GetMipmapCount() != 1)
+	{
+		Log(LogType::Error, "CopyTexture : MipLevel is not supported.");
+		return;
+	}
 
 	std::array<vk::ImageCopy, 1> imageCopy;
 	imageCopy[0].dstOffset = vk::Offset3D(0, 0, 0);
@@ -421,19 +431,60 @@ void CommandListVulkan::CopyTexture(Texture* src, Texture* dst)
 	imageCopy[0].srcSubresource.aspectMask = srcTex->GetSubresourceRange().aspectMask;
 	imageCopy[0].srcSubresource.layerCount = 1;
 	imageCopy[0].srcSubresource.baseArrayLayer = 0;
-
 	imageCopy[0].dstSubresource.aspectMask = dstTex->GetSubresourceRange().aspectMask;
 	imageCopy[0].dstSubresource.layerCount = 1;
 	imageCopy[0].dstSubresource.baseArrayLayer = 0;
 
-	srcTex->ResourceBarrior(cmdBuffer, vk::ImageLayout::eTransferSrcOptimal);
-	dstTex->ResourceBarrior(cmdBuffer, vk::ImageLayout::eTransferDstOptimal);
-	cmdBuffer.copyImage(srcTex->GetImage(), srcTex->GetImageLayout(), dstTex->GetImage(), dstTex->GetImageLayout(), imageCopy);
-	dstTex->ResourceBarrior(cmdBuffer, vk::ImageLayout::eShaderReadOnlyOptimal);
-	srcTex->ResourceBarrior(cmdBuffer, vk::ImageLayout::eShaderReadOnlyOptimal);
+	srcTex->ResourceBarrior(currentCommandBuffer_, vk::ImageLayout::eTransferSrcOptimal);
+	dstTex->ResourceBarrior(currentCommandBuffer_, vk::ImageLayout::eTransferDstOptimal);
+	currentCommandBuffer_.copyImage(
+		srcTex->GetImage(), srcTex->GetImageLayouts()[0], dstTex->GetImage(), dstTex->GetImageLayouts()[0], imageCopy);
+	dstTex->ResourceBarrior(currentCommandBuffer_, vk::ImageLayout::eShaderReadOnlyOptimal);
+	srcTex->ResourceBarrior(currentCommandBuffer_, vk::ImageLayout::eShaderReadOnlyOptimal);
 
 	RegisterReferencedObject(src);
 	RegisterReferencedObject(dst);
+}
+
+void CommandListVulkan::GenerateMipMap(Texture* src)
+{
+	auto srcTex = static_cast<TextureVulkan*>(src);
+
+	int32_t mipWidth = src->GetSizeAs2D().X;
+	int32_t mipHeight = src->GetSizeAs2D().Y;
+
+	for (int32_t i = 1; i < src->GetMipmapCount(); i++)
+	{
+		srcTex->ResourceBarrior(i - 1, currentCommandBuffer_, vk::ImageLayout::eTransferSrcOptimal);
+		srcTex->ResourceBarrior(i, currentCommandBuffer_, vk::ImageLayout::eTransferDstOptimal);
+
+		vk::ImageBlit blit{};
+		blit.srcOffsets[0] = vk::Offset3D(0, 0, 0);
+		blit.srcOffsets[1] = vk::Offset3D(mipWidth, mipHeight, 1);
+		blit.srcSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
+		blit.srcSubresource.mipLevel = i - 1;
+		blit.srcSubresource.baseArrayLayer = 0;
+		blit.srcSubresource.layerCount = 1;
+		blit.dstOffsets[0] = vk::Offset3D(0, 0, 0);
+		blit.dstOffsets[1] = vk::Offset3D(mipWidth > 1 ? mipWidth / 2 : 1, mipHeight > 1 ? mipHeight / 2 : 1, 1);
+		blit.dstSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
+		blit.dstSubresource.mipLevel = i;
+		blit.dstSubresource.baseArrayLayer = 0;
+		blit.dstSubresource.layerCount = 1;
+
+		currentCommandBuffer_.blitImage(srcTex->GetImage(),
+										vk::ImageLayout::eTransferSrcOptimal,
+										srcTex->GetImage(),
+										vk::ImageLayout::eTransferDstOptimal,
+										1,
+										&blit,
+										vk::Filter::eLinear);
+
+		mipWidth = mipWidth > 1 ? mipWidth / 2 : 1;
+		mipHeight = mipHeight > 1 ? mipHeight / 2 : 1;
+	}
+
+	srcTex->ResourceBarrior(currentCommandBuffer_, vk::ImageLayout::eShaderReadOnlyOptimal);
 }
 
 void CommandListVulkan::BeginRenderPass(RenderPass* renderPass)
@@ -455,8 +506,6 @@ void CommandListVulkan::BeginRenderPass(RenderPass* renderPass)
 	depthSubRange.aspectMask = vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil;
 	depthSubRange.levelCount = 1;
 	depthSubRange.layerCount = 1;
-
-	auto& cmdBuffer = commandBuffers[currentSwapBufferIndex_];
 
 	vk::ClearValue clear_values[RenderTargetMax + 1];
 	int clearValueCount = 0;
@@ -481,7 +530,7 @@ void CommandListVulkan::BeginRenderPass(RenderPass* renderPass)
 	if (renderPass_->GetHasDepthTexture())
 	{
 		auto t = static_cast<TextureVulkan*>(renderPass_->GetDepthTexture());
-		t->ResourceBarrior(cmdBuffer, vk::ImageLayout::eDepthStencilAttachmentOptimal);
+		t->ResourceBarrior(currentCommandBuffer_, vk::ImageLayout::eDepthStencilAttachmentOptimal);
 	}
 
 	// begin renderpass
@@ -491,14 +540,14 @@ void CommandListVulkan::BeginRenderPass(RenderPass* renderPass)
 	renderPassBeginInfo.renderArea.extent = vk::Extent2D(renderPass_->GetImageSize().X, renderPass_->GetImageSize().Y);
 	renderPassBeginInfo.clearValueCount = clearValueCount;
 	renderPassBeginInfo.pClearValues = clear_values;
-	cmdBuffer.beginRenderPass(renderPassBeginInfo, vk::SubpassContents::eInline);
+	currentCommandBuffer_.beginRenderPass(renderPassBeginInfo, vk::SubpassContents::eInline);
 
 	vk::Viewport viewport = vk::Viewport(
 		0.0f, 0.0f, static_cast<float>(renderPass_->GetImageSize().X), static_cast<float>(renderPass_->GetImageSize().Y), 0.0f, 1.0f);
-	cmdBuffer.setViewport(0, viewport);
+	currentCommandBuffer_.setViewport(0, viewport);
 
 	vk::Rect2D scissor = vk::Rect2D(vk::Offset2D(), vk::Extent2D(renderPass_->GetImageSize().X, renderPass_->GetImageSize().Y));
-	cmdBuffer.setScissor(0, scissor);
+	currentCommandBuffer_.setScissor(0, scissor);
 
 	auto layoutOffset = 0;
 	for (int32_t i = 0; i < renderPass_->GetRenderTextureCount(); i++)
@@ -530,19 +579,13 @@ void CommandListVulkan::BeginRenderPass(RenderPass* renderPass)
 
 void CommandListVulkan::EndRenderPass()
 {
-	auto& cmdBuffer = commandBuffers[currentSwapBufferIndex_];
-
 	// end renderpass
-	cmdBuffer.endRenderPass();
+	currentCommandBuffer_.endRenderPass();
 
 	CommandList::EndRenderPass();
 }
 
-vk::CommandBuffer CommandListVulkan::GetCommandBuffer() const
-{
-	auto& cmdBuffer = commandBuffers[currentSwapBufferIndex_];
-	return cmdBuffer;
-}
+vk::CommandBuffer CommandListVulkan::GetCommandBuffer() const { return currentCommandBuffer_; }
 
 vk::Fence CommandListVulkan::GetFence() const { return fences_[currentSwapBufferIndex_]; }
 

@@ -1,27 +1,27 @@
 ﻿
-#ifndef	__EFFEKSEER_BASE_PRE_H__
-#define	__EFFEKSEER_BASE_PRE_H__
+#ifndef __EFFEKSEER_BASE_PRE_H__
+#define __EFFEKSEER_BASE_PRE_H__
 
 //----------------------------------------------------------------------------------
 // Include
 //----------------------------------------------------------------------------------
+#include <array>
+#include <atomic>
+#include <cfloat>
+#include <climits>
+#include <memory>
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-#include <atomic>
-#include <stdint.h>
-#include <climits>
 #include <vector>
-#include <cfloat>
-#include <array>
-#include <memory>
 
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
 #ifdef _WIN32
-#define	EFK_STDCALL	__stdcall
+#define EFK_STDCALL __stdcall
 #else
-#define	EFK_STDCALL
+#define EFK_STDCALL
 #endif
 
 //----------------------------------------------------------------------------------
@@ -35,15 +35,15 @@
 #elif defined(_SWITCH)
 #elif defined(_XBOXONE)
 #else
-#include <unistd.h>
 #include <pthread.h>
 #include <sys/time.h>
+#include <unistd.h>
 #endif
 
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-typedef char16_t			EFK_CHAR;
+typedef char16_t EFK_CHAR;
 
 //----------------------------------------------------------------------------------
 //
@@ -82,7 +82,7 @@ class ModelLoader;
 
 class Model;
 
-typedef	int	Handle;
+typedef int Handle;
 
 /**
 	@brief	Memory Allocation function
@@ -115,12 +115,31 @@ typedef int(EFK_STDCALL* RandFunc)(void);
 	@param	handle	[in]	エフェクトのインスタンスのハンドル
 	@param	isRemovingManager	[in]	マネージャーを破棄したときにエフェクトのインスタンスを破棄しているか
 */
-typedef	void ( EFK_STDCALL *EffectInstanceRemovingCallback ) ( Manager* manager, Handle handle, bool isRemovingManager );
+typedef void(EFK_STDCALL* EffectInstanceRemovingCallback)(Manager* manager, Handle handle, bool isRemovingManager);
 
-#define ES_SAFE_ADDREF(val)						if ( (val) != NULL ) { (val)->AddRef(); }
-#define ES_SAFE_RELEASE(val)					if ( (val) != NULL ) { (val)->Release(); (val) = NULL; }
-#define ES_SAFE_DELETE(val)						if ( (val) != NULL ) { delete (val); (val) = NULL; }
-#define ES_SAFE_DELETE_ARRAY(val)				if ( (val) != NULL ) { delete [] (val); (val) = NULL; }
+#define ES_SAFE_ADDREF(val) \
+	if ((val) != NULL)      \
+	{                       \
+		(val)->AddRef();    \
+	}
+#define ES_SAFE_RELEASE(val) \
+	if ((val) != NULL)       \
+	{                        \
+		(val)->Release();    \
+		(val) = NULL;        \
+	}
+#define ES_SAFE_DELETE(val) \
+	if ((val) != NULL)      \
+	{                       \
+		delete (val);       \
+		(val) = NULL;       \
+	}
+#define ES_SAFE_DELETE_ARRAY(val) \
+	if ((val) != NULL)            \
+	{                             \
+		delete[](val);            \
+		(val) = NULL;             \
+	}
 
 #define EFK_ASSERT(x) assert(x)
 
@@ -233,12 +252,12 @@ enum class ZSortType : int32_t
 };
 
 //-----------------------------------------------------------------------------------
-// 
+//
 //-----------------------------------------------------------------------------------
 enum class RenderMode : int32_t
 {
-	Normal,				// 通常描画
-	Wireframe,			// ワイヤーフレーム描画
+	Normal,	   // 通常描画
+	Wireframe, // ワイヤーフレーム描画
 };
 
 /**
@@ -258,10 +277,10 @@ enum class ReloadingThreadType
 /**
 	@brief	最大値取得
 */
-template <typename T,typename U>
-T Max( T t, U u )
+template <typename T, typename U>
+T Max(T t, U u)
 {
-	if( t > (T)u )
+	if (t > (T)u)
 	{
 		return t;
 	}
@@ -271,10 +290,10 @@ T Max( T t, U u )
 /**
 	@brief	最小値取得
 */
-template <typename T,typename U>
-T Min( T t, U u )
+template <typename T, typename U>
+T Min(T t, U u)
 {
-	if( t < (T)u )
+	if (t < (T)u)
 	{
 		return t;
 	}
@@ -284,15 +303,15 @@ T Min( T t, U u )
 /**
 	@brief	範囲内値取得
 */
-template <typename T,typename U,typename V>
-T Clamp( T t, U max_, V min_ )
+template <typename T, typename U, typename V>
+T Clamp(T t, U max_, V min_)
 {
-	if( t > (T)max_ )
+	if (t > (T)max_)
 	{
 		t = (T)max_;
 	}
 
-	if( t < (T)min_ )
+	if (t < (T)min_)
 	{
 		t = (T)min_;
 	}
@@ -310,17 +329,18 @@ T Clamp( T t, U max_, V min_ )
 	@param	src			[in]	入力配列の先頭ポインタ
 	@return	文字数
 */
-inline int32_t ConvertUtf16ToUtf8( int8_t* dst, int32_t dst_size, const int16_t* src )
+inline int32_t ConvertUtf16ToUtf8(int8_t* dst, int32_t dst_size, const int16_t* src)
 {
 	int32_t cnt = 0;
 	const int16_t* wp = src;
 	int8_t* cp = dst;
 
-	if (dst_size == 0) return 0;
-	
+	if (dst_size == 0)
+		return 0;
+
 	dst_size -= 3;
 
-	for (cnt = 0; cnt < dst_size; )
+	for (cnt = 0; cnt < dst_size;)
 	{
 		int16_t wc = *wp++;
 		if (wc == 0)
@@ -331,15 +351,18 @@ inline int32_t ConvertUtf16ToUtf8( int8_t* dst, int32_t dst_size, const int16_t*
 		{
 			*cp++ = wc & 0x7f;
 			cnt += 1;
-		} else if ((wc & ~0x7ff) == 0)
+		}
+		else if ((wc & ~0x7ff) == 0)
 		{
-			*cp++ = ((wc >>  6) & 0x1f) | 0xc0;
-			*cp++ = ((wc)       & 0x3f) | 0x80;
+			*cp++ = ((wc >> 6) & 0x1f) | 0xc0;
+			*cp++ = ((wc)&0x3f) | 0x80;
 			cnt += 2;
-		} else {
-			*cp++ = ((wc >> 12) &  0xf) | 0xe0;
-			*cp++ = ((wc >>  6) & 0x3f) | 0x80;
-			*cp++ = ((wc)       & 0x3f) | 0x80;
+		}
+		else
+		{
+			*cp++ = ((wc >> 12) & 0xf) | 0xe0;
+			*cp++ = ((wc >> 6) & 0x3f) | 0x80;
+			*cp++ = ((wc)&0x3f) | 0x80;
 			cnt += 3;
 		}
 	}
@@ -407,7 +430,6 @@ inline int32_t ConvertUtf8ToUtf16(char16_t* dst, int32_t dst_size, const char* s
 	return i;
 }
 
-
 /**
 	@brief	文字コードを変換する。(UTF8 -> UTF16)
 	@param	dst	[out]	出力配列の先頭ポインタ
@@ -415,19 +437,20 @@ inline int32_t ConvertUtf8ToUtf16(char16_t* dst, int32_t dst_size, const char* s
 	@param	src			[in]	入力配列の先頭ポインタ
 	@return	文字数
 */
-inline int32_t ConvertUtf8ToUtf16( int16_t* dst, int32_t dst_size, const int8_t* src )
+inline int32_t ConvertUtf8ToUtf16(int16_t* dst, int32_t dst_size, const int8_t* src)
 {
 	int32_t i, code;
 	int8_t c0, c1, c2;
 
-	if (dst_size == 0) return 0;
-	
+	if (dst_size == 0)
+		return 0;
+
 	dst_size -= 1;
 
 	for (i = 0; i < dst_size; i++)
 	{
 		int16_t wc;
-		
+
 		c0 = *src++;
 		if (c0 == '\0')
 		{
@@ -439,20 +462,20 @@ inline int32_t ConvertUtf8ToUtf16( int16_t* dst, int32_t dst_size, const int8_t*
 		{
 			// 8bit文字
 			wc = c0;
-		} 
+		}
 		else if (code >= 12 && code <= 13)
 		{
 			// 16bit文字
 			c1 = *src++;
 			wc = ((c0 & 0x1F) << 6) | (c1 & 0x3F);
-		} 
+		}
 		else if (code == 14)
 		{
 			// 24bit文字
 			c1 = *src++;
 			c2 = *src++;
 			wc = ((c0 & 0x0F) << 12) | ((c1 & 0x3F) << 6) | (c2 & 0x3F);
-		} 
+		}
 		else
 		{
 			continue;
@@ -462,7 +485,6 @@ inline int32_t ConvertUtf8ToUtf16( int16_t* dst, int32_t dst_size, const int8_t*
 	dst[i] = 0;
 	return i;
 }
-
 
 //----------------------------------------------------------------------------------
 //
@@ -499,7 +521,7 @@ template <typename T>
 struct ReferenceDeleter
 {
 	void operator()(T* ptr) const
-	{ 
+	{
 		if (ptr != nullptr)
 		{
 			ptr->Release();
@@ -507,18 +529,18 @@ struct ReferenceDeleter
 	}
 };
 
-template<typename T> 
+template <typename T>
 inline std::unique_ptr<T, ReferenceDeleter<T>> CreateUniqueReference(T* ptr, bool addRef = false)
-{ 
+{
 	if (ptr == nullptr)
-		return std::unique_ptr<T, ReferenceDeleter<T>>(nullptr); 
+		return std::unique_ptr<T, ReferenceDeleter<T>>(nullptr);
 
 	if (addRef)
 	{
 		ptr->AddRef();
 	}
 
-	return std::unique_ptr<T, ReferenceDeleter<T>>(ptr); 
+	return std::unique_ptr<T, ReferenceDeleter<T>>(ptr);
 }
 
 //----------------------------------------------------------------------------------
@@ -540,7 +562,8 @@ public:
 	}
 
 	virtual ~ReferenceObject()
-	{}
+	{
+	}
 
 	virtual int AddRef()
 	{
@@ -599,9 +622,9 @@ struct TextureData
 {
 	int32_t Width;
 	int32_t Height;
-	TextureFormatType	TextureFormat;
-	void*	UserPtr;
-	int64_t	UserID;
+	TextureFormatType TextureFormat;
+	void* UserPtr;
+	int64_t UserID;
 
 	//! for OpenGL, it is ignored in other apis
 	bool HasMipmap = true;
@@ -724,11 +747,11 @@ struct NodeRendererBasicParameter
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-}
+} // namespace Effekseer
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-#endif	// __EFFEKSEER_BASE_PRE_H__
+#endif // __EFFEKSEER_BASE_PRE_H__
 
 #ifndef __EFFEKSEER_BASE_H__
 #define __EFFEKSEER_BASE_H__
@@ -850,7 +873,8 @@ enum eEffectNodeType
 class StringHelper
 {
 public:
-	template <typename T> static std::vector<std::basic_string<T>> Split(const std::basic_string<T>& s, T delim)
+	template <typename T>
+	static std::vector<std::basic_string<T>> Split(const std::basic_string<T>& s, T delim)
 	{
 		std::vector<std::basic_string<T>> elems;
 
@@ -891,7 +915,8 @@ public:
 		return target;
 	}
 
-	template <typename T, typename U> static std::basic_string<T> To(const U* str)
+	template <typename T, typename U>
+	static std::basic_string<T> To(const U* str)
 	{
 		std::basic_string<T> ret;
 		size_t len = 0;
@@ -914,7 +939,8 @@ public:
 class PathHelper
 {
 private:
-	template <typename T> static std::basic_string<T> Normalize(const std::vector<std::basic_string<T>>& paths)
+	template <typename T>
+	static std::basic_string<T> Normalize(const std::vector<std::basic_string<T>>& paths)
 	{
 		std::vector<std::basic_string<T>> elems;
 
@@ -953,7 +979,8 @@ private:
 	}
 
 public:
-	template <typename T> static std::basic_string<T> Normalize(const std::basic_string<T>& path)
+	template <typename T>
+	static std::basic_string<T> Normalize(const std::basic_string<T>& path)
 	{
 		if (path.size() == 0)
 			return path;
@@ -964,7 +991,8 @@ public:
 		return Normalize(paths);
 	}
 
-	template <typename T> static std::basic_string<T> Relative(const std::basic_string<T>& targetPath, const std::basic_string<T>& basePath)
+	template <typename T>
+	static std::basic_string<T> Relative(const std::basic_string<T>& targetPath, const std::basic_string<T>& basePath)
 	{
 		if (basePath.size() == 0 || targetPath.size() == 0)
 		{
@@ -1014,7 +1042,8 @@ public:
 		return ret;
 	}
 
-	template <typename T> static std::basic_string<T> Absolute(const std::basic_string<T>& targetPath, const std::basic_string<T>& basePath)
+	template <typename T>
+	static std::basic_string<T> Absolute(const std::basic_string<T>& targetPath, const std::basic_string<T>& basePath)
 	{
 		if (targetPath == StringHelper::To<T>(""))
 			return StringHelper::To<T>("");
@@ -1169,40 +1198,78 @@ FreeFunc GetFreeFunc();
 */
 void SetFreeFunc(FreeFunc func);
 
-template <class T> struct CustomAllocator
+template <class T>
+struct CustomAllocator
 {
 	using value_type = T;
 
-	CustomAllocator() {}
+	CustomAllocator()
+	{
+	}
 
-	template <class U> CustomAllocator(const CustomAllocator<U>&) {}
+	template <class U>
+	CustomAllocator(const CustomAllocator<U>&)
+	{
+	}
 
-	T* allocate(std::size_t n) { return reinterpret_cast<T*>(GetMallocFunc()(sizeof(T) * static_cast<uint32_t>(n))); }
-	void deallocate(T* p, std::size_t n) { GetFreeFunc()(p, sizeof(T) * static_cast<uint32_t>(n)); }
+	T* allocate(std::size_t n)
+	{
+		return reinterpret_cast<T*>(GetMallocFunc()(sizeof(T) * static_cast<uint32_t>(n)));
+	}
+	void deallocate(T* p, std::size_t n)
+	{
+		GetFreeFunc()(p, sizeof(T) * static_cast<uint32_t>(n));
+	}
 };
 
-template <class T> struct CustomAlignedAllocator
+template <class T>
+struct CustomAlignedAllocator
 {
 	using value_type = T;
 
-	CustomAlignedAllocator() {}
+	CustomAlignedAllocator()
+	{
+	}
 
-	template <class U> CustomAlignedAllocator(const CustomAlignedAllocator<U>&) {}
+	template <class U>
+	CustomAlignedAllocator(const CustomAlignedAllocator<U>&)
+	{
+	}
 
-	T* allocate(std::size_t n) { return reinterpret_cast<T*>(GetAlignedMallocFunc()(sizeof(T) * static_cast<uint32_t>(n), 16)); }
-	void deallocate(T* p, std::size_t n) { GetAlignedFreeFunc()(p, sizeof(T) * static_cast<uint32_t>(n)); }
+	T* allocate(std::size_t n)
+	{
+		return reinterpret_cast<T*>(GetAlignedMallocFunc()(sizeof(T) * static_cast<uint32_t>(n), 16));
+	}
+	void deallocate(T* p, std::size_t n)
+	{
+		GetAlignedFreeFunc()(p, sizeof(T) * static_cast<uint32_t>(n));
+	}
 };
 
-template <class T, class U> bool operator==(const CustomAllocator<T>&, const CustomAllocator<U>&) { return true; }
+template <class T, class U>
+bool operator==(const CustomAllocator<T>&, const CustomAllocator<U>&)
+{
+	return true;
+}
 
-template <class T, class U> bool operator!=(const CustomAllocator<T>&, const CustomAllocator<U>&) { return false; }
+template <class T, class U>
+bool operator!=(const CustomAllocator<T>&, const CustomAllocator<U>&)
+{
+	return false;
+}
 
-template <class T> using CustomVector = std::vector<T, CustomAllocator<T>>;
-template <class T> using CustomAlignedVector = std::vector<T, CustomAlignedAllocator<T>>;
-template <class T> using CustomList = std::list<T, CustomAllocator<T>>;
-template <class T> using CustomSet = std::set<T, std::less<T>, CustomAllocator<T>>;
-template <class T, class U> using CustomMap = std::map<T, U, std::less<T>, CustomAllocator<std::pair<const T, U>>>;
-template <class T, class U> using CustomAlignedMap = std::map<T, U, std::less<T>, CustomAlignedAllocator<std::pair<const T, U>>>;
+template <class T>
+using CustomVector = std::vector<T, CustomAllocator<T>>;
+template <class T>
+using CustomAlignedVector = std::vector<T, CustomAlignedAllocator<T>>;
+template <class T>
+using CustomList = std::list<T, CustomAllocator<T>>;
+template <class T>
+using CustomSet = std::set<T, std::less<T>, CustomAllocator<T>>;
+template <class T, class U>
+using CustomMap = std::map<T, U, std::less<T>, CustomAllocator<std::pair<const T, U>>>;
+template <class T, class U>
+using CustomAlignedMap = std::map<T, U, std::less<T>, CustomAlignedAllocator<std::pair<const T, U>>>;
 
 } // namespace Effekseer
 
@@ -1225,7 +1292,8 @@ enum class BinaryReaderStatus
 /**
 	@brief	utility for reading binary data
 */
-template <bool IsValidationEnabled> class BinaryReader
+template <bool IsValidationEnabled>
+class BinaryReader
 {
 private:
 	uint8_t* data_ = nullptr;
@@ -1240,7 +1308,8 @@ public:
 		size_ = size;
 	}
 
-	template <typename T> bool Read(T& value)
+	template <typename T>
+	bool Read(T& value)
 	{
 		if (IsValidationEnabled)
 		{
@@ -1260,7 +1329,8 @@ public:
 	/**
 @brief	read with validation
 */
-	template <typename T> bool Read(T& value, const T& min_, const T& max_)
+	template <typename T>
+	bool Read(T& value, const T& min_, const T& max_)
 	{
 		if (IsValidationEnabled)
 		{
@@ -1289,7 +1359,8 @@ public:
 	/**
 		@brief	read with validation
 	*/
-	template <typename T, typename U> bool Read(T& value, const U& min_, const U& max_)
+	template <typename T, typename U>
+	bool Read(T& value, const U& min_, const U& max_)
 	{
 		if (IsValidationEnabled)
 		{
@@ -1315,7 +1386,8 @@ public:
 		return true;
 	}
 
-	template <typename T> bool Read(T* value, int32_t count)
+	template <typename T>
+	bool Read(T* value, int32_t count)
 	{
 		if (IsValidationEnabled)
 		{
@@ -1331,7 +1403,8 @@ public:
 		return true;
 	}
 
-	template <typename T, typename _Alloc> bool Read(std::vector<T, _Alloc>& value, int32_t count)
+	template <typename T, typename _Alloc>
+	bool Read(std::vector<T, _Alloc>& value, int32_t count)
 	{
 		if (IsValidationEnabled)
 		{
@@ -1344,8 +1417,12 @@ public:
 
 		value.resize(count);
 
-		memcpy(value.data(), data_ + offset, sizeof(T) * count);
-		offset += sizeof(T) * count;
+		if (count > 0)
+		{
+			memcpy(value.data(), data_ + offset, sizeof(T) * count);
+			offset += sizeof(T) * count;
+		}
+
 		return true;
 	}
 
@@ -1357,9 +1434,15 @@ public:
 		return offset == size_ ? BinaryReaderStatus::Complete : BinaryReaderStatus::Reading;
 	}
 
-	void AddOffset(size_t length) { offset += length; }
+	void AddOffset(size_t length)
+	{
+		offset += length;
+	}
 
-	size_t GetOffset() const { return offset; }
+	size_t GetOffset() const
+	{
+		return offset;
+	}
 };
 
 } // namespace Effekseer
@@ -1370,12 +1453,12 @@ public:
 #ifndef __EFFEKSEER_MATH_H__
 #define __EFFEKSEER_MATH_H__
 
-#include <cstdint>
 #include <cmath>
+#include <cstdint>
 
 namespace Effekseer
 {
-	
+
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
@@ -1391,7 +1474,7 @@ inline float NormalizeAngle(float angle)
 		int32_t i;
 	} ofs, anglebits = {angle};
 
-	ofs.i = (anglebits.i & 0x80000000) | 0x3F000000; 
+	ofs.i = (anglebits.i & 0x80000000) | 0x3F000000;
 	return angle - ((int)(angle * 0.159154943f + ofs.f) * 6.283185307f);
 }
 
@@ -1410,12 +1493,12 @@ inline void SinCos(float x, float& s, float& c)
 	c = 1.0f - x2 / 2.0f + x4 / 24.0f - x6 / 720.0f + x8 / 40320.0f - x10 / 3628800.0f;
 }
 
-}
+} // namespace Effekseer
 
 #endif // __EFFEKSEER_MATH_H__
 
-#ifndef	__EFFEKSEER_VECTOR2D_H__
-#define	__EFFEKSEER_VECTOR2D_H__
+#ifndef __EFFEKSEER_VECTOR2D_H__
+#define __EFFEKSEER_VECTOR2D_H__
 
 //----------------------------------------------------------------------------------
 // Include
@@ -1424,7 +1507,8 @@ inline void SinCos(float x, float& s, float& c)
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-namespace Effekseer { 
+namespace Effekseer
+{
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
@@ -1437,12 +1521,12 @@ public:
 	/**
 		@brief	X
 	*/
-	float	X;
+	float X;
 
 	/**
 		@brief	Y
 	*/
-	float	Y;
+	float Y;
 
 	/**
 		@brief	コンストラクタ
@@ -1452,23 +1536,23 @@ public:
 	/**
 		@brief	コンストラクタ
 	*/
-	Vector2D( float x, float y );
+	Vector2D(float x, float y);
 
-	Vector2D& operator+=( const Vector2D& value );
+	Vector2D& operator+=(const Vector2D& value);
 };
 
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
- } 
+} // namespace Effekseer
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-#endif	// __EFFEKSEER_VECTOR3D_H__
+#endif // __EFFEKSEER_VECTOR3D_H__
 
 
-#ifndef	__EFFEKSEER_VECTOR3D_H__
-#define	__EFFEKSEER_VECTOR3D_H__
+#ifndef __EFFEKSEER_VECTOR3D_H__
+#define __EFFEKSEER_VECTOR3D_H__
 
 //----------------------------------------------------------------------------------
 // Include
@@ -1477,7 +1561,8 @@ public:
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-namespace Effekseer { 
+namespace Effekseer
+{
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
@@ -1490,17 +1575,17 @@ public:
 	/**
 		@brief	X
 	*/
-	float	X;
+	float X;
 
 	/**
 		@brief	Y
 	*/
-	float	Y;
+	float Y;
 
 	/**
 		@brief	Z
 	*/
-	float	Z;
+	float Z;
 
 	/**
 		@brief	コンストラクタ
@@ -1510,61 +1595,61 @@ public:
 	/**
 		@brief	コンストラクタ
 	*/
-	Vector3D( float x, float y, float z );
+	Vector3D(float x, float y, float z);
 
 	Vector3D operator-();
 
-	Vector3D operator + ( const Vector3D& o ) const;
+	Vector3D operator+(const Vector3D& o) const;
 
-	Vector3D operator - ( const Vector3D& o ) const;
+	Vector3D operator-(const Vector3D& o) const;
 
-	Vector3D operator * ( const float& o ) const;
+	Vector3D operator*(const float& o) const;
 
-	Vector3D operator / ( const float& o ) const;
+	Vector3D operator/(const float& o) const;
 
-	Vector3D operator * (const Vector3D& o) const;
+	Vector3D operator*(const Vector3D& o) const;
 
-	Vector3D operator / (const Vector3D& o) const;
+	Vector3D operator/(const Vector3D& o) const;
 
-	Vector3D& operator += ( const Vector3D& o );
+	Vector3D& operator+=(const Vector3D& o);
 
-	Vector3D& operator -= ( const Vector3D& o );
+	Vector3D& operator-=(const Vector3D& o);
 
-	Vector3D& operator *= ( const float& o );
+	Vector3D& operator*=(const float& o);
 
-	Vector3D& operator /= ( const float& o );
+	Vector3D& operator/=(const float& o);
 
-	bool operator == (const Vector3D& o);
+	bool operator==(const Vector3D& o);
 
 	/**
 		@brief	加算
 	*/
-	static void Add( Vector3D* pOut, const Vector3D* pIn1, const Vector3D* pIn2 );
+	static void Add(Vector3D* pOut, const Vector3D* pIn1, const Vector3D* pIn2);
 
 	/**
 		@brief	減算
 	*/
-	static Vector3D& Sub( Vector3D& o, const Vector3D& in1, const Vector3D& in2 );
+	static Vector3D& Sub(Vector3D& o, const Vector3D& in1, const Vector3D& in2);
 
 	/**
 		@brief	長さ
 	*/
-	static float Length( const Vector3D& in );
+	static float Length(const Vector3D& in);
 
 	/**
 		@brief	長さの二乗
 	*/
-	static float LengthSq( const Vector3D& in );
+	static float LengthSq(const Vector3D& in);
 
 	/**
 		@brief	内積
 	*/
-	static float Dot( const Vector3D& in1, const Vector3D& in2 );
+	static float Dot(const Vector3D& in1, const Vector3D& in2);
 
 	/**
 		@brief	単位ベクトル
 	*/
-	static void Normal( Vector3D& o, const Vector3D& in );
+	static void Normal(Vector3D& o, const Vector3D& in);
 
 	/**
 		@brief	外積
@@ -1572,11 +1657,11 @@ public:
 		右手系の場合、右手の親指がin1、人差し指がin2としたとき、中指の方向を返す。<BR>
 		左手系の場合、左手の親指がin1、人差し指がin2としたとき、中指の方向を返す。<BR>
 	*/
-	static Vector3D& Cross( Vector3D& o, const Vector3D& in1, const Vector3D& in2 );
+	static Vector3D& Cross(Vector3D& o, const Vector3D& in1, const Vector3D& in2);
 
-	static Vector3D& Transform( Vector3D& o, const Vector3D& in, const Matrix43& mat );
+	static Vector3D& Transform(Vector3D& o, const Vector3D& in, const Matrix43& mat);
 
-	static Vector3D& Transform( Vector3D& o, const Vector3D& in, const Matrix44& mat );
+	static Vector3D& Transform(Vector3D& o, const Vector3D& in, const Matrix44& mat);
 
 	static Vector3D& TransformWithW(Vector3D& o, const Vector3D& in, const Matrix44& mat);
 };
@@ -1584,15 +1669,15 @@ public:
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
- } 
+} // namespace Effekseer
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-#endif	// __EFFEKSEER_VECTOR3D_H__
+#endif // __EFFEKSEER_VECTOR3D_H__
 
 
-#ifndef	__EFFEKSEER_COLOR_H__
-#define	__EFFEKSEER_COLOR_H__
+#ifndef __EFFEKSEER_COLOR_H__
+#define __EFFEKSEER_COLOR_H__
 
 //----------------------------------------------------------------------------------
 // Include
@@ -1616,28 +1701,28 @@ enum ColorMode
 /**
 	@brief	色
 */
-#pragma pack(push,1)
+#pragma pack(push, 1)
 struct Color
 {
 	/**
 		@brief	赤
 	*/
-	uint8_t		R;
+	uint8_t R;
 
 	/**
 		@brief	緑
 	*/
-	uint8_t		G;
+	uint8_t G;
 
 	/**
 		@brief	青
 	*/
-	uint8_t		B;
-	
+	uint8_t B;
+
 	/**
 		@brief	透明度
 	*/
-	uint8_t		A;
+	uint8_t A;
 
 	/**
 		@brief	コンストラクタ
@@ -1647,32 +1732,32 @@ struct Color
 	/**
 		@brief	コンストラクタ
 	*/
-	Color( uint8_t r, uint8_t g, uint8_t b, uint8_t a = 255 );
+	Color(uint8_t r, uint8_t g, uint8_t b, uint8_t a = 255);
 
 	/**
 		@brief	乗算
 	*/
-	static Color Mul( Color in1, Color in2 );
-	static Color Mul( Color in1, float in2 );
-	
+	static Color Mul(Color in1, Color in2);
+	static Color Mul(Color in1, float in2);
+
 	/**
 		@brief	線形補間
 	*/
-	static Color Lerp( const Color in1, const Color in2, float t );
+	static Color Lerp(const Color in1, const Color in2, float t);
 };
 #pragma pack(pop)
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-}
+} // namespace Effekseer
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-#endif	// __EFFEKSEER_COLOR_H__
+#endif // __EFFEKSEER_COLOR_H__
 
 
-#ifndef	__EFFEKSEER_RECTF_H__
-#define	__EFFEKSEER_RECTF_H__
+#ifndef __EFFEKSEER_RECTF_H__
+#define __EFFEKSEER_RECTF_H__
 
 //----------------------------------------------------------------------------------
 // Include
@@ -1681,7 +1766,8 @@ struct Color
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-namespace Effekseer { 
+namespace Effekseer
+{
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
@@ -1691,19 +1777,18 @@ namespace Effekseer {
 struct RectF
 {
 private:
-
 public:
-	float	X;
+	float X;
 
-	float	Y;
+	float Y;
 
-	float	Width;
+	float Width;
 
-	float	Height;
+	float Height;
 
 	RectF();
 
-	RectF( float x, float y, float width, float height );
+	RectF(float x, float y, float width, float height);
 
 	Vector2D Position() const;
 
@@ -1713,15 +1798,15 @@ public:
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
- } 
+} // namespace Effekseer
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-#endif	// __EFFEKSEER_RECTF_H__
+#endif // __EFFEKSEER_RECTF_H__
 
 
-#ifndef	__EFFEKSEER_MATRIX43_H__
-#define	__EFFEKSEER_MATRIX43_H__
+#ifndef __EFFEKSEER_MATRIX43_H__
+#define __EFFEKSEER_MATRIX43_H__
 
 //----------------------------------------------------------------------------------
 // Include
@@ -1730,7 +1815,8 @@ public:
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-namespace Effekseer { 
+namespace Effekseer
+{
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
@@ -1750,13 +1836,12 @@ struct Matrix44;
 struct Matrix43
 {
 private:
-
 public:
 	/**
 		@brief	行列の値
 	*/
-	float	Value[4][3];
-	
+	float Value[4][3];
+
 	/**
 		@brief	単位行列化を行う。
 	*/
@@ -1768,48 +1853,48 @@ public:
 		@param	y	[in]	Y方向拡大率
 		@param	z	[in]	Z方向拡大率
 	*/
-	void Scaling( float x, float y, float z );
+	void Scaling(float x, float y, float z);
 
 	/**
 		@brief	反時計周り方向のX軸回転行列化を行う。
 		@param	angle	[in]	角度(ラジアン)
 	*/
-	void RotationX( float angle );
+	void RotationX(float angle);
 
 	/**
 		@brief	反時計周り方向のY軸回転行列化を行う。
 		@param	angle	[in]	角度(ラジアン)
 	*/
-	void RotationY( float angle );
+	void RotationY(float angle);
 
 	/**
 		@brief	反時計周り方向のZ軸回転行列化を行う。
 		@param	angle	[in]	角度(ラジアン)
 	*/
-	void RotationZ( float angle );
-	
+	void RotationZ(float angle);
+
 	/**
 		@brief	反時計周り方向のXYZ軸回転行列化を行う。
 		@param	rx	[in]	角度(ラジアン)
 		@param	ry	[in]	角度(ラジアン)
 		@param	rz	[in]	角度(ラジアン)
 	*/
-	void RotationXYZ( float rx, float ry, float rz );
-	
+	void RotationXYZ(float rx, float ry, float rz);
+
 	/**
 		@brief	反時計周り方向のZXY軸回転行列化を行う。
 		@param	rz	[in]	角度(ラジアン)
 		@param	rx	[in]	角度(ラジアン)
 		@param	ry	[in]	角度(ラジアン)
 	*/
-	void RotationZXY( float rz, float rx, float ry );
+	void RotationZXY(float rz, float rx, float ry);
 
 	/**
 		@brief	任意軸に対する反時計周り方向回転行列化を行う。
 		@param	axis	[in]	回転軸
 		@param	angle	[in]	角度(ラジアン)
 	*/
-	void RotationAxis( const Vector3D& axis, float angle );
+	void RotationAxis(const Vector3D& axis, float angle);
 
 	/**
 		@brief	任意軸に対する反時計周り方向回転行列化を行う。
@@ -1817,7 +1902,7 @@ public:
 		@param	s	[in]	サイン
 		@param	c	[in]	コサイン
 	*/
-	void RotationAxis( const Vector3D& axis, float s, float c );
+	void RotationAxis(const Vector3D& axis, float s, float c);
 
 	/**
 		@brief	移動行列化を行う。
@@ -1825,7 +1910,7 @@ public:
 		@param	y	[in]	Y方向移動
 		@param	z	[in]	Z方向移動
 	*/
-	void Translation( float x, float y, float z );
+	void Translation(float x, float y, float z);
 
 	/**
 		@brief	行列を、拡大、回転、移動の行列とベクトルに分解する。
@@ -1833,33 +1918,33 @@ public:
 		@param	r	[out]	回転行列
 		@param	t	[out]	位置
 	*/
-	void GetSRT( Vector3D& s, Matrix43& r, Vector3D& t ) const; 
-	
+	void GetSRT(Vector3D& s, Matrix43& r, Vector3D& t) const;
+
 	/**
 		@brief	行列から拡大ベクトルを取得する。
 		@param	s	[out]	拡大ベクトル
 	*/
-	void GetScale( Vector3D& s ) const;
-	
+	void GetScale(Vector3D& s) const;
+
 	/**
 		@brief	行列から回転行列を取得する。
 		@param	s	[out]	回転行列
 	*/
-	void GetRotation( Matrix43& r ) const;
+	void GetRotation(Matrix43& r) const;
 
 	/**
 		@brief	行列から移動ベクトルを取得する。
 		@param	t	[out]	移動ベクトル
 	*/
-	void GetTranslation( Vector3D& t ) const;
-	
+	void GetTranslation(Vector3D& t) const;
+
 	/**
 		@brief	行列の拡大、回転、移動を設定する。
 		@param	s	[in]	拡大行列
 		@param	r	[in]	回転行列
 		@param	t	[in]	位置
 	*/
-	void SetSRT( const Vector3D& s, const Matrix43& r, const Vector3D& t );
+	void SetSRT(const Vector3D& s, const Matrix43& r, const Vector3D& t);
 
 	/**
 		@brief	convert into matrix44
@@ -1877,21 +1962,21 @@ public:
 		@param	in1	[in]	乗算の左側
 		@param	in2	[in]	乗算の右側
 	*/
-	static void Multiple( Matrix43& out, const Matrix43& in1, const Matrix43& in2 );
+	static void Multiple(Matrix43& out, const Matrix43& in1, const Matrix43& in2);
 };
 
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
- } 
+} // namespace Effekseer
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-#endif	// __EFFEKSEER_MATRIX43_H__
+#endif // __EFFEKSEER_MATRIX43_H__
 
 
-#ifndef	__EFFEKSEER_MATRIX44_H__
-#define	__EFFEKSEER_MATRIX44_H__
+#ifndef __EFFEKSEER_MATRIX44_H__
+#define __EFFEKSEER_MATRIX44_H__
 
 //----------------------------------------------------------------------------------
 // Include
@@ -1900,7 +1985,8 @@ public:
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-namespace Effekseer { 
+namespace Effekseer
+{
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
@@ -1916,13 +2002,11 @@ namespace Effekseer {
 	[2,0][2,1][2,2][2,3]
 	[3,0][3,1][3,2][3,3]
 */
-#pragma pack(push,1)
+#pragma pack(push, 1)
 struct Matrix44
 {
 private:
-
 public:
-
 	/**
 		@brief	コンストラクタ
 	*/
@@ -1931,7 +2015,7 @@ public:
 	/**
 		@brief	行列の値
 	*/
-	float	Values[4][4];
+	float Values[4][4];
 
 	/**
 		@brief	単位行列化
@@ -1946,102 +2030,102 @@ public:
 	/**
 		@brief	カメラ行列化(右手系)
 	*/
-	Matrix44& LookAtRH( const Vector3D& eye, const Vector3D& at, const Vector3D& up );
+	Matrix44& LookAtRH(const Vector3D& eye, const Vector3D& at, const Vector3D& up);
 
 	/**
 		@brief	カメラ行列化(左手系)
 	*/
-	Matrix44& LookAtLH( const Vector3D& eye, const Vector3D& at, const Vector3D& up );
+	Matrix44& LookAtLH(const Vector3D& eye, const Vector3D& at, const Vector3D& up);
 
 	/**
 		@brief	射影行列化(右手系)
 	*/
-	Matrix44& PerspectiveFovRH( float ovY, float aspect, float zn, float zf );
+	Matrix44& PerspectiveFovRH(float ovY, float aspect, float zn, float zf);
 
 	/**
 		@brief	OpenGL用射影行列化(右手系)
 	*/
-	Matrix44& PerspectiveFovRH_OpenGL( float ovY, float aspect, float zn, float zf );
+	Matrix44& PerspectiveFovRH_OpenGL(float ovY, float aspect, float zn, float zf);
 
 	/**
 		@brief	射影行列化(左手系)
 	*/
-	Matrix44& PerspectiveFovLH( float ovY, float aspect, float zn, float zf );
-	
+	Matrix44& PerspectiveFovLH(float ovY, float aspect, float zn, float zf);
+
 	/**
 	 @brief	OpenGL用射影行列化(左手系)
 	 */
-	Matrix44& PerspectiveFovLH_OpenGL( float ovY, float aspect, float zn, float zf );
-	
+	Matrix44& PerspectiveFovLH_OpenGL(float ovY, float aspect, float zn, float zf);
+
 	/**
 		@brief	正射影行列化(右手系)
 	*/
-	Matrix44& OrthographicRH( float width, float height, float zn, float zf );
+	Matrix44& OrthographicRH(float width, float height, float zn, float zf);
 
 	/**
 		@brief	正射影行列化(左手系)
 	*/
-	Matrix44& OrthographicLH( float width, float height, float zn, float zf );
+	Matrix44& OrthographicLH(float width, float height, float zn, float zf);
 
 	/**
 		@brief	拡大行列化
 	*/
-	void Scaling( float x, float y, float z );
+	void Scaling(float x, float y, float z);
 
 	/**
 		@brief	X軸回転行列(右手)
 	*/
-	void RotationX( float angle );
+	void RotationX(float angle);
 
 	/**
 		@brief	Y軸回転行列(右手)
 	*/
-	void RotationY( float angle );
+	void RotationY(float angle);
 
 	/**
 		@brief	Z軸回転行列(右手)
 	*/
-	void RotationZ( float angle );
+	void RotationZ(float angle);
 
 	/**
 		@brief	移動行列
 	*/
-	void Translation( float x, float y, float z );
+	void Translation(float x, float y, float z);
 
 	/**
 		@brief	任意軸反時計回転行列
 	*/
-	void RotationAxis( const Vector3D& axis, float angle );
+	void RotationAxis(const Vector3D& axis, float angle);
 
 	/**
 		@brief	クオータニオンから行列に変換
 	*/
-	void Quaternion( float x, float y, float z, float w );
+	void Quaternion(float x, float y, float z, float w);
 
 	/**
 		@brief	乗算
 	*/
-	static Matrix44& Mul( Matrix44& o, const Matrix44& in1, const Matrix44& in2 );
+	static Matrix44& Mul(Matrix44& o, const Matrix44& in1, const Matrix44& in2);
 
 	/**
 		@brief	逆行列
 	*/
-	static Matrix44& Inverse( Matrix44& o, const Matrix44& in );
+	static Matrix44& Inverse(Matrix44& o, const Matrix44& in);
 };
 
 #pragma pack(pop)
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
- } 
+} // namespace Effekseer
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-#endif	// __EFFEKSEER_MATRIX44_H__
+#endif // __EFFEKSEER_MATRIX44_H__
 
 
-#ifndef	__EFFEKSEER_FILE_H__
-#define	__EFFEKSEER_FILE_H__
+#ifndef __EFFEKSEER_FILE_H__
+#define __EFFEKSEER_FILE_H__
 
 //----------------------------------------------------------------------------------
 // Include
@@ -2050,7 +2134,8 @@ public:
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-namespace Effekseer { 
+namespace Effekseer
+{
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
@@ -2060,13 +2145,16 @@ namespace Effekseer {
 class FileReader
 {
 private:
-
 public:
-	FileReader() {}
+	FileReader()
+	{
+	}
 
-	virtual ~FileReader() {}
+	virtual ~FileReader()
+	{
+	}
 
-	virtual size_t Read( void* buffer, size_t size ) = 0;
+	virtual size_t Read(void* buffer, size_t size) = 0;
 
 	virtual void Seek(int position) = 0;
 
@@ -2081,13 +2169,16 @@ public:
 class FileWriter
 {
 private:
-
 public:
-	FileWriter() {}
+	FileWriter()
+	{
+	}
 
-	virtual ~FileWriter() {}
+	virtual ~FileWriter()
+	{
+	}
 
-	virtual size_t Write( const void* buffer, size_t size ) = 0;
+	virtual size_t Write(const void* buffer, size_t size) = 0;
 
 	virtual void Flush() = 0;
 
@@ -2117,21 +2208,23 @@ public:
 		\~English	try to open a reader. It need not to succeeds in opening it.
 		\~Japanese	リーダーを開くことを試します。成功する必要はありません。
 	*/
-	virtual FileReader* TryOpenRead(const EFK_CHAR* path) { return OpenRead(path); }
+	virtual FileReader* TryOpenRead(const EFK_CHAR* path)
+	{
+		return OpenRead(path);
+	}
 
 	virtual FileWriter* OpenWrite(const EFK_CHAR* path) = 0;
 };
 
-
- } 
+} // namespace Effekseer
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-#endif	// __EFFEKSEER_FILE_H__
+#endif // __EFFEKSEER_FILE_H__
 
 
-#ifndef	__EFFEKSEER_DEFAULT_FILE_H__
-#define	__EFFEKSEER_DEFAULT_FILE_H__
+#ifndef __EFFEKSEER_DEFAULT_FILE_H__
+#define __EFFEKSEER_DEFAULT_FILE_H__
 
 //----------------------------------------------------------------------------------
 // Include
@@ -2140,7 +2233,8 @@ public:
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-namespace Effekseer { 
+namespace Effekseer
+{
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
@@ -2154,13 +2248,13 @@ private:
 	FILE* m_filePtr;
 
 public:
-	DefaultFileReader( FILE* filePtr );
+	DefaultFileReader(FILE* filePtr);
 
 	~DefaultFileReader();
 
-	size_t Read( void* buffer, size_t size );
+	size_t Read(void* buffer, size_t size);
 
-	void Seek( int position );
+	void Seek(int position);
 
 	int GetPosition();
 
@@ -2173,15 +2267,15 @@ private:
 	FILE* m_filePtr;
 
 public:
-	DefaultFileWriter( FILE* filePtr );
+	DefaultFileWriter(FILE* filePtr);
 
 	~DefaultFileWriter();
 
-	size_t Write( const void* buffer, size_t size );
+	size_t Write(const void* buffer, size_t size);
 
 	void Flush();
 
-	void Seek( int position );
+	void Seek(int position);
 
 	int GetPosition();
 
@@ -2191,26 +2285,24 @@ public:
 class DefaultFileInterface : public FileInterface
 {
 private:
-
 public:
-	FileReader* OpenRead( const EFK_CHAR* path );
+	FileReader* OpenRead(const EFK_CHAR* path);
 
-	FileWriter* OpenWrite( const EFK_CHAR* path );
+	FileWriter* OpenWrite(const EFK_CHAR* path);
 };
 
-
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
- } 
+} // namespace Effekseer
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-#endif	// __EFFEKSEER_DEFAULT_FILE_H__
+#endif // __EFFEKSEER_DEFAULT_FILE_H__
 
 
-#ifndef	__EFFEKSEER_EFFECT_H__
-#define	__EFFEKSEER_EFFECT_H__
+#ifndef __EFFEKSEER_EFFECT_H__
+#define __EFFEKSEER_EFFECT_H__
 
 //----------------------------------------------------------------------------------
 // Include
@@ -2247,7 +2339,7 @@ struct EffectTerm
 	int32_t TermMax;
 };
 
-	/**
+/**
 @brief
 \~English	Terms where instances exists
 \~Japanese	インスタンスが存在する期間
@@ -2423,11 +2515,14 @@ class Effect
 	: public IReference
 {
 protected:
-	Effect() {}
-    virtual ~Effect() {}
+	Effect()
+	{
+	}
+	virtual ~Effect()
+	{
+	}
 
 public:
-
 	/**
 		@brief	エフェクトを生成する。
 		@param	manager			[in]	管理クラス
@@ -2437,7 +2532,7 @@ public:
 		@param	materialPath	[in]	素材ロード時の基準パス
 		@return	エフェクト。失敗した場合はNULLを返す。
 	*/
-	static Effect* Create( Manager* manager, void* data, int32_t size, float magnification = 1.0f, const EFK_CHAR* materialPath = NULL );
+	static Effect* Create(Manager* manager, void* data, int32_t size, float magnification = 1.0f, const EFK_CHAR* materialPath = NULL);
 
 	/**
 		@brief	エフェクトを生成する。
@@ -2447,9 +2542,9 @@ public:
 		@param	materialPath	[in]	素材ロード時の基準パス
 		@return	エフェクト。失敗した場合はNULLを返す。
 	*/
-	static Effect* Create( Manager* manager, const EFK_CHAR* path, float magnification = 1.0f, const EFK_CHAR* materialPath = NULL );
+	static Effect* Create(Manager* manager, const EFK_CHAR* path, float magnification = 1.0f, const EFK_CHAR* materialPath = NULL);
 
-		/**
+	/**
 		@brief	エフェクトを生成する。
 		@param	setting			[in]	設定クラス
 		@param	data			[in]	データ配列の先頭のポインタ
@@ -2458,7 +2553,7 @@ public:
 		@param	materialPath	[in]	素材ロード時の基準パス
 		@return	エフェクト。失敗した場合はNULLを返す。
 	*/
-	static Effect* Create( Setting*	setting, void* data, int32_t size, float magnification = 1.0f, const EFK_CHAR* materialPath = NULL );
+	static Effect* Create(Setting* setting, void* data, int32_t size, float magnification = 1.0f, const EFK_CHAR* materialPath = NULL);
 
 	/**
 		@brief	エフェクトを生成する。
@@ -2468,7 +2563,7 @@ public:
 		@param	materialPath	[in]	素材ロード時の基準パス
 		@return	エフェクト。失敗した場合はNULLを返す。
 	*/
-	static Effect* Create( Setting*	setting, const EFK_CHAR* path, float magnification = 1.0f, const EFK_CHAR* materialPath = NULL );
+	static Effect* Create(Setting* setting, const EFK_CHAR* path, float magnification = 1.0f, const EFK_CHAR* materialPath = NULL);
 
 	/**
 	@brief	標準のエフェクト読込インスタンスを生成する。
@@ -2499,7 +2594,7 @@ public:
 			\~Japanese	読み込み時と出力時の拡大率をかけた拡大率を取得する。
 	*/
 	virtual float GetMaginification() const = 0;
-	
+
 	/**
 		@brief	エフェクトデータのバージョン取得
 	*/
@@ -2517,7 +2612,7 @@ public:
 		@param	n	[in]	画像のインデックス
 		@return	画像のポインタ
 	*/
-	virtual TextureData* GetColorImage( int n ) const = 0;
+	virtual TextureData* GetColorImage(int n) const = 0;
 
 	/**
 	@brief	格納されている画像のポインタの個数を取得する。
@@ -2547,7 +2642,7 @@ public:
 	\~Japanese	法線画像のパスを取得する。
 	*/
 	virtual const EFK_CHAR* GetNormalImagePath(int n) const = 0;
-	
+
 	/**
 	@brief	格納されている歪み画像のポインタを取得する。
 	@param	n	[in]	画像のインデックス
@@ -2565,11 +2660,11 @@ public:
 	\~Japanese	歪み画像のパスを取得する。
 	*/
 	virtual const EFK_CHAR* GetDistortionImagePath(int n) const = 0;
-	
+
 	/**
 		@brief	格納されている音波形のポインタを取得する。
 	*/
-	virtual void* GetWave( int n ) const = 0;
+	virtual void* GetWave(int n) const = 0;
 
 	/**
 	@brief	格納されている音波形のポインタの個数を取得する。
@@ -2581,11 +2676,11 @@ public:
 	\~Japanese	音波形のパスを取得する。
 	*/
 	virtual const EFK_CHAR* GetWavePath(int n) const = 0;
-	
+
 	/**
 		@brief	格納されているモデルのポインタを取得する。
 	*/
-	virtual void* GetModel( int n ) const = 0;
+	virtual void* GetModel(int n) const = 0;
 
 	/**
 	@brief	格納されているモデルのポインタの個数を取得する。
@@ -2597,7 +2692,7 @@ public:
 	\~Japanese	モデルのパスを取得する。
 	*/
 	virtual const EFK_CHAR* GetModelPath(int n) const = 0;
-	
+
 	/**
 	@brief	\~English	Get a material's pointer
 	\~Japanese	格納されているマテリアルのポインタを取得する。
@@ -2645,7 +2740,6 @@ public:
 	*/
 	virtual void SetMaterial(int32_t index, MaterialData* data) = 0;
 
-
 	/**
 		@brief
 		\~English	Reload this effect
@@ -2671,7 +2765,7 @@ public:
 		\~Japanese
 		もし、reloadingThreadType が RenderThreadの場合、新規のリソースは読み込まれず、古いリソースは破棄されない。
 	*/
-	virtual bool Reload( void* data, int32_t size, const EFK_CHAR* materialPath = nullptr, ReloadingThreadType reloadingThreadType = ReloadingThreadType::Main) = 0;
+	virtual bool Reload(void* data, int32_t size, const EFK_CHAR* materialPath = nullptr, ReloadingThreadType reloadingThreadType = ReloadingThreadType::Main) = 0;
 
 	/**
 		@brief
@@ -2695,7 +2789,7 @@ public:
 		\~Japanese
 		もし、reloadingThreadType が RenderThreadの場合、新規のリソースは読み込まれず、古いリソースは破棄されない。
 	*/
-	virtual bool Reload( const EFK_CHAR* path, const EFK_CHAR* materialPath = nullptr, ReloadingThreadType reloadingThreadType = ReloadingThreadType::Main) = 0;
+	virtual bool Reload(const EFK_CHAR* path, const EFK_CHAR* materialPath = nullptr, ReloadingThreadType reloadingThreadType = ReloadingThreadType::Main) = 0;
 
 	/**
 		@brief
@@ -2730,7 +2824,7 @@ public:
 		Settingを用いてエフェクトを生成したときに、Managerを指定することで対象のManager内のエフェクトのリロードを行う。
 		もし、reloadingThreadType が RenderThreadの場合、新規のリソースは読み込まれず、古いリソースは破棄されない。
 	*/
-	virtual bool Reload( Manager** managers, int32_t managersCount, void* data, int32_t size, const EFK_CHAR* materialPath = nullptr, ReloadingThreadType reloadingThreadType = ReloadingThreadType::Main) = 0;
+	virtual bool Reload(Manager** managers, int32_t managersCount, void* data, int32_t size, const EFK_CHAR* materialPath = nullptr, ReloadingThreadType reloadingThreadType = ReloadingThreadType::Main) = 0;
 
 	/**
 		@brief
@@ -2762,12 +2856,12 @@ public:
 		Settingを用いてエフェクトを生成したときに、Managerを指定することで対象のManager内のエフェクトのリロードを行う。
 		もし、reloadingThreadType が RenderThreadの場合、新規のリソースは読み込まれず、古いリソースは破棄されない。
 	*/
-	virtual bool Reload( Manager** managers, int32_t managersCount,const EFK_CHAR* path, const EFK_CHAR* materialPath = nullptr, ReloadingThreadType reloadingThreadType = ReloadingThreadType::Main) = 0;
+	virtual bool Reload(Manager** managers, int32_t managersCount, const EFK_CHAR* path, const EFK_CHAR* materialPath = nullptr, ReloadingThreadType reloadingThreadType = ReloadingThreadType::Main) = 0;
 
 	/**
 		@brief	画像等リソースの再読み込みを行う。
 	*/
-	virtual void ReloadResources( const void* data = nullptr, int32_t size = 0, const EFK_CHAR* materialPath = nullptr ) = 0;
+	virtual void ReloadResources(const void* data = nullptr, int32_t size = 0, const EFK_CHAR* materialPath = nullptr) = 0;
 
 	/**
 		@brief	画像等リソースの破棄を行う。
@@ -2795,14 +2889,14 @@ public:
 struct EffectBasicRenderParameter
 {
 	RendererMaterialType MaterialType;
-	int32_t				ColorTextureIndex;
-	AlphaBlendType		AlphaBlend;
-	TextureFilterType	FilterType;
-	TextureWrapType		WrapType;
-	bool				ZWrite;
-	bool				ZTest;
-	bool				Distortion;
-	float				DistortionIntensity;
+	int32_t ColorTextureIndex;
+	AlphaBlendType AlphaBlend;
+	TextureFilterType FilterType;
+	TextureWrapType WrapType;
+	bool ZWrite;
+	bool ZTest;
+	bool Distortion;
+	float DistortionIntensity;
 };
 
 /**
@@ -2816,7 +2910,7 @@ struct EffectBasicRenderParameter
 */
 struct EffectModelParameter
 {
-	bool				Lighting;
+	bool Lighting;
 };
 
 /**
@@ -2827,8 +2921,12 @@ struct EffectModelParameter
 class EffectNode
 {
 public:
-	EffectNode() {}
-	virtual ~EffectNode(){}
+	EffectNode()
+	{
+	}
+	virtual ~EffectNode()
+	{
+	}
 
 	/**
 	@brief	ノードが所属しているエフェクトを取得する。
@@ -2880,15 +2978,15 @@ public:
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-}
+} // namespace Effekseer
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-#endif	// __EFFEKSEER_EFFECT_H__
+#endif // __EFFEKSEER_EFFECT_H__
 
 
-#ifndef	__EFFEKSEER_MANAGER_H__
-#define	__EFFEKSEER_MANAGER_H__
+#ifndef __EFFEKSEER_MANAGER_H__
+#define __EFFEKSEER_MANAGER_H__
 
 //----------------------------------------------------------------------------------
 // Include
@@ -2935,8 +3033,12 @@ public:
 	};
 
 protected:
-	Manager() {}
-    virtual ~Manager() {}
+	Manager()
+	{
+	}
+	virtual ~Manager()
+	{
+	}
 
 public:
 	/**
@@ -2945,7 +3047,7 @@ public:
 		@param	autoFlip		[in]	自動でスレッド間のデータを入れ替えるかどうか、を指定する。trueの場合、Update時に入れ替わる。
 		@return	マネージャー
 	*/
-	static Manager* Create( int instance_max, bool autoFlip = true );
+	static Manager* Create(int instance_max, bool autoFlip = true);
 
 	/**
 		@brief マネージャーを破棄する。
@@ -2988,7 +3090,7 @@ public:
 	/**
 		@brief	ランダム関数を設定する。
 	*/
-	virtual void SetRandFunc( RandFunc func ) = 0;
+	virtual void SetRandFunc(RandFunc func) = 0;
 
 	/**
 		@brief	ランダム最大値を取得する。
@@ -2998,7 +3100,7 @@ public:
 	/**
 		@brief	ランダム関数を設定する。
 	*/
-	virtual void SetRandMax( int max_ ) = 0;
+	virtual void SetRandMax(int max_) = 0;
 
 	/**
 		@brief	座標系を取得する。
@@ -3013,7 +3115,7 @@ public:
 		座標系を設定する。
 		エフェクトファイルを読み込む前に設定する必要がある。
 	*/
-	virtual void SetCoordinateSystem( CoordinateSystem coordinateSystem ) = 0;
+	virtual void SetCoordinateSystem(CoordinateSystem coordinateSystem) = 0;
 
 	/**
 		@brief	スプライト描画機能を取得する。
@@ -3023,7 +3125,7 @@ public:
 	/**
 		@brief	スプライト描画機能を設定する。
 	*/
-	virtual void SetSpriteRenderer( SpriteRenderer* renderer ) = 0;
+	virtual void SetSpriteRenderer(SpriteRenderer* renderer) = 0;
 
 	/**
 		@brief	ストライプ描画機能を取得する。
@@ -3033,7 +3135,7 @@ public:
 	/**
 		@brief	ストライプ描画機能を設定する。
 	*/
-	virtual void SetRibbonRenderer( RibbonRenderer* renderer ) = 0;
+	virtual void SetRibbonRenderer(RibbonRenderer* renderer) = 0;
 
 	/**
 		@brief	リング描画機能を取得する。
@@ -3043,7 +3145,7 @@ public:
 	/**
 		@brief	リング描画機能を設定する。
 	*/
-	virtual void SetRingRenderer( RingRenderer* renderer ) = 0;
+	virtual void SetRingRenderer(RingRenderer* renderer) = 0;
 
 	/**
 		@brief	モデル描画機能を取得する。
@@ -3053,7 +3155,7 @@ public:
 	/**
 		@brief	モデル描画機能を設定する。
 	*/
-	virtual void SetModelRenderer( ModelRenderer* renderer ) = 0;
+	virtual void SetModelRenderer(ModelRenderer* renderer) = 0;
 
 	/**
 		@brief	軌跡描画機能を取得する。
@@ -3063,7 +3165,7 @@ public:
 	/**
 		@brief	軌跡描画機能を設定する。
 	*/
-	virtual void SetTrackRenderer( TrackRenderer* renderer ) = 0;
+	virtual void SetTrackRenderer(TrackRenderer* renderer) = 0;
 
 	/**
 		@brief	設定クラスを取得する。
@@ -3084,7 +3186,7 @@ public:
 	/**
 		@brief	エフェクト読込クラスを設定する。
 	*/
-	virtual void SetEffectLoader( EffectLoader* effectLoader ) = 0;
+	virtual void SetEffectLoader(EffectLoader* effectLoader) = 0;
 
 	/**
 		@brief	テクスチャ読込クラスを取得する。
@@ -3094,8 +3196,8 @@ public:
 	/**
 		@brief	テクスチャ読込クラスを設定する。
 	*/
-	virtual void SetTextureLoader( TextureLoader* textureLoader ) = 0;
-	
+	virtual void SetTextureLoader(TextureLoader* textureLoader) = 0;
+
 	/**
 		@brief	サウンド再生機能を取得する。
 	*/
@@ -3104,17 +3206,17 @@ public:
 	/**
 		@brief	サウンド再生機能を設定する。
 	*/
-	virtual void SetSoundPlayer( SoundPlayer* soundPlayer ) = 0;
-	
+	virtual void SetSoundPlayer(SoundPlayer* soundPlayer) = 0;
+
 	/**
 		@brief	サウンド読込クラスを取得する
 	*/
 	virtual SoundLoader* GetSoundLoader() = 0;
-	
+
 	/**
 		@brief	サウンド読込クラスを設定する。
 	*/
-	virtual void SetSoundLoader( SoundLoader* soundLoader ) = 0;
+	virtual void SetSoundLoader(SoundLoader* soundLoader) = 0;
 
 	/**
 		@brief	モデル読込クラスを取得する。
@@ -3124,7 +3226,7 @@ public:
 	/**
 		@brief	モデル読込クラスを設定する。
 	*/
-	virtual void SetModelLoader( ModelLoader* modelLoader ) = 0;
+	virtual void SetModelLoader(ModelLoader* modelLoader) = 0;
 
 	/**
 		@brief
@@ -3150,7 +3252,7 @@ public:
 		@brief	エフェクトを停止する。
 		@param	handle	[in]	インスタンスのハンドル
 	*/
-	virtual void StopEffect( Handle handle ) = 0;
+	virtual void StopEffect(Handle handle) = 0;
 
 	/**
 		@brief	全てのエフェクトを停止する。
@@ -3161,20 +3263,20 @@ public:
 		@brief	エフェクトのルートだけを停止する。
 		@param	handle	[in]	インスタンスのハンドル
 	*/
-	virtual void StopRoot( Handle handle ) = 0;
+	virtual void StopRoot(Handle handle) = 0;
 
 	/**
 		@brief	エフェクトのルートだけを停止する。
 		@param	effect	[in]	エフェクト
 	*/
-	virtual void StopRoot( Effect* effect ) = 0;
+	virtual void StopRoot(Effect* effect) = 0;
 
 	/**
 		@brief	エフェクトのインスタンスが存在しているか取得する。
 		@param	handle	[in]	インスタンスのハンドル
 		@return	存在してるか?
 	*/
-	virtual bool Exists( Handle handle ) = 0;
+	virtual bool Exists(Handle handle) = 0;
 
 	/**
 		@brief	エフェクトに使用されているインスタンス数を取得する。
@@ -3185,8 +3287,8 @@ public:
 		Managerに残っているインスタンス数+エフェクトに使用されているインスタンス数は存在しているRootの数だけ
 		最初に確保した個数よりも多く存在する。
 	*/
-	virtual int32_t GetInstanceCount( Handle handle ) = 0;
-	
+	virtual int32_t GetInstanceCount(Handle handle) = 0;
+
 	/**
 		@brief
 		\~English Get the number of instances which is used in playing effects
@@ -3209,21 +3311,21 @@ public:
 		@param	handle	[in]	インスタンスのハンドル
 		@return	行列
 	*/
-	virtual Matrix43 GetMatrix( Handle handle ) = 0;
+	virtual Matrix43 GetMatrix(Handle handle) = 0;
 
 	/**
 		@brief	エフェクトのインスタンスに変換行列を設定する。
 		@param	handle	[in]	インスタンスのハンドル
 		@param	mat		[in]	変換行列
 	*/
-	virtual void SetMatrix( Handle handle, const Matrix43& mat ) = 0;
+	virtual void SetMatrix(Handle handle, const Matrix43& mat) = 0;
 
 	/**
 		@brief	エフェクトのインスタンスの位置を取得する。
 		@param	handle	[in]	インスタンスのハンドル
 		@return	位置
 	*/
-	virtual Vector3D GetLocation( Handle handle ) = 0;
+	virtual Vector3D GetLocation(Handle handle) = 0;
 
 	/**
 		@brief	エフェクトのインスタンスの位置を指定する。
@@ -3231,24 +3333,24 @@ public:
 		@param	y	[in]	Y座標
 		@param	z	[in]	Z座標
 	*/
-	virtual void SetLocation( Handle handle, float x, float y, float z ) = 0;
+	virtual void SetLocation(Handle handle, float x, float y, float z) = 0;
 
 	/**
 		@brief	エフェクトのインスタンスの位置を指定する。
 		@param	location	[in]	位置
 	*/
-	virtual void SetLocation( Handle handle, const Vector3D& location ) = 0;
+	virtual void SetLocation(Handle handle, const Vector3D& location) = 0;
 
 	/**
 		@brief	エフェクトのインスタンスの位置に加算する。
 		@param	location	[in]	加算する値
 	*/
-	virtual void AddLocation( Handle handle, const Vector3D& location ) = 0;
+	virtual void AddLocation(Handle handle, const Vector3D& location) = 0;
 
 	/**
 		@brief	エフェクトのインスタンスの回転角度を指定する。(ラジアン)
 	*/
-	virtual void SetRotation( Handle handle, float x, float y, float z ) = 0;
+	virtual void SetRotation(Handle handle, float x, float y, float z) = 0;
 
 	/**
 		@brief	エフェクトのインスタンスの任意軸周りの反時計周りの回転角度を指定する。
@@ -3256,8 +3358,8 @@ public:
 		@param	axis	[in]	軸
 		@param	angle	[in]	角度(ラジアン)
 	*/
-	virtual void SetRotation( Handle handle, const Vector3D& axis, float angle ) = 0;
-	
+	virtual void SetRotation(Handle handle, const Vector3D& axis, float angle) = 0;
+
 	/**
 		@brief	エフェクトのインスタンスの拡大率を指定する。
 		@param	handle	[in]	インスタンスのハンドル
@@ -3265,7 +3367,7 @@ public:
 		@param	y		[in]	Y方向拡大率
 		@param	z		[in]	Z方向拡大率
 	*/
-	virtual void SetScale( Handle handle, float x, float y, float z ) = 0;
+	virtual void SetScale(Handle handle, float x, float y, float z) = 0;
 
 	/**
 	@brief
@@ -3280,13 +3382,13 @@ public:
 		@param	y	[in]	Y座標
 		@param	z	[in]	Z座標
 	*/
-	virtual void SetTargetLocation( Handle handle, float x, float y, float z ) = 0;
+	virtual void SetTargetLocation(Handle handle, float x, float y, float z) = 0;
 
 	/**
 		@brief	エフェクトのインスタンスのターゲット位置を指定する。
 		@param	location	[in]	位置
 	*/
-	virtual void SetTargetLocation( Handle handle, const Vector3D& location ) = 0;
+	virtual void SetTargetLocation(Handle handle, const Vector3D& location) = 0;
 
 	/**
 		@brief
@@ -3307,7 +3409,7 @@ public:
 		@param	handle	[in]	インスタンスのハンドル
 		@return	ベース行列
 	*/
-	virtual Matrix43 GetBaseMatrix( Handle handle ) = 0;
+	virtual Matrix43 GetBaseMatrix(Handle handle) = 0;
 
 	/**
 		@brief	エフェクトのベース行列を設定する。
@@ -3316,14 +3418,14 @@ public:
 		@note
 		エフェクト全体の表示位置を指定する行列を設定する。
 	*/
-	virtual void SetBaseMatrix( Handle handle, const Matrix43& mat ) = 0;
+	virtual void SetBaseMatrix(Handle handle, const Matrix43& mat) = 0;
 
 	/**
 		@brief	エフェクトのインスタンスに廃棄時のコールバックを設定する。
 		@param	handle	[in]	インスタンスのハンドル
 		@param	callback	[in]	コールバック
 	*/
-	virtual void SetRemovingCallback( Handle handle, EffectInstanceRemovingCallback callback ) = 0;
+	virtual void SetRemovingCallback(Handle handle, EffectInstanceRemovingCallback callback) = 0;
 
 	/**
 	@brief	\~English	Get status that a particle of effect specified is shown.
@@ -3339,7 +3441,7 @@ public:
 		@param	handle	[in]	インスタンスのハンドル
 		@param	shown	[in]	描画するか?
 	*/
-	virtual void SetShown( Handle handle, bool shown ) = 0;
+	virtual void SetShown(Handle handle, bool shown) = 0;
 
 	/**
 	@brief	\~English	Get status that a particle of effect specified is paused.
@@ -3357,7 +3459,7 @@ public:
 		@param	handle	[in]	インスタンスのハンドル
 		@param	paused	[in]	更新するか?
 	*/
-	virtual void SetPaused( Handle handle, bool paused ) = 0;
+	virtual void SetPaused(Handle handle, bool paused) = 0;
 
 	/**
 			@brief	\~English	Pause or resume all particle of effects.
@@ -3402,14 +3504,14 @@ public:
 		@param	handle	[in]	インスタンスのハンドル
 		@param	speed	[in]	スピード
 	*/
-	virtual void SetSpeed( Handle handle, float speed ) = 0;
+	virtual void SetSpeed(Handle handle, float speed) = 0;
 
 	/**
 		@brief	エフェクトがDrawで描画されるか設定する。
 				autoDrawがfalseの場合、DrawHandleで描画する必要がある。
 		@param	autoDraw	[in]	自動描画フラグ
 	*/
-	virtual void SetAutoDrawing( Handle handle, bool autoDraw ) = 0;
+	virtual void SetAutoDrawing(Handle handle, bool autoDraw) = 0;
 
 	/**
 		@brief	今までのPlay等の処理をUpdate実行時に適用するようにする。
@@ -3424,7 +3526,7 @@ public:
 		\~English	passed time (1 is 1/60 seconds)
 		\~Japanese	更新するフレーム数(60fps基準)
 	*/
-	virtual void Update( float deltaFrame = 1.0f ) = 0;
+	virtual void Update(float deltaFrame = 1.0f) = 0;
 
 	/**
 		@brief
@@ -3462,7 +3564,7 @@ public:
 		\~Japanese	
 		更新する前にBeginUpdate、更新し終わった後にEndUpdateを実行する必要がある。
 	*/
-	virtual void UpdateHandle( Handle handle, float deltaFrame = 1.0f ) = 0;
+	virtual void UpdateHandle(Handle handle, float deltaFrame = 1.0f) = 0;
 
 	/**
 	@brief	
@@ -3470,7 +3572,7 @@ public:
 	\~Japanese	描画処理を行う。
 	*/
 	virtual void Draw(const Manager::DrawParameter& drawParameter = Manager::DrawParameter()) = 0;
-	
+
 	/**
 	@brief
 	\~English	Draw particles in the back of priority 0.
@@ -3498,7 +3600,7 @@ public:
 	\~Japanese	背面のハンドル単位の描画処理を行う。
 	*/
 	virtual void DrawHandleBack(Handle handle, const Manager::DrawParameter& drawParameter = Manager::DrawParameter()) = 0;
-	
+
 	/**
 	@brief
 	\~English	Draw particles in the front of priority 0.
@@ -3514,8 +3616,8 @@ public:
 		@param	z	[in]	Z座標
 		@return	エフェクトのインスタンスのハンドル
 	*/
-	virtual Handle Play( Effect* effect, float x, float y, float z ) = 0;
-	
+	virtual Handle Play(Effect* effect, float x, float y, float z) = 0;
+
 	/**
 		@brief
 		\~English	Play an effect.
@@ -3543,7 +3645,7 @@ public:
 		@brief	Update処理時間を取得。
 	*/
 	virtual int GetUpdateTime() const = 0;
-	
+
 	/**
 		@brief	Draw処理時間を取得。
 	*/
@@ -3563,7 +3665,7 @@ public:
 		@param	zsize	Z方向幅
 		@param	layerCount	層数(大きいほどカリングの効率は上がるがメモリも大量に使用する)
 	*/
-	virtual void CreateCullingWorld( float xsize, float ysize, float zsize, int32_t layerCount) = 0;
+	virtual void CreateCullingWorld(float xsize, float ysize, float zsize, int32_t layerCount) = 0;
 
 	/**
 		@brief	カリングを行い、カリングされたオブジェクトのみを描画するようにする。
@@ -3580,11 +3682,11 @@ public:
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-}
+} // namespace Effekseer
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-#endif	// __EFFEKSEER_MANAGER_H__
+#endif // __EFFEKSEER_MANAGER_H__
 
 
 #ifndef __EFFEKSEER_SIMDTYPE_H__
@@ -4504,7 +4606,7 @@ inline SIMD4i SIMD4i::Mask()
 
 inline uint32_t SIMD4i::MoveMask(const SIMD4i& in)
 {
-	uint16x4_t u16x4 = vmovn_u32(vreinterpretq_s32_u32(in.s));
+	uint16x4_t u16x4 = vmovn_u32(vreinterpretq_u32_s32(in.s));
 	uint16_t u16[4];
 	vst1_u16(u16, u16x4);
 	return (u16[0] & 1) | (u16[1] & 2) | (u16[2] & 4) | (u16[3] & 8);
@@ -4512,32 +4614,30 @@ inline uint32_t SIMD4i::MoveMask(const SIMD4i& in)
 
 inline SIMD4i SIMD4i::Equal(const SIMD4i& lhs, const SIMD4i& rhs)
 {
-	return vceqq_s32(lhs.s, rhs.s);
+	return vreinterpretq_s32_u32(vceqq_s32(lhs.s, rhs.s));
 }
 
 inline SIMD4i SIMD4i::NotEqual(const SIMD4i& lhs, const SIMD4i& rhs)
 {
-	return vmvnq_u32(vceqq_s32(lhs.s, rhs.s));
+	return vreinterpretq_s32_u32(vmvnq_u32(vceqq_s32(lhs.s, rhs.s)));
 }
 
 inline SIMD4i SIMD4i::LessThan(const SIMD4i& lhs, const SIMD4i& rhs)
 {
-	return vcltq_s32(lhs.s, rhs.s);
-}
+	return vreinterpretq_s32_u32(vcltq_s32(lhs.s, rhs.s)); }
 
 inline SIMD4i SIMD4i::LessEqual(const SIMD4i& lhs, const SIMD4i& rhs)
 {
-	return vcleq_s32(lhs.s, rhs.s);
+	return vreinterpretq_s32_u32(vcleq_s32(lhs.s, rhs.s)); 
 }
 
 inline SIMD4i SIMD4i::GreaterThan(const SIMD4i& lhs, const SIMD4i& rhs)
 {
-	return vcgtq_s32(lhs.s, rhs.s);
-}
+	return vreinterpretq_s32_u32(vcgtq_s32(lhs.s, rhs.s)); }
 
 inline SIMD4i SIMD4i::GreaterEqual(const SIMD4i& lhs, const SIMD4i& rhs)
 {
-	return vcgeq_s32(lhs.s, rhs.s);
+	return vreinterpretq_s32_u32(vcgeq_s32(lhs.s, rhs.s)); 
 }
 
 inline SIMD4i SIMD4i::NearEqual(const SIMD4i& lhs, const SIMD4i& rhs, int32_t epsilon)
@@ -5950,7 +6050,7 @@ inline SIMD4f SIMD4f::Mask()
 
 inline uint32_t SIMD4f::MoveMask(const SIMD4f& in)
 {
-	uint16x4_t u16x4 = vmovn_u32(vreinterpretq_f32_u32(in.s));
+	uint16x4_t u16x4 = vmovn_u32(vreinterpretq_u32_f32(in.s));
 	uint16_t u16[4];
 	vst1_u16(u16, u16x4);
 	return (u16[0] & 1) | (u16[1] & 2) | (u16[2] & 4) | (u16[3] & 8);
@@ -7459,7 +7559,6 @@ namespace Effekseer
 class Material
 {
 private:
-
 	const int32_t customDataMinCount_ = 2;
 
 	struct Texture
@@ -7561,10 +7660,10 @@ public:
 #ifndef __EFFEKSEER_MATERIAL_COMPILER_H__
 #define __EFFEKSEER_MATERIAL_COMPILER_H__
 
+#include <map>
 #include <stdint.h>
 #include <stdio.h>
 #include <vector>
-#include <map>
 
 namespace Effekseer
 {
@@ -7581,7 +7680,6 @@ enum class MaterialShaderType : int32_t
 class CompiledMaterialBinary : public IReference
 {
 private:
-	
 public:
 	CompiledMaterialBinary() = default;
 	virtual ~CompiledMaterialBinary() = default;
@@ -7650,7 +7748,7 @@ class CompiledMaterial
 
 public:
 	uint64_t GUID = 0;
-	
+
 	const std::vector<uint8_t>& GetOriginalData() const;
 
 	bool Load(const uint8_t* data, int32_t size);
@@ -7676,8 +7774,8 @@ public:
 
 #endif
 
-#ifndef	__EFFEKSEER_SPRITE_RENDERER_H__
-#define	__EFFEKSEER_SPRITE_RENDERER_H__
+#ifndef __EFFEKSEER_SPRITE_RENDERER_H__
+#define __EFFEKSEER_SPRITE_RENDERER_H__
 
 //----------------------------------------------------------------------------------
 // Include
@@ -7695,18 +7793,17 @@ namespace Effekseer
 class SpriteRenderer
 {
 public:
-
 	struct NodeParameter
 	{
-		Effect*				EffectPointer;
+		Effect* EffectPointer;
 		//int32_t				ColorTextureIndex;
 		//AlphaBlendType			AlphaBlend;
 		//TextureFilterType	TextureFilter;
 		//TextureWrapType	TextureWrap;
-		bool				ZTest;
-		bool				ZWrite;
-		BillboardType		Billboard;
-		bool				IsRightHand;
+		bool ZTest;
+		bool ZWrite;
+		BillboardType Billboard;
+		bool IsRightHand;
 
 		//bool				Distortion;
 		//float				DistortionIntensity;
@@ -7715,7 +7812,7 @@ public:
 		//bool				IsDepthOffsetScaledWithCamera;
 		//bool				IsDepthOffsetScaledWithParticleScale;
 
-		ZSortType			ZSort;
+		ZSortType ZSort;
 
 		NodeRendererDepthParameter* DepthParameterPtr = nullptr;
 		NodeRendererBasicParameter* BasicParameterPtr = nullptr;
@@ -7726,22 +7823,22 @@ public:
 
 	struct InstanceParameter
 	{
-		Mat43f		SRTMatrix43;
-		Color		AllColor;
+		Mat43f SRTMatrix43;
+		Color AllColor;
 
 		// Lower left, Lower right, Upper left, Upper right
-		Color		Colors[4];
+		Color Colors[4];
 
-		Vec2f		Positions[4];
+		Vec2f Positions[4];
 
-		RectF		UV;
+		RectF UV;
 
 #ifdef __EFFEKSEER_BUILD_VERSION16__
-		RectF		AlphaUV;
+		RectF AlphaUV;
 
-		float		FlipbookIndexAndNextRate;
+		float FlipbookIndexAndNextRate;
 
-		float		AlphaThreshold;
+		float AlphaThreshold;
 #endif
 
 		std::array<float, 4> CustomData1;
@@ -7749,29 +7846,39 @@ public:
 	};
 
 public:
-	SpriteRenderer() {}
+	SpriteRenderer()
+	{
+	}
 
-	virtual ~SpriteRenderer() {}
+	virtual ~SpriteRenderer()
+	{
+	}
 
-	virtual void BeginRendering( const NodeParameter& parameter, int32_t count, void* userData ) {}
+	virtual void BeginRendering(const NodeParameter& parameter, int32_t count, void* userData)
+	{
+	}
 
-	virtual void Rendering( const NodeParameter& parameter, const InstanceParameter& instanceParameter, void* userData ) {}
+	virtual void Rendering(const NodeParameter& parameter, const InstanceParameter& instanceParameter, void* userData)
+	{
+	}
 
-	virtual void EndRendering( const NodeParameter& parameter, void* userData ) {}
+	virtual void EndRendering(const NodeParameter& parameter, void* userData)
+	{
+	}
 };
 
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-}
+} // namespace Effekseer
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-#endif	// __EFFEKSEER_SPRITE_RENDERER_H__
+#endif // __EFFEKSEER_SPRITE_RENDERER_H__
 
 
-#ifndef	__EFFEKSEER_RIBBON_RENDERER_H__
-#define	__EFFEKSEER_RIBBON_RENDERER_H__
+#ifndef __EFFEKSEER_RIBBON_RENDERER_H__
+#define __EFFEKSEER_RIBBON_RENDERER_H__
 
 //----------------------------------------------------------------------------------
 // Include
@@ -7785,88 +7892,101 @@ namespace Effekseer
 
 struct NodeRendererTextureUVTypeParameter;
 
-	//----------------------------------------------------------------------------------
-	//
-	//----------------------------------------------------------------------------------
-
-	class RibbonRenderer
-	{
-	public:
-
-		struct NodeParameter
-		{
-			Effect*				EffectPointer;
-			//int32_t				ColorTextureIndex;
-			//AlphaBlendType			AlphaBlend;
-			//TextureFilterType	TextureFilter;
-			//TextureWrapType	TextureWrap;
-			bool				ZTest;
-			bool				ZWrite;
-			bool				ViewpointDependent;
-
-			//bool				Distortion;
-			//float				DistortionIntensity;
-
-			bool IsRightHand;
-			int32_t				SplineDivision;
-			NodeRendererDepthParameter* DepthParameterPtr = nullptr;
-			NodeRendererBasicParameter* BasicParameterPtr = nullptr;
-			NodeRendererTextureUVTypeParameter* TextureUVTypeParameterPtr = nullptr;
-			//RendererMaterialType MaterialType = RendererMaterialType::Default;
-			//MaterialParameter* MaterialParameterPtr = nullptr;
-		};
-
-		struct InstanceParameter
-		{
-			int32_t			InstanceCount;
-			int32_t			InstanceIndex;
-			Mat43f			SRTMatrix43;
-			Color			AllColor;
-
-			// Lower left, Lower right, Upper left, Upper right
-			Color	Colors[4];
-
-			float	Positions[4];
-
-			RectF	UV;
-#ifdef __EFFEKSEER_BUILD_VERSION16__
-			RectF	AlphaUV;
-
-			float	FlipbookIndexAndNextRate;
-
-			float	AlphaThreshold;
-#endif
-			std::array<float, 4> CustomData1;
-			std::array<float, 4> CustomData2;
-		};
-
-	public:
-		RibbonRenderer() {}
-
-		virtual ~RibbonRenderer() {}
-
-		virtual void BeginRendering(const NodeParameter& parameter, int32_t count, void* userData) {}
-
-		virtual void Rendering(const NodeParameter& parameter, const InstanceParameter& instanceParameter, void* userData) {}
-
-		virtual void EndRendering(const NodeParameter& parameter, void* userData) {}
-
-		virtual void BeginRenderingGroup(const NodeParameter& parameter, int32_t count, void* userData) {}
-
-		virtual void EndRenderingGroup(const NodeParameter& parameter, int32_t count, void* userData) {}
-	};
-
-	//----------------------------------------------------------------------------------
-	//
-	//----------------------------------------------------------------------------------
-}
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-#endif	// __EFFEKSEER_RIBBON_RENDERER_H__
 
-#ifndef	__EFFEKSEER_RING_RENDERER_H__
-#define	__EFFEKSEER_RING_RENDERER_H__
+class RibbonRenderer
+{
+public:
+	struct NodeParameter
+	{
+		Effect* EffectPointer;
+		//int32_t				ColorTextureIndex;
+		//AlphaBlendType			AlphaBlend;
+		//TextureFilterType	TextureFilter;
+		//TextureWrapType	TextureWrap;
+		bool ZTest;
+		bool ZWrite;
+		bool ViewpointDependent;
+
+		//bool				Distortion;
+		//float				DistortionIntensity;
+
+		bool IsRightHand;
+		int32_t SplineDivision;
+		NodeRendererDepthParameter* DepthParameterPtr = nullptr;
+		NodeRendererBasicParameter* BasicParameterPtr = nullptr;
+		NodeRendererTextureUVTypeParameter* TextureUVTypeParameterPtr = nullptr;
+		//RendererMaterialType MaterialType = RendererMaterialType::Default;
+		//MaterialParameter* MaterialParameterPtr = nullptr;
+	};
+
+	struct InstanceParameter
+	{
+		int32_t InstanceCount;
+		int32_t InstanceIndex;
+		Mat43f SRTMatrix43;
+		Color AllColor;
+
+		// Lower left, Lower right, Upper left, Upper right
+		Color Colors[4];
+
+		float Positions[4];
+
+		RectF UV;
+#ifdef __EFFEKSEER_BUILD_VERSION16__
+		RectF AlphaUV;
+
+		float FlipbookIndexAndNextRate;
+
+		float AlphaThreshold;
+#endif
+		std::array<float, 4> CustomData1;
+		std::array<float, 4> CustomData2;
+	};
+
+public:
+	RibbonRenderer()
+	{
+	}
+
+	virtual ~RibbonRenderer()
+	{
+	}
+
+	virtual void BeginRendering(const NodeParameter& parameter, int32_t count, void* userData)
+	{
+	}
+
+	virtual void Rendering(const NodeParameter& parameter, const InstanceParameter& instanceParameter, void* userData)
+	{
+	}
+
+	virtual void EndRendering(const NodeParameter& parameter, void* userData)
+	{
+	}
+
+	virtual void BeginRenderingGroup(const NodeParameter& parameter, int32_t count, void* userData)
+	{
+	}
+
+	virtual void EndRenderingGroup(const NodeParameter& parameter, int32_t count, void* userData)
+	{
+	}
+};
+
+//----------------------------------------------------------------------------------
+//
+//----------------------------------------------------------------------------------
+} // namespace Effekseer
+//----------------------------------------------------------------------------------
+//
+//----------------------------------------------------------------------------------
+#endif // __EFFEKSEER_RIBBON_RENDERER_H__
+
+#ifndef __EFFEKSEER_RING_RENDERER_H__
+#define __EFFEKSEER_RING_RENDERER_H__
 
 //----------------------------------------------------------------------------------
 // Include
@@ -7884,19 +8004,18 @@ namespace Effekseer
 class RingRenderer
 {
 public:
-
 	struct NodeParameter
 	{
-		Effect*				EffectPointer;
+		Effect* EffectPointer;
 		//int32_t				ColorTextureIndex;
 		//AlphaBlendType			AlphaBlend;
 		//TextureFilterType	TextureFilter;
 		//TextureWrapType	TextureWrap;
-		bool				ZTest;
-		bool				ZWrite;
-		BillboardType		Billboard;
-		int32_t				VertexCount;
-		bool				IsRightHand;
+		bool ZTest;
+		bool ZWrite;
+		BillboardType Billboard;
+		int32_t VertexCount;
+		bool IsRightHand;
 		float StartingFade = 0.0f;
 		float EndingFade = 0.0f;
 		//bool				Distortion;
@@ -7917,52 +8036,62 @@ public:
 
 	struct InstanceParameter
 	{
-		Mat43f		SRTMatrix43;
-		Vec2f		OuterLocation;
-		Vec2f		InnerLocation;
-		float		ViewingAngleStart;
-		float		ViewingAngleEnd;
-		float		CenterRatio;
-		Color		OuterColor;
-		Color		CenterColor;
-		Color		InnerColor;
-		
-		RectF	UV;
-#ifdef __EFFEKSEER_BUILD_VERSION16__
-		RectF		AlphaUV;
-		
-		float		FlipbookIndexAndNextRate;
+		Mat43f SRTMatrix43;
+		Vec2f OuterLocation;
+		Vec2f InnerLocation;
+		float ViewingAngleStart;
+		float ViewingAngleEnd;
+		float CenterRatio;
+		Color OuterColor;
+		Color CenterColor;
+		Color InnerColor;
 
-		float		AlphaThreshold;
+		RectF UV;
+#ifdef __EFFEKSEER_BUILD_VERSION16__
+		RectF AlphaUV;
+
+		float FlipbookIndexAndNextRate;
+
+		float AlphaThreshold;
 #endif
 		std::array<float, 4> CustomData1;
 		std::array<float, 4> CustomData2;
 	};
 
 public:
-	RingRenderer() {}
+	RingRenderer()
+	{
+	}
 
-	virtual ~RingRenderer() {}
+	virtual ~RingRenderer()
+	{
+	}
 
-	virtual void BeginRendering( const NodeParameter& parameter, int32_t count, void* userData ) {}
+	virtual void BeginRendering(const NodeParameter& parameter, int32_t count, void* userData)
+	{
+	}
 
-	virtual void Rendering( const NodeParameter& parameter, const InstanceParameter& instanceParameter, void* userData ) {}
+	virtual void Rendering(const NodeParameter& parameter, const InstanceParameter& instanceParameter, void* userData)
+	{
+	}
 
-	virtual void EndRendering( const NodeParameter& parameter, void* userData ) {}
+	virtual void EndRendering(const NodeParameter& parameter, void* userData)
+	{
+	}
 };
 
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-}
+} // namespace Effekseer
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-#endif	// __EFFEKSEER_RING_RENDERER_H__
+#endif // __EFFEKSEER_RING_RENDERER_H__
 
 
-#ifndef	__EFFEKSEER_MODEL_RENDERER_H__
-#define	__EFFEKSEER_MODEL_RENDERER_H__
+#ifndef __EFFEKSEER_MODEL_RENDERER_H__
+#define __EFFEKSEER_MODEL_RENDERER_H__
 
 //----------------------------------------------------------------------------------
 // Include
@@ -7980,24 +8109,23 @@ namespace Effekseer
 class ModelRenderer
 {
 public:
-
 	struct NodeParameter
 	{
-		Effect*				EffectPointer;
+		Effect* EffectPointer;
 		//AlphaBlendType		AlphaBlend;
 		//TextureFilterType	TextureFilter;
 		//TextureWrapType	TextureWrap;
-		bool				ZTest;
-		bool				ZWrite;
-		BillboardType		Billboard;
+		bool ZTest;
+		bool ZWrite;
+		BillboardType Billboard;
 
 		//bool				Lighting;
-		CullingType		Culling;
-		int32_t				ModelIndex;
+		CullingType Culling;
+		int32_t ModelIndex;
 		//int32_t				ColorTextureIndex;
 		//int32_t				NormalTextureIndex;
-		float				Magnification;
-		bool				IsRightHand;
+		float Magnification;
+		bool IsRightHand;
 
 		//bool				Distortion;
 		//float				DistortionIntensity;
@@ -8015,45 +8143,55 @@ public:
 
 	struct InstanceParameter
 	{
-		Mat43f			SRTMatrix43;
-		RectF			UV;
+		Mat43f SRTMatrix43;
+		RectF UV;
 #ifdef __EFFEKSEER_BUILD_VERSION16__
-		RectF			AlphaUV;
+		RectF AlphaUV;
 
-		float			FlipbookIndexAndNextRate;
+		float FlipbookIndexAndNextRate;
 
-		float			AlphaThreshold;
+		float AlphaThreshold;
 #endif
-		Color			AllColor;
-		int32_t			Time;
+		Color AllColor;
+		int32_t Time;
 		std::array<float, 4> CustomData1;
 		std::array<float, 4> CustomData2;
 	};
 
 public:
-	ModelRenderer() {}
+	ModelRenderer()
+	{
+	}
 
-	virtual ~ModelRenderer() {}
+	virtual ~ModelRenderer()
+	{
+	}
 
-	virtual void BeginRendering( const NodeParameter& parameter, int32_t count, void* userData ) {}
+	virtual void BeginRendering(const NodeParameter& parameter, int32_t count, void* userData)
+	{
+	}
 
-	virtual void Rendering( const NodeParameter& parameter, const InstanceParameter& instanceParameter, void* userData ) {}
+	virtual void Rendering(const NodeParameter& parameter, const InstanceParameter& instanceParameter, void* userData)
+	{
+	}
 
-	virtual void EndRendering( const NodeParameter& parameter, void* userData ) {}
+	virtual void EndRendering(const NodeParameter& parameter, void* userData)
+	{
+	}
 };
 
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-}
+} // namespace Effekseer
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-#endif	// __EFFEKSEER_MODEL_RENDERER_H__
+#endif // __EFFEKSEER_MODEL_RENDERER_H__
 
 
-#ifndef	__EFFEKSEER_TRACK_RENDERER_H__
-#define	__EFFEKSEER_TRACK_RENDERER_H__
+#ifndef __EFFEKSEER_TRACK_RENDERER_H__
+#define __EFFEKSEER_TRACK_RENDERER_H__
 
 //----------------------------------------------------------------------------------
 // Include
@@ -8067,100 +8205,112 @@ namespace Effekseer
 
 struct NodeRendererTextureUVTypeParameter;
 
-	//----------------------------------------------------------------------------------
-	//
-	//----------------------------------------------------------------------------------
-
-	class TrackRenderer
-	{
-	public:
-
-		struct NodeParameter
-		{
-			Effect*				EffectPointer;
-			//int32_t				ColorTextureIndex;
-			//AlphaBlendType			AlphaBlend;
-			//TextureFilterType	TextureFilter;
-			//TextureWrapType		TextureWrap;
-			bool				ZTest;
-			bool				ZWrite;
-
-			//bool				Distortion;
-			//float				DistortionIntensity;
-
-			int32_t				SplineDivision;
-
-			bool IsRightHand;
-			NodeRendererDepthParameter* DepthParameterPtr = nullptr;
-			NodeRendererBasicParameter* BasicParameterPtr = nullptr;
-			NodeRendererTextureUVTypeParameter* TextureUVTypeParameterPtr = nullptr;
-
-			RendererMaterialType MaterialType = RendererMaterialType::Default;
-			MaterialParameter* MaterialParameterPtr = nullptr;
-		};
-
-		struct InstanceGroupParameter
-		{
-
-		};
-
-		struct InstanceParameter
-		{
-			int32_t			InstanceCount;
-			int32_t			InstanceIndex;
-			Mat43f			SRTMatrix43;
-
-			Color	ColorLeft;
-			Color	ColorCenter;
-			Color	ColorRight;
-
-			Color	ColorLeftMiddle;
-			Color	ColorCenterMiddle;
-			Color	ColorRightMiddle;
-
-			float	SizeFor;
-			float	SizeMiddle;
-			float	SizeBack;
-
-			RectF	UV;
-#ifdef __EFFEKSEER_BUILD_VERSION16__
-			RectF	AlphaUV;
-
-			float	FlipbookIndexAndNextRate;
-
-			float	AlphaThreshold;
-#endif
-			std::array<float, 4> CustomData1;
-			std::array<float, 4> CustomData2;
-		};
-
-	public:
-		TrackRenderer() {}
-
-		virtual ~TrackRenderer() {}
-
-		virtual void BeginRendering(const NodeParameter& parameter, int32_t count, void* userData) {}
-
-		virtual void Rendering(const NodeParameter& parameter, const InstanceParameter& instanceParameter, void* userData) {}
-
-		virtual void EndRendering(const NodeParameter& parameter, void* userData) {}
-
-		virtual void BeginRenderingGroup(const NodeParameter& parameter, int32_t count, void* userData) {}
-
-		virtual void EndRenderingGroup(const NodeParameter& parameter, int32_t count, void* userData) {}
-	};
-
-	//----------------------------------------------------------------------------------
-	//
-	//----------------------------------------------------------------------------------
-}
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-#endif	// __EFFEKSEER_TRACK_RENDERER_H__
 
-#ifndef	__EFFEKSEER_EFFECTLOADER_H__
-#define	__EFFEKSEER_EFFECTLOADER_H__
+class TrackRenderer
+{
+public:
+	struct NodeParameter
+	{
+		Effect* EffectPointer;
+		//int32_t				ColorTextureIndex;
+		//AlphaBlendType			AlphaBlend;
+		//TextureFilterType	TextureFilter;
+		//TextureWrapType		TextureWrap;
+		bool ZTest;
+		bool ZWrite;
+
+		//bool				Distortion;
+		//float				DistortionIntensity;
+
+		int32_t SplineDivision;
+
+		bool IsRightHand;
+		NodeRendererDepthParameter* DepthParameterPtr = nullptr;
+		NodeRendererBasicParameter* BasicParameterPtr = nullptr;
+		NodeRendererTextureUVTypeParameter* TextureUVTypeParameterPtr = nullptr;
+
+		RendererMaterialType MaterialType = RendererMaterialType::Default;
+		MaterialParameter* MaterialParameterPtr = nullptr;
+	};
+
+	struct InstanceGroupParameter
+	{
+	};
+
+	struct InstanceParameter
+	{
+		int32_t InstanceCount;
+		int32_t InstanceIndex;
+		Mat43f SRTMatrix43;
+
+		Color ColorLeft;
+		Color ColorCenter;
+		Color ColorRight;
+
+		Color ColorLeftMiddle;
+		Color ColorCenterMiddle;
+		Color ColorRightMiddle;
+
+		float SizeFor;
+		float SizeMiddle;
+		float SizeBack;
+
+		RectF UV;
+#ifdef __EFFEKSEER_BUILD_VERSION16__
+		RectF AlphaUV;
+
+		float FlipbookIndexAndNextRate;
+
+		float AlphaThreshold;
+#endif
+		std::array<float, 4> CustomData1;
+		std::array<float, 4> CustomData2;
+	};
+
+public:
+	TrackRenderer()
+	{
+	}
+
+	virtual ~TrackRenderer()
+	{
+	}
+
+	virtual void BeginRendering(const NodeParameter& parameter, int32_t count, void* userData)
+	{
+	}
+
+	virtual void Rendering(const NodeParameter& parameter, const InstanceParameter& instanceParameter, void* userData)
+	{
+	}
+
+	virtual void EndRendering(const NodeParameter& parameter, void* userData)
+	{
+	}
+
+	virtual void BeginRenderingGroup(const NodeParameter& parameter, int32_t count, void* userData)
+	{
+	}
+
+	virtual void EndRenderingGroup(const NodeParameter& parameter, int32_t count, void* userData)
+	{
+	}
+};
+
+//----------------------------------------------------------------------------------
+//
+//----------------------------------------------------------------------------------
+} // namespace Effekseer
+//----------------------------------------------------------------------------------
+//
+//----------------------------------------------------------------------------------
+#endif // __EFFEKSEER_TRACK_RENDERER_H__
+
+#ifndef __EFFEKSEER_EFFECTLOADER_H__
+#define __EFFEKSEER_EFFECTLOADER_H__
 
 //----------------------------------------------------------------------------------
 // Include
@@ -8169,7 +8319,8 @@ struct NodeRendererTextureUVTypeParameter;
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-namespace Effekseer { 
+namespace Effekseer
+{
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
@@ -8182,12 +8333,16 @@ public:
 	/**
 		@brief	コンストラクタ
 	*/
-	EffectLoader() {}
+	EffectLoader()
+	{
+	}
 
 	/**
 		@brief	デストラクタ
 	*/
-	virtual ~EffectLoader() {}
+	virtual ~EffectLoader()
+	{
+	}
 
 	/**
 		@brief	エフェクトファイルを読み込む。
@@ -8199,7 +8354,7 @@ public:
 		エフェクトファイルを読み込む。
 		::Effekseer::Effect::Create実行時に使用される。
 	*/
-	virtual bool Load( const EFK_CHAR* path, void*& data, int32_t& size ) = 0;
+	virtual bool Load(const EFK_CHAR* path, void*& data, int32_t& size) = 0;
 
 	/**
 		@brief	エフェクトファイルを破棄する。
@@ -8209,21 +8364,21 @@ public:
 		エフェクトファイルを破棄する。
 		::Effekseer::Effect::Create実行終了時に使用される。
 	*/
-	virtual void Unload( void* data, int32_t size ) = 0;
+	virtual void Unload(void* data, int32_t size) = 0;
 };
 
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
- } 
+} // namespace Effekseer
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-#endif	// __EFFEKSEER_EFFECTLOADER_H__
+#endif // __EFFEKSEER_EFFECTLOADER_H__
 
 
-#ifndef	__EFFEKSEER_TEXTURELOADER_H__
-#define	__EFFEKSEER_TEXTURELOADER_H__
+#ifndef __EFFEKSEER_TEXTURELOADER_H__
+#define __EFFEKSEER_TEXTURELOADER_H__
 
 //----------------------------------------------------------------------------------
 // Include
@@ -8232,7 +8387,8 @@ public:
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-namespace Effekseer { 
+namespace Effekseer
+{
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
@@ -8245,12 +8401,16 @@ public:
 	/**
 		@brief	コンストラクタ
 	*/
-	TextureLoader() {}
+	TextureLoader()
+	{
+	}
 
 	/**
 		@brief	デストラクタ
 	*/
-	virtual ~TextureLoader() {}
+	virtual ~TextureLoader()
+	{
+	}
 
 	/**
 		@brief	テクスチャを読み込む。
@@ -8261,7 +8421,10 @@ public:
 		テクスチャを読み込む。
 		::Effekseer::Effect::Create実行時に使用される。
 	*/
-	virtual TextureData* Load( const EFK_CHAR* path, TextureType textureType ) { return nullptr; }
+	virtual TextureData* Load(const EFK_CHAR* path, TextureType textureType)
+	{
+		return nullptr;
+	}
 
 	/**
 		@brief
@@ -8280,7 +8443,10 @@ public:
 		\~English	a pointer of loaded texture
 		\~Japanese	読み込まれたテクスチャのポインタ
 	*/
-	virtual TextureData* Load(const void* data, int32_t size, TextureType textureType) { return nullptr; }
+	virtual TextureData* Load(const void* data, int32_t size, TextureType textureType)
+	{
+		return nullptr;
+	}
 
 	/**
 		@brief	テクスチャを破棄する。
@@ -8289,21 +8455,23 @@ public:
 		テクスチャを破棄する。
 		::Effekseer::Effectのインスタンスが破棄された時に使用される。
 	*/
-	virtual void Unload(TextureData* data ) {}
+	virtual void Unload(TextureData* data)
+	{
+	}
 };
 
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
- } 
+} // namespace Effekseer
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-#endif	// __EFFEKSEER_TEXTURELOADER_H__
+#endif // __EFFEKSEER_TEXTURELOADER_H__
 
 
-#ifndef	__EFFEKSEER_MODELLOADER_H__
-#define	__EFFEKSEER_MODELLOADER_H__
+#ifndef __EFFEKSEER_MODELLOADER_H__
+#define __EFFEKSEER_MODELLOADER_H__
 
 //----------------------------------------------------------------------------------
 // Include
@@ -8312,7 +8480,8 @@ public:
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-namespace Effekseer { 
+namespace Effekseer
+{
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
@@ -8325,12 +8494,16 @@ public:
 	/**
 		@brief	コンストラクタ
 	*/
-	ModelLoader() {}
+	ModelLoader()
+	{
+	}
 
 	/**
 		@brief	デストラクタ
 	*/
-	virtual ~ModelLoader() {}
+	virtual ~ModelLoader()
+	{
+	}
 
 	/**
 		@brief	モデルを読み込む。
@@ -8340,7 +8513,10 @@ public:
 		モデルを読み込む。
 		::Effekseer::Effect::Create実行時に使用される。
 	*/
-	virtual void* Load( const EFK_CHAR* path ) { return NULL; }
+	virtual void* Load(const EFK_CHAR* path)
+	{
+		return NULL;
+	}
 
 	/**
 		@brief
@@ -8356,7 +8532,10 @@ public:
 		\~English	a pointer of loaded texture
 		\~Japanese	読み込まれたモデルのポインタ
 	*/
-	virtual void* Load(const void* data, int32_t size) { return nullptr; }
+	virtual void* Load(const void* data, int32_t size)
+	{
+		return nullptr;
+	}
 
 	/**
 		@brief	モデルを破棄する。
@@ -8365,17 +8544,19 @@ public:
 		モデルを破棄する。
 		::Effekseer::Effectのインスタンスが破棄された時に使用される。
 	*/
-	virtual void Unload( void* data ) {}
+	virtual void Unload(void* data)
+	{
+	}
 };
 
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
- } 
+} // namespace Effekseer
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-#endif	// __EFFEKSEER_MODELLOADER_H__
+#endif // __EFFEKSEER_MODELLOADER_H__
 
 
 #ifndef __EFFEKSEER_MATERIALLOADER_H__
@@ -8418,7 +8599,10 @@ public:
 		\~English	a pointer of loaded a material
 		\~Japanese	読み込まれたマテリアルのポインタ
 	*/
-	virtual MaterialData* Load(const EFK_CHAR* path) { return nullptr; }
+	virtual MaterialData* Load(const EFK_CHAR* path)
+	{
+		return nullptr;
+	}
 
 	/**
 		@brief
@@ -8437,7 +8621,10 @@ public:
 		\~English	a pointer of loaded a material
 		\~Japanese	読み込まれたマテリアルのポインタ
 	*/
-	virtual MaterialData* Load(const void* data, int32_t size, MaterialFileType fileType) { return nullptr; }
+	virtual MaterialData* Load(const void* data, int32_t size, MaterialFileType fileType)
+	{
+		return nullptr;
+	}
 
 	/**
 		@brief
@@ -8447,7 +8634,9 @@ public:
 		\~English	a pointer of loaded a material
 		\~Japanese	読み込まれたマテリアルのポインタ
 	*/
-	virtual void Unload(MaterialData* data) {}
+	virtual void Unload(MaterialData* data)
+	{
+	}
 };
 
 } // namespace Effekseer
@@ -8455,8 +8644,8 @@ public:
 #endif // __EFFEKSEER_TEXTURELOADER_H__
 
 
-#ifndef	__EFFEKSEER_MODEL_H__
-#define	__EFFEKSEER_MODEL_H__
+#ifndef __EFFEKSEER_MODEL_H__
+#define __EFFEKSEER_MODEL_H__
 
 //----------------------------------------------------------------------------------
 // Include
@@ -8465,7 +8654,8 @@ public:
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-namespace Effekseer { 
+namespace Effekseer
+{
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
@@ -8477,7 +8667,7 @@ namespace Effekseer {
 class Model
 {
 public:
-	static const int32_t	Version = 1;
+	static const int32_t Version = 1;
 
 	struct Vertex
 	{
@@ -8502,41 +8692,41 @@ public:
 
 	struct Face
 	{
-		int32_t	Indexes[3];
+		int32_t Indexes[3];
 	};
 
 	struct Emitter
 	{
-		Vector3D	Position;
-		Vector3D	Normal;
-		Vector3D	Binormal;
-		Vector3D	Tangent;
+		Vector3D Position;
+		Vector3D Normal;
+		Vector3D Binormal;
+		Vector3D Tangent;
 	};
 
 private:
-	uint8_t*	m_data;
-	int32_t		m_size;
+	uint8_t* m_data;
+	int32_t m_size;
 
-	int32_t		m_version;
+	int32_t m_version;
 
 	struct InternalModel
 	{
-		int32_t		m_vertexCount;
-		Vertex*		m_vertexes;
+		int32_t m_vertexCount;
+		Vertex* m_vertexes;
 
-		int32_t		m_faceCount;
-		Face*		m_faces;
+		int32_t m_faceCount;
+		Face* m_faces;
 	};
 
-	InternalModel*	models;
+	InternalModel* models;
 
-	int32_t		m_modelCount;
-	int32_t		m_frameCount;
+	int32_t m_modelCount;
+	int32_t m_frameCount;
 
 protected:
-	int32_t		m_vertexSize = sizeof(Vertex);
-public:
+	int32_t m_vertexSize = sizeof(Vertex);
 
+public:
 	/**
 	@brief
 	\~English	Constructor
@@ -8551,7 +8741,7 @@ public:
 		m_data = new uint8_t[m_size];
 		memcpy(m_data, data, m_size);
 
-		uint8_t* p = (uint8_t*) m_data;
+		uint8_t* p = (uint8_t*)m_data;
 
 		memcpy(&m_version, p, sizeof(int32_t));
 		p += sizeof(int32_t);
@@ -8585,7 +8775,7 @@ public:
 
 			if (m_version >= 1)
 			{
-				models[f].m_vertexes = (Vertex*) p;
+				models[f].m_vertexes = (Vertex*)p;
 				p += (sizeof(Vertex) * models[f].m_vertexCount);
 			}
 			else
@@ -8605,22 +8795,43 @@ public:
 			memcpy(&models[f].m_faceCount, p, sizeof(int32_t));
 			p += sizeof(int32_t);
 
-			models[f].m_faces = (Face*) p;
+			models[f].m_faces = (Face*)p;
 			p += (sizeof(Face) * models[f].m_faceCount);
 		}
 	}
 
-	Vertex* GetVertexes(int32_t index = 0) const { return models[index].m_vertexes; }
-	int32_t GetVertexCount(int32_t index = 0) { return models[index].m_vertexCount; }
+	Vertex* GetVertexes(int32_t index = 0) const
+	{
+		return models[index].m_vertexes;
+	}
+	int32_t GetVertexCount(int32_t index = 0)
+	{
+		return models[index].m_vertexCount;
+	}
 
-	Face* GetFaces(int32_t index = 0) const { return models[index].m_faces; }
-	int32_t GetFaceCount(int32_t index = 0) { return models[index].m_faceCount; }
+	Face* GetFaces(int32_t index = 0) const
+	{
+		return models[index].m_faces;
+	}
+	int32_t GetFaceCount(int32_t index = 0)
+	{
+		return models[index].m_faceCount;
+	}
 
-	int32_t GetFrameCount() const { return m_frameCount; }
+	int32_t GetFrameCount() const
+	{
+		return m_frameCount;
+	}
 
-	int32_t GetModelCount() { return m_modelCount; }
+	int32_t GetModelCount()
+	{
+		return m_modelCount;
+	}
 
-	int32_t GetVertexSize() const { return m_vertexSize; }
+	int32_t GetVertexSize() const
+	{
+		return m_vertexSize;
+	}
 
 	/**
 		@brief
@@ -8638,11 +8849,11 @@ public:
 		ES_SAFE_DELETE_ARRAY(m_data);
 	}
 
-	Emitter GetEmitter(IRandObject* g, int32_t time, CoordinateSystem coordinate, float magnification )
+	Emitter GetEmitter(IRandObject* g, int32_t time, CoordinateSystem coordinate, float magnification)
 	{
 		time = time % GetFrameCount();
 
-		int32_t faceInd = (int32_t) ((GetFaceCount(time) - 1) * (g->GetRand()));
+		int32_t faceInd = (int32_t)((GetFaceCount(time) - 1) * (g->GetRand()));
 		faceInd = Clamp(faceInd, GetFaceCount(time) - 1, 0);
 		Face& face = GetFaces(time)[faceInd];
 		Vertex& v0 = GetVertexes(time)[face.Indexes[0]];
@@ -8653,26 +8864,26 @@ public:
 		float p2 = g->GetRand();
 
 		// Fit within plane
-		if( p1 + p2 > 1.0f )
+		if (p1 + p2 > 1.0f)
 		{
 			p1 = 1.0f - p1;
-			p2 = 1.0f - p2;			
+			p2 = 1.0f - p2;
 		}
 
 		float p0 = 1.0f - p1 - p2;
-		
+
 		Emitter emitter;
 		emitter.Position = (v0.Position * p0 + v1.Position * p1 + v2.Position * p2) * magnification;
 		emitter.Normal = v0.Normal * p0 + v1.Normal * p1 + v2.Normal * p2;
 		emitter.Binormal = v0.Binormal * p0 + v1.Binormal * p1 + v2.Binormal * p2;
 		emitter.Tangent = v0.Tangent * p0 + v1.Tangent * p1 + v2.Tangent * p2;
 
-		if( coordinate == CoordinateSystem::LH )
+		if (coordinate == CoordinateSystem::LH)
 		{
-			emitter.Position.Z = - emitter.Position.Z;
-			emitter.Normal.Z = - emitter.Normal.Z;
-			emitter.Binormal.Z = - emitter.Binormal.Z;
-			emitter.Tangent.Z = - emitter.Tangent.Z;
+			emitter.Position.Z = -emitter.Position.Z;
+			emitter.Normal.Z = -emitter.Normal.Z;
+			emitter.Binormal.Z = -emitter.Binormal.Z;
+			emitter.Tangent.Z = -emitter.Tangent.Z;
 		}
 
 		return emitter;
@@ -8682,22 +8893,22 @@ public:
 	{
 		time = time % GetFrameCount();
 
-		int32_t vertexInd = (int32_t) ((GetVertexCount(time) - 1) * (g->GetRand()));
+		int32_t vertexInd = (int32_t)((GetVertexCount(time) - 1) * (g->GetRand()));
 		vertexInd = Clamp(vertexInd, GetVertexCount(time) - 1, 0);
 		Vertex& v = GetVertexes(time)[vertexInd];
-		
+
 		Emitter emitter;
 		emitter.Position = v.Position * magnification;
 		emitter.Normal = v.Normal;
 		emitter.Binormal = v.Binormal;
 		emitter.Tangent = v.Tangent;
 
-		if( coordinate == CoordinateSystem::LH )
+		if (coordinate == CoordinateSystem::LH)
 		{
-			emitter.Position.Z = - emitter.Position.Z;
-			emitter.Normal.Z = - emitter.Normal.Z;
-			emitter.Binormal.Z = - emitter.Binormal.Z;
-			emitter.Tangent.Z = - emitter.Tangent.Z;
+			emitter.Position.Z = -emitter.Position.Z;
+			emitter.Normal.Z = -emitter.Normal.Z;
+			emitter.Binormal.Z = -emitter.Binormal.Z;
+			emitter.Tangent.Z = -emitter.Tangent.Z;
 		}
 
 		return emitter;
@@ -8709,19 +8920,19 @@ public:
 
 		int32_t vertexInd = index % GetVertexCount(time);
 		Vertex& v = GetVertexes(time)[vertexInd];
-		
+
 		Emitter emitter;
 		emitter.Position = v.Position * magnification;
 		emitter.Normal = v.Normal;
 		emitter.Binormal = v.Binormal;
 		emitter.Tangent = v.Tangent;
 
-		if( coordinate == CoordinateSystem::LH )
+		if (coordinate == CoordinateSystem::LH)
 		{
-			emitter.Position.Z = - emitter.Position.Z;
-			emitter.Normal.Z = - emitter.Normal.Z;
-			emitter.Binormal.Z = - emitter.Binormal.Z;
-			emitter.Tangent.Z = - emitter.Tangent.Z;
+			emitter.Position.Z = -emitter.Position.Z;
+			emitter.Normal.Z = -emitter.Normal.Z;
+			emitter.Binormal.Z = -emitter.Binormal.Z;
+			emitter.Tangent.Z = -emitter.Tangent.Z;
 		}
 
 		return emitter;
@@ -8731,7 +8942,7 @@ public:
 	{
 		time = time % GetFrameCount();
 
-		int32_t faceInd = (int32_t) ((GetFaceCount(time) - 1) * (g->GetRand()));
+		int32_t faceInd = (int32_t)((GetFaceCount(time) - 1) * (g->GetRand()));
 		faceInd = Clamp(faceInd, GetFaceCount(time) - 1, 0);
 		Face& face = GetFaces(time)[faceInd];
 		Vertex& v0 = GetVertexes(time)[face.Indexes[0]];
@@ -8748,12 +8959,12 @@ public:
 		emitter.Binormal = v0.Binormal * p0 + v1.Binormal * p1 + v2.Binormal * p2;
 		emitter.Tangent = v0.Tangent * p0 + v1.Tangent * p1 + v2.Tangent * p2;
 
-		if( coordinate == CoordinateSystem::LH )
+		if (coordinate == CoordinateSystem::LH)
 		{
-			emitter.Position.Z = - emitter.Position.Z;
-			emitter.Normal.Z = - emitter.Normal.Z;
-			emitter.Binormal.Z = - emitter.Binormal.Z;
-			emitter.Tangent.Z = - emitter.Tangent.Z;
+			emitter.Position.Z = -emitter.Position.Z;
+			emitter.Normal.Z = -emitter.Normal.Z;
+			emitter.Binormal.Z = -emitter.Binormal.Z;
+			emitter.Tangent.Z = -emitter.Tangent.Z;
 		}
 
 		return emitter;
@@ -8779,12 +8990,12 @@ public:
 		emitter.Binormal = v0.Binormal * p0 + v1.Binormal * p1 + v2.Binormal * p2;
 		emitter.Tangent = v0.Tangent * p0 + v1.Tangent * p1 + v2.Tangent * p2;
 
-		if( coordinate == CoordinateSystem::LH )
+		if (coordinate == CoordinateSystem::LH)
 		{
-			emitter.Position.Z = - emitter.Position.Z;
-			emitter.Normal.Z = - emitter.Normal.Z;
-			emitter.Binormal.Z = - emitter.Binormal.Z;
-			emitter.Tangent.Z = - emitter.Tangent.Z;
+			emitter.Position.Z = -emitter.Position.Z;
+			emitter.Normal.Z = -emitter.Normal.Z;
+			emitter.Binormal.Z = -emitter.Binormal.Z;
+			emitter.Tangent.Z = -emitter.Tangent.Z;
 		}
 
 		return emitter;
@@ -8794,11 +9005,11 @@ public:
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
- } 
+} // namespace Effekseer
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-#endif	// __EFFEKSEER_MODEL_H__
+#endif // __EFFEKSEER_MODEL_H__
 
 
 #ifndef	__EFFEKSEER_SOUND_PLAYER_H__
@@ -8866,8 +9077,8 @@ public:
 #endif	// __EFFEKSEER_SOUND_PLAYER_H__
 
 
-#ifndef	__EFFEKSEER_SOUNDLOADER_H__
-#define	__EFFEKSEER_SOUNDLOADER_H__
+#ifndef __EFFEKSEER_SOUNDLOADER_H__
+#define __EFFEKSEER_SOUNDLOADER_H__
 
 //----------------------------------------------------------------------------------
 // Include
@@ -8876,7 +9087,8 @@ public:
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-namespace Effekseer {
+namespace Effekseer
+{
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
@@ -8889,12 +9101,16 @@ public:
 	/**
 		@brief	コンストラクタ
 	*/
-	SoundLoader() {}
+	SoundLoader()
+	{
+	}
 
 	/**
 		@brief	デストラクタ
 	*/
-	virtual ~SoundLoader() {}
+	virtual ~SoundLoader()
+	{
+	}
 
 	/**
 		@brief	サウンドを読み込む。
@@ -8904,7 +9120,10 @@ public:
 		サウンドを読み込む。
 		::Effekseer::Effect::Create実行時に使用される。
 	*/
-	virtual void* Load( const EFK_CHAR* path ) { return NULL; }
+	virtual void* Load(const EFK_CHAR* path)
+	{
+		return NULL;
+	}
 
 	/**
 		@brief
@@ -8920,7 +9139,10 @@ public:
 		\~English	a pointer of loaded texture
 		\~Japanese	読み込まれたサウンドのポインタ
 	*/
-	virtual void* Load(const void* data, int32_t size) { return nullptr; }
+	virtual void* Load(const void* data, int32_t size)
+	{
+		return nullptr;
+	}
 
 	/**
 		@brief	サウンドを破棄する。
@@ -8929,21 +9151,23 @@ public:
 		サウンドを破棄する。
 		::Effekseer::Effectのインスタンスが破棄された時に使用される。
 	*/
-	virtual void Unload( void* source ) {}
+	virtual void Unload(void* source)
+	{
+	}
 };
 
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
- } 
+} // namespace Effekseer
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-#endif	// __EFFEKSEER_SOUNDLOADER_H__
+#endif // __EFFEKSEER_SOUNDLOADER_H__
 
 
-#ifndef	__EFFEKSEER_LOADER_H__
-#define	__EFFEKSEER_LOADER_H__
+#ifndef __EFFEKSEER_LOADER_H__
+#define __EFFEKSEER_LOADER_H__
 
 //----------------------------------------------------------------------------------
 // Include
@@ -8952,7 +9176,8 @@ public:
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-namespace Effekseer { 
+namespace Effekseer
+{
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
@@ -8965,102 +9190,102 @@ class EffectFactory;
 	EffectLoader等、ファイル読み込みに関する設定することができる。
 	Managerの代わりにエフェクト読み込み時に使用することで、Managerとは独立してEffectインスタンスを生成することができる。
 */
-	class Setting
-		: public ReferenceObject
-	{
-	private:
-		//! coordinate system
-		CoordinateSystem		m_coordinateSystem;
+class Setting
+	: public ReferenceObject
+{
+private:
+	//! coordinate system
+	CoordinateSystem m_coordinateSystem;
 
-		EffectLoader*	m_effectLoader;
-		TextureLoader*	m_textureLoader;
-		SoundLoader*	m_soundLoader;
-		ModelLoader*	m_modelLoader;
-		MaterialLoader* m_materialLoader = nullptr;
+	EffectLoader* m_effectLoader;
+	TextureLoader* m_textureLoader;
+	SoundLoader* m_soundLoader;
+	ModelLoader* m_modelLoader;
+	MaterialLoader* m_materialLoader = nullptr;
 
-		std::vector<EffectFactory*> effectFactories;
+	std::vector<EffectFactory*> effectFactories;
 
-	protected:
-		/**
+protected:
+	/**
 			@brief	コンストラクタ
 			*/
-		Setting();
+	Setting();
 
-		/**
+	/**
 			@brief	デストラクタ
 			*/
-		 ~Setting();
-	public:
+	~Setting();
 
-		/**
+public:
+	/**
 			@brief	設定インスタンスを生成する。
 		*/
-		static Setting* Create();
+	static Setting* Create();
 
-		/**
+	/**
 		@brief	座標系を取得する。
 		@return	座標系
 		*/
-		CoordinateSystem GetCoordinateSystem() const;
+	CoordinateSystem GetCoordinateSystem() const;
 
-		/**
+	/**
 		@brief	座標系を設定する。
 		@param	coordinateSystem	[in]	座標系
 		@note
 		座標系を設定する。
 		エフェクトファイルを読み込む前に設定する必要がある。
 		*/
-		void SetCoordinateSystem(CoordinateSystem coordinateSystem);
+	void SetCoordinateSystem(CoordinateSystem coordinateSystem);
 
-		/**
+	/**
 			@brief	エフェクトローダーを取得する。
 			@return	エフェクトローダー
 			*/
-		EffectLoader* GetEffectLoader();
+	EffectLoader* GetEffectLoader();
 
-		/**
+	/**
 			@brief	エフェクトローダーを設定する。
 			@param	loader	[in]		ローダー
 			*/
-		void SetEffectLoader(EffectLoader* loader);
+	void SetEffectLoader(EffectLoader* loader);
 
-		/**
+	/**
 			@brief	テクスチャローダーを取得する。
 			@return	テクスチャローダー
 			*/
-		TextureLoader* GetTextureLoader();
+	TextureLoader* GetTextureLoader();
 
-		/**
+	/**
 			@brief	テクスチャローダーを設定する。
 			@param	loader	[in]		ローダー
 			*/
-		void SetTextureLoader(TextureLoader* loader);
+	void SetTextureLoader(TextureLoader* loader);
 
-		/**
+	/**
 			@brief	モデルローダーを取得する。
 			@return	モデルローダー
 			*/
-		ModelLoader* GetModelLoader();
+	ModelLoader* GetModelLoader();
 
-		/**
+	/**
 			@brief	モデルローダーを設定する。
 			@param	loader	[in]		ローダー
 			*/
-		void SetModelLoader(ModelLoader* loader);
+	void SetModelLoader(ModelLoader* loader);
 
-		/**
+	/**
 			@brief	サウンドローダーを取得する。
 			@return	サウンドローダー
 			*/
-		SoundLoader* GetSoundLoader();
+	SoundLoader* GetSoundLoader();
 
-		/**
+	/**
 			@brief	サウンドローダーを設定する。
 			@param	loader	[in]		ローダー
 			*/
-		void SetSoundLoader(SoundLoader* loader);
+	void SetSoundLoader(SoundLoader* loader);
 
-		/**
+	/**
 			@brief
 			\~English get a material loader
 			\~Japanese マテリアルローダーを取得する。
@@ -9068,9 +9293,9 @@ class EffectFactory;
 			\~English	loader
 			\~Japanese ローダー
 		*/
-		MaterialLoader* GetMaterialLoader();
+	MaterialLoader* GetMaterialLoader();
 
-		/**
+	/**
 			@brief
 			\~English specfiy a material loader
 			\~Japanese マテリアルローダーを設定する。
@@ -9078,51 +9303,51 @@ class EffectFactory;
 			\~English	loader
 			\~Japanese ローダー
 			*/
-		void SetMaterialLoader(MaterialLoader* loader);
+	void SetMaterialLoader(MaterialLoader* loader);
 
-		/**
+	/**
 			@brief
 			\~English	Add effect factory
 			\~Japanese Effect factoryを追加する。
 		*/
-		void AddEffectFactory(EffectFactory* effectFactory);
+	void AddEffectFactory(EffectFactory* effectFactory);
 
-		/**
+	/**
 			@brief
 			\~English	Get effect factory
 			\~Japanese Effect Factoryを取得する。
 		*/
-		EffectFactory* GetEffectFactory(int32_t ind) const;
+	EffectFactory* GetEffectFactory(int32_t ind) const;
 
-		/**
+	/**
 			@brief
 			\~English	clear effect factories
 			\~Japanese 全てのEffect Factoryを削除する。
 		*/
-		void ClearEffectFactory();
+	void ClearEffectFactory();
 
-		/**
+	/**
 			@brief
 			\~English	Get the number of effect factory
 			\~Japanese Effect Factoryの数を取得する。
 		*/
-		int32_t GetEffectFactoryCount() const;
-	};
+	int32_t GetEffectFactoryCount() const;
+};
 
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
- } 
+} // namespace Effekseer
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-#endif	// __EFFEKSEER_LOADER_H__
+#endif // __EFFEKSEER_LOADER_H__
 
 
-#ifndef	__EFFEKSEER_SERVER_H__
-#define	__EFFEKSEER_SERVER_H__
+#ifndef __EFFEKSEER_SERVER_H__
+#define __EFFEKSEER_SERVER_H__
 
-#if !( defined(_PSVITA) || defined(_XBOXONE) )
+#if !(defined(_PSVITA) || defined(_XBOXONE))
 
 //----------------------------------------------------------------------------------
 // Include
@@ -9131,7 +9356,8 @@ class EffectFactory;
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-namespace Effekseer {
+namespace Effekseer
+{
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
@@ -9143,9 +9369,12 @@ namespace Effekseer {
 class Server
 {
 public:
-
-	Server() {}
-	virtual ~Server() {}
+	Server()
+	{
+	}
+	virtual ~Server()
+	{
+	}
 
 	/**
 		@brief
@@ -9159,7 +9388,7 @@ public:
 		\~English	start a server
 		\~Japanese	サーバーを開始する。
 	*/
-	virtual bool Start( uint16_t port ) = 0;
+	virtual bool Start(uint16_t port) = 0;
 
 	/**
 		@brief
@@ -9210,7 +9439,7 @@ public:
 		\~English	Specify root path to load materials
 		\~Japanese	素材のルートパスを設定する。
 	*/
-	virtual void SetMaterialPath( const EFK_CHAR* materialPath ) = 0;
+	virtual void SetMaterialPath(const EFK_CHAR* materialPath) = 0;
 
 	/**
 		@brief
@@ -9230,20 +9459,20 @@ public:
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
- } 
+} // namespace Effekseer
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
 
-#endif	// #if !( defined(_PSVITA) || defined(_XBOXONE) )
+#endif // #if !( defined(_PSVITA) || defined(_XBOXONE) )
 
-#endif	// __EFFEKSEER_SERVER_H__
+#endif // __EFFEKSEER_SERVER_H__
 
 
-#ifndef	__EFFEKSEER_CLIENT_H__
-#define	__EFFEKSEER_CLIENT_H__
+#ifndef __EFFEKSEER_CLIENT_H__
+#define __EFFEKSEER_CLIENT_H__
 
-#if !( defined(_PSVITA) || defined(_PS4) || defined(_SWITCH) || defined(_XBOXONE) )
+#if !(defined(_PSVITA) || defined(_PS4) || defined(_SWITCH) || defined(_XBOXONE))
 
 //----------------------------------------------------------------------------------
 // Include
@@ -9252,35 +9481,40 @@ public:
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-namespace Effekseer {
+namespace Effekseer
+{
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
 class Client
 {
 public:
-	Client() {}
-	virtual ~Client() {}
+	Client()
+	{
+	}
+	virtual ~Client()
+	{
+	}
 
 	static Client* Create();
 
-	virtual bool Start( char* host, uint16_t port ) = 0;
-	virtual void Stop()= 0;
+	virtual bool Start(char* host, uint16_t port) = 0;
+	virtual void Stop() = 0;
 
-	virtual void Reload( const EFK_CHAR* key, void* data, int32_t size ) = 0;
-	virtual void Reload( Manager* manager, const EFK_CHAR* path, const EFK_CHAR* key ) = 0;
+	virtual void Reload(const EFK_CHAR* key, void* data, int32_t size) = 0;
+	virtual void Reload(Manager* manager, const EFK_CHAR* path, const EFK_CHAR* key) = 0;
 	virtual bool IsConnected() = 0;
 };
 
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
- } 
+} // namespace Effekseer
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
 
-#endif	// #if !( defined(_PSVITA) || defined(_PS4) || defined(_SWITCH) || defined(_XBOXONE) )
+#endif // #if !( defined(_PSVITA) || defined(_PS4) || defined(_SWITCH) || defined(_XBOXONE) )
 
-#endif	// __EFFEKSEER_CLIENT_H__
+#endif // __EFFEKSEER_CLIENT_H__
 

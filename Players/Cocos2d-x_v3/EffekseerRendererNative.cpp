@@ -33,8 +33,6 @@ void CalcBillboard(::Effekseer::BillboardType billboardType,
 {
 	auto frontDir = frontDirection;
 
-	assert(abs(frontDir.GetLength() - 1.0f) < 0.0001f);
-
 	if (billboardType == ::Effekseer::BillboardType::Billboard || billboardType == ::Effekseer::BillboardType::RotatedBillboard ||
 		billboardType == ::Effekseer::BillboardType::YAxisFixed)
 	{
@@ -474,12 +472,12 @@ namespace EffekseerRenderer
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
-IndexBufferBase::IndexBufferBase( int maxCount, bool isDynamic )
-	: m_indexMaxCount	( maxCount )
-	, m_indexCount		( 0 )
-	, m_isDynamic		( false )
-	, m_isLock			( false )
-	, m_resource		( NULL )
+IndexBufferBase::IndexBufferBase(int maxCount, bool isDynamic)
+	: m_indexMaxCount(maxCount)
+	, m_indexCount(0)
+	, m_isDynamic(false)
+	, m_isLock(false)
+	, m_resource(NULL)
 {
 }
 
@@ -493,7 +491,7 @@ IndexBufferBase::~IndexBufferBase()
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
-void IndexBufferBase::Push( const void* buffer, int count )
+void IndexBufferBase::Push(const void* buffer, int count)
 {
 	assert(m_isLock);
 	memcpy(GetBufferDirect(count), buffer, count * stride_);
@@ -518,10 +516,10 @@ int IndexBufferBase::GetMaxCount() const
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
-void* IndexBufferBase::GetBufferDirect( int count )
+void* IndexBufferBase::GetBufferDirect(int count)
 {
-	assert( m_isLock );
-	assert( m_indexMaxCount >= m_indexCount + count );
+	assert(m_isLock);
+	assert(m_indexMaxCount >= m_indexCount + count);
 
 	uint8_t* pBuffer = NULL;
 
@@ -534,7 +532,7 @@ void* IndexBufferBase::GetBufferDirect( int count )
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
-}
+} // namespace EffekseerRenderer
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
@@ -563,66 +561,150 @@ namespace EffekseerRenderer
 namespace EffekseerRenderer
 {
 
-Renderer::Renderer() { impl = new Impl(); }
+Renderer::Renderer()
+{
+	impl = new Impl();
+}
 
-Renderer::~Renderer() { ES_SAFE_DELETE(impl); }
+Renderer::~Renderer()
+{
+	ES_SAFE_DELETE(impl);
+}
 
-Renderer::Impl* Renderer::GetImpl() { return impl; }
+Renderer::Impl* Renderer::GetImpl()
+{
+	return impl;
+}
 
-::Effekseer::Vector3D Renderer::GetLightDirection() const { return impl->GetLightDirection(); }
+::Effekseer::Vector3D Renderer::GetLightDirection() const
+{
+	return impl->GetLightDirection();
+}
 
-void Renderer::SetLightDirection(const ::Effekseer::Vector3D& direction) { impl->SetLightDirection(direction); }
+void Renderer::SetLightDirection(const ::Effekseer::Vector3D& direction)
+{
+	impl->SetLightDirection(direction);
+}
 
-const ::Effekseer::Color& Renderer::GetLightColor() const { return impl->GetLightColor(); }
+const ::Effekseer::Color& Renderer::GetLightColor() const
+{
+	return impl->GetLightColor();
+}
 
-void Renderer::SetLightColor(const ::Effekseer::Color& color) { impl->SetLightColor(color); }
+void Renderer::SetLightColor(const ::Effekseer::Color& color)
+{
+	impl->SetLightColor(color);
+}
 
-const ::Effekseer::Color& Renderer::GetLightAmbientColor() const { return impl->GetLightAmbientColor(); }
+const ::Effekseer::Color& Renderer::GetLightAmbientColor() const
+{
+	return impl->GetLightAmbientColor();
+}
 
-void Renderer::SetLightAmbientColor(const ::Effekseer::Color& color) { impl->SetLightAmbientColor(color); }
+void Renderer::SetLightAmbientColor(const ::Effekseer::Color& color)
+{
+	impl->SetLightAmbientColor(color);
+}
 
-::Effekseer::Matrix44 Renderer::GetProjectionMatrix() const { return impl->GetProjectionMatrix(); }
+::Effekseer::Matrix44 Renderer::GetProjectionMatrix() const
+{
+	return impl->GetProjectionMatrix();
+}
 
-void Renderer::SetProjectionMatrix(const ::Effekseer::Matrix44& mat) { impl->SetProjectionMatrix(mat); }
+void Renderer::SetProjectionMatrix(const ::Effekseer::Matrix44& mat)
+{
+	impl->SetProjectionMatrix(mat);
+}
 
-::Effekseer::Matrix44 Renderer::GetCameraMatrix() const { return impl->GetCameraMatrix(); }
+::Effekseer::Matrix44 Renderer::GetCameraMatrix() const
+{
+	return impl->GetCameraMatrix();
+}
 
-void Renderer::SetCameraMatrix(const ::Effekseer::Matrix44& mat) { impl->SetCameraMatrix(mat); }
+void Renderer::SetCameraMatrix(const ::Effekseer::Matrix44& mat)
+{
+	impl->SetCameraMatrix(mat);
+}
 
-::Effekseer::Matrix44 Renderer::GetCameraProjectionMatrix() const { return impl->GetCameraProjectionMatrix(); }
+::Effekseer::Matrix44 Renderer::GetCameraProjectionMatrix() const
+{
+	return impl->GetCameraProjectionMatrix();
+}
 
-::Effekseer::Vector3D Renderer::GetCameraFrontDirection() const { return impl->GetCameraFrontDirection(); }
+::Effekseer::Vector3D Renderer::GetCameraFrontDirection() const
+{
+	return impl->GetCameraFrontDirection();
+}
 
-::Effekseer::Vector3D Renderer::GetCameraPosition() const { return impl->GetCameraPosition(); }
+::Effekseer::Vector3D Renderer::GetCameraPosition() const
+{
+	return impl->GetCameraPosition();
+}
 
 void Renderer::SetCameraParameter(const ::Effekseer::Vector3D& front, const ::Effekseer::Vector3D& position)
 {
 	impl->SetCameraParameter(front, position);
 }
 
-int32_t Renderer::GetDrawCallCount() const { return impl->GetDrawCallCount(); }
+int32_t Renderer::GetDrawCallCount() const
+{
+	return impl->GetDrawCallCount();
+}
 
-int32_t Renderer::GetDrawVertexCount() const { return impl->GetDrawVertexCount(); }
+int32_t Renderer::GetDrawVertexCount() const
+{
+	return impl->GetDrawVertexCount();
+}
 
-void Renderer::ResetDrawCallCount() { impl->ResetDrawCallCount(); }
+void Renderer::ResetDrawCallCount()
+{
+	impl->ResetDrawCallCount();
+}
 
-void Renderer::ResetDrawVertexCount() { impl->ResetDrawVertexCount(); }
+void Renderer::ResetDrawVertexCount()
+{
+	impl->ResetDrawVertexCount();
+}
 
-Effekseer::RenderMode Renderer::GetRenderMode() const { return impl->GetRenderMode(); }
+Effekseer::RenderMode Renderer::GetRenderMode() const
+{
+	return impl->GetRenderMode();
+}
 
-void Renderer::SetRenderMode(Effekseer::RenderMode renderMode) { impl->SetRenderMode(renderMode); }
+void Renderer::SetRenderMode(Effekseer::RenderMode renderMode)
+{
+	impl->SetRenderMode(renderMode);
+}
 
-UVStyle Renderer::GetTextureUVStyle() const { return impl->GetTextureUVStyle(); }
+UVStyle Renderer::GetTextureUVStyle() const
+{
+	return impl->GetTextureUVStyle();
+}
 
-void Renderer::SetTextureUVStyle(UVStyle style) { impl->SetTextureUVStyle(style); }
+void Renderer::SetTextureUVStyle(UVStyle style)
+{
+	impl->SetTextureUVStyle(style);
+}
 
-UVStyle Renderer::GetBackgroundTextureUVStyle() const { return impl->GetBackgroundTextureUVStyle(); }
+UVStyle Renderer::GetBackgroundTextureUVStyle() const
+{
+	return impl->GetBackgroundTextureUVStyle();
+}
 
-void Renderer::SetBackgroundTextureUVStyle(UVStyle style) { impl->SetBackgroundTextureUVStyle(style); }
+void Renderer::SetBackgroundTextureUVStyle(UVStyle style)
+{
+	impl->SetBackgroundTextureUVStyle(style);
+}
 
-float Renderer::GetTime() const { return impl->GetTime(); }
+float Renderer::GetTime() const
+{
+	return impl->GetTime();
+}
 
-void Renderer::SetTime(float time) { impl->SetTime(time); }
+void Renderer::SetTime(float time)
+{
+	impl->SetTime(time);
+}
 
 void Renderer::SetBackgroundTexture(::Effekseer::TextureData* textureData)
 {
@@ -635,55 +717,105 @@ void Renderer::SetBackgroundTexture(::Effekseer::TextureData* textureData)
 namespace EffekseerRenderer
 {
 
-::Effekseer::Vector3D Renderer::Impl::GetLightDirection() const {return ToStruct(lightDirection_); }
-
-void Renderer::Impl::SetLightDirection(const ::Effekseer::Vector3D& direction) { lightDirection_ = direction; }
-
-const ::Effekseer::Color& Renderer::Impl::GetLightColor() const { return lightColor_; }
-
-void Renderer::Impl::SetLightColor(const ::Effekseer::Color& color) { lightColor_ = color; }
-
-const ::Effekseer::Color& Renderer::Impl::GetLightAmbientColor() const { return lightAmbient_; }
-
-void Renderer::Impl::SetLightAmbientColor(const ::Effekseer::Color& color) { lightAmbient_ = color; }
-
-void Renderer::Impl::CalculateCameraProjectionMatrix() { cameraProjMat_ = cameraMat_ * projectionMat_; }
-
-::Effekseer::Matrix44 Renderer::Impl::GetProjectionMatrix() const { return ToStruct(projectionMat_); }
-
-void Renderer::Impl::SetProjectionMatrix(const ::Effekseer::Matrix44& mat) { projectionMat_ = mat; }
-
-::Effekseer::Matrix44 Renderer::Impl::GetCameraMatrix() const { return ToStruct(cameraMat_); }
-
-void Renderer::Impl::SetCameraMatrix(const ::Effekseer::Matrix44& mat)
+void Renderer::Impl::SetCameraParameterInternal(const ::Effekseer::Vec3f& front, const ::Effekseer::Vec3f& position)
 {
-	cameraFrontDirection_ = ::Effekseer::Vec3f(mat.Values[0][2], mat.Values[1][2], mat.Values[2][2]);
-
-	auto localPos = ::Effekseer::Vec3f(-mat.Values[3][0], -mat.Values[3][1], -mat.Values[3][2]);
-	auto f = cameraFrontDirection_;
-	auto r = ::Effekseer::Vec3f(mat.Values[0][0], mat.Values[1][0], mat.Values[2][0]);
-	auto u = ::Effekseer::Vec3f(mat.Values[0][1], mat.Values[1][1], mat.Values[2][1]);
-
-	cameraPosition_ = r * localPos.GetX() + u * localPos.GetY() + f * localPos.GetZ();
-
-	// To optimize particle, cameraFontDirection_ is normalized
-	cameraFrontDirection_ = cameraFrontDirection_.NormalizePrecisely();
-	cameraMat_ = mat;
-}
-
-::Effekseer::Matrix44 Renderer::Impl::GetCameraProjectionMatrix() const { return ToStruct(cameraProjMat_); }
-
-::Effekseer::Vector3D Renderer::Impl::GetCameraFrontDirection() const { return ToStruct(cameraFrontDirection_); }
-
-::Effekseer::Vector3D Renderer::Impl::GetCameraPosition() const { return ToStruct(cameraPosition_); }
-
-void Renderer::Impl::SetCameraParameter(const ::Effekseer::Vector3D& front, const ::Effekseer::Vector3D& position)
-{
-	cameraFrontDirection_ = front;
 	cameraPosition_ = position;
 
 	// To optimize particle, cameraFontDirection_ is normalized
-	cameraFrontDirection_ = cameraFrontDirection_.NormalizePrecisely();
+	const auto length = front.GetLength();
+	const auto eps = 0.0001f;
+	if (length > eps)
+	{
+		cameraFrontDirection_ = front / length;
+	}
+	else
+	{
+		std::cout << "Warning : cameraFrontDirection is too small." << std::endl;
+		cameraFrontDirection_ = ::Effekseer::Vec3f{0.0f, 0.0f, 1.0f};
+	}
+}
+
+::Effekseer::Vector3D Renderer::Impl::GetLightDirection() const
+{
+	return ToStruct(lightDirection_);
+}
+
+void Renderer::Impl::SetLightDirection(const ::Effekseer::Vector3D& direction)
+{
+	lightDirection_ = direction;
+}
+
+const ::Effekseer::Color& Renderer::Impl::GetLightColor() const
+{
+	return lightColor_;
+}
+
+void Renderer::Impl::SetLightColor(const ::Effekseer::Color& color)
+{
+	lightColor_ = color;
+}
+
+const ::Effekseer::Color& Renderer::Impl::GetLightAmbientColor() const
+{
+	return lightAmbient_;
+}
+
+void Renderer::Impl::SetLightAmbientColor(const ::Effekseer::Color& color)
+{
+	lightAmbient_ = color;
+}
+
+void Renderer::Impl::CalculateCameraProjectionMatrix()
+{
+	cameraProjMat_ = cameraMat_ * projectionMat_;
+}
+
+::Effekseer::Matrix44 Renderer::Impl::GetProjectionMatrix() const
+{
+	return ToStruct(projectionMat_);
+}
+
+void Renderer::Impl::SetProjectionMatrix(const ::Effekseer::Matrix44& mat)
+{
+	projectionMat_ = mat;
+}
+
+::Effekseer::Matrix44 Renderer::Impl::GetCameraMatrix() const
+{
+	return ToStruct(cameraMat_);
+}
+
+void Renderer::Impl::SetCameraMatrix(const ::Effekseer::Matrix44& mat)
+{
+	const auto f = ::Effekseer::Vec3f(mat.Values[0][2], mat.Values[1][2], mat.Values[2][2]);
+	const auto r = ::Effekseer::Vec3f(mat.Values[0][0], mat.Values[1][0], mat.Values[2][0]);
+	const auto u = ::Effekseer::Vec3f(mat.Values[0][1], mat.Values[1][1], mat.Values[2][1]);
+	const auto localPos = ::Effekseer::Vec3f(-mat.Values[3][0], -mat.Values[3][1], -mat.Values[3][2]);
+
+	const auto cameraPosition = r * localPos.GetX() + u * localPos.GetY() + f * localPos.GetZ();
+
+	SetCameraParameterInternal(f, cameraPosition);
+	cameraMat_ = mat;
+}
+
+::Effekseer::Matrix44 Renderer::Impl::GetCameraProjectionMatrix() const
+{
+	return ToStruct(cameraProjMat_);
+}
+
+::Effekseer::Vector3D Renderer::Impl::GetCameraFrontDirection() const
+{
+	return ToStruct(cameraFrontDirection_);
+}
+
+::Effekseer::Vector3D Renderer::Impl::GetCameraPosition() const
+{
+	return ToStruct(cameraPosition_);
+}
+
+void Renderer::Impl::SetCameraParameter(const ::Effekseer::Vector3D& front, const ::Effekseer::Vector3D& position)
+{
+	SetCameraParameterInternal(front, position);
 }
 
 void Renderer::Impl::CreateProxyTextures(Renderer* renderer)
@@ -709,25 +841,55 @@ void Renderer::Impl::DeleteProxyTextures(Renderer* renderer)
 	return nullptr;
 }
 
-UVStyle Renderer::Impl::GetTextureUVStyle() const { return textureUVStyle; }
+UVStyle Renderer::Impl::GetTextureUVStyle() const
+{
+	return textureUVStyle;
+}
 
-void Renderer::Impl::SetTextureUVStyle(UVStyle style) { textureUVStyle = style; }
+void Renderer::Impl::SetTextureUVStyle(UVStyle style)
+{
+	textureUVStyle = style;
+}
 
-UVStyle Renderer::Impl::GetBackgroundTextureUVStyle() const { return backgroundTextureUVStyle; }
+UVStyle Renderer::Impl::GetBackgroundTextureUVStyle() const
+{
+	return backgroundTextureUVStyle;
+}
 
-void Renderer::Impl::SetBackgroundTextureUVStyle(UVStyle style) { backgroundTextureUVStyle = style; }
+void Renderer::Impl::SetBackgroundTextureUVStyle(UVStyle style)
+{
+	backgroundTextureUVStyle = style;
+}
 
-int32_t Renderer::Impl::GetDrawCallCount() const { return drawcallCount; }
+int32_t Renderer::Impl::GetDrawCallCount() const
+{
+	return drawcallCount;
+}
 
-int32_t Renderer::Impl::GetDrawVertexCount() const { return drawvertexCount; }
+int32_t Renderer::Impl::GetDrawVertexCount() const
+{
+	return drawvertexCount;
+}
 
-void Renderer::Impl::ResetDrawCallCount() { drawcallCount = 0; }
+void Renderer::Impl::ResetDrawCallCount()
+{
+	drawcallCount = 0;
+}
 
-void Renderer::Impl::ResetDrawVertexCount() { drawvertexCount = 0; }
+void Renderer::Impl::ResetDrawVertexCount()
+{
+	drawvertexCount = 0;
+}
 
-float Renderer::Impl::GetTime() const { return time_; }
+float Renderer::Impl::GetTime() const
+{
+	return time_;
+}
 
-void Renderer::Impl::SetTime(float time) { time_ = time; }
+void Renderer::Impl::SetTime(float time)
+{
+	time_ = time;
+}
 
 Effekseer::RenderMode Renderer::Impl::GetRenderMode() const
 {
@@ -740,7 +902,10 @@ Effekseer::RenderMode Renderer::Impl::GetRenderMode() const
 	return renderMode_;
 }
 
-void Renderer::Impl::SetRenderMode(Effekseer::RenderMode renderMode) { renderMode_ = renderMode; }
+void Renderer::Impl::SetRenderMode(Effekseer::RenderMode renderMode)
+{
+	renderMode_ = renderMode;
+}
 
 } // namespace EffekseerRenderer
 
@@ -778,7 +943,7 @@ void RenderStateBase::State::Reset()
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
-void RenderStateBase::State::CopyTo( State& state )
+void RenderStateBase::State::CopyTo(State& state)
 {
 	state.DepthTest = DepthTest;
 	state.DepthWrite = DepthWrite;
@@ -809,8 +974,8 @@ RenderStateBase::~RenderStateBase()
 RenderStateBase::State& RenderStateBase::Push()
 {
 	State newState;
-	m_next.CopyTo( newState );
-	m_stateStack.push( m_next );
+	m_next.CopyTo(newState);
+	m_stateStack.push(m_next);
 	m_next = newState;
 	return m_next;
 }
@@ -820,7 +985,7 @@ RenderStateBase::State& RenderStateBase::Push()
 //-----------------------------------------------------------------------------------
 void RenderStateBase::Pop()
 {
-	assert( !m_stateStack.empty() );
+	assert(!m_stateStack.empty());
 
 	State top = m_stateStack.top();
 	m_stateStack.pop();
@@ -839,7 +1004,7 @@ RenderStateBase::State& RenderStateBase::GetActiveState()
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
-}
+} // namespace EffekseerRenderer
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
@@ -880,7 +1045,7 @@ namespace EffekseerRenderer
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-}
+} // namespace EffekseerRenderer
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
@@ -902,7 +1067,7 @@ namespace EffekseerRenderer
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-}
+} // namespace EffekseerRenderer
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
@@ -924,7 +1089,7 @@ namespace EffekseerRenderer
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-}
+} // namespace EffekseerRenderer
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
@@ -942,12 +1107,12 @@ namespace EffekseerRenderer
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
-VertexBufferBase::VertexBufferBase( int size, bool isDynamic )
-	: m_isDynamic		( isDynamic )
-	, m_size			( size )
-	, m_offset			( 0 )
-	, m_resource		( NULL )
-	, m_isLock			( false )
+VertexBufferBase::VertexBufferBase(int size, bool isDynamic)
+	: m_isDynamic(isDynamic)
+	, m_size(size)
+	, m_offset(0)
+	, m_resource(NULL)
+	, m_isLock(false)
 {
 }
 
@@ -961,10 +1126,10 @@ VertexBufferBase::~VertexBufferBase()
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
-void VertexBufferBase::Push( const void* buffer, int size )
+void VertexBufferBase::Push(const void* buffer, int size)
 {
-	assert( m_isLock );
-	memcpy( GetBufferDirect( size ), buffer, size );
+	assert(m_isLock);
+	memcpy(GetBufferDirect(size), buffer, size);
 }
 
 //-----------------------------------------------------------------------------------
@@ -986,30 +1151,31 @@ int VertexBufferBase::GetSize() const
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
-void* VertexBufferBase::GetBufferDirect( int size )
+void* VertexBufferBase::GetBufferDirect(int size)
 {
-	assert( m_isLock );
-	if( m_offset + size > m_size ) return NULL;
+	assert(m_isLock);
+	if (m_offset + size > m_size)
+		return NULL;
 
 	void* pBuffer = NULL;
 
 	// バッファに追記
 	pBuffer = m_resource + m_offset;
 	m_offset += size;
-	
+
 	return pBuffer;
 }
 
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
-}
-//-----------------------------------------------------------------------------------
-//
-//-----------------------------------------------------------------------------------
+} // namespace EffekseerRenderer
+  //-----------------------------------------------------------------------------------
+  //
+  //-----------------------------------------------------------------------------------
 
-#ifndef	__EFFEKSEERRENDERER_GL_BASE_H__
-#define	__EFFEKSEERRENDERER_GL_BASE_H__
+#ifndef __EFFEKSEERRENDERER_GL_BASE_H__
+#define __EFFEKSEERRENDERER_GL_BASE_H__
 
 //----------------------------------------------------------------------------------
 // Include
@@ -1052,13 +1218,27 @@ class TextureLoader;
 #if _WIN32
 #pragma comment(lib, "glu32.lib")
 #ifndef NDEBUG
-#define GLCheckError()		{ int __code = glGetError(); if(__code != GL_NO_ERROR) { printf("GLError filename = %s , line = %d, error = %s\n", __FILE__, __LINE__, (const char*)gluErrorString(__code) ); }  }
+#define GLCheckError()                                                                                                          \
+	{                                                                                                                           \
+		int __code = glGetError();                                                                                              \
+		if (__code != GL_NO_ERROR)                                                                                              \
+		{                                                                                                                       \
+			printf("GLError filename = %s , line = %d, error = %s\n", __FILE__, __LINE__, (const char*)gluErrorString(__code)); \
+		}                                                                                                                       \
+	}
 #else
 #define GLCheckError()
 #endif
 #elif EMSCRIPTEN
 #ifndef NDEBUG
-#define GLCheckError()		{ int __code = glGetError(); if(__code != GL_NO_ERROR) { EM_ASM_ARGS({console.log("GLError filename = " + Pointer_stringify($0) + " , line = " + $1);}, __FILE__, __LINE__); } }
+#define GLCheckError()                                                                                                            \
+	{                                                                                                                             \
+		int __code = glGetError();                                                                                                \
+		if (__code != GL_NO_ERROR)                                                                                                \
+		{                                                                                                                         \
+			EM_ASM_ARGS({ console.log("GLError filename = " + Pointer_stringify($0) + " , line = " + $1); }, __FILE__, __LINE__); \
+		}                                                                                                                         \
+	}
 #else
 #define GLCheckError()
 #endif
@@ -1069,11 +1249,11 @@ class TextureLoader;
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-}
+} // namespace EffekseerRendererGL
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-#endif	// __EFFEKSEERRENDERER_GL_BASE_H__
+#endif // __EFFEKSEERRENDERER_GL_BASE_H__
 
 #ifndef __EFFEKSEERRENDERER_GL_DEVICEOBJECT_H__
 #define __EFFEKSEERRENDERER_GL_DEVICEOBJECT_H__
@@ -1109,8 +1289,8 @@ public:
 
 #endif // __EFFEKSEERRENDERER_GL_DEVICEOBJECT_H__
 
-#ifndef	__EFFEKSEERRENDERER_GL_GLEXTENSION_H__
-#define	__EFFEKSEERRENDERER_GL_GLEXTENSION_H__
+#ifndef __EFFEKSEERRENDERER_GL_GLEXTENSION_H__
+#define __EFFEKSEERRENDERER_GL_GLEXTENSION_H__
 
 //----------------------------------------------------------------------------------
 // Include
@@ -1118,10 +1298,13 @@ public:
 #if _WIN32
 #endif
 
+#if _WIN32
+#endif
+
 #ifdef EMSCRIPTEN
-#define		GL_GLEXT_PROTOTYPES
-#define		EGL_EGLEXT_PROTOTYPES
-#endif	// EMSCRIPTEN
+#define GL_GLEXT_PROTOTYPES
+#define EGL_EGLEXT_PROTOTYPES
+#endif // EMSCRIPTEN
 
 
 //-----------------------------------------------------------------------------------
@@ -1197,21 +1380,21 @@ void glBindBuffer(GLenum target, GLuint buffer);
 void glGenBuffers(GLsizei n, GLuint* buffers);
 void glBufferData(GLenum target, GLsizeiptr size, const GLvoid* data, GLenum usage);
 void glBlendEquationSeparate(GLenum modeRGB, GLenum modeAlpha);
-void glBlendFuncSeparate (GLenum sfactorRGB, GLenum dfactorRGB, GLenum sfactorAlpha, GLenum dfactorAlpha);
-void glBlendEquation (GLenum mode);
-void glActiveTexture (GLenum texture);
+void glBlendFuncSeparate(GLenum sfactorRGB, GLenum dfactorRGB, GLenum sfactorAlpha, GLenum dfactorAlpha);
+void glBlendEquation(GLenum mode);
+void glActiveTexture(GLenum texture);
 void glUniform1i(GLint location, GLint v0);
-void glShaderSource (GLuint shader, GLsizei count, const GLchar** strings, const GLint* lengths);
+void glShaderSource(GLuint shader, GLsizei count, const GLchar** strings, const GLint* lengths);
 void glCompileShader(GLuint shader);
-void glGetShaderiv (GLuint shader, GLenum pname, GLint* param);
-GLuint glCreateProgram (void);
+void glGetShaderiv(GLuint shader, GLenum pname, GLint* param);
+GLuint glCreateProgram(void);
 void glAttachShader(GLuint program, GLuint shader);
 void glDeleteProgram(GLuint program);
 void glDeleteShader(GLuint shader);
-void glLinkProgram (GLuint program);
+void glLinkProgram(GLuint program);
 void glGetProgramiv(GLuint program, GLenum pname, GLint* param);
-void glGetShaderInfoLog (GLuint shader, GLsizei bufSize, GLsizei* length, GLchar* infoLog);
-void glGetProgramInfoLog (GLuint program, GLsizei bufSize, GLsizei* length, GLchar* infoLog);
+void glGetShaderInfoLog(GLuint shader, GLsizei bufSize, GLsizei* length, GLchar* infoLog);
+void glGetProgramInfoLog(GLuint program, GLsizei bufSize, GLsizei* length, GLchar* infoLog);
 GLint glGetAttribLocation(GLuint program, const GLchar* name);
 GLint glGetUniformLocation(GLuint program, const GLchar* name);
 void glUseProgram(GLuint program);
@@ -1223,12 +1406,12 @@ void glUniform4fv(GLint location, GLsizei count, const GLfloat* value);
 void glGenerateMipmap(GLenum target);
 void glBufferSubData(GLenum target, GLintptr offset, GLsizeiptr size, const GLvoid* data);
 
-void glGenVertexArrays(GLsizei n, GLuint *arrays);
-void glDeleteVertexArrays(GLsizei n, const GLuint *arrays);
+void glGenVertexArrays(GLsizei n, GLuint* arrays);
+void glDeleteVertexArrays(GLsizei n, const GLuint* arrays);
 void glBindVertexArray(GLuint array);
 
-void glGenSamplers(GLsizei n, GLuint *samplers);
-void glDeleteSamplers(GLsizei n, const GLuint * samplers);
+void glGenSamplers(GLsizei n, GLuint* samplers);
+void glDeleteSamplers(GLsizei n, const GLuint* samplers);
 void glSamplerParameteri(GLuint sampler, GLenum pname, GLint param);
 void glBindSampler(GLuint unit, GLuint sampler);
 
@@ -1236,17 +1419,17 @@ void* glMapBuffer(GLenum target, GLenum access);
 void* glMapBufferRange(GLenum target, GLintptr offset, GLsizeiptr length, GLbitfield access);
 GLboolean glUnmapBuffer(GLenum target);
 
-void glCompressedTexImage2D(GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLint border, GLsizei imageSize, const void *data);
+void glCompressedTexImage2D(GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLint border, GLsizei imageSize, const void* data);
 
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-}
-}
+} // namespace GLExt
+} // namespace EffekseerRendererGL
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-#endif	// __EFFEKSEERRENDERER_GL_GLEXTENSION_H__
+#endif // __EFFEKSEERRENDERER_GL_GLEXTENSION_H__
 
 
 
@@ -1264,12 +1447,12 @@ namespace EffekseerRendererGL
 //
 //-----------------------------------------------------------------------------------
 class IndexBuffer
-	: public DeviceObject
-	, public ::EffekseerRenderer::IndexBufferBase
+	: public DeviceObject,
+	  public ::EffekseerRenderer::IndexBufferBase
 {
 private:
-	GLuint					m_buffer;
-	
+	GLuint m_buffer;
+
 	IndexBuffer(RendererImplemented* renderer, GLuint buffer, int maxCount, bool isDynamic, int32_t stride, bool hasRefCount);
 
 public:
@@ -1277,9 +1460,12 @@ public:
 
 	static IndexBuffer* Create(RendererImplemented* renderer, int maxCount, bool isDynamic, int32_t stride, bool hasRefCount);
 
-	GLuint GetInterface() { return m_buffer; }
+	GLuint GetInterface()
+	{
+		return m_buffer;
+	}
 
-public:	// デバイス復旧用
+public: // デバイス復旧用
 	virtual void OnLostDevice() override;
 	virtual void OnResetDevice() override;
 
@@ -1289,20 +1475,23 @@ public:
 
 	bool IsValid();
 
-	int32_t GetStride() const { return stride_; }
+	int32_t GetStride() const
+	{
+		return stride_;
+	}
 };
 
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
-}
+} // namespace EffekseerRendererGL
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
 
 
-#ifndef	__EFFEKSEERRENDERER_GL_MODEL_RENDERER_H__
-#define	__EFFEKSEERRENDERER_GL_MODEL_RENDERER_H__
+#ifndef __EFFEKSEERRENDERER_GL_MODEL_RENDERER_H__
+#define __EFFEKSEERRENDERER_GL_MODEL_RENDERER_H__
 
 //----------------------------------------------------------------------------------
 // Include
@@ -1367,45 +1556,45 @@ public:
 	static const int32_t MaxInstanced = 20;
 
 private:
-	RendererImplemented*				m_renderer;
+	RendererImplemented* m_renderer;
 
-	Shader*								m_shader_lighting_texture_normal;
-	Shader*								m_shader_texture;
-	Shader*								m_shader_distortion_texture;
+	Shader* m_shader_lighting_texture_normal;
+	Shader* m_shader_texture;
+	Shader* m_shader_distortion_texture;
 
-	GLint								m_uniformLoc[8][NumUniforms];
+	GLint m_uniformLoc[8][NumUniforms];
 
-	VertexArray*						m_va[8];
+	VertexArray* m_va[8];
 
 	ModelRenderer(
 		RendererImplemented* renderer,
 		Shader* shader_lighting_texture_normal,
 		Shader* shader_texture,
 		Shader* shader_distortion_texture);
-public:
 
+public:
 	virtual ~ModelRenderer();
 
-	static ModelRenderer* Create( RendererImplemented* renderer );
+	static ModelRenderer* Create(RendererImplemented* renderer);
 
 public:
 	void BeginRendering(const efkModelNodeParam& parameter, int32_t count, void* userData) override;
 
 	virtual void Rendering(const efkModelNodeParam& parameter, const InstanceParameter& instanceParameter, void* userData) override;
 
-	void EndRendering( const efkModelNodeParam& parameter, void* userData ) override;
+	void EndRendering(const efkModelNodeParam& parameter, void* userData) override;
 };
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-}
+} // namespace EffekseerRendererGL
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-#endif	// __EFFEKSEERRENDERER_GL_MODEL_RENDERER_H__
+#endif // __EFFEKSEERRENDERER_GL_MODEL_RENDERER_H__
 
-#ifndef	__EFFEKSEERRENDERER_GL_RENDERER_IMPLEMENTED_H__
-#define	__EFFEKSEERRENDERER_GL_RENDERER_IMPLEMENTED_H__
+#ifndef __EFFEKSEERRENDERER_GL_RENDERER_IMPLEMENTED_H__
+#define __EFFEKSEERRENDERER_GL_RENDERER_IMPLEMENTED_H__
 
 //----------------------------------------------------------------------------------
 // Include
@@ -1419,17 +1608,17 @@ using VertexDistortion = EffekseerRenderer::VertexDistortion;
 
 struct RenderStateSet
 {
-	GLboolean	blend;
-	GLboolean	cullFace;
-	GLboolean	depthTest;
-	GLboolean	depthWrite;
-	GLboolean	texture;
-	GLint		depthFunc;
-	GLint		cullFaceMode;
-	GLint		blendSrc;
-	GLint		blendDst;
-	GLint		blendEquation;
-	GLint		vao;
+	GLboolean blend;
+	GLboolean cullFace;
+	GLboolean depthTest;
+	GLboolean depthWrite;
+	GLboolean texture;
+	GLint depthFunc;
+	GLint cullFaceMode;
+	GLint blendSrc;
+	GLint blendDst;
+	GLint blendEquation;
+	GLint vao;
 	GLint arrayBufferBinding;
 	GLint elementArrayBufferBinding;
 	std::array<GLint, ::Effekseer::TextureSlotMax> boundTextures;
@@ -1441,18 +1630,18 @@ struct RenderStateSet
 	ツール向けの描画機能。
 */
 class RendererImplemented
-	: public Renderer
-	, public ::Effekseer::ReferenceObject
+	: public Renderer,
+	  public ::Effekseer::ReferenceObject
 {
-friend class DeviceObject;
+	friend class DeviceObject;
 
 private:
 	DeviceObjectCollection* deviceObjectCollection_ = nullptr;
 
-	VertexBuffer*		m_vertexBuffer;
-	IndexBuffer*		m_indexBuffer = nullptr;
-	IndexBuffer*		m_indexBufferForWireframe = nullptr;
-	int32_t				m_squareMaxCount;
+	VertexBuffer* m_vertexBuffer;
+	IndexBuffer* m_indexBuffer = nullptr;
+	IndexBuffer* m_indexBufferForWireframe = nullptr;
+	int32_t m_squareMaxCount;
 
 	Shader* m_shader = nullptr;
 	Shader* m_shader_distortion = nullptr;
@@ -1469,26 +1658,26 @@ private:
 	//! default vao (alsmot for material)
 	GLuint defaultVertexArray_ = 0;
 
-	::EffekseerRenderer::RenderStateBase*		m_renderState;
+	::EffekseerRenderer::RenderStateBase* m_renderState;
 
-	Effekseer::TextureData	m_background;
+	Effekseer::TextureData m_background;
 
-	OpenGLDeviceType		m_deviceType;
+	OpenGLDeviceType m_deviceType;
 
 	// for restoring states
 	RenderStateSet m_originalState;
 
-	bool	m_restorationOfStates;
+	bool m_restorationOfStates;
 
 	EffekseerRenderer::DistortingCallback* m_distortingCallback;
 
 	// textures which are specified currently
 	std::vector<::Effekseer::TextureData> currentTextures_;
 
-	VertexArray*	m_currentVertexArray;
+	VertexArray* m_currentVertexArray;
 
 	int32_t indexBufferStride_ = 2;
-	
+
 	int32_t indexBufferCurrentStride_ = 0;
 
 	//! because gleDrawElements has only index offset
@@ -1536,7 +1725,7 @@ public:
 	void SetSquareMaxCount(int32_t count) override;
 
 	::EffekseerRenderer::RenderStateBase* GetRenderState();
-	
+
 	/**
 		@brief	スプライトレンダラーを生成する。
 	*/
@@ -1546,12 +1735,12 @@ public:
 		@brief	リボンレンダラーを生成する。
 	*/
 	::Effekseer::RibbonRenderer* CreateRibbonRenderer() override;
-	
+
 	/**
 		@brief	リングレンダラーを生成する。
 	*/
 	::Effekseer::RingRenderer* CreateRingRenderer() override;
-	
+
 	/**
 		@brief	モデルレンダラーを生成する。
 	*/
@@ -1565,21 +1754,22 @@ public:
 	/**
 		@brief	テクスチャ読込クラスを生成する。
 	*/
-	::Effekseer::TextureLoader* CreateTextureLoader( ::Effekseer::FileInterface* fileInterface = NULL )override;
-	
+	::Effekseer::TextureLoader* CreateTextureLoader(::Effekseer::FileInterface* fileInterface = NULL) override;
+
 	/**
 		@brief	モデル読込クラスを生成する。
 	*/
-	::Effekseer::ModelLoader* CreateModelLoader( ::Effekseer::FileInterface* fileInterface = NULL )override;
+	::Effekseer::ModelLoader* CreateModelLoader(::Effekseer::FileInterface* fileInterface = NULL) override;
 
 	::Effekseer::MaterialLoader* CreateMaterialLoader(::Effekseer::FileInterface* fileInterface = nullptr) override;
 
 	/**
 	@brief	背景を取得する。
 	*/
-	Effekseer::TextureData* GetBackground() override 
+	Effekseer::TextureData* GetBackground() override
 	{
-		if (m_background.UserID == 0) return nullptr;
+		if (m_background.UserID == 0)
+			return nullptr;
 		return &m_background;
 	}
 
@@ -1597,15 +1787,15 @@ public:
 		return m_standardRenderer;
 	}
 
-	void SetVertexBuffer( VertexBuffer* vertexBuffer, int32_t size );
+	void SetVertexBuffer(VertexBuffer* vertexBuffer, int32_t size);
 	void SetVertexBuffer(GLuint vertexBuffer, int32_t size);
-	void SetIndexBuffer( IndexBuffer* indexBuffer );
+	void SetIndexBuffer(IndexBuffer* indexBuffer);
 	void SetIndexBuffer(GLuint indexBuffer);
-	void SetVertexArray( VertexArray* vertexArray );
+	void SetVertexArray(VertexArray* vertexArray);
 
 	void SetLayout(Shader* shader);
-	void DrawSprites( int32_t spriteCount, int32_t vertexOffset );
-	void DrawPolygon( int32_t vertexCount, int32_t indexCount);
+	void DrawSprites(int32_t spriteCount, int32_t vertexOffset);
+	void DrawPolygon(int32_t vertexCount, int32_t indexCount);
 
 	Shader* GetShader(bool useTexture, ::Effekseer::RendererMaterialType materialType) const;
 	void BeginShader(Shader* shader);
@@ -1623,17 +1813,35 @@ public:
 
 	void DeleteProxyTexture(Effekseer::TextureData* data) override;
 
-	const std::vector<::Effekseer::TextureData>& GetCurrentTextures() const { return currentTextures_; }
+	const std::vector<::Effekseer::TextureData>& GetCurrentTextures() const
+	{
+		return currentTextures_;
+	}
 
-	OpenGLDeviceType GetDeviceType() const override { return m_deviceType; }
+	OpenGLDeviceType GetDeviceType() const override
+	{
+		return m_deviceType;
+	}
 
 	bool IsVertexArrayObjectSupported() const override;
 
-	DeviceObjectCollection* GetDeviceObjectCollection() const { return deviceObjectCollection_; }
+	DeviceObjectCollection* GetDeviceObjectCollection() const
+	{
+		return deviceObjectCollection_;
+	}
 
-	virtual int GetRef() override { return ::Effekseer::ReferenceObject::GetRef(); }
-	virtual int AddRef() override { return ::Effekseer::ReferenceObject::AddRef(); }
-	virtual int Release() override { return ::Effekseer::ReferenceObject::Release(); }
+	virtual int GetRef() override
+	{
+		return ::Effekseer::ReferenceObject::GetRef();
+	}
+	virtual int AddRef() override
+	{
+		return ::Effekseer::ReferenceObject::AddRef();
+	}
+	virtual int Release() override
+	{
+		return ::Effekseer::ReferenceObject::Release();
+	}
 
 private:
 	void GenerateIndexData();
@@ -1645,15 +1853,15 @@ private:
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-}
+} // namespace EffekseerRendererGL
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-#endif	// __EFFEKSEERRENDERER_GL_RENDERER_IMPLEMENTED_H__
+#endif // __EFFEKSEERRENDERER_GL_RENDERER_IMPLEMENTED_H__
 
 
-#ifndef	__EFFEKSEERRENDERER_GL_RENDERSTATE_H__
-#define	__EFFEKSEERRENDERER_GL_RENDERSTATE_H__
+#ifndef __EFFEKSEERRENDERER_GL_RENDERSTATE_H__
+#define __EFFEKSEERRENDERER_GL_RENDERSTATE_H__
 
 //----------------------------------------------------------------------------------
 // Include
@@ -1671,30 +1879,29 @@ class RenderState
 	: public ::EffekseerRenderer::RenderStateBase
 {
 private:
-	RendererImplemented*	m_renderer;
-	bool					m_isCCW = true;
+	RendererImplemented* m_renderer;
+	bool m_isCCW = true;
 
 	std::array<GLuint, Effekseer::TextureSlotMax> m_samplers;
 
-
 public:
-	RenderState( RendererImplemented* renderer );
+	RenderState(RendererImplemented* renderer);
 	virtual ~RenderState();
 
-	void Update( bool forced );
+	void Update(bool forced);
 };
 
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
-}
+} // namespace EffekseerRendererGL
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
-#endif	// __EFFEKSEERRENDERER_GL_RENDERSTATE_H__
+#endif // __EFFEKSEERRENDERER_GL_RENDERSTATE_H__
 
-#ifndef	__EFFEKSEERRENDERER_GL_SHADER_H__
-#define	__EFFEKSEERRENDERER_GL_SHADER_H__
+#ifndef __EFFEKSEERRENDERER_GL_SHADER_H__
+#define __EFFEKSEERRENDERER_GL_SHADER_H__
 
 //----------------------------------------------------------------------------------
 // Include
@@ -1717,16 +1924,16 @@ namespace EffekseerRendererGL
 //----------------------------------------------------------------------------------
 struct ShaderAttribInfo
 {
-	const char*	name;
-	GLenum		type;
-	uint16_t	count;
-	uint16_t	offset;
-	bool		normalized;
+	const char* name;
+	GLenum type;
+	uint16_t count;
+	uint16_t offset;
+	bool normalized;
 };
 
 struct ShaderUniformInfo
 {
-	const char*	name;
+	const char* name;
 };
 
 enum eConstantType
@@ -1744,62 +1951,62 @@ enum eConstantType
 //
 //----------------------------------------------------------------------------------
 class Shader
-	: public DeviceObject
-	, public ::EffekseerRenderer::ShaderBase
+	: public DeviceObject,
+	  public ::EffekseerRenderer::ShaderBase
 {
 private:
 	struct Layout
 	{
-		GLenum		type;
-		uint16_t	count;
-		uint16_t	offset;
-		bool		normalized;
+		GLenum type;
+		uint16_t count;
+		uint16_t offset;
+		bool normalized;
 	};
 
 	struct ShaderAttribInfoInternal
 	{
-		std::string	name;
-		GLenum		type;
-		uint16_t	count;
-		uint16_t	offset;
-		bool		normalized;
+		std::string name;
+		GLenum type;
+		uint16_t count;
+		uint16_t offset;
+		bool normalized;
 	};
 
 	struct ShaderUniformInfoInternal
 	{
-		std::string	name;
+		std::string name;
 	};
 
 	struct ConstantLayout
 	{
-		eConstantType	Type;
-		GLint			ID;
-		int32_t			Offset;
+		eConstantType Type;
+		GLint ID;
+		int32_t Offset;
 	};
 
 	OpenGLDeviceType deviceType_;
 	GLuint m_program;
 
-	std::vector<GLint>		m_aid;
-	std::vector<Layout>		m_layout;
+	std::vector<GLint> m_aid;
+	std::vector<Layout> m_layout;
 
-	int32_t					m_vertexSize;
+	int32_t m_vertexSize;
 
-	uint8_t*					m_vertexConstantBuffer;
-	uint8_t*					m_pixelConstantBuffer;
+	uint8_t* m_vertexConstantBuffer;
+	uint8_t* m_pixelConstantBuffer;
 
-	std::vector<ConstantLayout>	m_vertexConstantLayout;
-	std::vector<ConstantLayout>	m_pixelConstantLayout;
+	std::vector<ConstantLayout> m_vertexConstantLayout;
+	std::vector<ConstantLayout> m_pixelConstantLayout;
 
 	std::array<GLuint, Effekseer::TextureSlotMax> m_textureSlots;
 	std::array<bool, Effekseer::TextureSlotMax> m_textureSlotEnables;
 
-	std::vector<char>	m_vsSrc;
-	std::vector<char>	m_psSrc;
-	std::string				m_name;
+	std::vector<char> m_vsSrc;
+	std::vector<char> m_psSrc;
+	std::string m_name;
 
-	std::vector<ShaderAttribInfoInternal>	attribs;
-	std::vector<ShaderUniformInfoInternal>	uniforms;
+	std::vector<ShaderAttribInfoInternal> attribs;
+	std::vector<ShaderUniformInfoInternal> uniforms;
 
 	static bool CompileShader(
 		OpenGLDeviceType deviceType,
@@ -1810,16 +2017,16 @@ private:
 		size_t pixelShaderSize,
 		const char* name);
 
-	Shader(OpenGLDeviceType deviceType, 
-		Renderer* renderer,
-		DeviceObjectCollection* deviceObjectCollection,
-		GLuint program,
-		const char* vs_src,
-		size_t vertexShaderSize,
-		const char* fs_src,
-		size_t pixelShaderSize,
-		const char* name,
-		bool hasRefCount);
+	Shader(OpenGLDeviceType deviceType,
+		   Renderer* renderer,
+		   DeviceObjectCollection* deviceObjectCollection,
+		   GLuint program,
+		   const char* vs_src,
+		   size_t vertexShaderSize,
+		   const char* fs_src,
+		   size_t pixelShaderSize,
+		   const char* name,
+		   bool hasRefCount);
 
 	GLint GetAttribId(const char* name) const;
 
@@ -1832,20 +2039,20 @@ public:
 	static Shader* Create(
 		OpenGLDeviceType deviceType,
 		DeviceObjectCollection* deviceObjectCollection,
-						  const char* vs_src,
-						  size_t vertexShaderSize,
-						  const char* fs_src,
-						  size_t pixelShaderSize,
-						  const char* name,
-						  bool hasRefCount);
+		const char* vs_src,
+		size_t vertexShaderSize,
+		const char* fs_src,
+		size_t pixelShaderSize,
+		const char* name,
+		bool hasRefCount);
 
 	static Shader* Create(
-					  Renderer* renderer,
-					  const char* vs_src,
-					  size_t vertexShaderSize,
-					  const char* fs_src,
-					  size_t pixelShaderSize,
-					  const char* name);
+		Renderer* renderer,
+		const char* vs_src,
+		size_t vertexShaderSize,
+		const char* fs_src,
+		size_t pixelShaderSize,
+		const char* name);
 
 public:
 	virtual void OnLostDevice() override;
@@ -1869,8 +2076,14 @@ public:
 	void SetVertexConstantBufferSize(int32_t size) override;
 	void SetPixelConstantBufferSize(int32_t size) override;
 
-	void* GetVertexConstantBuffer()  override { return m_vertexConstantBuffer; }
-	void* GetPixelConstantBuffer()  override { return m_pixelConstantBuffer; }
+	void* GetVertexConstantBuffer() override
+	{
+		return m_vertexConstantBuffer;
+	}
+	void* GetPixelConstantBuffer() override
+	{
+		return m_pixelConstantBuffer;
+	}
 
 	void AddVertexConstantLayout(eConstantType type, GLint id, int32_t offset);
 	void AddPixelConstantLayout(eConstantType type, GLint id, int32_t offset);
@@ -1887,18 +2100,18 @@ public:
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-}
+} // namespace EffekseerRendererGL
 
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-#endif	// __EFFEKSEERRENDERER_GL_SHADER_H__
+#endif // __EFFEKSEERRENDERER_GL_SHADER_H__
 
 
 #ifdef __EFFEKSEER_RENDERER_INTERNAL_LOADER__
 
-#ifndef	__EFFEKSEERRENDERER_GL_TEXTURELOADER_H__
-#define	__EFFEKSEERRENDERER_GL_TEXTURELOADER_H__
+#ifndef __EFFEKSEERRENDERER_GL_TEXTURELOADER_H__
+#define __EFFEKSEERRENDERER_GL_TEXTURELOADER_H__
 
 //----------------------------------------------------------------------------------
 // Include
@@ -1944,11 +2157,11 @@ public:
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-}
+} // namespace EffekseerRendererGL
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-#endif	// __EFFEKSEERRENDERER_GL_TEXTURELOADER_H__
+#endif // __EFFEKSEERRENDERER_GL_TEXTURELOADER_H__
 
 #endif
 
@@ -1970,11 +2183,11 @@ class VertexArray
 	: public DeviceObject
 {
 private:
-	GLuint					m_vertexArray;
+	GLuint m_vertexArray;
 
-	Shader*					m_shader;
-	VertexBuffer*			m_vertexBuffer;
-	IndexBuffer*			m_indexBuffer;
+	Shader* m_shader;
+	VertexBuffer* m_vertexBuffer;
+	IndexBuffer* m_indexBuffer;
 
 	VertexArray(RendererImplemented* renderer, Shader* shader, VertexBuffer* vertexBuffer, IndexBuffer* indexBuffer, bool hasRefCount);
 
@@ -1984,12 +2197,21 @@ public:
 	static VertexArray*
 	Create(RendererImplemented* renderer, Shader* shader, VertexBuffer* vertexBuffer, IndexBuffer* indexBuffer, bool hasRefCount);
 
-	GLuint GetInterface() const { return m_vertexArray; }
+	GLuint GetInterface() const
+	{
+		return m_vertexArray;
+	}
 
-	VertexBuffer* GetVertexBuffer() { return m_vertexBuffer; }
-	IndexBuffer* GetIndexBuffer() { return m_indexBuffer; }
+	VertexBuffer* GetVertexBuffer()
+	{
+		return m_vertexBuffer;
+	}
+	IndexBuffer* GetIndexBuffer()
+	{
+		return m_indexBuffer;
+	}
 
-public:	// デバイス復旧用
+public: // デバイス復旧用
 	virtual void OnLostDevice();
 	virtual void OnResetDevice();
 
@@ -2001,10 +2223,10 @@ private:
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
-}
-//-----------------------------------------------------------------------------------
-//
-//-----------------------------------------------------------------------------------
+} // namespace EffekseerRendererGL
+  //-----------------------------------------------------------------------------------
+  //
+  //-----------------------------------------------------------------------------------
 
 
 
@@ -2021,15 +2243,15 @@ namespace EffekseerRendererGL
 //
 //-----------------------------------------------------------------------------------
 class VertexBuffer
-	: public DeviceObject
-	, public ::EffekseerRenderer::VertexBufferBase
+	: public DeviceObject,
+	  public ::EffekseerRenderer::VertexBufferBase
 {
 private:
-	GLuint					m_buffer;
+	GLuint m_buffer;
 
-	uint32_t				m_vertexRingStart;
-	uint32_t				m_vertexRingOffset;
-	bool					m_ringBufferLock;
+	uint32_t m_vertexRingStart;
+	uint32_t m_vertexRingOffset;
+	bool m_ringBufferLock;
 
 	VertexBuffer(RendererImplemented* renderer, int size, bool isDynamic, bool hasRefCount);
 
@@ -2040,7 +2262,7 @@ public:
 
 	GLuint GetInterface();
 
-public:	// デバイス復旧用
+public: // デバイス復旧用
 	virtual void OnLostDevice();
 	virtual void OnResetDevice();
 
@@ -2057,10 +2279,10 @@ public:
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
-}
-//-----------------------------------------------------------------------------------
-//
-//-----------------------------------------------------------------------------------
+} // namespace EffekseerRendererGL
+  //-----------------------------------------------------------------------------------
+  //
+  //-----------------------------------------------------------------------------------
 
 #ifndef __EFFEKSEERRENDERER_GL_MATERIALLOADER_H__
 #define __EFFEKSEERRENDERER_GL_MATERIALLOADER_H__
@@ -2115,12 +2337,14 @@ namespace EffekseerRendererGL
 {
 
 DeviceObject::DeviceObject(RendererImplemented* renderer, DeviceObjectCollection* deviceObjectCollection, bool hasRefCount)
-	: renderer_(renderer), deviceObjectCollection_(deviceObjectCollection), hasRefCount_(hasRefCount)
+	: renderer_(renderer)
+	, deviceObjectCollection_(deviceObjectCollection)
+	, hasRefCount_(hasRefCount)
 {
 	if (hasRefCount_)
 	{
 		ES_SAFE_ADDREF(renderer_);
-		ES_SAFE_ADDREF(deviceObjectCollection_);	
+		ES_SAFE_ADDREF(deviceObjectCollection_);
 	}
 
 	deviceObjectCollection_->Register(this);
@@ -2137,7 +2361,10 @@ DeviceObject::~DeviceObject()
 	}
 }
 
-RendererImplemented* DeviceObject::GetRenderer() const { return renderer_; }
+RendererImplemented* DeviceObject::GetRenderer() const
+{
+	return renderer_;
+}
 
 } // namespace EffekseerRendererGL
 
@@ -2145,9 +2372,15 @@ RendererImplemented* DeviceObject::GetRenderer() const { return renderer_; }
 namespace EffekseerRendererGL
 {
 
-void DeviceObjectCollection::Register(DeviceObject* device) { deviceObjects_.insert(device); }
+void DeviceObjectCollection::Register(DeviceObject* device)
+{
+	deviceObjects_.insert(device);
+}
 
-void DeviceObjectCollection::Unregister(DeviceObject* device) { deviceObjects_.erase(device); }
+void DeviceObjectCollection::Unregister(DeviceObject* device)
+{
+	deviceObjects_.erase(device);
+}
 
 void DeviceObjectCollection::OnLostDevice()
 {
@@ -2187,68 +2420,68 @@ namespace GLExt
 //-----------------------------------------------------------------------------------
 #if _WIN32
 
-typedef void (EFK_STDCALL * FP_glDeleteBuffers) (GLsizei n, const GLuint* buffers);
-typedef GLuint (EFK_STDCALL * FP_glCreateShader) (GLenum type);
-typedef void (EFK_STDCALL * FP_glBindBuffer) (GLenum target, GLuint buffer);
-typedef void (EFK_STDCALL * FP_glGenBuffers) (GLsizei n, GLuint* buffers);
-typedef void (EFK_STDCALL * FP_glBufferData) (GLenum target, GLsizeiptr size, const GLvoid* data, GLenum usage);
+typedef void(EFK_STDCALL* FP_glDeleteBuffers)(GLsizei n, const GLuint* buffers);
+typedef GLuint(EFK_STDCALL* FP_glCreateShader)(GLenum type);
+typedef void(EFK_STDCALL* FP_glBindBuffer)(GLenum target, GLuint buffer);
+typedef void(EFK_STDCALL* FP_glGenBuffers)(GLsizei n, GLuint* buffers);
+typedef void(EFK_STDCALL* FP_glBufferData)(GLenum target, GLsizeiptr size, const GLvoid* data, GLenum usage);
 
-typedef void (EFK_STDCALL * FP_glBlendEquationSeparate) (GLenum modeRGB, GLenum modeAlpha);
-typedef void (EFK_STDCALL * FP_glBlendFuncSeparate) (GLenum sfactorRGB, GLenum dfactorRGB, GLenum sfactorAlpha, GLenum dfactorAlpha);
+typedef void(EFK_STDCALL* FP_glBlendEquationSeparate)(GLenum modeRGB, GLenum modeAlpha);
+typedef void(EFK_STDCALL* FP_glBlendFuncSeparate)(GLenum sfactorRGB, GLenum dfactorRGB, GLenum sfactorAlpha, GLenum dfactorAlpha);
 
-typedef void (EFK_STDCALL * FP_glBlendEquation) (GLenum mode);
+typedef void(EFK_STDCALL* FP_glBlendEquation)(GLenum mode);
 
-typedef void (EFK_STDCALL * FP_glActiveTexture) (GLenum texture);
+typedef void(EFK_STDCALL* FP_glActiveTexture)(GLenum texture);
 
-typedef void (EFK_STDCALL * FP_glUniform1i) (GLint location, GLint v0);
+typedef void(EFK_STDCALL* FP_glUniform1i)(GLint location, GLint v0);
 
-typedef void (EFK_STDCALL * FP_glShaderSource) (GLuint shader, GLsizei count, const GLchar** strings, const GLint* lengths);
+typedef void(EFK_STDCALL* FP_glShaderSource)(GLuint shader, GLsizei count, const GLchar** strings, const GLint* lengths);
 
-typedef void (EFK_STDCALL * FP_glCompileShader) (GLuint shader);
+typedef void(EFK_STDCALL* FP_glCompileShader)(GLuint shader);
 
-typedef void (EFK_STDCALL * FP_glGetShaderiv) (GLuint shader, GLenum pname, GLint* param);
+typedef void(EFK_STDCALL* FP_glGetShaderiv)(GLuint shader, GLenum pname, GLint* param);
 
-typedef GLuint (EFK_STDCALL * FP_glCreateProgram) (void);
+typedef GLuint(EFK_STDCALL* FP_glCreateProgram)(void);
 
-typedef void (EFK_STDCALL * FP_glAttachShader) (GLuint program, GLuint shader);
+typedef void(EFK_STDCALL* FP_glAttachShader)(GLuint program, GLuint shader);
 
-typedef void (EFK_STDCALL * FP_glDeleteProgram) (GLuint program);
-typedef void (EFK_STDCALL * FP_glDeleteShader) (GLuint shader);
-typedef void (EFK_STDCALL * FP_glLinkProgram) (GLuint program);
+typedef void(EFK_STDCALL* FP_glDeleteProgram)(GLuint program);
+typedef void(EFK_STDCALL* FP_glDeleteShader)(GLuint shader);
+typedef void(EFK_STDCALL* FP_glLinkProgram)(GLuint program);
 
-typedef void (EFK_STDCALL * FP_glGetProgramiv) (GLuint program, GLenum pname, GLint* param);
+typedef void(EFK_STDCALL* FP_glGetProgramiv)(GLuint program, GLenum pname, GLint* param);
 
-typedef void (EFK_STDCALL * FP_glGetShaderInfoLog) (GLuint shader, GLsizei bufSize, GLsizei* length, GLchar* infoLog);
-typedef void (EFK_STDCALL * FP_glGetProgramInfoLog) (GLuint program, GLsizei bufSize, GLsizei* length, GLchar* infoLog);
+typedef void(EFK_STDCALL* FP_glGetShaderInfoLog)(GLuint shader, GLsizei bufSize, GLsizei* length, GLchar* infoLog);
+typedef void(EFK_STDCALL* FP_glGetProgramInfoLog)(GLuint program, GLsizei bufSize, GLsizei* length, GLchar* infoLog);
 
-typedef GLint (EFK_STDCALL * FP_glGetAttribLocation) (GLuint program, const GLchar* name);
+typedef GLint(EFK_STDCALL* FP_glGetAttribLocation)(GLuint program, const GLchar* name);
 
-typedef GLint (EFK_STDCALL * FP_glGetUniformLocation) (GLuint program, const GLchar* name);
+typedef GLint(EFK_STDCALL* FP_glGetUniformLocation)(GLuint program, const GLchar* name);
 
-typedef void (EFK_STDCALL * FP_glUseProgram) (GLuint program);
+typedef void(EFK_STDCALL* FP_glUseProgram)(GLuint program);
 
-typedef void (EFK_STDCALL * FP_glEnableVertexAttribArray) (GLuint index);
-typedef void (EFK_STDCALL * FP_glDisableVertexAttribArray) (GLuint index);
-typedef void (EFK_STDCALL * FP_glVertexAttribPointer) (GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const GLvoid* pointer);
-typedef void (EFK_STDCALL * FP_glUniformMatrix4fv) (GLint location, GLsizei count, GLboolean transpose, const GLfloat* value);
-typedef void (EFK_STDCALL * FP_glUniform4fv) (GLint location, GLsizei count, const GLfloat* value);
-typedef void (EFK_STDCALL * FP_glGenerateMipmap) (GLenum target);
-typedef void (EFK_STDCALL * FP_glBufferSubData) (GLenum target, GLintptr offset, GLsizeiptr size, const GLvoid* data);
+typedef void(EFK_STDCALL* FP_glEnableVertexAttribArray)(GLuint index);
+typedef void(EFK_STDCALL* FP_glDisableVertexAttribArray)(GLuint index);
+typedef void(EFK_STDCALL* FP_glVertexAttribPointer)(GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const GLvoid* pointer);
+typedef void(EFK_STDCALL* FP_glUniformMatrix4fv)(GLint location, GLsizei count, GLboolean transpose, const GLfloat* value);
+typedef void(EFK_STDCALL* FP_glUniform4fv)(GLint location, GLsizei count, const GLfloat* value);
+typedef void(EFK_STDCALL* FP_glGenerateMipmap)(GLenum target);
+typedef void(EFK_STDCALL* FP_glBufferSubData)(GLenum target, GLintptr offset, GLsizeiptr size, const GLvoid* data);
 
-typedef void (EFK_STDCALL * FP_glGenVertexArrays) (GLsizei n, GLuint *arrays);
-typedef void (EFK_STDCALL * FP_glDeleteVertexArrays) (GLsizei n, const GLuint *arrays);
-typedef void (EFK_STDCALL * FP_glBindVertexArray) (GLuint array);
+typedef void(EFK_STDCALL* FP_glGenVertexArrays)(GLsizei n, GLuint* arrays);
+typedef void(EFK_STDCALL* FP_glDeleteVertexArrays)(GLsizei n, const GLuint* arrays);
+typedef void(EFK_STDCALL* FP_glBindVertexArray)(GLuint array);
 
-typedef void (EFK_STDCALL * FP_glGenSamplers) (GLsizei n, GLuint *samplers);
-typedef void (EFK_STDCALL * FP_glDeleteSamplers) (GLsizei n, const GLuint * samplers);
-typedef void (EFK_STDCALL * FP_glSamplerParameteri) (GLuint sampler, GLenum pname, GLint param);
-typedef void (EFK_STDCALL * FP_glBindSampler) (GLuint unit, GLuint sampler);
+typedef void(EFK_STDCALL* FP_glGenSamplers)(GLsizei n, GLuint* samplers);
+typedef void(EFK_STDCALL* FP_glDeleteSamplers)(GLsizei n, const GLuint* samplers);
+typedef void(EFK_STDCALL* FP_glSamplerParameteri)(GLuint sampler, GLenum pname, GLint param);
+typedef void(EFK_STDCALL* FP_glBindSampler)(GLuint unit, GLuint sampler);
 
-typedef void* (EFK_STDCALL *FP_glMapBuffer)(GLenum target, GLenum access);
-typedef void* (EFK_STDCALL *FP_glMapBufferRange)(GLenum target, GLintptr offset, GLsizeiptr length, GLbitfield access);
-typedef GLboolean(EFK_STDCALL *FP_glUnmapBuffer)(GLenum target);
+typedef void*(EFK_STDCALL* FP_glMapBuffer)(GLenum target, GLenum access);
+typedef void*(EFK_STDCALL* FP_glMapBufferRange)(GLenum target, GLintptr offset, GLsizeiptr length, GLbitfield access);
+typedef GLboolean(EFK_STDCALL* FP_glUnmapBuffer)(GLenum target);
 
-typedef void (EFK_STDCALL * FP_glCompressedTexImage2D) (GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLint border, GLsizei imageSize, const void *data);
+typedef void(EFK_STDCALL* FP_glCompressedTexImage2D)(GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLint border, GLsizei imageSize, const void* data);
 
 static FP_glDeleteBuffers g_glDeleteBuffers = NULL;
 static FP_glCreateShader g_glCreateShader = NULL;
@@ -2297,13 +2530,13 @@ static FP_glCompressedTexImage2D g_glCompressedTexImage2D = nullptr;
 
 #elif defined(__EFFEKSEER_RENDERER_GLES2__)
 
-typedef void (* FP_glGenVertexArraysOES) (GLsizei n, GLuint *arrays);
-typedef void (* FP_glDeleteVertexArraysOES) (GLsizei n, const GLuint *arrays);
-typedef void (* FP_glBindVertexArrayOES) (GLuint array);
+typedef void (*FP_glGenVertexArraysOES)(GLsizei n, GLuint* arrays);
+typedef void (*FP_glDeleteVertexArraysOES)(GLsizei n, const GLuint* arrays);
+typedef void (*FP_glBindVertexArrayOES)(GLuint array);
 
-typedef void* (* FP_glMapBufferOES)(GLenum target, GLenum access);
-typedef void* (* FP_glMapBufferRangeEXT)(GLenum target, GLintptr offset, GLsizeiptr length, GLbitfield access);
-typedef GLboolean (* FP_glUnmapBufferOES)(GLenum target);
+typedef void* (*FP_glMapBufferOES)(GLenum target, GLenum access);
+typedef void* (*FP_glMapBufferRangeEXT)(GLenum target, GLintptr offset, GLsizeiptr length, GLbitfield access);
+typedef GLboolean (*FP_glUnmapBufferOES)(GLenum target);
 
 static FP_glGenVertexArraysOES g_glGenVertexArraysOES = NULL;
 static FP_glDeleteVertexArraysOES g_glDeleteVertexArraysOES = NULL;
@@ -2322,21 +2555,28 @@ static bool g_isSurrpotedMapBuffer = false;
 static OpenGLDeviceType g_deviceType = OpenGLDeviceType::OpenGL2;
 
 #if _WIN32
-#define GET_PROC(name)	g_##name = (FP_##name)wglGetProcAddress( #name ); if(g_##name==NULL) return false;
+#define GET_PROC(name)                              \
+	g_##name = (FP_##name)wglGetProcAddress(#name); \
+	if (g_##name == NULL)                           \
+		return false;
 #elif defined(__EFFEKSEER_RENDERER_GLES2__) || defined(__EFFEKSEER_RENDERER_GLES3__)
-#define GET_PROC(name)	g_##name = (FP_##name)eglGetProcAddress( #name ); if(g_##name==NULL) return false;
+#define GET_PROC(name)                              \
+	g_##name = (FP_##name)eglGetProcAddress(#name); \
+	if (g_##name == NULL)                           \
+		return false;
 #endif
 
 OpenGLDeviceType GetDeviceType()
 {
-    return g_deviceType;
+	return g_deviceType;
 }
-    
+
 bool Initialize(OpenGLDeviceType deviceType)
 {
-	if(g_isInitialized) return true;
-    g_deviceType = deviceType;
-    
+	if (g_isInitialized)
+		return true;
+	g_deviceType = deviceType;
+
 #if _WIN32
 	GET_PROC(glDeleteBuffers);
 	GET_PROC(glCreateShader);
@@ -2415,7 +2655,7 @@ bool Initialize(OpenGLDeviceType deviceType)
 	GET_PROC(glGenVertexArraysOES);
 	GET_PROC(glDeleteVertexArraysOES);
 	GET_PROC(glBindVertexArrayOES);
-	char *glExtensions = (char *)glGetString(GL_EXTENSIONS);
+	char* glExtensions = (char*)glGetString(GL_EXTENSIONS);
 
 #if defined(__EMSCRIPTEN__)
 	g_isSupportedVertexArray = (g_glGenVertexArraysOES && g_glDeleteVertexArraysOES && g_glBindVertexArrayOES &&
@@ -2435,8 +2675,7 @@ bool Initialize(OpenGLDeviceType deviceType)
 	GET_PROC(glMapBufferOES);
 	GET_PROC(glUnmapBufferOES);
 	g_isSurrpotedBufferRange = (g_glMapBufferRangeEXT && g_glUnmapBufferOES);
-	g_isSurrpotedMapBuffer = (g_glMapBufferOES && g_glUnmapBufferOES 
-		&& ((glExtensions && strstr(glExtensions, "GL_OES_mapbuffer")) ? true : false));
+	g_isSurrpotedMapBuffer = (g_glMapBufferOES && g_glUnmapBufferOES && ((glExtensions && strstr(glExtensions, "GL_OES_mapbuffer")) ? true : false));
 #endif
 
 #endif
@@ -2474,7 +2713,10 @@ bool IsSupportedMapBuffer()
 	return g_isSurrpotedMapBuffer;
 }
 
-void MakeMapBufferInvalid() { g_isSurrpotedMapBuffer = false; }
+void MakeMapBufferInvalid()
+{
+	g_isSurrpotedMapBuffer = false;
+}
 
 void glDeleteBuffers(GLsizei n, const GLuint* buffers)
 {
@@ -2512,7 +2754,7 @@ void glGenBuffers(GLsizei n, GLuint* buffers)
 #endif
 }
 
-void glBufferData (GLenum target, GLsizeiptr size, const GLvoid* data, GLenum usage)
+void glBufferData(GLenum target, GLsizeiptr size, const GLvoid* data, GLenum usage)
 {
 #if _WIN32
 	g_glBufferData(target, size, data, usage);
@@ -2530,73 +2772,73 @@ void glBlendEquationSeparate(GLenum modeRGB, GLenum modeAlpha)
 #endif
 }
 
-void glBlendFuncSeparate (GLenum sfactorRGB, GLenum dfactorRGB, GLenum sfactorAlpha, GLenum dfactorAlpha)
+void glBlendFuncSeparate(GLenum sfactorRGB, GLenum dfactorRGB, GLenum sfactorAlpha, GLenum dfactorAlpha)
 {
 #if _WIN32
-	g_glBlendFuncSeparate (sfactorRGB, dfactorRGB, sfactorAlpha, dfactorAlpha);
+	g_glBlendFuncSeparate(sfactorRGB, dfactorRGB, sfactorAlpha, dfactorAlpha);
 #else
-	::glBlendFuncSeparate (sfactorRGB, dfactorRGB, sfactorAlpha, dfactorAlpha);
+	::glBlendFuncSeparate(sfactorRGB, dfactorRGB, sfactorAlpha, dfactorAlpha);
 #endif
 }
 
-void glBlendEquation (GLenum mode)
+void glBlendEquation(GLenum mode)
 {
 #if _WIN32
-	g_glBlendEquation (mode);
+	g_glBlendEquation(mode);
 #else
-	::glBlendEquation (mode);
+	::glBlendEquation(mode);
 #endif
 }
 
-void glActiveTexture (GLenum texture)
+void glActiveTexture(GLenum texture)
 {
 #if _WIN32
-	g_glActiveTexture (texture);
+	g_glActiveTexture(texture);
 #else
-	::glActiveTexture (texture);
+	::glActiveTexture(texture);
 #endif
 }
 
 void glUniform1i(GLint location, GLint v0)
 {
 #if _WIN32
-	g_glUniform1i (location, v0);
+	g_glUniform1i(location, v0);
 #else
-	::glUniform1i (location, v0);
+	::glUniform1i(location, v0);
 #endif
 }
 
-void glShaderSource (GLuint shader, GLsizei count, const GLchar** strings, const GLint* lengths)
+void glShaderSource(GLuint shader, GLsizei count, const GLchar** strings, const GLint* lengths)
 {
 #if _WIN32
-	g_glShaderSource (shader, count, strings, lengths);
+	g_glShaderSource(shader, count, strings, lengths);
 #else
-	::glShaderSource (shader, count, strings, lengths);
+	::glShaderSource(shader, count, strings, lengths);
 #endif
 }
 
 void glCompileShader(GLuint shader)
 {
 #if _WIN32
-	g_glCompileShader (shader);
+	g_glCompileShader(shader);
 #else
-	::glCompileShader (shader);
+	::glCompileShader(shader);
 #endif
 }
 
-void glGetShaderiv (GLuint shader, GLenum pname, GLint* param)
+void glGetShaderiv(GLuint shader, GLenum pname, GLint* param)
 {
 #if _WIN32
-	g_glGetShaderiv (shader, pname, param);
+	g_glGetShaderiv(shader, pname, param);
 #else
-	::glGetShaderiv (shader, pname, param);
+	::glGetShaderiv(shader, pname, param);
 #endif
 }
 
-GLuint glCreateProgram (void)
+GLuint glCreateProgram(void)
 {
 #if _WIN32
-	return g_glCreateProgram ();
+	return g_glCreateProgram();
 #else
 	return ::glCreateProgram();
 #endif
@@ -2629,7 +2871,7 @@ void glDeleteShader(GLuint shader)
 #endif
 }
 
-void glLinkProgram (GLuint program)
+void glLinkProgram(GLuint program)
 {
 #if _WIN32
 	g_glLinkProgram(program);
@@ -2647,7 +2889,7 @@ void glGetProgramiv(GLuint program, GLenum pname, GLint* param)
 #endif
 }
 
-void glGetShaderInfoLog (GLuint shader, GLsizei bufSize, GLsizei* length, GLchar* infoLog)
+void glGetShaderInfoLog(GLuint shader, GLsizei bufSize, GLsizei* length, GLchar* infoLog)
 {
 #if _WIN32
 	g_glGetShaderInfoLog(shader, bufSize, length, infoLog);
@@ -2656,7 +2898,7 @@ void glGetShaderInfoLog (GLuint shader, GLsizei bufSize, GLsizei* length, GLchar
 #endif
 }
 
-void glGetProgramInfoLog (GLuint program, GLsizei bufSize, GLsizei* length, GLchar* infoLog)
+void glGetProgramInfoLog(GLuint program, GLsizei bufSize, GLsizei* length, GLchar* infoLog)
 {
 #if _WIN32
 	g_glGetProgramInfoLog(program, bufSize, length, infoLog);
@@ -2713,9 +2955,9 @@ void glDisableVertexAttribArray(GLuint index)
 void glVertexAttribPointer(GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const GLvoid* pointer)
 {
 #if _WIN32
-	g_glVertexAttribPointer(index, size, type, normalized ,stride, pointer);
+	g_glVertexAttribPointer(index, size, type, normalized, stride, pointer);
 #else
-	::glVertexAttribPointer(index, size, type, normalized ,stride, pointer);
+	::glVertexAttribPointer(index, size, type, normalized, stride, pointer);
 #endif
 }
 
@@ -2755,7 +2997,7 @@ void glBufferSubData(GLenum target, GLintptr offset, GLsizeiptr size, const GLvo
 #endif
 }
 
-void glGenVertexArrays(GLsizei n, GLuint *arrays)
+void glGenVertexArrays(GLsizei n, GLuint* arrays)
 {
 #if _WIN32
 	g_glGenVertexArrays(n, arrays);
@@ -2766,7 +3008,7 @@ void glGenVertexArrays(GLsizei n, GLuint *arrays)
 #endif
 }
 
-void glDeleteVertexArrays(GLsizei n, const GLuint *arrays)
+void glDeleteVertexArrays(GLsizei n, const GLuint* arrays)
 {
 #if _WIN32
 	g_glDeleteVertexArrays(n, arrays);
@@ -2788,7 +3030,7 @@ void glBindVertexArray(GLuint array)
 #endif
 }
 
-void glGenSamplers(GLsizei n, GLuint *samplers)
+void glGenSamplers(GLsizei n, GLuint* samplers)
 {
 #if _WIN32
 	g_glGenSamplers(n, samplers);
@@ -2798,7 +3040,7 @@ void glGenSamplers(GLsizei n, GLuint *samplers)
 #endif
 }
 
-void glDeleteSamplers(GLsizei n, const GLuint * samplers)
+void glDeleteSamplers(GLsizei n, const GLuint* samplers)
 {
 #if _WIN32
 	g_glDeleteSamplers(n, samplers);
@@ -2875,21 +3117,21 @@ GLboolean glUnmapBuffer(GLenum target)
 #endif
 }
 
-void glCompressedTexImage2D(GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLint border, GLsizei imageSize, const void *data)
+void glCompressedTexImage2D(GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLint border, GLsizei imageSize, const void* data)
 {
 #if _WIN32
-	g_glCompressedTexImage2D(target, level,internalformat, width, height, border,imageSize, data);
+	g_glCompressedTexImage2D(target, level, internalformat, width, height, border, imageSize, data);
 #elif defined(__EFFEKSEER_RENDERER_GLES2__) || defined(__EFFEKSEER_RENDERER_GL2__)
 #else
-	::glCompressedTexImage2D(target, level,internalformat, width, height, border,imageSize, data);
+	::glCompressedTexImage2D(target, level, internalformat, width, height, border, imageSize, data);
 #endif
 }
 
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-}
-}
+} // namespace GLExt
+} // namespace EffekseerRendererGL
 
 
 //-----------------------------------------------------------------------------------
@@ -2918,7 +3160,7 @@ IndexBuffer::IndexBuffer(RendererImplemented* renderer, GLuint buffer, int maxCo
 //-----------------------------------------------------------------------------------
 IndexBuffer::~IndexBuffer()
 {
-	delete [] m_resource;
+	delete[] m_resource;
 	GLExt::glDeleteBuffers(1, &m_buffer);
 }
 
@@ -2946,7 +3188,8 @@ void IndexBuffer::OnLostDevice()
 //-----------------------------------------------------------------------------------
 void IndexBuffer::OnResetDevice()
 {
-	if (IsValid()) return;
+	if (IsValid())
+		return;
 	GLuint ib;
 	GLExt::glGenBuffers(1, &ib);
 	m_buffer = ib;
@@ -2957,7 +3200,7 @@ void IndexBuffer::OnResetDevice()
 //-----------------------------------------------------------------------------------
 void IndexBuffer::Lock()
 {
-	assert( !m_isLock );
+	assert(!m_isLock);
 
 	m_isLock = true;
 	m_indexCount = 0;
@@ -2968,7 +3211,7 @@ void IndexBuffer::Lock()
 //-----------------------------------------------------------------------------------
 void IndexBuffer::Unlock()
 {
-	assert( m_isLock );
+	assert(m_isLock);
 
 	GLExt::glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_buffer);
 	GLExt::glBufferData(GL_ELEMENT_ARRAY_BUFFER, m_indexCount * stride_, m_resource, GL_DYNAMIC_DRAW);
@@ -2976,7 +3219,6 @@ void IndexBuffer::Unlock()
 
 	m_isLock = false;
 }
-
 
 bool IndexBuffer::IsValid()
 {
@@ -2986,7 +3228,7 @@ bool IndexBuffer::IsValid()
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
-}
+} // namespace EffekseerRendererGL
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
@@ -3004,10 +3246,10 @@ namespace EffekseerRendererGL
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-ModelLoader::ModelLoader( ::Effekseer::FileInterface* fileInterface )
-	: m_fileInterface	( fileInterface )
+ModelLoader::ModelLoader(::Effekseer::FileInterface* fileInterface)
+	: m_fileInterface(fileInterface)
 {
-	if( m_fileInterface == NULL )
+	if (m_fileInterface == NULL)
 	{
 		m_fileInterface = &m_defaultFileInterface;
 	}
@@ -3018,23 +3260,22 @@ ModelLoader::ModelLoader( ::Effekseer::FileInterface* fileInterface )
 //----------------------------------------------------------------------------------
 ModelLoader::~ModelLoader()
 {
-
 }
 
-void* ModelLoader::Load( const EFK_CHAR* path )
+void* ModelLoader::Load(const EFK_CHAR* path)
 {
-	std::unique_ptr<Effekseer::FileReader> 
-		reader( m_fileInterface->OpenRead( path ) );
-	
-	if( reader.get() != NULL )
+	std::unique_ptr<Effekseer::FileReader>
+		reader(m_fileInterface->OpenRead(path));
+
+	if (reader.get() != NULL)
 	{
 		size_t size_model = reader->GetLength();
 		char* data_model = new char[size_model];
-		reader->Read( data_model, size_model );
+		reader->Read(data_model, size_model);
 
 		Model* model = (Model*)Load(data_model, (int32_t)size_model);
 
-		delete [] data_model;
+		delete[] data_model;
 
 		return (void*)model;
 	}
@@ -3043,14 +3284,14 @@ void* ModelLoader::Load( const EFK_CHAR* path )
 }
 
 void* ModelLoader::Load(const void* data, int32_t size)
-{ 
+{
 	Model* model = new Model((uint8_t*)data, size);
 	return model;
 }
 
-void ModelLoader::Unload( void* data )
+void ModelLoader::Unload(void* data)
 {
-	if( data != NULL )
+	if (data != NULL)
 	{
 		Model* model = (Model*)data;
 		delete model;
@@ -3060,7 +3301,7 @@ void ModelLoader::Unload( void* data )
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-}
+} // namespace EffekseerRendererGL
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
@@ -3079,7 +3320,7 @@ namespace EffekseerRendererGL
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
-static std::string Replace( std::string target, std::string from_, std::string to_ )
+static std::string Replace(std::string target, std::string from_, std::string to_)
 {
 	std::string::size_type Pos(target.find(from_));
 
@@ -3093,7 +3334,7 @@ static std::string Replace( std::string target, std::string from_, std::string t
 }
 
 static const char g_model_vs_src[] =
-R"(
+	R"(
 IN vec4 a_Position;
 IN vec4 a_Normal;
 IN vec4 a_Binormal;
@@ -3102,13 +3343,13 @@ IN vec4 a_TexCoord;
 IN vec4 a_Color;
 )"
 #if defined(MODEL_SOFTWARE_INSTANCING)
-R"(
+	R"(
 IN float a_InstanceID;
 IN vec4 a_UVOffset;
 IN vec4 a_ModelColor;
 )"
 #endif
-R"(
+	R"(
 OUT mediump vec4 v_Normal;
 OUT mediump vec4 v_Binormal;
 OUT mediump vec4 v_Tangent;
@@ -3116,19 +3357,19 @@ CENTROID OUT mediump vec4 v_TexCoord;
 CENTROID OUT lowp vec4 v_Color;
 )"
 #if defined(MODEL_SOFTWARE_INSTANCING)
-R"(
+	R"(
 uniform mat4 ModelMatrix[20];
 uniform vec4 UVOffset[20];
 uniform vec4 ModelColor[20];
 )"
 #else
-R"(
+	R"(
 uniform mat4 ModelMatrix;
 uniform vec4 UVOffset;
 uniform vec4 ModelColor;
 )"
 #endif
-R"(
+	R"(
 uniform mat4 ProjectionMatrix;
 uniform vec4 LightDirection;
 uniform vec4 LightColor;
@@ -3139,19 +3380,19 @@ void main()
 {
 )"
 #if defined(MODEL_SOFTWARE_INSTANCING)
-R"(
+	R"(
 	mat4 modelMatrix = ModelMatrix[int(a_InstanceID)];
 	vec4 uvOffset = a_UVOffset;
 	vec4 modelColor = a_ModelColor;
 )"
 #else
-R"(
+	R"(
 	mat4 modelMatrix = ModelMatrix;
 	vec4 uvOffset = UVOffset;
 	vec4 modelColor = ModelColor * a_Color;
 )"
 #endif
-R"(
+	R"(
 	vec4 localPosition = modelMatrix * a_Position;
 	gl_Position = ProjectionMatrix * localPosition;
 
@@ -3172,8 +3413,8 @@ R"(
 }
 )";
 
-static const char g_model_fs_src[] = 
-R"(
+static const char g_model_fs_src[] =
+	R"(
 
 IN mediump vec4 v_Normal;
 IN mediump vec4 v_Binormal;
@@ -3205,21 +3446,20 @@ void main()
 
 )";
 
-
-static const char g_model_distortion_vs_src [] =
-"IN vec4 a_Position;\n"
-"IN vec4 a_Normal;\n"
-"IN vec4 a_Binormal;\n"
-"IN vec4 a_Tangent;\n"
-"IN vec4 a_TexCoord;\n"
-"IN vec4 a_Color;\n"
+static const char g_model_distortion_vs_src[] =
+	"IN vec4 a_Position;\n"
+	"IN vec4 a_Normal;\n"
+	"IN vec4 a_Binormal;\n"
+	"IN vec4 a_Tangent;\n"
+	"IN vec4 a_TexCoord;\n"
+	"IN vec4 a_Color;\n"
 #if defined(MODEL_SOFTWARE_INSTANCING)
-"IN float a_InstanceID;\n"
-"IN vec4 a_UVOffset;\n"
-"IN vec4 a_ModelColor;\n"
+	"IN float a_InstanceID;\n"
+	"IN vec4 a_UVOffset;\n"
+	"IN vec4 a_ModelColor;\n"
 #endif
 
-R"(
+	R"(
 OUT mediump vec4 v_Normal;
 OUT mediump vec4 v_Binormal;
 OUT mediump vec4 v_Tangent;
@@ -3229,29 +3469,29 @@ CENTROID OUT lowp vec4 v_Color;
 )"
 
 #if defined(MODEL_SOFTWARE_INSTANCING)
-"uniform mat4 ModelMatrix[20];\n"
-"uniform vec4 UVOffset[20];\n"
-"uniform vec4 ModelColor[20];\n"
+	"uniform mat4 ModelMatrix[20];\n"
+	"uniform vec4 UVOffset[20];\n"
+	"uniform vec4 ModelColor[20];\n"
 #else
-"uniform mat4 ModelMatrix;\n"
-"uniform vec4 UVOffset;\n"
-"uniform vec4 ModelColor;\n"
+	"uniform mat4 ModelMatrix;\n"
+	"uniform vec4 UVOffset;\n"
+	"uniform vec4 ModelColor;\n"
 #endif
-"uniform mat4 ProjectionMatrix;\n"
-"uniform vec4 mUVInversed;\n"
+	"uniform mat4 ProjectionMatrix;\n"
+	"uniform vec4 mUVInversed;\n"
 
-"void main() {\n"
+	"void main() {\n"
 #if defined(MODEL_SOFTWARE_INSTANCING)
-"	mat4 modelMatrix = ModelMatrix[int(a_InstanceID)];\n"
-"	vec4 uvOffset = a_UVOffset;\n"
-"	vec4 modelColor = a_ModelColor;\n"
+	"	mat4 modelMatrix = ModelMatrix[int(a_InstanceID)];\n"
+	"	vec4 uvOffset = a_UVOffset;\n"
+	"	vec4 modelColor = a_ModelColor;\n"
 #else
-"	mat4 modelMatrix = ModelMatrix;\n"
-"	vec4 uvOffset = UVOffset;\n"
-"	vec4 modelColor = ModelColor;\n"
+	"	mat4 modelMatrix = ModelMatrix;\n"
+	"	vec4 uvOffset = UVOffset;\n"
+	"	vec4 modelColor = ModelColor;\n"
 #endif
 
-R"(
+	R"(
 	vec4 localPosition = vec4( a_Position.x, a_Position.y, a_Position.z, 1.0 );
 	vec4 localNormal = vec4( a_Position.x + a_Normal.x, a_Position.y + a_Normal.y, a_Position.z + a_Normal.z, 1.0 );
 	vec4 localBinormal = vec4( a_Position.x + a_Binormal.x, a_Position.y + a_Binormal.y, a_Position.z + a_Binormal.z, 1.0 );
@@ -3282,15 +3522,15 @@ R"(
 }
 )";
 
-static const char g_model_distortion_fs_src [] =
-"IN mediump vec4 v_Normal;\n"
-"IN mediump vec4 v_Binormal;\n"
-"IN mediump vec4 v_Tangent;\n"
-"CENTROID IN mediump vec4 v_TexCoord;\n"
-"IN mediump vec4 v_Pos;\n"
-"CENTROID IN lowp vec4 v_Color;\n"
+static const char g_model_distortion_fs_src[] =
+	"IN mediump vec4 v_Normal;\n"
+	"IN mediump vec4 v_Binormal;\n"
+	"IN mediump vec4 v_Tangent;\n"
+	"CENTROID IN mediump vec4 v_TexCoord;\n"
+	"IN mediump vec4 v_Pos;\n"
+	"CENTROID IN lowp vec4 v_Color;\n"
 
-R"(
+	R"(
 uniform sampler2D uTexture0;
 uniform sampler2D uBackTexture0;
 
@@ -3332,34 +3572,34 @@ void main() {
 )";
 
 static ShaderAttribInfo g_model_attribs[ModelRenderer::NumAttribs] = {
-	{"a_Position",		GL_FLOAT,			3,  0,	false},
-	{"a_Normal",		GL_FLOAT,			3, 12,	false},
-	{"a_Binormal",		GL_FLOAT,			3, 24,	false},
-	{"a_Tangent",		GL_FLOAT,			3, 36,	false},
-	{"a_TexCoord",		GL_FLOAT,			2, 48,	false},
-	{"a_Color", GL_UNSIGNED_BYTE,			4, 56,	true },
+	{"a_Position", GL_FLOAT, 3, 0, false},
+	{"a_Normal", GL_FLOAT, 3, 12, false},
+	{"a_Binormal", GL_FLOAT, 3, 24, false},
+	{"a_Tangent", GL_FLOAT, 3, 36, false},
+	{"a_TexCoord", GL_FLOAT, 2, 48, false},
+	{"a_Color", GL_UNSIGNED_BYTE, 4, 56, true},
 #if defined(MODEL_SOFTWARE_INSTANCING)
-	{"a_InstanceID",	GL_FLOAT,			1,  0,	false},
-	{"a_UVOffset",		GL_FLOAT,			4,	0,	false},
-	{"a_ModelColor",	GL_FLOAT,			4,  0,	false},
+	{"a_InstanceID", GL_FLOAT, 1, 0, false},
+	{"a_UVOffset", GL_FLOAT, 4, 0, false},
+	{"a_ModelColor", GL_FLOAT, 4, 0, false},
 #endif
 };
 
 static ShaderUniformInfo g_model_uniforms[ModelRenderer::NumUniforms] = {
-	{"ProjectionMatrix"	},
-	{"ModelMatrix"		},
+	{"ProjectionMatrix"},
+	{"ModelMatrix"},
 #if !defined(MODEL_SOFTWARE_INSTANCING)
-	{"UVOffset"			},
-	{"ModelColor"		},
+	{"UVOffset"},
+	{"ModelColor"},
 #endif
-	{"ColorTexture"		},
-	{"NormalTexture"	},
-	{"LightDirection"	},
-	{"LightColor"		},
-	{"LightAmbient"		},
-	{ "g_scale" },
-	{ "mUVInversed" },
-	{ "mUVInversedBack" },
+	{"ColorTexture"},
+	{"NormalTexture"},
+	{"LightDirection"},
+	{"LightColor"},
+	{"LightAmbient"},
+	{"g_scale"},
+	{"mUVInversed"},
+	{"mUVInversedBack"},
 };
 
 //----------------------------------------------------------------------------------
@@ -3388,7 +3628,7 @@ ModelRenderer::ModelRenderer(
 	shader_texture->GetAttribIdList(NumAttribs, g_model_attribs);
 	shader_texture->GetUniformIdList(NumUniforms, g_model_uniforms, m_uniformLoc[4]);
 	shader_texture->SetTextureSlot(0, shader_texture->GetUniformId("ColorTexture"));
-	
+
 	shader_distortion_texture->GetAttribIdList(NumAttribs, g_model_attribs);
 	shader_distortion_texture->GetUniformIdList(NumUniforms, g_model_uniforms, m_uniformLoc[6]);
 	shader_distortion_texture->SetTextureSlot(0, shader_distortion_texture->GetUniformId("uTexture0"));
@@ -3397,8 +3637,8 @@ ModelRenderer::ModelRenderer(
 	Shader* shaders[2];
 	shaders[0] = m_shader_lighting_texture_normal;
 	shaders[1] = m_shader_texture;
-	
-	for( int32_t i = 0; i < 2; i++ )
+
+	for (int32_t i = 0; i < 2; i++)
 	{
 		shaders[i]->SetVertexSize(sizeof(::Effekseer::Model::Vertex));
 
@@ -3406,64 +3646,53 @@ ModelRenderer::ModelRenderer(
 		shaders[i]->AddVertexConstantLayout(
 			CONSTANT_TYPE_MATRIX44,
 			shaders[i]->GetUniformId("ProjectionMatrix"),
-			0
-			);
+			0);
 
 		shaders[i]->AddVertexConstantLayout(
 			CONSTANT_TYPE_MATRIX44,
 			shaders[i]->GetUniformId("ModelMatrix"),
-			sizeof(Effekseer::Matrix44)
-			);
+			sizeof(Effekseer::Matrix44));
 
 		shaders[i]->AddVertexConstantLayout(
 			CONSTANT_TYPE_VECTOR4,
 			shaders[i]->GetUniformId("UVOffset"),
-			sizeof(Effekseer::Matrix44) * 2
-			);
+			sizeof(Effekseer::Matrix44) * 2);
 
 		shaders[i]->AddVertexConstantLayout(
 			CONSTANT_TYPE_VECTOR4,
 			shaders[i]->GetUniformId("ModelColor"),
-			sizeof(Effekseer::Matrix44) * 2 + sizeof(float[4]) * 1
-			);
+			sizeof(Effekseer::Matrix44) * 2 + sizeof(float[4]) * 1);
 
 		shaders[i]->AddVertexConstantLayout(
 			CONSTANT_TYPE_VECTOR4,
 			shaders[i]->GetUniformId("LightDirection"),
-			sizeof(Effekseer::Matrix44) * 2 + sizeof(float[4]) * 2 + sizeof(float[4]) * 0
-			);
+			sizeof(Effekseer::Matrix44) * 2 + sizeof(float[4]) * 2 + sizeof(float[4]) * 0);
 		shaders[i]->AddVertexConstantLayout(
 			CONSTANT_TYPE_VECTOR4,
 			shaders[i]->GetUniformId("LightColor"),
-			sizeof(Effekseer::Matrix44) * 2 + sizeof(float[4]) * 2 + sizeof(float[4]) * 1
-			);
+			sizeof(Effekseer::Matrix44) * 2 + sizeof(float[4]) * 2 + sizeof(float[4]) * 1);
 		shaders[i]->AddVertexConstantLayout(
 			CONSTANT_TYPE_VECTOR4,
 			shaders[i]->GetUniformId("LightAmbient"),
-			sizeof(Effekseer::Matrix44) * 2 + sizeof(float[4]) * 2 + sizeof(float[4]) * 2
-			);
+			sizeof(Effekseer::Matrix44) * 2 + sizeof(float[4]) * 2 + sizeof(float[4]) * 2);
 		shaders[i]->AddVertexConstantLayout(
 			CONSTANT_TYPE_VECTOR4,
 			shaders[i]->GetUniformId("mUVInversed"),
-			sizeof(Effekseer::Matrix44) * 2 + sizeof(float[4]) * 2 + sizeof(float[4]) * 3
-		);
+			sizeof(Effekseer::Matrix44) * 2 + sizeof(float[4]) * 2 + sizeof(float[4]) * 3);
 
 		shaders[i]->SetPixelConstantBufferSize(sizeof(::EffekseerRenderer::ModelRendererPixelConstantBuffer));
 		shaders[i]->AddPixelConstantLayout(
 			CONSTANT_TYPE_VECTOR4,
 			shaders[i]->GetUniformId("LightDirection"),
-			sizeof(float[4]) * 0
-			);
+			sizeof(float[4]) * 0);
 		shaders[i]->AddPixelConstantLayout(
 			CONSTANT_TYPE_VECTOR4,
 			shaders[i]->GetUniformId("LightColor"),
-			sizeof(float[4]) * 1
-			);
+			sizeof(float[4]) * 1);
 		shaders[i]->AddPixelConstantLayout(
 			CONSTANT_TYPE_VECTOR4,
 			shaders[i]->GetUniformId("LightAmbient"),
-			sizeof(float[4]) * 2
-			);
+			sizeof(float[4]) * 2);
 	}
 
 	Shader* shaders_d[1];
@@ -3477,65 +3706,53 @@ ModelRenderer::ModelRenderer(
 		shaders_d[i]->AddVertexConstantLayout(
 			CONSTANT_TYPE_MATRIX44,
 			shaders_d[i]->GetUniformId("ProjectionMatrix"),
-			0
-			);
+			0);
 
 		shaders_d[i]->AddVertexConstantLayout(
 			CONSTANT_TYPE_MATRIX44,
 			shaders_d[i]->GetUniformId("ModelMatrix"),
-			sizeof(Effekseer::Matrix44)
-			);
+			sizeof(Effekseer::Matrix44));
 
 		shaders_d[i]->AddVertexConstantLayout(
 			CONSTANT_TYPE_VECTOR4,
 			shaders_d[i]->GetUniformId("UVOffset"),
-			sizeof(Effekseer::Matrix44) * 2
-			);
+			sizeof(Effekseer::Matrix44) * 2);
 
 		shaders_d[i]->AddVertexConstantLayout(
 			CONSTANT_TYPE_VECTOR4,
 			shaders_d[i]->GetUniformId("ModelColor"),
-			sizeof(Effekseer::Matrix44) * 2 + sizeof(float[4]) * 1
-			);
+			sizeof(Effekseer::Matrix44) * 2 + sizeof(float[4]) * 1);
 
 		shaders_d[i]->AddVertexConstantLayout(
 			CONSTANT_TYPE_VECTOR4,
 			shaders_d[i]->GetUniformId("LightDirection"),
-			sizeof(Effekseer::Matrix44) * 2 + sizeof(float[4]) * 2 + sizeof(float[4]) * 0
-			);
+			sizeof(Effekseer::Matrix44) * 2 + sizeof(float[4]) * 2 + sizeof(float[4]) * 0);
 
 		shaders_d[i]->AddVertexConstantLayout(
 			CONSTANT_TYPE_VECTOR4,
 			shaders_d[i]->GetUniformId("LightColor"),
-			sizeof(Effekseer::Matrix44) * 2 + sizeof(float[4]) * 2 + sizeof(float[4]) * 1
-			);
+			sizeof(Effekseer::Matrix44) * 2 + sizeof(float[4]) * 2 + sizeof(float[4]) * 1);
 
 		shaders_d[i]->AddVertexConstantLayout(
 			CONSTANT_TYPE_VECTOR4,
 			shaders_d[i]->GetUniformId("LightAmbient"),
-			sizeof(Effekseer::Matrix44) * 2 + sizeof(float[4]) * 2 + sizeof(float[4]) * 2
-			);
+			sizeof(Effekseer::Matrix44) * 2 + sizeof(float[4]) * 2 + sizeof(float[4]) * 2);
 
 		shaders_d[i]->AddVertexConstantLayout(
 			CONSTANT_TYPE_VECTOR4,
 			shaders_d[i]->GetUniformId("mUVInversed"),
-			sizeof(Effekseer::Matrix44) * 2 + sizeof(float[4]) * 2 + sizeof(float[4]) * 3
-		);
-
+			sizeof(Effekseer::Matrix44) * 2 + sizeof(float[4]) * 2 + sizeof(float[4]) * 3);
 
 		shaders_d[i]->SetPixelConstantBufferSize(sizeof(float) * 4 * 2);
 		shaders_d[i]->AddPixelConstantLayout(
 			CONSTANT_TYPE_VECTOR4,
 			shaders_d[i]->GetUniformId("g_scale"),
-			sizeof(float[4]) * 0
-			);
-
+			sizeof(float[4]) * 0);
 
 		shaders_d[i]->AddPixelConstantLayout(
 			CONSTANT_TYPE_VECTOR4,
 			shaders_d[i]->GetUniformId("mUVInversedBack"),
-			sizeof(float[4]) * 1
-			);
+			sizeof(float[4]) * 1);
 	}
 
 	GLint currentVAO = 0;
@@ -3575,11 +3792,11 @@ ModelRenderer::~ModelRenderer()
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-ModelRenderer* ModelRenderer::Create( RendererImplemented* renderer )
+ModelRenderer* ModelRenderer::Create(RendererImplemented* renderer)
 {
-	assert( renderer != NULL );
+	assert(renderer != NULL);
 
-	Shader* shader_lighting_texture_normal = NULL;		    
+	Shader* shader_lighting_texture_normal = NULL;
 	Shader* shader_texture = NULL;
 	Shader* shader_distortion_texture = NULL;
 
@@ -3623,8 +3840,8 @@ ModelRenderer* ModelRenderer::Create( RendererImplemented* renderer )
 	if (shader_distortion_texture == NULL)
 		goto End;
 
-	return new ModelRenderer( 
-		renderer, 
+	return new ModelRenderer(
+		renderer,
 		shader_lighting_texture_normal,
 		shader_texture,
 		shader_distortion_texture);
@@ -3651,7 +3868,7 @@ void ModelRenderer::Rendering(const efkModelNodeParam& parameter, const Instance
 		userData);
 }
 
-void ModelRenderer::EndRendering( const efkModelNodeParam& parameter, void* userData )
+void ModelRenderer::EndRendering(const efkModelNodeParam& parameter, void* userData)
 {
 	if (parameter.BasicParameterPtr->MaterialType == Effekseer::RendererMaterialType::BackDistortion)
 	{
@@ -3666,27 +3883,27 @@ void ModelRenderer::EndRendering( const efkModelNodeParam& parameter, void* user
 		m_renderer->SetVertexArray(m_va[4]);
 	}
 
-    if(parameter.ModelIndex < 0)
-    {
-        return;
-    }
-    
-	auto model = (Model*) parameter.EffectPointer->GetModel(parameter.ModelIndex);
-	if(model == nullptr)
+	if (parameter.ModelIndex < 0)
 	{
-        return;
-    }
-    
-    model->LoadToGPU();
+		return;
+	}
+
+	auto model = (Model*)parameter.EffectPointer->GetModel(parameter.ModelIndex);
+	if (model == nullptr)
+	{
+		return;
+	}
+
+	model->LoadToGPU();
 	if (!model->IsLoadedOnGPU)
 	{
 		return;
 	}
-	
-    m_shader_lighting_texture_normal->SetVertexSize(model->GetVertexSize());
-    m_shader_texture->SetVertexSize(model->GetVertexSize());
-    m_shader_distortion_texture->SetVertexSize(model->GetVertexSize());
-	
+
+	m_shader_lighting_texture_normal->SetVertexSize(model->GetVertexSize());
+	m_shader_texture->SetVertexSize(model->GetVertexSize());
+	m_shader_distortion_texture->SetVertexSize(model->GetVertexSize());
+
 #if defined(MODEL_SOFTWARE_INSTANCING)
 	EndRendering_<
 		RendererImplemented,
@@ -3699,7 +3916,7 @@ void ModelRenderer::EndRendering( const efkModelNodeParam& parameter, void* user
 		m_shader_lighting_texture_normal,
 		m_shader_texture,
 		m_shader_distortion_texture,
-		parameter );
+		parameter);
 #else
 	EndRendering_<
 		RendererImplemented,
@@ -3711,15 +3928,14 @@ void ModelRenderer::EndRendering( const efkModelNodeParam& parameter, void* user
 		m_shader_lighting_texture_normal,
 		m_shader_texture,
 		m_shader_distortion_texture,
-		parameter );
+		parameter);
 #endif
-
 }
 
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-}
+} // namespace EffekseerRendererGL
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
@@ -4068,7 +4284,8 @@ MaterialLoader::MaterialLoader(OpenGLDeviceType deviceType,
 							   DeviceObjectCollection* deviceObjectCollection,
 							   ::Effekseer::FileInterface* fileInterface,
 							   bool canLoadFromCache)
-	: fileInterface_(fileInterface), canLoadFromCache_(canLoadFromCache)
+	: fileInterface_(fileInterface)
+	, canLoadFromCache_(canLoadFromCache)
 {
 	if (fileInterface == nullptr)
 	{
@@ -4161,7 +4378,7 @@ MaterialLoader ::~MaterialLoader()
 		Effekseer::Material material;
 		if (!material.Load((const uint8_t*)data, size))
 		{
-			std::cout << "Error : Invalid material is loaded." << std::endl; 
+			std::cout << "Error : Invalid material is loaded." << std::endl;
 		}
 		auto compiler = ::Effekseer::CreateUniqueReference(new Effekseer::MaterialCompilerGL());
 		auto binary = ::Effekseer::CreateUniqueReference(compiler->Compile(&material));
@@ -4207,14 +4424,14 @@ namespace EffekseerRendererGL
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
-static const char g_sprite_vs_src [] =
-R"(
+static const char g_sprite_vs_src[] =
+	R"(
 IN vec4 atPosition;
 IN vec4 atColor;
 IN vec4 atTexCoord;
 )"
 
-R"(
+	R"(
 CENTROID OUT vec4 vaColor;
 CENTROID OUT vec4 vaTexCoord;
 OUT vec4 vaPos;
@@ -4222,7 +4439,7 @@ OUT vec4 vaPosR;
 OUT vec4 vaPosU;
 )"
 
-R"(
+	R"(
 uniform mat4 uMatCamera;
 uniform mat4 uMatProjection;
 uniform vec4 mUVInversed;
@@ -4254,7 +4471,7 @@ void main() {
 )";
 
 static const char g_sprite_fs_texture_src[] =
-R"(
+	R"(
 CENTROID IN lowp vec4 vaColor;
 CENTROID IN mediump vec4 vaTexCoord;
 
@@ -4269,7 +4486,7 @@ void main()
 )";
 
 static const char g_sprite_fs_no_texture_src[] =
-R"(
+	R"(
 CENTROID IN lowp vec4 vaColor;
 CENTROID IN mediump vec4 vaTexCoord;
 
@@ -4281,9 +4498,8 @@ void main()
 }
 )";
 
-
-static const char g_sprite_distortion_vs_src [] =
-R"(
+static const char g_sprite_distortion_vs_src[] =
+	R"(
 IN vec4 atPosition;
 IN vec4 atColor;
 IN vec4 atTexCoord;
@@ -4292,14 +4508,14 @@ IN vec4 atTangent;
 
 )"
 
-R"(
+	R"(
 CENTROID OUT vec4 vaColor;
 CENTROID OUT vec4 vaTexCoord;
 OUT vec4 vaPos;
 OUT vec4 vaPosR;
 OUT vec4 vaPosU;
 )"
-R"(
+	R"(
 uniform mat4 uMatCamera;
 uniform mat4 uMatProjection;
 uniform vec4 mUVInversed;
@@ -4340,8 +4556,8 @@ void main() {
 
 )";
 
-static const char g_sprite_fs_texture_distortion_src [] =
-R"(
+static const char g_sprite_fs_texture_distortion_src[] =
+	R"(
 CENTROID IN lowp vec4 vaColor;
 CENTROID IN mediump vec4 vaTexCoord;
 IN mediump vec4 vaPos;
@@ -4349,7 +4565,7 @@ IN mediump vec4 vaPosR;
 IN mediump vec4 vaPosU;
 )"
 
-R"(
+	R"(
 uniform sampler2D uTexture0;
 uniform sampler2D uBackTexture0;
 
@@ -4358,7 +4574,7 @@ uniform	vec4	mUVInversedBack;
 
 )"
 
-R"(
+	R"(
 void main() {
 	vec4 color = TEX2D(uTexture0, vaTexCoord.xy);
 	color.w = color.w * vaColor.w;
@@ -4382,8 +4598,8 @@ void main() {
 }
 )";
 
-static const char g_sprite_fs_no_texture_distortion_src [] =
-R"(
+static const char g_sprite_fs_no_texture_distortion_src[] =
+	R"(
 CENTROID IN lowp vec4 vaColor;
 CENTROID IN mediump vec4 vaTexCoord;
 IN mediump vec4 vaPos;
@@ -4391,7 +4607,7 @@ IN mediump vec4 vaPosR;
 IN mediump vec4 vaPosU;
 )"
 
-R"(
+	R"(
 uniform sampler2D uBackTexture0;
 
 uniform	vec4	g_scale;
@@ -4399,7 +4615,7 @@ uniform	vec4	mUVInversedBack;
 
 )"
 
-R"(
+	R"(
 void main() {
 	vec4 color = vaColor;
 	color.xyz = vec3(1.0,1.0,1.0);
@@ -4566,13 +4782,13 @@ int32_t RendererImplemented::GetIndexSpriteCount() const
 RendererImplemented::RendererImplemented(int32_t squareMaxCount,
 										 OpenGLDeviceType deviceType,
 										 DeviceObjectCollection* deviceObjectCollection)
-	: m_vertexBuffer( NULL )
-	, m_indexBuffer	( NULL )
-	, m_indexBufferForWireframe	( NULL )
-	, m_squareMaxCount	( squareMaxCount )
-	, m_renderState		( NULL )
+	: m_vertexBuffer(NULL)
+	, m_indexBuffer(NULL)
+	, m_indexBufferForWireframe(NULL)
+	, m_squareMaxCount(squareMaxCount)
+	, m_renderState(NULL)
 	, m_restorationOfStates(true)
-	, m_currentVertexArray( NULL )
+	, m_currentVertexArray(NULL)
 
 	, m_shader(nullptr)
 	, m_shader_distortion(nullptr)
@@ -4660,7 +4876,8 @@ void RendererImplemented::GenerateIndexData()
 	}
 }
 
-template <typename T> void RendererImplemented::GenerateIndexDataStride()
+template <typename T>
+void RendererImplemented::GenerateIndexDataStride()
 {
 	// generate an index buffer
 	if (m_indexBuffer != nullptr)
@@ -4729,58 +4946,62 @@ bool RendererImplemented::Initialize()
 
 	SetSquareMaxCount(m_squareMaxCount);
 
-	m_renderState = new RenderState( this );
+	m_renderState = new RenderState(this);
 
 	m_shader = Shader::Create(this->GetDeviceType(),
 							  this->GetDeviceObjectCollection(),
-		g_sprite_vs_src, sizeof(g_sprite_vs_src), 
-		g_sprite_fs_texture_src, sizeof(g_sprite_fs_texture_src), 
-		"Standard Tex", false);
-	if (m_shader == nullptr) return false;
+							  g_sprite_vs_src,
+							  sizeof(g_sprite_vs_src),
+							  g_sprite_fs_texture_src,
+							  sizeof(g_sprite_fs_texture_src),
+							  "Standard Tex",
+							  false);
+	if (m_shader == nullptr)
+		return false;
 
 	m_shader_distortion = Shader::Create(this->GetDeviceType(),
 										 this->GetDeviceObjectCollection(),
-		g_sprite_distortion_vs_src, sizeof(g_sprite_distortion_vs_src), 
-		g_sprite_fs_texture_distortion_src, sizeof(g_sprite_fs_texture_distortion_src), 
-		"Standard Distortion Tex", false);
-	if (m_shader_distortion == nullptr) return false;
+										 g_sprite_distortion_vs_src,
+										 sizeof(g_sprite_distortion_vs_src),
+										 g_sprite_fs_texture_distortion_src,
+										 sizeof(g_sprite_fs_texture_distortion_src),
+										 "Standard Distortion Tex",
+										 false);
+	if (m_shader_distortion == nullptr)
+		return false;
 
 	static ShaderAttribInfo sprite_attribs[3] = {
-		{ "atPosition", GL_FLOAT, 3, 0, false },
-		{ "atColor", GL_UNSIGNED_BYTE, 4, 12, true },
-		{ "atTexCoord", GL_FLOAT, 2, 16, false }
-	};
+		{"atPosition", GL_FLOAT, 3, 0, false},
+		{"atColor", GL_UNSIGNED_BYTE, 4, 12, true},
+		{"atTexCoord", GL_FLOAT, 2, 16, false}};
 
 	static ShaderAttribInfo sprite_attribs_distortion[5] = {
-		{ "atPosition", GL_FLOAT, 3, 0, false },
-		{ "atColor", GL_UNSIGNED_BYTE, 4, 12, true },
-		{ "atTexCoord", GL_FLOAT, 2, 16, false },
-		{ "atBinormal", GL_FLOAT, 3, 24, false },
-		{ "atTangent", GL_FLOAT, 3, 36, false },
+		{"atPosition", GL_FLOAT, 3, 0, false},
+		{"atColor", GL_UNSIGNED_BYTE, 4, 12, true},
+		{"atTexCoord", GL_FLOAT, 2, 16, false},
+		{"atBinormal", GL_FLOAT, 3, 24, false},
+		{"atTangent", GL_FLOAT, 3, 36, false},
 	};
 
 	// 頂点属性IDを取得
 	m_shader->GetAttribIdList(3, sprite_attribs);
 	m_shader->SetVertexSize(sizeof(Vertex));
 	m_shader->SetVertexConstantBufferSize(sizeof(Effekseer::Matrix44) * 2 + sizeof(float) * 4);
-	
+
 	m_shader->AddVertexConstantLayout(
 		CONSTANT_TYPE_MATRIX44,
 		m_shader->GetUniformId("uMatCamera"),
-		0
-		);
+		0);
 
 	m_shader->AddVertexConstantLayout(
 		CONSTANT_TYPE_MATRIX44,
 		m_shader->GetUniformId("uMatProjection"),
-		sizeof(Effekseer::Matrix44)
-		);
+		sizeof(Effekseer::Matrix44));
 
 	m_shader->AddVertexConstantLayout(
 		CONSTANT_TYPE_VECTOR4,
 		m_shader->GetUniformId("mUVInversed"),
-		sizeof(Effekseer::Matrix44) * 2
-	);
+		sizeof(Effekseer::Matrix44) * 2);
 
 	m_shader->SetTextureSlot(0, m_shader->GetUniformId("uTexture0"));
 
@@ -4795,33 +5016,27 @@ bool RendererImplemented::Initialize()
 	m_shader_distortion->AddVertexConstantLayout(
 		CONSTANT_TYPE_MATRIX44,
 		m_shader_distortion->GetUniformId("uMatCamera"),
-		0
-		);
+		0);
 
 	m_shader_distortion->AddVertexConstantLayout(
 		CONSTANT_TYPE_MATRIX44,
 		m_shader_distortion->GetUniformId("uMatProjection"),
-		sizeof(Effekseer::Matrix44)
-		);
+		sizeof(Effekseer::Matrix44));
 
 	m_shader_distortion->AddVertexConstantLayout(
 		CONSTANT_TYPE_VECTOR4,
 		m_shader_distortion->GetUniformId("mUVInversed"),
-		sizeof(Effekseer::Matrix44) * 2
-	);
+		sizeof(Effekseer::Matrix44) * 2);
 
 	m_shader_distortion->AddPixelConstantLayout(
 		CONSTANT_TYPE_VECTOR4,
 		m_shader_distortion->GetUniformId("g_scale"),
-		0
-		);
+		0);
 
 	m_shader_distortion->AddPixelConstantLayout(
 		CONSTANT_TYPE_VECTOR4,
 		m_shader_distortion->GetUniformId("mUVInversedBack"),
-		sizeof(float) * 4
-	);
-
+		sizeof(float) * 4);
 
 	m_shader_distortion->SetTextureSlot(0, m_shader_distortion->GetUniformId("uTexture0"));
 	m_shader_distortion->SetTextureSlot(1, m_shader_distortion->GetUniformId("uBackTexture0"));
@@ -4871,7 +5086,7 @@ bool RendererImplemented::Initialize()
 	m_vao_lighting = VertexArray::Create(this, m_shader_lighting, GetVertexBuffer(), GetIndexBuffer(), false);
 
 	m_vao_wire_frame = VertexArray::Create(this, m_shader, GetVertexBuffer(), m_indexBufferForWireframe, false);
-	
+
 	m_standardRenderer = new EffekseerRenderer::StandardRenderer<RendererImplemented, Shader, Vertex, VertexDistortion>(this, m_shader, m_shader_distortion);
 
 	GLExt::glBindBuffer(GL_ARRAY_BUFFER, arrayBufferBinding);
@@ -4915,7 +5130,7 @@ bool RendererImplemented::BeginRendering()
 	impl->CalculateCameraProjectionMatrix();
 
 	// store state
-	if(m_restorationOfStates)
+	if (m_restorationOfStates)
 	{
 		m_originalState.blend = glIsEnabled(GL_BLEND);
 		m_originalState.cullFace = glIsEnabled(GL_CULL_FACE);
@@ -4934,7 +5149,7 @@ bool RendererImplemented::BeginRendering()
 		glGetIntegerv(GL_BLEND_EQUATION, &m_originalState.blendEquation);
 		glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &m_originalState.arrayBufferBinding);
 		glGetIntegerv(GL_ELEMENT_ARRAY_BUFFER_BINDING, &m_originalState.elementArrayBufferBinding);
-		
+
 		for (size_t i = 0; i < m_originalState.boundTextures.size(); i++)
 		{
 			GLint bound = 0;
@@ -4955,8 +5170,8 @@ bool RendererImplemented::BeginRendering()
 
 	currentTextures_.clear();
 	m_renderState->GetActiveState().Reset();
-	m_renderState->Update( true );
-	
+	m_renderState->Update(true);
+
 	m_renderState->GetActiveState().TextureIDs.fill(0);
 
 	// reset renderer
@@ -4978,7 +5193,7 @@ bool RendererImplemented::EndRendering()
 	m_standardRenderer->ResetAndRenderingIfRequired();
 
 	// restore states
-	if(m_restorationOfStates)
+	if (m_restorationOfStates)
 	{
 		if (GLExt::IsSupportedVertexArray())
 		{
@@ -4992,15 +5207,27 @@ bool RendererImplemented::EndRendering()
 		}
 		GLExt::glActiveTexture(GL_TEXTURE0);
 
-		if (m_originalState.blend) glEnable(GL_BLEND); else glDisable(GL_BLEND);
-		if (m_originalState.cullFace) glEnable(GL_CULL_FACE); else glDisable(GL_CULL_FACE);
-		if (m_originalState.depthTest) glEnable(GL_DEPTH_TEST); else glDisable(GL_DEPTH_TEST);
-		
+		if (m_originalState.blend)
+			glEnable(GL_BLEND);
+		else
+			glDisable(GL_BLEND);
+		if (m_originalState.cullFace)
+			glEnable(GL_CULL_FACE);
+		else
+			glDisable(GL_CULL_FACE);
+		if (m_originalState.depthTest)
+			glEnable(GL_DEPTH_TEST);
+		else
+			glDisable(GL_DEPTH_TEST);
+
 		if (GetDeviceType() == OpenGLDeviceType::OpenGL2)
 		{
-			if (m_originalState.texture) glEnable(GL_TEXTURE_2D); else glDisable(GL_TEXTURE_2D);
+			if (m_originalState.texture)
+				glEnable(GL_TEXTURE_2D);
+			else
+				glDisable(GL_TEXTURE_2D);
 		}
-		
+
 		glDepthFunc(m_originalState.depthFunc);
 		glDepthMask(m_originalState.depthWrite);
 		glCullFace(m_originalState.cullFaceMode);
@@ -5012,7 +5239,7 @@ bool RendererImplemented::EndRendering()
 
 		if (GetDeviceType() == OpenGLDeviceType::OpenGL3 || GetDeviceType() == OpenGLDeviceType::OpenGLES3)
 		{
-			for( int32_t i = 0; i < 4; i++ )
+			for (int32_t i = 0; i < 4; i++)
 			{
 				GLExt::glBindSampler(i, 0);
 			}
@@ -5060,8 +5287,10 @@ void RendererImplemented::SetSquareMaxCount(int32_t count)
 
 	m_squareMaxCount = count;
 
-	if (m_vertexBuffer != nullptr) AddRef();
-	if (m_indexBuffer != nullptr) AddRef();
+	if (m_vertexBuffer != nullptr)
+		AddRef();
+	if (m_indexBuffer != nullptr)
+		AddRef();
 	ES_SAFE_DELETE(m_vertexBuffer);
 	ES_SAFE_DELETE(m_indexBuffer);
 
@@ -5069,19 +5298,22 @@ void RendererImplemented::SetSquareMaxCount(int32_t count)
 	{
 		m_vertexBuffer =
 			VertexBuffer::Create(this, EffekseerRenderer::GetMaximumVertexSizeInAllTypes() * m_squareMaxCount * 4, true, false);
-		if (m_vertexBuffer == NULL) return;
+		if (m_vertexBuffer == NULL)
+			return;
 	}
 
 	// generate an index buffer
 	{
 		m_indexBuffer = IndexBuffer::Create(this, GetIndexSpriteCount() * 6, false, indexBufferStride_, false);
-		if (m_indexBuffer == nullptr) return;
+		if (m_indexBuffer == nullptr)
+			return;
 	}
 
 	// generate an index buffer for a wireframe
 	{
 		m_indexBufferForWireframe = IndexBuffer::Create(this, GetIndexSpriteCount() * 8, false, indexBufferStride_, false);
-		if( m_indexBufferForWireframe == nullptr) return;
+		if (m_indexBufferForWireframe == nullptr)
+			return;
 	}
 
 	// generate index data
@@ -5112,7 +5344,7 @@ void RendererImplemented::SetSquareMaxCount(int32_t count)
 //----------------------------------------------------------------------------------
 ::Effekseer::RibbonRenderer* RendererImplemented::CreateRibbonRenderer()
 {
-	return new ::EffekseerRenderer::RibbonRendererBase<RendererImplemented, Vertex, VertexDistortion>( this );
+	return new ::EffekseerRenderer::RibbonRendererBase<RendererImplemented, Vertex, VertexDistortion>(this);
 }
 
 //----------------------------------------------------------------------------------
@@ -5128,7 +5360,7 @@ void RendererImplemented::SetSquareMaxCount(int32_t count)
 //----------------------------------------------------------------------------------
 ::Effekseer::ModelRenderer* RendererImplemented::CreateModelRenderer()
 {
-	return ModelRenderer::Create( this );
+	return ModelRenderer::Create(this);
 }
 
 //----------------------------------------------------------------------------------
@@ -5142,10 +5374,10 @@ void RendererImplemented::SetSquareMaxCount(int32_t count)
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-::Effekseer::TextureLoader* RendererImplemented::CreateTextureLoader( ::Effekseer::FileInterface* fileInterface )
+::Effekseer::TextureLoader* RendererImplemented::CreateTextureLoader(::Effekseer::FileInterface* fileInterface)
 {
 #ifdef __EFFEKSEER_RENDERER_INTERNAL_LOADER__
-	return new TextureLoader( fileInterface );
+	return new TextureLoader(fileInterface);
 #else
 	return NULL;
 #endif
@@ -5154,16 +5386,17 @@ void RendererImplemented::SetSquareMaxCount(int32_t count)
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-::Effekseer::ModelLoader* RendererImplemented::CreateModelLoader( ::Effekseer::FileInterface* fileInterface )
+::Effekseer::ModelLoader* RendererImplemented::CreateModelLoader(::Effekseer::FileInterface* fileInterface)
 {
 #ifdef __EFFEKSEER_RENDERER_INTERNAL_LOADER__
-	return new ModelLoader( fileInterface );
+	return new ModelLoader(fileInterface);
 #else
 	return NULL;
 #endif
 }
 
-::Effekseer::MaterialLoader* RendererImplemented::CreateMaterialLoader(::Effekseer::FileInterface* fileInterface) {
+::Effekseer::MaterialLoader* RendererImplemented::CreateMaterialLoader(::Effekseer::FileInterface* fileInterface)
+{
 #ifdef __EFFEKSEER_RENDERER_INTERNAL_LOADER__
 	return new MaterialLoader(this->GetDeviceType(), this, this->GetDeviceObjectCollection(), fileInterface);
 #else
@@ -5177,7 +5410,10 @@ void RendererImplemented::SetBackground(GLuint background, bool hasMipmap)
 	m_background.HasMipmap = hasMipmap;
 }
 
-void RendererImplemented::SetBackgroundTexture(::Effekseer::TextureData* textureData) { m_background = *textureData; }
+void RendererImplemented::SetBackgroundTexture(::Effekseer::TextureData* textureData)
+{
+	m_background = *textureData;
+}
 
 EffekseerRenderer::DistortingCallback* RendererImplemented::GetDistortingCallback()
 {
@@ -5193,7 +5429,7 @@ void RendererImplemented::SetDistortingCallback(EffekseerRenderer::DistortingCal
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-void RendererImplemented::SetVertexBuffer( VertexBuffer* vertexBuffer, int32_t size )
+void RendererImplemented::SetVertexBuffer(VertexBuffer* vertexBuffer, int32_t size)
 {
 	if (m_currentVertexArray == nullptr ||
 		m_currentVertexArray->GetVertexBuffer() == nullptr)
@@ -5216,7 +5452,7 @@ void RendererImplemented::SetVertexBuffer(GLuint vertexBuffer, int32_t size)
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-void RendererImplemented::SetIndexBuffer( IndexBuffer* indexBuffer )
+void RendererImplemented::SetIndexBuffer(IndexBuffer* indexBuffer)
 {
 	if (m_currentVertexArray == nullptr || m_currentVertexArray->GetIndexBuffer() == nullptr)
 	{
@@ -5248,7 +5484,7 @@ void RendererImplemented::SetIndexBuffer(GLuint indexBuffer)
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-void RendererImplemented::SetVertexArray( VertexArray* vertexArray )
+void RendererImplemented::SetVertexArray(VertexArray* vertexArray)
 {
 	m_currentVertexArray = vertexArray;
 }
@@ -5259,8 +5495,8 @@ void RendererImplemented::SetVertexArray( VertexArray* vertexArray )
 void RendererImplemented::SetLayout(Shader* shader)
 {
 	GLCheckError();
-	
-	if (m_currentVertexArray == nullptr || 
+
+	if (m_currentVertexArray == nullptr ||
 		m_currentVertexArray->GetVertexBuffer() == nullptr)
 	{
 		shader->EnableAttribs();
@@ -5272,7 +5508,7 @@ void RendererImplemented::SetLayout(Shader* shader)
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-void RendererImplemented::DrawSprites( int32_t spriteCount, int32_t vertexOffset )
+void RendererImplemented::DrawSprites(int32_t spriteCount, int32_t vertexOffset)
 {
 	GLCheckError();
 
@@ -5287,20 +5523,20 @@ void RendererImplemented::DrawSprites( int32_t spriteCount, int32_t vertexOffset
 
 	if (GetRenderMode() == ::Effekseer::RenderMode::Normal)
 	{
-		glDrawElements(GL_TRIANGLES, spriteCount * 6, stride, (void*)(vertexOffset / 4 * 6 * indexBufferCurrentStride_));
+		glDrawElements(GL_TRIANGLES, spriteCount * 6, stride, reinterpret_cast<GLvoid*>(static_cast<size_t>(vertexOffset / 4 * 6 * indexBufferCurrentStride_)));
 	}
 	else if (GetRenderMode() == ::Effekseer::RenderMode::Wireframe)
 	{
-		glDrawElements(GL_LINES, spriteCount * 8, stride, (void*)(vertexOffset / 4 * 8 * indexBufferCurrentStride_));
+		glDrawElements(GL_LINES, spriteCount * 8, stride, reinterpret_cast<GLvoid*>(static_cast<size_t>(vertexOffset / 4 * 8 * indexBufferCurrentStride_)));
 	}
-	
+
 	GLCheckError();
 }
 
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-void RendererImplemented::DrawPolygon( int32_t vertexCount, int32_t indexCount)
+void RendererImplemented::DrawPolygon(int32_t vertexCount, int32_t indexCount)
 {
 	GLCheckError();
 
@@ -5376,10 +5612,10 @@ void RendererImplemented::BeginShader(Shader* shader)
 	{
 		SetVertexArray(m_vao_lighting);
 	}
-    else if(m_currentVertexArray != nullptr)
-    {
-        SetVertexArray(m_currentVertexArray);
-    }
+	else if (m_currentVertexArray != nullptr)
+	{
+		SetVertexArray(m_currentVertexArray);
+	}
 	else
 	{
 		m_currentVertexArray = nullptr;
@@ -5412,7 +5648,7 @@ void RendererImplemented::EndShader(Shader* shader)
 	currentShader = nullptr;
 
 	GLCheckError();
-	
+
 	if (m_currentVertexArray)
 	{
 		if (m_currentVertexArray->GetVertexBuffer() == nullptr)
@@ -5487,7 +5723,7 @@ void RendererImplemented::SetTextures(Shader* shader, Effekseer::TextureData** t
 
 		GLExt::glActiveTexture(GL_TEXTURE0 + i);
 		glBindTexture(GL_TEXTURE_2D, id);
-		
+
 		if (textures[i] != nullptr)
 		{
 			m_renderState->GetActiveState().TextureIDs[i] = textures[i]->UserID;
@@ -5499,7 +5735,7 @@ void RendererImplemented::SetTextures(Shader* shader, Effekseer::TextureData** t
 			currentTextures_[i].UserPtr = nullptr;
 			m_renderState->GetActiveState().TextureIDs[i] = 0;
 		}
-		
+
 		if (shader->GetTextureSlotEnable(i))
 		{
 			GLExt::glUniform1i(shader->GetTextureSlot(i), i);
@@ -5516,10 +5752,11 @@ void RendererImplemented::SetTextures(Shader* shader, Effekseer::TextureData** t
 void RendererImplemented::ResetRenderState()
 {
 	m_renderState->GetActiveState().Reset();
-	m_renderState->Update( true );
+	m_renderState->Update(true);
 }
 
-Effekseer::TextureData* RendererImplemented::CreateProxyTexture(EffekseerRenderer::ProxyTextureType type) {
+Effekseer::TextureData* RendererImplemented::CreateProxyTexture(EffekseerRenderer::ProxyTextureType type)
+{
 
 	GLint bound = 0;
 	GLExt::glActiveTexture(GL_TEXTURE0);
@@ -5568,7 +5805,8 @@ Effekseer::TextureData* RendererImplemented::CreateProxyTexture(EffekseerRendere
 	return textureData;
 }
 
-void RendererImplemented::DeleteProxyTexture(Effekseer::TextureData* data) {
+void RendererImplemented::DeleteProxyTexture(Effekseer::TextureData* data)
+{
 	if (data != nullptr)
 	{
 		GLuint texture = (GLuint)data->UserID;
@@ -5577,7 +5815,10 @@ void RendererImplemented::DeleteProxyTexture(Effekseer::TextureData* data) {
 	}
 }
 
-bool RendererImplemented::IsVertexArrayObjectSupported() const { return GLExt::IsSupportedVertexArray(); }
+bool RendererImplemented::IsVertexArrayObjectSupported() const
+{
+	return GLExt::IsSupportedVertexArray();
+}
 
 //----------------------------------------------------------------------------------
 //
@@ -5604,8 +5845,9 @@ Model::InternalModel::~InternalModel()
 
 bool Model::InternalModel::TryDelayLoad()
 {
-	if(VertexBuffer > 0) return false;
-	
+	if (VertexBuffer > 0)
+		return false;
+
 	int arrayBufferBinding = 0;
 	int elementArrayBufferBinding = 0;
 	glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &arrayBufferBinding);
@@ -5617,7 +5859,7 @@ bool Model::InternalModel::TryDelayLoad()
 		GLExt::glBindBuffer(GL_ARRAY_BUFFER, VertexBuffer);
 		GLExt::glBufferData(GL_ARRAY_BUFFER, delayVertexBuffer.size(), delayVertexBuffer.data(), GL_STATIC_DRAW);
 	}
-	
+
 	GLExt::glGenBuffers(1, &IndexBuffer);
 	if (IndexBuffer > 0)
 	{
@@ -5630,7 +5872,7 @@ bool Model::InternalModel::TryDelayLoad()
 
 	return true;
 }
-	
+
 Model::Model(void* data, int32_t size)
 	: ::Effekseer::Model(data, size)
 	, InternalModels(nullptr)
@@ -5647,7 +5889,7 @@ Model::Model(void* data, int32_t size)
 
 		InternalModels[f].VertexCount = vertexCount;
 		InternalModels[f].IndexCount = faceCount * 3;
-		
+
 		//GLExt::glGenBuffers(1, &InternalModels[f].VertexBuffer);
 		size_t vertexSize = vertexCount * sizeof(::Effekseer::Model::Vertex);
 
@@ -5663,7 +5905,7 @@ Model::Model(void* data, int32_t size)
 		//}
 		InternalModels[f].delayVertexBuffer.resize(vertexSize);
 		memcpy(InternalModels[f].delayVertexBuffer.data(), vertexData, vertexSize);
-		
+
 		//GLExt::glGenBuffers(1, &InternalModels[f].IndexBuffer);
 		size_t indexSize = faceCount * sizeof(::Effekseer::Model::Face);
 
@@ -5695,7 +5937,7 @@ bool Model::LoadToGPU()
 
 	for (int32_t f = 0; f < GetFrameCount(); f++)
 	{
-		if(!InternalModels[f].TryDelayLoad())
+		if (!InternalModels[f].TryDelayLoad())
 		{
 			return false;
 		}
@@ -5709,7 +5951,7 @@ bool Model::LoadToGPU()
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-}
+} // namespace EffekseerRendererGL
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
@@ -5729,8 +5971,8 @@ namespace EffekseerRendererGL
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
-RenderState::RenderState( RendererImplemented* renderer )
-	: m_renderer	( renderer )
+RenderState::RenderState(RendererImplemented* renderer)
+	: m_renderer(renderer)
 {
 	if (m_renderer->GetDeviceType() == OpenGLDeviceType::OpenGL3 || m_renderer->GetDeviceType() == OpenGLDeviceType::OpenGLES3)
 	{
@@ -5760,32 +6002,32 @@ RenderState::~RenderState()
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
-void RenderState::Update( bool forced )
+void RenderState::Update(bool forced)
 {
 	GLCheckError();
 
-	if( m_active.DepthTest != m_next.DepthTest || forced )
+	if (m_active.DepthTest != m_next.DepthTest || forced)
 	{
-		if( m_next.DepthTest )
+		if (m_next.DepthTest)
 		{
-			glEnable( GL_DEPTH_TEST );
+			glEnable(GL_DEPTH_TEST);
 		}
 		else
 		{
-			glDisable( GL_DEPTH_TEST );
+			glDisable(GL_DEPTH_TEST);
 		}
 	}
 
 	GLCheckError();
 
-	if( m_active.DepthWrite != m_next.DepthWrite || forced )
+	if (m_active.DepthWrite != m_next.DepthWrite || forced)
 	{
-		glDepthMask( m_next.DepthWrite );
+		glDepthMask(m_next.DepthWrite);
 	}
 
 	GLCheckError();
 
-	if( m_active.CullingType != m_next.CullingType || forced )
+	if (m_active.CullingType != m_next.CullingType || forced)
 	{
 		if (m_isCCW)
 		{
@@ -5827,10 +6069,10 @@ void RenderState::Update( bool forced )
 
 	GLCheckError();
 
-	if( m_active.AlphaBlend != m_next.AlphaBlend || forced )
+	if (m_active.AlphaBlend != m_next.AlphaBlend || forced)
 	{
 		{
-			glEnable( GL_BLEND );
+			glEnable(GL_BLEND);
 
 			if (m_next.AlphaBlend == ::Effekseer::AlphaBlendType::Opacity ||
 				m_renderer->GetRenderMode() == ::Effekseer::RenderMode::Wireframe)
@@ -5838,7 +6080,7 @@ void RenderState::Update( bool forced )
 				GLExt::glBlendEquationSeparate(GL_FUNC_ADD, GL_MAX);
 				GLExt::glBlendFuncSeparate(GL_ONE, GL_ZERO, GL_ONE, GL_ONE);
 			}
-			else if( m_next.AlphaBlend == ::Effekseer::AlphaBlendType::Sub )
+			else if (m_next.AlphaBlend == ::Effekseer::AlphaBlendType::Sub)
 			{
 				GLExt::glBlendEquationSeparate(GL_FUNC_REVERSE_SUBTRACT, GL_FUNC_ADD);
 				GLExt::glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE, GL_ZERO, GL_ONE);
@@ -5846,15 +6088,15 @@ void RenderState::Update( bool forced )
 			else
 			{
 				GLExt::glBlendEquationSeparate(GL_FUNC_ADD, GL_FUNC_ADD);
-				if( m_next.AlphaBlend == ::Effekseer::AlphaBlendType::Blend )
+				if (m_next.AlphaBlend == ::Effekseer::AlphaBlendType::Blend)
 				{
 					GLExt::glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE);
 				}
-				else if( m_next.AlphaBlend == ::Effekseer::AlphaBlendType::Add )
+				else if (m_next.AlphaBlend == ::Effekseer::AlphaBlendType::Add)
 				{
 					GLExt::glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE, GL_ONE, GL_ONE);
 				}
-				else if( m_next.AlphaBlend == ::Effekseer::AlphaBlendType::Mul )
+				else if (m_next.AlphaBlend == ::Effekseer::AlphaBlendType::Mul)
 				{
 					GLExt::glBlendFuncSeparate(GL_ZERO, GL_SRC_COLOR, GL_ZERO, GL_ONE);
 				}
@@ -5863,11 +6105,11 @@ void RenderState::Update( bool forced )
 	}
 
 	GLCheckError();
-	
-	static const GLint glfilterMin[] = { GL_NEAREST, GL_LINEAR_MIPMAP_LINEAR };
+
+	static const GLint glfilterMin[] = {GL_NEAREST, GL_LINEAR_MIPMAP_LINEAR};
 	static const GLint glfilterMin_NoneMipmap[] = {GL_NEAREST, GL_LINEAR};
-	static const GLint glfilterMag[] = { GL_NEAREST, GL_LINEAR };
-	static const GLint glwrap[] = { GL_REPEAT, GL_CLAMP_TO_EDGE };
+	static const GLint glfilterMag[] = {GL_NEAREST, GL_LINEAR};
+	static const GLint glwrap[] = {GL_REPEAT, GL_CLAMP_TO_EDGE};
 
 	if (m_renderer->GetDeviceType() == OpenGLDeviceType::OpenGL3 || m_renderer->GetDeviceType() == OpenGLDeviceType::OpenGLES3)
 	{
@@ -5888,7 +6130,7 @@ void RenderState::Update( bool forced )
 				//assert(bound > 0);
 #endif
 
-				int32_t filter_ = (int32_t) m_next.TextureFilterTypes[i];
+				int32_t filter_ = (int32_t)m_next.TextureFilterTypes[i];
 
 				GLExt::glSamplerParameteri(m_samplers[i], GL_TEXTURE_MAG_FILTER, glfilterMag[filter_]);
 
@@ -5900,7 +6142,7 @@ void RenderState::Update( bool forced )
 				{
 					GLExt::glSamplerParameteri(m_samplers[i], GL_TEXTURE_MIN_FILTER, glfilterMin_NoneMipmap[filter_]);
 				}
-				
+
 				//glSamplerParameteri( m_samplers[i],  GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 				//glSamplerParameteri( m_samplers[i],  GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 
@@ -5911,7 +6153,7 @@ void RenderState::Update( bool forced )
 			{
 				GLExt::glActiveTexture(GL_TEXTURE0 + i);
 
-				int32_t wrap_ = (int32_t) m_next.TextureWrapTypes[i];
+				int32_t wrap_ = (int32_t)m_next.TextureWrapTypes[i];
 				GLExt::glSamplerParameteri(m_samplers[i], GL_TEXTURE_WRAP_S, glwrap[wrap_]);
 				GLExt::glSamplerParameteri(m_samplers[i], GL_TEXTURE_WRAP_T, glwrap[wrap_]);
 
@@ -5925,7 +6167,8 @@ void RenderState::Update( bool forced )
 		for (int32_t i = 0; i < (int32_t)m_renderer->GetCurrentTextures().size(); i++)
 		{
 			// If a texture is not assigned, skip it.
-			if (m_renderer->GetCurrentTextures()[i].UserID == 0) continue;
+			if (m_renderer->GetCurrentTextures()[i].UserID == 0)
+				continue;
 
 			// always changes because a flag is assigned into a texture
 			// if (m_active.TextureFilterTypes[i] != m_next.TextureFilterTypes[i] || forced)
@@ -5940,7 +6183,7 @@ void RenderState::Update( bool forced )
 				assert(bound > 0);
 #endif
 
-				int32_t filter_ = (int32_t) m_next.TextureFilterTypes[i];
+				int32_t filter_ = (int32_t)m_next.TextureFilterTypes[i];
 
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, glfilterMag[filter_]);
 				GLCheckError();
@@ -5961,7 +6204,7 @@ void RenderState::Update( bool forced )
 				GLExt::glActiveTexture(GL_TEXTURE0 + i);
 				GLCheckError();
 
-				int32_t wrap_ = (int32_t) m_next.TextureWrapTypes[i];
+				int32_t wrap_ = (int32_t)m_next.TextureWrapTypes[i];
 
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, glwrap[wrap_]);
 				GLCheckError();
@@ -5973,8 +6216,8 @@ void RenderState::Update( bool forced )
 		GLCheckError();
 	}
 
-	GLExt::glActiveTexture( GL_TEXTURE0 );
-	
+	GLExt::glActiveTexture(GL_TEXTURE0);
+
 	m_active = m_next;
 
 	GLCheckError();
@@ -5983,7 +6226,7 @@ void RenderState::Update( bool forced )
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
-}
+} // namespace EffekseerRendererGL
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
@@ -6002,9 +6245,9 @@ void RenderState::Update( bool forced )
 #endif
 
 #elif defined(_WIN32)
-#define LOG(s)	OutputDebugStringA(s)
+#define LOG(s) OutputDebugStringA(s)
 #else
-#define LOG(s)	printf("%s", s)
+#define LOG(s) printf("%s", s)
 #endif
 
 //-----------------------------------------------------------------------------------
@@ -6013,75 +6256,75 @@ void RenderState::Update( bool forced )
 namespace EffekseerRendererGL
 {
 
-static const char g_header_vs_gl3_src [] =
-"#version 330\n" \
-"#define lowp\n" \
-"#define mediump\n" \
-"#define highp\n" \
-"#define IN in\n" \
-"#define CENTROID centroid\n" \
-"#define TEX2D textureLod\n" \
-"#define OUT out\n";
+static const char g_header_vs_gl3_src[] =
+	"#version 330\n"
+	"#define lowp\n"
+	"#define mediump\n"
+	"#define highp\n"
+	"#define IN in\n"
+	"#define CENTROID centroid\n"
+	"#define TEX2D textureLod\n"
+	"#define OUT out\n";
 
-static const char g_header_fs_gl3_src [] =
-"#version 330\n" \
-"#define lowp\n" \
-"#define mediump\n" \
-"#define highp\n" \
-"#define IN in\n" \
-"#define CENTROID centroid\n" \
-"#define TEX2D texture\n" \
-"layout (location = 0) out vec4 FRAGCOLOR;\n";
+static const char g_header_fs_gl3_src[] =
+	"#version 330\n"
+	"#define lowp\n"
+	"#define mediump\n"
+	"#define highp\n"
+	"#define IN in\n"
+	"#define CENTROID centroid\n"
+	"#define TEX2D texture\n"
+	"layout (location = 0) out vec4 FRAGCOLOR;\n";
 
-static const char g_header_vs_gles3_src [] =
-"#version 300 es\n" \
-"precision mediump float;\n" \
-"#define IN in\n" \
-"#define CENTROID\n" \
-"#define TEX2D textureLod\n" \
-"#define OUT out\n";
+static const char g_header_vs_gles3_src[] =
+	"#version 300 es\n"
+	"precision mediump float;\n"
+	"#define IN in\n"
+	"#define CENTROID\n"
+	"#define TEX2D textureLod\n"
+	"#define OUT out\n";
 
-static const char g_header_fs_gles3_src [] =
-"#version 300 es\n" \
-"precision mediump float;\n" \
-"#define IN in\n" \
-"#define CENTROID\n" \
-"#define TEX2D texture\n" \
-"layout (location = 0) out vec4 FRAGCOLOR;\n";
+static const char g_header_fs_gles3_src[] =
+	"#version 300 es\n"
+	"precision mediump float;\n"
+	"#define IN in\n"
+	"#define CENTROID\n"
+	"#define TEX2D texture\n"
+	"layout (location = 0) out vec4 FRAGCOLOR;\n";
 
-static const char g_header_vs_gles2_src [] =
-"precision mediump float;\n" \
-"#define IN attribute\n" \
-"#define CENTROID\n" \
-"#define TEX2D texture2DLod\n" \
-"#define OUT varying\n";
+static const char g_header_vs_gles2_src[] =
+	"precision mediump float;\n"
+	"#define IN attribute\n"
+	"#define CENTROID\n"
+	"#define TEX2D texture2DLod\n"
+	"#define OUT varying\n";
 
-static const char g_header_fs_gles2_src [] =
-"precision mediump float;\n" \
-"#define IN varying\n" \
-"#define CENTROID\n"\
-"#define TEX2D texture2D\n" \
-"#define FRAGCOLOR gl_FragColor\n";
+static const char g_header_fs_gles2_src[] =
+	"precision mediump float;\n"
+	"#define IN varying\n"
+	"#define CENTROID\n"
+	"#define TEX2D texture2D\n"
+	"#define FRAGCOLOR gl_FragColor\n";
 
-static const char g_header_vs_gl2_src [] =
-"#version 120\n" \
-"#define lowp\n" \
-"#define mediump\n" \
-"#define highp\n" \
-"#define IN attribute\n" \
-"#define CENTROID\n"\
-"#define TEX2D texture2DLod\n" \
-"#define OUT varying\n";
+static const char g_header_vs_gl2_src[] =
+	"#version 120\n"
+	"#define lowp\n"
+	"#define mediump\n"
+	"#define highp\n"
+	"#define IN attribute\n"
+	"#define CENTROID\n"
+	"#define TEX2D texture2DLod\n"
+	"#define OUT varying\n";
 
-static const char g_header_fs_gl2_src [] =
-"#version 120\n" \
-"#define lowp\n" \
-"#define mediump\n" \
-"#define highp\n" \
-"#define IN varying\n" \
-"#define CENTROID\n" \
-"#define TEX2D texture2D\n" \
-"#define FRAGCOLOR gl_FragColor\n";
+static const char g_header_fs_gl2_src[] =
+	"#version 120\n"
+	"#define lowp\n"
+	"#define mediump\n"
+	"#define highp\n"
+	"#define IN varying\n"
+	"#define CENTROID\n"
+	"#define TEX2D texture2D\n"
+	"#define FRAGCOLOR gl_FragColor\n";
 
 //-----------------------------------------------------------------------------------
 //
@@ -6100,32 +6343,37 @@ bool Shader::CompileShader(
 
 	GLuint vert_shader, frag_shader;
 	GLint res_vs, res_fs, res_link;
-	
 
 	// compile a vertex shader
-	if (deviceType == OpenGLDeviceType::OpenGL3) src_data[0] = g_header_vs_gl3_src;
-	if (deviceType == OpenGLDeviceType::OpenGL2) src_data[0] = g_header_vs_gl2_src;
-	if (deviceType == OpenGLDeviceType::OpenGLES3) src_data[0] = g_header_vs_gles3_src;
+	if (deviceType == OpenGLDeviceType::OpenGL3)
+		src_data[0] = g_header_vs_gl3_src;
+	if (deviceType == OpenGLDeviceType::OpenGL2)
+		src_data[0] = g_header_vs_gl2_src;
+	if (deviceType == OpenGLDeviceType::OpenGLES3)
+		src_data[0] = g_header_vs_gles3_src;
 	if (deviceType == OpenGLDeviceType::OpenGLES2 || deviceType == OpenGLDeviceType::Emscripten)
 		src_data[0] = g_header_vs_gles2_src;
 
-	src_size[0] = (GLint) strlen(src_data[0]);
+	src_size[0] = (GLint)strlen(src_data[0]);
 	src_data[1] = vs_src;
 	src_size[1] = (GLint)strlen(vs_src);
-	
+
 	vert_shader = GLExt::glCreateShader(GL_VERTEX_SHADER);
 	GLExt::glShaderSource(vert_shader, 2, src_data, src_size);
 	GLExt::glCompileShader(vert_shader);
 	GLExt::glGetShaderiv(vert_shader, GL_COMPILE_STATUS, &res_vs);
 
 	// compile a fragment shader
-	if (deviceType == OpenGLDeviceType::OpenGL3) src_data[0] = g_header_fs_gl3_src;
-	if (deviceType == OpenGLDeviceType::OpenGL2) src_data[0] = g_header_fs_gl2_src;
-	if (deviceType == OpenGLDeviceType::OpenGLES3) src_data[0] = g_header_fs_gles3_src;
+	if (deviceType == OpenGLDeviceType::OpenGL3)
+		src_data[0] = g_header_fs_gl3_src;
+	if (deviceType == OpenGLDeviceType::OpenGL2)
+		src_data[0] = g_header_fs_gl2_src;
+	if (deviceType == OpenGLDeviceType::OpenGLES3)
+		src_data[0] = g_header_fs_gles3_src;
 	if (deviceType == OpenGLDeviceType::OpenGLES2 || deviceType == OpenGLDeviceType::Emscripten)
 		src_data[0] = g_header_fs_gles2_src;
 
-	src_size[0] = (GLint) strlen(src_data[0]);
+	src_size[0] = (GLint)strlen(src_data[0]);
 	src_data[1] = fs_src;
 	src_size[1] = (GLint)strlen(fs_src);
 
@@ -6133,36 +6381,39 @@ bool Shader::CompileShader(
 	GLExt::glShaderSource(frag_shader, 2, src_data, src_size);
 	GLExt::glCompileShader(frag_shader);
 	GLExt::glGetShaderiv(frag_shader, GL_COMPILE_STATUS, &res_fs);
-	
+
 	// create shader program
 	program = GLExt::glCreateProgram();
 	GLExt::glAttachShader(program, vert_shader);
 	GLExt::glAttachShader(program, frag_shader);
-	
+
 	// link shaders
 	GLExt::glLinkProgram(program);
 	GLExt::glGetProgramiv(program, GL_LINK_STATUS, &res_link);
 
 #ifndef NDEBUG
-    if (res_link == GL_FALSE)
+	if (res_link == GL_FALSE)
 	{
 		// output errors
 		char log[512];
 		int32_t log_size;
 		GLExt::glGetShaderInfoLog(vert_shader, sizeof(log), &log_size, log);
-		if (log_size > 0) {
+		if (log_size > 0)
+		{
 			LOG(name);
 			LOG(": Vertex Shader error.\n");
 			LOG(log);
 		}
 		GLExt::glGetShaderInfoLog(frag_shader, sizeof(log), &log_size, log);
-		if (log_size > 0) {
+		if (log_size > 0)
+		{
 			LOG(name);
 			LOG(": Fragment Shader error.\n");
 			LOG(log);
 		}
 		GLExt::glGetProgramInfoLog(program, sizeof(log), &log_size, log);
-		if (log_size > 0) {
+		if (log_size > 0)
+		{
 			LOG(name);
 			LOG(": Shader Link error.\n");
 			LOG(log);
@@ -6185,7 +6436,7 @@ bool Shader::CompileShader(
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
-Shader::Shader( 
+Shader::Shader(
 	OpenGLDeviceType deviceType,
 	Renderer* renderer,
 	DeviceObjectCollection* deviceObjectCollection,
@@ -6198,20 +6449,20 @@ Shader::Shader(
 	bool hasRefCount)
 	: DeviceObject(static_cast<RendererImplemented*>(renderer), deviceObjectCollection, hasRefCount)
 	, deviceType_(deviceType)
-	, m_program			( program )
-	, m_vertexSize		( 0 )
-	, m_vertexConstantBuffer	( NULL )
-	, m_pixelConstantBuffer		( NULL )
+	, m_program(program)
+	, m_vertexSize(0)
+	, m_vertexConstantBuffer(NULL)
+	, m_pixelConstantBuffer(NULL)
 {
 	m_textureSlots.fill(0);
 	m_textureSlotEnables.fill(false);
 
 	m_vsSrc.resize(vertexShaderSize);
-	memcpy(m_vsSrc.data(), vs_src, vertexShaderSize );
+	memcpy(m_vsSrc.data(), vs_src, vertexShaderSize);
 	m_vsSrc.push_back(0);
 
 	m_psSrc.resize(pixelShaderSize);
-	memcpy(m_psSrc.data(), fs_src, pixelShaderSize );
+	memcpy(m_psSrc.data(), fs_src, pixelShaderSize);
 	m_psSrc.push_back(0);
 
 	m_name = name;
@@ -6239,19 +6490,19 @@ GLint Shader::GetUniformId(const char* name) const
 Shader::~Shader()
 {
 	GLExt::glDeleteProgram(m_program);
-	ES_SAFE_DELETE_ARRAY( m_vertexConstantBuffer );
-	ES_SAFE_DELETE_ARRAY( m_pixelConstantBuffer );
+	ES_SAFE_DELETE_ARRAY(m_vertexConstantBuffer);
+	ES_SAFE_DELETE_ARRAY(m_pixelConstantBuffer);
 }
 
 Shader* Shader::Create(OpenGLDeviceType deviceType,
 
-	DeviceObjectCollection* deviceObjectCollection,
-					  const char* vs_src,
-					  size_t vertexShaderSize,
-					  const char* fs_src,
-					  size_t pixelShaderSize,
-					  const char* name,
-					  bool hasRefCount)
+					   DeviceObjectCollection* deviceObjectCollection,
+					   const char* vs_src,
+					   size_t vertexShaderSize,
+					   const char* fs_src,
+					   size_t pixelShaderSize,
+					   const char* name,
+					   bool hasRefCount)
 {
 	GLuint program;
 
@@ -6302,18 +6553,19 @@ void Shader::OnLostDevice()
 //----------------------------------------------------------------------------------
 void Shader::OnResetDevice()
 {
-	if (IsValid()) return;
+	if (IsValid())
+		return;
 
 	GLuint program;
-	
-	if(CompileShader(
-		deviceType_,
-		program,
-		(const char*)(m_vsSrc.data()),
-		m_vsSrc.size(),
-		(const char*)(m_psSrc.data()),
-		m_psSrc.size(),
-		m_name.c_str()))
+
+	if (CompileShader(
+			deviceType_,
+			program,
+			(const char*)(m_vsSrc.data()),
+			m_vsSrc.size(),
+			(const char*)(m_psSrc.data()),
+			m_psSrc.size(),
+			m_name.c_str()))
 	{
 		m_program = program;
 		GetAttribIdList(0, nullptr);
@@ -6332,15 +6584,15 @@ void Shader::OnChangeDevice()
 	GLExt::glDeleteProgram(m_program);
 
 	GLuint program;
-	
-	if(CompileShader(
-		deviceType_,
-		program,
-		(const char*)&(m_vsSrc[0]),
-		m_vsSrc.size(),
-		(const char*)&(m_psSrc[0]),
-		m_psSrc.size(),
-		m_name.c_str()))
+
+	if (CompileShader(
+			deviceType_,
+			program,
+			(const char*)&(m_vsSrc[0]),
+			m_vsSrc.size(),
+			(const char*)&(m_psSrc[0]),
+			m_psSrc.size(),
+			m_name.c_str()))
 	{
 		m_program = program;
 		GetAttribIdList(0, nullptr);
@@ -6359,7 +6611,7 @@ GLuint Shader::GetInterface() const
 	return m_program;
 }
 
-void Shader::GetAttribIdList(int count, const ShaderAttribInfo* info )
+void Shader::GetAttribIdList(int count, const ShaderAttribInfo* info)
 {
 	// TODO : refactoring
 
@@ -6405,7 +6657,7 @@ void Shader::GetAttribIdList(int count, const ShaderAttribInfo* info )
 
 			m_layout.push_back(layout);
 		}
-	}	
+	}
 }
 
 void Shader::GetUniformIdList(int count, const ShaderUniformInfo* info, GLint* uid_list) const
@@ -6429,11 +6681,11 @@ void Shader::EndScene()
 void Shader::EnableAttribs()
 {
 	GLCheckError();
-	for( size_t i = 0; i < m_aid.size(); i++ )
+	for (size_t i = 0; i < m_aid.size(); i++)
 	{
-		if ( m_aid[i] >= 0 ) 
+		if (m_aid[i] >= 0)
 		{
-			GLExt::glEnableVertexAttribArray( m_aid[i] );
+			GLExt::glEnableVertexAttribArray(m_aid[i]);
 		}
 	}
 	GLCheckError();
@@ -6443,7 +6695,7 @@ void Shader::DisableAttribs()
 {
 	GLCheckError();
 
-	for( size_t i = 0; i < m_aid.size(); i++ )
+	for (size_t i = 0; i < m_aid.size(); i++)
 	{
 		if (m_aid[i] >= 0)
 		{
@@ -6455,17 +6707,14 @@ void Shader::DisableAttribs()
 
 void Shader::SetVertex()
 {
-	const void* vertices = NULL;
-
-	for( size_t i = 0; i < m_aid.size(); i++ )
+	for (size_t i = 0; i < m_aid.size(); i++)
 	{
-		if ( m_aid[i] >= 0) 
+		if (m_aid[i] >= 0)
 		{
-			GLExt::glVertexAttribPointer(m_aid[i], m_layout[i].count, m_layout[i].type, m_layout[i].normalized, m_vertexSize, (uint8_t*) vertices + m_layout[i].offset);
+			GLExt::glVertexAttribPointer(m_aid[i], m_layout[i].count, m_layout[i].type, m_layout[i].normalized, m_vertexSize, reinterpret_cast<GLvoid*>(m_layout[i].offset));
 		}
 	}
 }
-
 
 void Shader::SetVertexSize(int32_t vertexSize)
 {
@@ -6523,7 +6772,7 @@ void Shader::SetConstantBuffer()
 	{
 		if (m_vertexConstantLayout[i].Type == CONSTANT_TYPE_MATRIX44)
 		{
-			uint8_t* data = (uint8_t*) m_vertexConstantBuffer;
+			uint8_t* data = (uint8_t*)m_vertexConstantBuffer;
 			data += m_vertexConstantLayout[i].Offset;
 			GLExt::glUniformMatrix4fv(
 				m_vertexConstantLayout[i].ID,
@@ -6531,11 +6780,11 @@ void Shader::SetConstantBuffer()
 				GL_FALSE,
 				(const GLfloat*)data);
 		}
-		else if( 
+		else if (
 			CONSTANT_TYPE_MATRIX44_ARRAY_END > m_vertexConstantLayout[i].Type &&
 			m_vertexConstantLayout[i].Type >= CONSTANT_TYPE_MATRIX44_ARRAY)
 		{
-			uint8_t* data = (uint8_t*) m_vertexConstantBuffer;
+			uint8_t* data = (uint8_t*)m_vertexConstantBuffer;
 			data += m_vertexConstantLayout[i].Offset;
 			GLExt::glUniformMatrix4fv(
 				m_vertexConstantLayout[i].ID,
@@ -6546,18 +6795,18 @@ void Shader::SetConstantBuffer()
 
 		else if (m_vertexConstantLayout[i].Type == CONSTANT_TYPE_VECTOR4)
 		{
-			uint8_t* data = (uint8_t*) m_vertexConstantBuffer;
+			uint8_t* data = (uint8_t*)m_vertexConstantBuffer;
 			data += m_vertexConstantLayout[i].Offset;
 			GLExt::glUniform4fv(
 				m_vertexConstantLayout[i].ID,
 				1,
 				(const GLfloat*)data);
 		}
-		else if( 
+		else if (
 			CONSTANT_TYPE_VECTOR4_ARRAY_END > m_vertexConstantLayout[i].Type &&
 			m_vertexConstantLayout[i].Type >= CONSTANT_TYPE_VECTOR4_ARRAY)
 		{
-			uint8_t* data = (uint8_t*) m_vertexConstantBuffer;
+			uint8_t* data = (uint8_t*)m_vertexConstantBuffer;
 			data += m_vertexConstantLayout[i].Offset;
 			GLExt::glUniform4fv(
 				m_vertexConstantLayout[i].ID,
@@ -6570,19 +6819,19 @@ void Shader::SetConstantBuffer()
 	{
 		if (m_pixelConstantLayout[i].Type == CONSTANT_TYPE_MATRIX44)
 		{
-			uint8_t* data = (uint8_t*) m_pixelConstantBuffer;
+			uint8_t* data = (uint8_t*)m_pixelConstantBuffer;
 			data += m_pixelConstantLayout[i].Offset;
 			GLExt::glUniformMatrix4fv(
 				m_pixelConstantLayout[i].ID,
 				1,
 				GL_FALSE,
-				(const GLfloat*) data);
+				(const GLfloat*)data);
 		}
-		else if( 
+		else if (
 			CONSTANT_TYPE_MATRIX44_ARRAY_END > m_pixelConstantLayout[i].Type &&
 			m_pixelConstantLayout[i].Type >= CONSTANT_TYPE_MATRIX44_ARRAY)
 		{
-			uint8_t* data = (uint8_t*) m_pixelConstantBuffer;
+			uint8_t* data = (uint8_t*)m_pixelConstantBuffer;
 			data += m_pixelConstantLayout[i].Offset;
 			GLExt::glUniformMatrix4fv(
 				m_pixelConstantLayout[i].ID,
@@ -6593,18 +6842,18 @@ void Shader::SetConstantBuffer()
 
 		else if (m_pixelConstantLayout[i].Type == CONSTANT_TYPE_VECTOR4)
 		{
-			uint8_t* data = (uint8_t*) m_pixelConstantBuffer;
+			uint8_t* data = (uint8_t*)m_pixelConstantBuffer;
 			data += m_pixelConstantLayout[i].Offset;
 			GLExt::glUniform4fv(
 				m_pixelConstantLayout[i].ID,
 				1,
 				(const GLfloat*)data);
 		}
-		else if( 
+		else if (
 			CONSTANT_TYPE_VECTOR4_ARRAY_END > m_pixelConstantLayout[i].Type &&
 			m_pixelConstantLayout[i].Type >= CONSTANT_TYPE_VECTOR4_ARRAY)
 		{
-			uint8_t* data = (uint8_t*) m_pixelConstantBuffer;
+			uint8_t* data = (uint8_t*)m_pixelConstantBuffer;
 			data += m_pixelConstantLayout[i].Offset;
 			GLExt::glUniform4fv(
 				m_pixelConstantLayout[i].ID,
@@ -6615,7 +6864,6 @@ void Shader::SetConstantBuffer()
 
 	GLCheckError();
 }
-
 
 //-----------------------------------------------------------------------------------
 //
@@ -6650,7 +6898,7 @@ bool Shader::IsValid() const
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
-}
+} // namespace EffekseerRendererGL
 
 
 #ifdef __EFFEKSEER_RENDERER_INTERNAL_LOADER__
@@ -6668,9 +6916,10 @@ namespace EffekseerRendererGL
 //
 //----------------------------------------------------------------------------------
 TextureLoader::TextureLoader(::Effekseer::FileInterface* fileInterface, ::Effekseer::ColorSpaceType colorSpaceType)
-	: m_fileInterface	( fileInterface ), colorSpaceType_(colorSpaceType)
+	: m_fileInterface(fileInterface)
+	, colorSpaceType_(colorSpaceType)
 {
-	if( m_fileInterface == NULL )
+	if (m_fileInterface == NULL)
 	{
 		m_fileInterface = &m_defaultFileInterface;
 	}
@@ -6695,10 +6944,10 @@ TextureLoader::~TextureLoader()
 //----------------------------------------------------------------------------------
 Effekseer::TextureData* TextureLoader::Load(const EFK_CHAR* path, ::Effekseer::TextureType textureType)
 {
-	std::unique_ptr<Effekseer::FileReader> 
-		reader( m_fileInterface->OpenRead( path ) );
-	
-	if( reader.get() != NULL )
+	std::unique_ptr<Effekseer::FileReader>
+		reader(m_fileInterface->OpenRead(path));
+
+	if (reader.get() != NULL)
 	{
 		size_t size_texture = reader->GetLength();
 		char* data_texture = new char[size_texture];
@@ -6840,9 +7089,9 @@ Effekseer::TextureData* TextureLoader::Load(const void* data, int32_t size, Effe
 	return nullptr;
 }
 
-void TextureLoader::Unload(Effekseer::TextureData* data )
+void TextureLoader::Unload(Effekseer::TextureData* data)
 {
-	if( data != NULL )
+	if (data != NULL)
 	{
 		GLuint texture = (GLuint)data->UserID;
 		glDeleteTextures(1, &texture);
@@ -6857,7 +7106,7 @@ void TextureLoader::Unload(Effekseer::TextureData* data )
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-}
+} // namespace EffekseerRendererGL
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
@@ -6877,8 +7126,7 @@ namespace EffekseerRendererGL
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
-VertexArray::VertexArray( RendererImplemented* renderer, Shader* shader, 
-	VertexBuffer* vertexBuffer, IndexBuffer* indexBuffer, bool hasRefCount)
+VertexArray::VertexArray(RendererImplemented* renderer, Shader* shader, VertexBuffer* vertexBuffer, IndexBuffer* indexBuffer, bool hasRefCount)
 	: DeviceObject(renderer, renderer->GetDeviceObjectCollection(), hasRefCount)
 	, m_shader(shader)
 	, m_vertexBuffer(vertexBuffer)
@@ -6898,12 +7146,11 @@ VertexArray::~VertexArray()
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
-VertexArray* VertexArray::Create( RendererImplemented* renderer, Shader* shader, 
-	VertexBuffer* vertexBuffer, IndexBuffer* indexBuffer, bool hasRefCount)
+VertexArray* VertexArray::Create(RendererImplemented* renderer, Shader* shader, VertexBuffer* vertexBuffer, IndexBuffer* indexBuffer, bool hasRefCount)
 {
 	if (GLExt::IsSupportedVertexArray())
 	{
-		return new VertexArray( renderer, shader, vertexBuffer, indexBuffer, hasRefCount);
+		return new VertexArray(renderer, shader, vertexBuffer, indexBuffer, hasRefCount);
 	}
 	return nullptr;
 }
@@ -6939,7 +7186,7 @@ void VertexArray::Init()
 	GLExt::glGenVertexArrays(1, &m_vertexArray);
 
 	GLExt::glBindVertexArray(m_vertexArray);
-	
+
 	if (m_vertexBuffer != nullptr)
 	{
 		if (!m_vertexBuffer->IsValid())
@@ -6949,7 +7196,7 @@ void VertexArray::Init()
 
 		GLExt::glBindBuffer(GL_ARRAY_BUFFER, m_vertexBuffer->GetInterface());
 	}
-	
+
 	if (m_indexBuffer != nullptr)
 	{
 		if (!m_indexBuffer->IsValid())
@@ -6990,10 +7237,10 @@ void VertexArray::Release()
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
-}
-//-----------------------------------------------------------------------------------
-//
-//-----------------------------------------------------------------------------------
+} // namespace EffekseerRendererGL
+  //-----------------------------------------------------------------------------------
+  //
+  //-----------------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------------
 //
@@ -7009,10 +7256,10 @@ namespace EffekseerRendererGL
 //-----------------------------------------------------------------------------------
 VertexBuffer::VertexBuffer(RendererImplemented* renderer, int size, bool isDynamic, bool hasRefCount)
 	: DeviceObject(renderer, renderer->GetDeviceObjectCollection(), hasRefCount)
-	, VertexBufferBase	( size, isDynamic )
-	, m_vertexRingStart		( 0 )
-	, m_vertexRingOffset	( 0 )
-	, m_ringBufferLock		( false )
+	, VertexBufferBase(size, isDynamic)
+	, m_vertexRingStart(0)
+	, m_vertexRingOffset(0)
+	, m_ringBufferLock(false)
 {
 	m_resource = new uint8_t[m_size];
 	memset(m_resource, 0, (size_t)m_size);
@@ -7033,7 +7280,7 @@ VertexBuffer::VertexBuffer(RendererImplemented* renderer, int size, bool isDynam
 VertexBuffer::~VertexBuffer()
 {
 	GLExt::glDeleteBuffers(1, &m_buffer);
-	delete [] m_resource;
+	delete[] m_resource;
 }
 
 //-----------------------------------------------------------------------------------
@@ -7041,7 +7288,7 @@ VertexBuffer::~VertexBuffer()
 //-----------------------------------------------------------------------------------
 VertexBuffer* VertexBuffer::Create(RendererImplemented* renderer, int size, bool isDynamic, bool hasRefCount)
 {
-	return new VertexBuffer( renderer, size, isDynamic, hasRefCount);
+	return new VertexBuffer(renderer, size, isDynamic, hasRefCount);
 }
 
 GLuint VertexBuffer::GetInterface()
@@ -7063,7 +7310,8 @@ void VertexBuffer::OnLostDevice()
 //-----------------------------------------------------------------------------------
 void VertexBuffer::OnResetDevice()
 {
-	if (IsValid()) return;
+	if (IsValid())
+		return;
 
 	GLExt::glGenBuffers(1, &m_buffer);
 	GLExt::glBindBuffer(GL_ARRAY_BUFFER, m_buffer);
@@ -7080,7 +7328,7 @@ void VertexBuffer::OnResetDevice()
 //-----------------------------------------------------------------------------------
 void VertexBuffer::Lock()
 {
-	assert( !m_isLock );
+	assert(!m_isLock);
 
 	m_isLock = true;
 	m_offset = 0;
@@ -7092,13 +7340,14 @@ void VertexBuffer::Lock()
 //-----------------------------------------------------------------------------------
 bool VertexBuffer::RingBufferLock(int32_t size, int32_t& offset, void*& data, int32_t alignment)
 {
-	assert( !m_isLock );
-	assert( !m_ringBufferLock );
-	assert( this->m_isDynamic );
+	assert(!m_isLock);
+	assert(!m_ringBufferLock);
+	assert(this->m_isDynamic);
 
-	if( size > m_size ) return false;
+	if (size > m_size)
+		return false;
 
-	m_vertexRingOffset =(m_vertexRingOffset + alignment - 1) / alignment* alignment;
+	m_vertexRingOffset = (m_vertexRingOffset + alignment - 1) / alignment * alignment;
 
 #ifdef __ANDROID__
 	if (true)
@@ -7109,7 +7358,7 @@ bool VertexBuffer::RingBufferLock(int32_t size, int32_t& offset, void*& data, in
 		offset = 0;
 		data = m_resource;
 		m_vertexRingOffset = size;
-		
+
 		m_vertexRingStart = offset;
 		m_offset = size;
 	}
@@ -7130,7 +7379,8 @@ bool VertexBuffer::RingBufferLock(int32_t size, int32_t& offset, void*& data, in
 
 bool VertexBuffer::TryRingBufferLock(int32_t size, int32_t& offset, void*& data, int32_t alignment)
 {
-	if ((int32_t) m_vertexRingOffset + size > m_size) return false;
+	if ((int32_t)m_vertexRingOffset + size > m_size)
+		return false;
 
 	return RingBufferLock(size, offset, data, alignment);
 }
@@ -7140,7 +7390,7 @@ bool VertexBuffer::TryRingBufferLock(int32_t size, int32_t& offset, void*& data,
 //-----------------------------------------------------------------------------------
 void VertexBuffer::Unlock()
 {
-	assert( m_isLock || m_ringBufferLock );
+	assert(m_isLock || m_ringBufferLock);
 
 	GLExt::glBindBuffer(GL_ARRAY_BUFFER, m_buffer);
 
@@ -7156,13 +7406,13 @@ void VertexBuffer::Unlock()
 	}
 	else
 	{
-        // giMapBuffer is invalid with OpenGLES3 after iOS12.2?
-        bool avoidIOS122 = false;
+		// giMapBuffer is invalid with OpenGLES3 after iOS12.2?
+		bool avoidIOS122 = false;
 #if defined(__APPLE__)
-        if(GLExt::GetDeviceType() == OpenGLDeviceType::OpenGLES3)
-        {
-            avoidIOS122 = true;
-        }
+		if (GLExt::GetDeviceType() == OpenGLDeviceType::OpenGLES3)
+		{
+			avoidIOS122 = true;
+		}
 #endif
 
 		if (GLExt::IsSupportedMapBuffer() && !avoidIOS122)
@@ -7211,7 +7461,7 @@ void VertexBuffer::Unlock()
 	}
 
 	GLExt::glBindBuffer(GL_ARRAY_BUFFER, 0);
-	
+
 	if (m_isLock)
 	{
 		m_vertexRingOffset += m_offset;
@@ -7229,7 +7479,7 @@ bool VertexBuffer::IsValid()
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
-}
+} // namespace EffekseerRendererGL
 //-----------------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------------
@@ -8029,30 +8279,58 @@ private:
 	std::array<std::vector<uint8_t>, static_cast<int32_t>(MaterialShaderType::Max)> pixelShaders_;
 
 public:
-	CompiledMaterialBinaryGL() {}
+	CompiledMaterialBinaryGL()
+	{
+	}
 
-	virtual ~CompiledMaterialBinaryGL() {}
+	virtual ~CompiledMaterialBinaryGL()
+	{
+	}
 
 	void SetVertexShaderData(MaterialShaderType type, const std::vector<uint8_t>& data)
 	{
 		vertexShaders_.at(static_cast<int>(type)) = data;
 	}
 
-	void SetPixelShaderData(MaterialShaderType type, const std::vector<uint8_t>& data) { pixelShaders_.at(static_cast<int>(type)) = data; }
+	void SetPixelShaderData(MaterialShaderType type, const std::vector<uint8_t>& data)
+	{
+		pixelShaders_.at(static_cast<int>(type)) = data;
+	}
 
-	const uint8_t* GetVertexShaderData(MaterialShaderType type) const override { return vertexShaders_.at(static_cast<int>(type)).data(); }
+	const uint8_t* GetVertexShaderData(MaterialShaderType type) const override
+	{
+		return vertexShaders_.at(static_cast<int>(type)).data();
+	}
 
-	int32_t GetVertexShaderSize(MaterialShaderType type) const override { return vertexShaders_.at(static_cast<int>(type)).size(); }
+	int32_t GetVertexShaderSize(MaterialShaderType type) const override
+	{
+		return static_cast<int32_t>(vertexShaders_.at(static_cast<int>(type)).size());
+	}
 
-	const uint8_t* GetPixelShaderData(MaterialShaderType type) const override { return pixelShaders_.at(static_cast<int>(type)).data(); }
+	const uint8_t* GetPixelShaderData(MaterialShaderType type) const override
+	{
+		return pixelShaders_.at(static_cast<int>(type)).data();
+	}
 
-	int32_t GetPixelShaderSize(MaterialShaderType type) const override { return pixelShaders_.at(static_cast<int>(type)).size(); }
+	int32_t GetPixelShaderSize(MaterialShaderType type) const override
+	{
+		return static_cast<int32_t>(pixelShaders_.at(static_cast<int>(type)).size());
+	}
 
-	int AddRef() override { return ReferenceObject::AddRef(); }
+	int AddRef() override
+	{
+		return ReferenceObject::AddRef();
+	}
 
-	int Release() override { return ReferenceObject::Release(); }
+	int Release() override
+	{
+		return ReferenceObject::Release();
+	}
 
-	int GetRef() override { return ReferenceObject::GetRef(); }
+	int GetRef() override
+	{
+		return ReferenceObject::GetRef();
+	}
 };
 
 CompiledMaterialBinary* MaterialCompilerGL::Compile(Material* material, int32_t maximumTextureCount)
@@ -8068,7 +8346,6 @@ CompiledMaterialBinary* MaterialCompilerGL::Compile(Material* material, int32_t 
 	};
 
 	auto saveBinary = [&material, &binary, &convertToVector, &maximumTextureCount](MaterialShaderType type) {
-
 		GLSL::ShaderGenerator generator;
 		auto shader = generator.GenerateShader(material, type, maximumTextureCount, false, false, false, false, 0);
 		binary->SetVertexShaderData(type, convertToVector(shader.CodeVS));
@@ -8087,7 +8364,10 @@ CompiledMaterialBinary* MaterialCompilerGL::Compile(Material* material, int32_t 
 	return binary;
 }
 
-CompiledMaterialBinary* MaterialCompilerGL::Compile(Material* material) { return Compile(material, Effekseer::UserTextureSlotMax); }
+CompiledMaterialBinary* MaterialCompilerGL::Compile(Material* material)
+{
+	return Compile(material, Effekseer::UserTextureSlotMax);
+}
 
 } // namespace Effekseer
 
@@ -8101,6 +8381,9 @@ extern "C"
 #define EFK_EXPORT
 #endif
 
-	EFK_EXPORT Effekseer::MaterialCompiler* EFK_STDCALL CreateCompiler() { return new Effekseer::MaterialCompilerGL(); }
+	EFK_EXPORT Effekseer::MaterialCompiler* EFK_STDCALL CreateCompiler()
+	{
+		return new Effekseer::MaterialCompilerGL();
+	}
 }
 #endif

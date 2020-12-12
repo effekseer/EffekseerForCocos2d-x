@@ -19,10 +19,10 @@ class GraphicsVulkan : public Graphics
 private:
 	int32_t swapBufferCount_ = 0;
 
-	vk::Device vkDevice;
-	vk::Queue vkQueue;
-	vk::CommandPool vkCmdPool;
-	vk::PhysicalDevice vkPysicalDevice;
+	vk::Device vkDevice_;
+	vk::Queue vkQueue_;
+	vk::CommandPool vkCmdPool_;
+	vk::PhysicalDevice vkPysicalDevice_;
 
 	std::function<void(vk::CommandBuffer, vk::Fence)> addCommand_;
 	RenderPassPipelineStateCacheVulkan* renderPassPipelineStateCache_ = nullptr;
@@ -69,10 +69,10 @@ public:
 
 	RenderPassPipelineState* CreateRenderPassPipelineState(const RenderPassPipelineStateKey& key) override;
 
-	vk::PhysicalDevice GetPysicalDevice() const { return vkPysicalDevice; }
-	vk::Device GetDevice() const { return vkDevice; }
-	vk::CommandPool GetCommandPool() const { return vkCmdPool; }
-	vk::Queue GetQueue() const { return vkQueue; }
+	vk::PhysicalDevice GetPysicalDevice() const { return vkPysicalDevice_; }
+	vk::Device GetDevice() const { return vkDevice_; }
+	vk::CommandPool GetCommandPool() const { return vkCmdPool_; }
+	vk::Queue GetQueue() const { return vkQueue_; }
 
 	int32_t GetSwapBufferCount() const;
 	uint32_t GetMemoryTypeIndex(uint32_t bits, const vk::MemoryPropertyFlags& properties);

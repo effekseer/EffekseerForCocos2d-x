@@ -3,9 +3,9 @@
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-#include "Effekseer.Manager.h"
 #include "Effekseer.Effect.h"
 #include "Effekseer.EffectNode.h"
+#include "Effekseer.Manager.h"
 #include "Effekseer.Vector3D.h"
 #include "SIMD/Effekseer.SIMDUtils.h"
 
@@ -13,8 +13,8 @@
 #include "Effekseer.InstanceContainer.h"
 #include "Effekseer.InstanceGlobal.h"
 
-#include "Effekseer.InstanceGroup.h"
 #include "Effekseer.EffectNodeTrack.h"
+#include "Effekseer.InstanceGroup.h"
 
 #include "Effekseer.Setting.h"
 
@@ -118,7 +118,7 @@ void EffectNodeTrack::BeginRenderingGroup(InstanceGroup* group, Manager* manager
 
 		m_instanceParameter.InstanceCount = group->GetInstanceCount();
 		m_instanceParameter.InstanceIndex = 0;
-		
+
 		if (group->GetFirst() != nullptr)
 		{
 #ifdef __EFFEKSEER_BUILD_VERSION16__
@@ -302,7 +302,7 @@ void EffectNodeTrack::SetValues(Color& c, const Instance& instance, InstanceGrou
 	}
 	else if (param.type == StandardColorParameter::FCurve_RGBA)
 	{
-		auto fcurveColors = param.fcurve_rgba.FCurve->GetValues(time, livedTime);
+		auto fcurveColors = param.fcurve_rgba.FCurve->GetValues(static_cast<float>(time), static_cast<float>(livedTime));
 		c.R = (uint8_t)Clamp((value.color.fcurve_rgba.offset[0] + fcurveColors[0]), 255, 0);
 		c.G = (uint8_t)Clamp((value.color.fcurve_rgba.offset[1] + fcurveColors[1]), 255, 0);
 		c.B = (uint8_t)Clamp((value.color.fcurve_rgba.offset[2] + fcurveColors[2]), 255, 0);
@@ -356,7 +356,7 @@ void EffectNodeTrack::LoadValues(TrackSizeParameter& param, unsigned char*& pos)
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-}
+} // namespace Effekseer
 
 //----------------------------------------------------------------------------------
 //
