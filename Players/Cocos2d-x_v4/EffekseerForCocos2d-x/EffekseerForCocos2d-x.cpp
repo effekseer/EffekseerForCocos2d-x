@@ -201,7 +201,7 @@ Effekseer::TextureData* TextureLoader::Load(const EFK_CHAR* path, ::Effekseer::T
 			{
 
 #ifdef CC_USE_METAL
-            // mipmap sampler filters are not set in metal renderer
+				texture->generateMipmap();
 #else
 				if (texture->getPixelsWide() == ccNextPOT(texture->getPixelsWide()) &&
 					texture->getPixelsHigh() == ccNextPOT(texture->getPixelsHigh()))
