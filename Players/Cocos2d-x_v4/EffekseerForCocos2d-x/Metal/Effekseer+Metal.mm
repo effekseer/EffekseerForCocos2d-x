@@ -165,7 +165,7 @@ Effekseer::ModelLoaderRef CreateModelLoader(Effekseer::FileInterface* effectFile
 ::Effekseer::MaterialLoaderRef CreateMaterialLoader(Effekseer::FileInterface* effectFile)
 {
     auto device = EffekseerGraphicsDevice::create();
-    auto ret = EffekseerRendererMetal::CreateMaterialLoader(device.Get(), effectFile);
+    auto ret = EffekseerRendererMetal::CreateMaterialLoader(device, effectFile);
     return ret;
 }
 
@@ -174,14 +174,12 @@ void UpdateTextureData(::Effekseer::TextureRef textureData, cocos2d::Texture2D* 
     auto textureMTL = static_cast<cocos2d::backend::TextureMTL*>(texture->getBackendTexture());
 	auto device = EffekseerGraphicsDevice::create().DownCast<::EffekseerRendererLLGI::Backend::GraphicsDevice>();
 
-	auto backend = device->CreateTexture(textureMTL);
+    auto backend = device->CreateTexture(reinterpret_cast<uint64_t>(textureMTL->getMTLTexture()), []() -> void {});
 	textureData->SetBackend(backend);
 }
 
 void CleanupTextureData(::Effekseer::TextureRef textureData)
 {
-    auto tex = (LLGI::TextureMetal*)textureData->UserPtr;
-    tex->Release();
 }
 
 ::EffekseerRenderer::DistortingCallback* CreateDistortingCallback(::EffekseerRenderer::RendererRef renderer, ::EffekseerRenderer::CommandList* commandList)
