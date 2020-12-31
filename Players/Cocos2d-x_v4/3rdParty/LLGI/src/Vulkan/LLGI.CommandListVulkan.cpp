@@ -143,21 +143,6 @@ bool CommandListVulkan::Initialize(GraphicsVulkan* graphics, int32_t drawingCoun
 	return true;
 }
 
-void CommandListVulkan::BeginExternal(VkCommandBuffer nativeCommandBuffer)
-{
-	currentSwapBufferIndex_++;
-	currentSwapBufferIndex_ %= commandBuffers_.size();
-
-	currentCommandBuffer_ = vk::CommandBuffer(nativeCommandBuffer);
-
-	auto& dp = descriptorPools[currentSwapBufferIndex_];
-	dp->Reset();
-
-	CommandList::Begin();
-}
-
-void CommandListVulkan::EndExternal() { currentCommandBuffer_ = vk::CommandBuffer(); }
-
 void CommandListVulkan::Begin()
 {
 	currentSwapBufferIndex_++;
@@ -177,7 +162,32 @@ void CommandListVulkan::Begin()
 	CommandList::Begin();
 }
 
-void CommandListVulkan::End() { currentCommandBuffer_.end(); }
+void CommandListVulkan::End()
+{
+	currentCommandBuffer_.end();
+	CommandList::End();
+}
+
+bool CommandListVulkan::BeginWithPlatform(void* platformContextPtr)
+{
+	auto ptr = reinterpret_cast<PlatformContextVulkan*>(platformContextPtr);
+
+	currentSwapBufferIndex_++;
+	currentSwapBufferIndex_ %= commandBuffers_.size();
+
+	currentCommandBuffer_ = ptr->commandBuffer;
+
+	auto& dp = descriptorPools[currentSwapBufferIndex_];
+	dp->Reset();
+
+	return CommandList::BeginWithPlatform(platformContextPtr);
+}
+
+void CommandListVulkan::EndWithPlatform()
+{
+	currentCommandBuffer_ = vk::CommandBuffer();
+	CommandList::EndWithPlatform();
+}
 
 void CommandListVulkan::SetScissor(int32_t x, int32_t y, int32_t width, int32_t height)
 {

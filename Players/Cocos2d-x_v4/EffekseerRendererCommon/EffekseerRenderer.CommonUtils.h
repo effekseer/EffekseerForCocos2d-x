@@ -41,9 +41,9 @@ inline Effekseer::Color PackVector3DF(const Effekseer::SIMD::Vec3f& v)
 inline Effekseer::Vector3D UnpackVector3DF(const Effekseer::Color& v)
 {
 	Effekseer::Vector3D ret;
-	ret.X = (v.R / 255.0 * 2.0f - 1.0f);
-	ret.Y = (v.G / 255.0 * 2.0f - 1.0f);
-	ret.Z = (v.B / 255.0 * 2.0f - 1.0f);
+	ret.X = (static_cast<float>(v.R) / 255.0f * 2.0f - 1.0f);
+	ret.Y = (static_cast<float>(v.G) / 255.0f * 2.0f - 1.0f);
+	ret.Z = (static_cast<float>(v.B) / 255.0f * 2.0f - 1.0f);
 	return ret;
 }
 
@@ -56,7 +56,8 @@ struct DynamicVertex
 	//! packed vector
 	VertexColor Tangent;
 
-	union {
+	union
+	{
 		//! UV1 (for template)
 		float UV[2];
 		float UV1[2];
@@ -80,14 +81,6 @@ struct DynamicVertex
 		{
 			std::swap(Col.R, Col.B);
 		}
-	}
-
-	void SetTangent(const VertexFloat3& tangent)
-	{
-	}
-
-	void SetBinormal(const VertexFloat3& binormal)
-	{
 	}
 
 	void SetPackedNormal(const VertexColor& normal)
@@ -123,7 +116,8 @@ struct LightingVertex
 	//! packed vector
 	VertexColor Tangent;
 
-	union {
+	union
+	{
 		//! UV1 (for template)
 		float UV[2];
 		float UV1[2];
@@ -146,14 +140,6 @@ struct LightingVertex
 		{
 			std::swap(Col.R, Col.B);
 		}
-	}
-
-	void SetTangent(const VertexFloat3& tangent)
-	{
-	}
-
-	void SetBinormal(const VertexFloat3& binormal)
-	{
 	}
 
 	void SetPackedNormal(const VertexColor& normal)
@@ -178,7 +164,8 @@ struct SimpleVertex
 	VertexFloat3 Pos;
 	VertexColor Col;
 
-	union {
+	union
+	{
 		float UV[2];
 		//! dummy for template
 		float UV2[2];
@@ -199,70 +186,6 @@ struct SimpleVertex
 		{
 			std::swap(Col.R, Col.B);
 		}
-	}
-
-	void SetTangent(const VertexFloat3& tangent)
-	{
-	}
-
-	void SetBinormal(const VertexFloat3& binormal)
-	{
-	}
-
-	void SetPackedNormal(const VertexColor& normal)
-	{
-	}
-
-	void SetPackedTangent(const VertexColor& tangent)
-	{
-	}
-
-	void SetUV2(float u, float v)
-	{
-	}
-};
-
-struct VertexDistortion
-{
-	VertexFloat3 Pos;
-	VertexColor Col;
-
-	union {
-		float UV[2];
-		//! dummy for template
-		float UV1[2];
-		//! dummy for template
-		float UV2[2];
-	};
-
-	VertexFloat3 Binormal;
-	VertexFloat3 Tangent;
-
-	void SetFlipbookIndexAndNextRate(float value)
-	{
-	}
-	void SetAlphaThreshold(float value)
-	{
-	}
-
-	void SetColor(const VertexColor& color, bool flipRGB)
-	{
-		Col = color;
-
-		if (flipRGB)
-		{
-			std::swap(Col.R, Col.B);
-		}
-	}
-
-	void SetTangent(const VertexFloat3& tangent)
-	{
-		Tangent = tangent;
-	}
-
-	void SetBinormal(const VertexFloat3& binormal)
-	{
-		Binormal = binormal;
 	}
 
 	void SetPackedNormal(const VertexColor& normal)
@@ -287,7 +210,8 @@ struct AdvancedLightingVertex
 	//! packed vector
 	VertexColor Tangent;
 
-	union {
+	union
+	{
 		//! UV1 (for template)
 		float UV[2];
 		float UV1[2];
@@ -322,14 +246,6 @@ struct AdvancedLightingVertex
 		}
 	}
 
-	void SetTangent(const VertexFloat3& tangent)
-	{
-	}
-
-	void SetBinormal(const VertexFloat3& binormal)
-	{
-	}
-
 	void SetPackedNormal(const VertexColor& normal)
 	{
 		Normal = normal;
@@ -352,7 +268,8 @@ struct AdvancedSimpleVertex
 	VertexFloat3 Pos;
 	VertexColor Col;
 
-	union {
+	union
+	{
 		float UV[2];
 		//! dummy for template
 		float UV1[2];
@@ -385,80 +302,6 @@ struct AdvancedSimpleVertex
 		{
 			std::swap(Col.R, Col.B);
 		}
-	}
-
-	void SetTangent(const VertexFloat3& tangent)
-	{
-	}
-
-	void SetBinormal(const VertexFloat3& binormal)
-	{
-	}
-
-	void SetPackedNormal(const VertexColor& normal)
-	{
-	}
-
-	void SetPackedTangent(const VertexColor& tangent)
-	{
-	}
-
-	void SetUV2(float u, float v)
-	{
-	}
-};
-
-struct AdvancedVertexDistortion
-{
-	VertexFloat3 Pos;
-	VertexColor Col;
-
-	union {
-		float UV[2];
-		//! dummy for template
-		float UV1[2];
-		//! dummy for template
-		float UV2[2];
-	};
-
-	VertexFloat3 Binormal;
-	VertexFloat3 Tangent;
-
-	float AlphaUV[2];
-	float UVDistortionUV[2];
-	float BlendUV[2];
-	float BlendAlphaUV[2];
-	float BlendUVDistortionUV[2];
-	float FlipbookIndexAndNextRate;
-	float AlphaThreshold;
-
-	void SetFlipbookIndexAndNextRate(float value)
-	{
-		FlipbookIndexAndNextRate = value;
-	}
-	void SetAlphaThreshold(float value)
-	{
-		AlphaThreshold = value;
-	}
-
-	void SetColor(const VertexColor& color, bool flipRGB)
-	{
-		Col = color;
-
-		if (flipRGB)
-		{
-			std::swap(Col.R, Col.B);
-		}
-	}
-
-	void SetTangent(const VertexFloat3& tangent)
-	{
-		Tangent = tangent;
-	}
-
-	void SetBinormal(const VertexFloat3& binormal)
-	{
-		Binormal = binormal;
 	}
 
 	void SetPackedNormal(const VertexColor& normal)
@@ -490,13 +333,6 @@ public:
 
 template <>
 class ContainAdvancedData<LightingVertex>
-{
-public:
-	using Value = float;
-};
-
-template <>
-class ContainAdvancedData<VertexDistortion>
 {
 public:
 	using Value = float;
@@ -679,10 +515,8 @@ void SetVertexAlphaThreshold(U& v, float value)
 static int32_t GetMaximumVertexSizeInAllTypes()
 {
 	size_t size = sizeof(DynamicVertexWithCustomData);
-	size = (std::max)(size, sizeof(VertexDistortion));
 	size = (std::max)(size, sizeof(SimpleVertex));
 	size = (std::max)(size, sizeof(LightingVertex));
-	size = (std::max)(size, sizeof(AdvancedVertexDistortion));
 	size = (std::max)(size, sizeof(AdvancedSimpleVertex));
 	size = (std::max)(size, sizeof(AdvancedLightingVertex));
 
@@ -690,49 +524,37 @@ static int32_t GetMaximumVertexSizeInAllTypes()
 };
 
 template <typename T>
-inline bool IsDistortionVertex()
+inline bool VertexNormalRequired()
 {
 	return false;
 }
 
 template <>
-inline bool IsDistortionVertex<VertexDistortion>()
+inline bool VertexNormalRequired<DynamicVertex>()
 {
 	return true;
 }
 
 template <>
-inline bool IsDistortionVertex<AdvancedVertexDistortion>()
+inline bool VertexNormalRequired<LightingVertex>()
+{
+	return true;
+}
+
+template <>
+inline bool VertexNormalRequired<AdvancedLightingVertex>()
 {
 	return true;
 }
 
 template <typename T>
-inline bool IsDynamicVertex()
+inline bool VertexUV2Required()
 {
 	return false;
 }
 
 template <>
-inline bool IsDynamicVertex<DynamicVertex>()
-{
-	return true;
-}
-
-template <typename T>
-inline bool IsLightingVertex()
-{
-	return false;
-}
-
-template <>
-inline bool IsLightingVertex<LightingVertex>()
-{
-	return true;
-}
-
-template <>
-inline bool IsLightingVertex<AdvancedLightingVertex>()
+inline bool VertexUV2Required<DynamicVertex>()
 {
 	return true;
 }
@@ -834,7 +656,7 @@ void ApplyViewOffset(::Effekseer::SIMD::Mat44f& mat,
 					 float distance);
 
 template <typename Vertex>
-inline void TransformStandardVertexes(Vertex& vertexes, int32_t count, const ::Effekseer::SIMD::Mat43f& mat)
+inline void TransformVertexes(Vertex& vertexes, int32_t count, const ::Effekseer::SIMD::Mat43f& mat)
 {
 	using namespace Effekseer::SIMD;
 
@@ -854,76 +676,6 @@ inline void TransformStandardVertexes(Vertex& vertexes, int32_t count, const ::E
 
 		Float4::Store3(&vertexes[i].Pos, oPos);
 	}
-}
-
-template <typename VertexDistortion>
-inline void TransformDistortionVertexes(VertexDistortion& vertexes, int32_t count, const ::Effekseer::SIMD::Mat43f& mat)
-{
-	using namespace Effekseer::SIMD;
-
-	Float4 m0 = mat.X;
-	Float4 m1 = mat.Y;
-	Float4 m2 = mat.Z;
-	Float4 m3 = Float4::SetZero();
-	Float4::Transpose(m0, m1, m2, m3);
-
-	for (int i = 0; i < count; i++)
-	{
-		Float4 iPos = Float4::Load3(&vertexes[i].Pos);
-		Float4 iTangent = Float4::Load3(&vertexes[i].Tangent);
-		Float4 iBinormal = Float4::Load3(&vertexes[i].Binormal);
-
-		Float4 oPos = Float4::MulAddLane<0>(m3, m0, iPos);
-		oPos = Float4::MulAddLane<1>(oPos, m1, iPos);
-		oPos = Float4::MulAddLane<2>(oPos, m2, iPos);
-
-		Float4 oTangent = Float4::MulLane<0>(m0, iTangent);
-		oTangent = Float4::MulAddLane<1>(oTangent, m1, iTangent);
-		oTangent = Float4::MulAddLane<2>(oTangent, m2, iTangent);
-
-		Float4 oBinormal = Float4::MulLane<0>(m0, iBinormal);
-		oBinormal = Float4::MulAddLane<1>(oBinormal, m1, iBinormal);
-		oBinormal = Float4::MulAddLane<2>(oBinormal, m2, iBinormal);
-
-		Float4::Store3(&vertexes[i].Pos, oPos);
-		Float4::Store3(&vertexes[i].Tangent, oTangent);
-		Float4::Store3(&vertexes[i].Binormal, oBinormal);
-	}
-}
-
-inline void TransformVertexes(StrideView<VertexDistortion>& v, int32_t count, const ::Effekseer::SIMD::Mat43f& mat)
-{
-	TransformDistortionVertexes(v, count, mat);
-}
-
-inline void TransformVertexes(StrideView<SimpleVertex>& v, int32_t count, const ::Effekseer::SIMD::Mat43f& mat)
-{
-	TransformStandardVertexes(v, count, mat);
-}
-
-inline void TransformVertexes(StrideView<DynamicVertex>& v, int32_t count, const ::Effekseer::SIMD::Mat43f& mat)
-{
-	TransformStandardVertexes(v, count, mat);
-}
-
-inline void TransformVertexes(StrideView<LightingVertex>& v, int32_t count, const ::Effekseer::SIMD::Mat43f& mat)
-{
-	TransformStandardVertexes(v, count, mat);
-}
-
-inline void TransformVertexes(StrideView<AdvancedVertexDistortion>& v, int32_t count, const ::Effekseer::SIMD::Mat43f& mat)
-{
-	TransformDistortionVertexes(v, count, mat);
-}
-
-inline void TransformVertexes(StrideView<AdvancedSimpleVertex>& v, int32_t count, const ::Effekseer::SIMD::Mat43f& mat)
-{
-	TransformStandardVertexes(v, count, mat);
-}
-
-inline void TransformVertexes(StrideView<AdvancedLightingVertex>& v, int32_t count, const ::Effekseer::SIMD::Mat43f& mat)
-{
-	TransformStandardVertexes(v, count, mat);
 }
 
 inline Effekseer::SIMD::Vec3f SafeNormalize(const Effekseer::SIMD::Vec3f& v)
@@ -969,20 +721,20 @@ struct MaterialShaderParameterGenerator
 	int32_t VertexModelCustomData1Offset = -1;
 	int32_t VertexModelCustomData2Offset = -1;
 
-	MaterialShaderParameterGenerator(const ::Effekseer::Material& material, bool isModel, int32_t stage, int32_t instanceCount)
+	MaterialShaderParameterGenerator(const ::Effekseer::MaterialFile& materialFile, bool isModel, int32_t stage, int32_t instanceCount)
 	{
 		if (isModel)
 		{
 			VertexSize = sizeof(::Effekseer::Model::Vertex);
 		}
-		else if (material.GetIsSimpleVertex())
+		else if (materialFile.GetIsSimpleVertex())
 		{
 			VertexSize = sizeof(EffekseerRenderer::SimpleVertex);
 		}
 		else
 		{
 			VertexSize = sizeof(EffekseerRenderer::DynamicVertex) +
-						 sizeof(float) * (material.GetCustomData1Count() + material.GetCustomData2Count());
+						 sizeof(float) * (materialFile.GetCustomData1Count() + materialFile.GetCustomData2Count());
 		}
 
 		if (isModel)
@@ -1009,20 +761,20 @@ struct MaterialShaderParameterGenerator
 			VertexCameraPositionOffset = vsOffset;
 			vsOffset += sizeof(float) * 4;
 
-			if (material.GetCustomData1Count() > 0)
+			if (materialFile.GetCustomData1Count() > 0)
 			{
 				VertexModelCustomData1Offset = vsOffset;
 				vsOffset += sizeof(float) * 4 * instanceCount;
 			}
 
-			if (material.GetCustomData2Count() > 0)
+			if (materialFile.GetCustomData2Count() > 0)
 			{
 				VertexModelCustomData2Offset = vsOffset;
 				vsOffset += sizeof(float) * 4 * instanceCount;
 			}
 
 			VertexUserUniformOffset = vsOffset;
-			vsOffset += sizeof(float) * 4 * material.GetUniformCount();
+			vsOffset += sizeof(float) * 4 * materialFile.GetUniformCount();
 
 			VertexShaderUniformBufferSize = vsOffset;
 		}
@@ -1045,7 +797,7 @@ struct MaterialShaderParameterGenerator
 			vsOffset += sizeof(float) * 4;
 
 			VertexUserUniformOffset = vsOffset;
-			vsOffset += sizeof(float) * 4 * material.GetUniformCount();
+			vsOffset += sizeof(float) * 4 * materialFile.GetUniformCount();
 
 			VertexShaderUniformBufferSize = vsOffset;
 		}
@@ -1067,7 +819,7 @@ struct MaterialShaderParameterGenerator
 		PixelReconstructionParam2Offset = psOffset;
 		psOffset += sizeof(float) * 4;
 
-		if (material.GetShadingModel() == ::Effekseer::ShadingModelType::Lit)
+		if (materialFile.GetShadingModel() == ::Effekseer::ShadingModelType::Lit)
 		{
 			PixelLightDirectionOffset = psOffset;
 			psOffset += sizeof(float) * 4;
@@ -1079,14 +831,14 @@ struct MaterialShaderParameterGenerator
 			psOffset += sizeof(float) * 4;
 		}
 
-		if (material.GetHasRefraction() && stage == 1)
+		if (materialFile.GetHasRefraction() && stage == 1)
 		{
 			PixelCameraMatrixOffset = psOffset;
 			psOffset += sizeof(Effekseer::SIMD::Mat44f);
 		}
 
 		PixelUserUniformOffset = psOffset;
-		psOffset += sizeof(float) * 4 * material.GetUniformCount();
+		psOffset += sizeof(float) * 4 * materialFile.GetUniformCount();
 
 		PixelShaderUniformBufferSize = psOffset;
 	}
@@ -1107,11 +859,11 @@ struct ShaderParameterCollector
 {
 	RendererShaderType ShaderType{};
 
-	Effekseer::MaterialParameter* MaterialParam = nullptr;
-	Effekseer::MaterialData* MaterialDataPtr = nullptr;
+	Effekseer::MaterialRenderData* MaterialRenderDataPtr = nullptr;
+	Effekseer::MaterialRef MaterialDataPtr = nullptr;
 
 	int32_t TextureCount = 0;
-	std::array<::Effekseer::TextureData*, Effekseer::TextureSlotMax> Textures;
+	std::array<::Effekseer::Backend::TextureRef, Effekseer::TextureSlotMax> Textures;
 	std::array<::Effekseer::TextureFilterType, Effekseer::TextureSlotMax> TextureFilterTypes;
 	std::array<::Effekseer::TextureWrapType, Effekseer::TextureSlotMax> TextureWrapTypes;
 
@@ -1133,7 +885,7 @@ struct ShaderParameterCollector
 		if (ShaderType != state.ShaderType)
 			return true;
 
-		if (MaterialParam != state.MaterialParam)
+		if (MaterialRenderDataPtr != state.MaterialRenderDataPtr)
 			return true;
 
 		if (MaterialDataPtr != state.MaterialDataPtr)
@@ -1168,13 +920,13 @@ struct ShaderParameterCollector
 
 	void Collect(Renderer* renderer, Effekseer::Effect* effect, Effekseer::NodeRendererBasicParameter* param, bool edgeFalloff, bool isSoftParticleEnabled)
 	{
-		::Effekseer::TextureData* TexturePtr = nullptr;
-		::Effekseer::TextureData* NormalTexturePtr = nullptr;
-		::Effekseer::TextureData* AlphaTexturePtr = nullptr;
-		::Effekseer::TextureData* UVDistortionTexturePtr = nullptr;
-		::Effekseer::TextureData* BlendTexturePtr = nullptr;
-		::Effekseer::TextureData* BlendAlphaTexturePtr = nullptr;
-		::Effekseer::TextureData* BlendUVDistortionTexturePtr = nullptr;
+		::Effekseer::Backend::TextureRef TexturePtr = nullptr;
+		::Effekseer::Backend::TextureRef NormalTexturePtr = nullptr;
+		::Effekseer::Backend::TextureRef AlphaTexturePtr = nullptr;
+		::Effekseer::Backend::TextureRef UVDistortionTexturePtr = nullptr;
+		::Effekseer::Backend::TextureRef BlendTexturePtr = nullptr;
+		::Effekseer::Backend::TextureRef BlendAlphaTexturePtr = nullptr;
+		::Effekseer::Backend::TextureRef BlendUVDistortionTexturePtr = nullptr;
 
 		Textures.fill(nullptr);
 		TextureFilterTypes.fill(::Effekseer::TextureFilterType::Linear);
@@ -1185,36 +937,53 @@ struct ShaderParameterCollector
 
 		DepthIndex = -1;
 		IsDepthRequired = isSoftParticleEnabled;
+		MaterialRenderDataPtr = nullptr;
+
+		auto isMaterial = param->MaterialType == ::Effekseer::RendererMaterialType::File && param->MaterialRenderDataPtr != nullptr;
+		if (isMaterial)
+		{
+			MaterialDataPtr = effect->GetMaterial(param->MaterialRenderDataPtr->MaterialIndex);
+
+			if (MaterialDataPtr == nullptr)
+			{
+				isMaterial = false;
+			}
+
+			if (isMaterial && MaterialDataPtr->IsSimpleVertex)
+			{
+				isMaterial = false;
+			}
+
+			// Validate parameters
+			if (isMaterial && (MaterialDataPtr->TextureCount != param->MaterialRenderDataPtr->MaterialTextures.size() ||
+							   MaterialDataPtr->UniformCount != param->MaterialRenderDataPtr->MaterialUniforms.size()))
+			{
+				isMaterial = false;
+			}
+		}
 
 		auto isAdvanced = param->GetIsRenderedWithAdvancedRenderer() || edgeFalloff;
 
+		if (isMaterial)
+		{
+			IsDepthRequired = true;
+		}
+
 		if (param->MaterialType == ::Effekseer::RendererMaterialType::File)
 		{
-			MaterialParam = param->MaterialParameterPtr;
-			if (MaterialParam != nullptr)
+			MaterialRenderDataPtr = param->MaterialRenderDataPtr;
+			if (MaterialRenderDataPtr != nullptr)
 			{
-				MaterialDataPtr = effect->GetMaterial(param->MaterialParameterPtr->MaterialIndex);
-
-				if (MaterialDataPtr != nullptr && !MaterialDataPtr->IsSimpleVertex)
+				MaterialDataPtr = effect->GetMaterial(MaterialRenderDataPtr->MaterialIndex);
+				if (MaterialDataPtr != nullptr)
 				{
 					ShaderType = RendererShaderType::Material;
 					IsBackgroundRequiredOnFirstPass = MaterialDataPtr->IsRefractionRequired;
-					HasMultiPass = true;
-				}
-				else
-				{
-					ShaderType = RendererShaderType::Unlit;
-					MaterialParam = nullptr;
-					MaterialDataPtr = nullptr;
-				}
 
-				// Validate parameters
-				if (MaterialDataPtr != nullptr && (MaterialDataPtr->TextureCount != MaterialParam->MaterialTextures.size() ||
-												   MaterialDataPtr->UniformCount != MaterialParam->MaterialUniforms.size()))
-				{
-					ShaderType = RendererShaderType::Unlit;
-					MaterialParam = nullptr;
-					MaterialDataPtr = nullptr;
+					if (IsBackgroundRequiredOnFirstPass)
+					{
+						HasMultiPass = true;
+					}
 				}
 			}
 		}
@@ -1246,19 +1015,21 @@ struct ShaderParameterCollector
 		}
 		else
 		{
-			assert(0);
+			// Fallback
+			ShaderType = RendererShaderType::Unlit;
 		}
 
-		if (MaterialParam != nullptr && MaterialDataPtr != nullptr)
+		if (MaterialRenderDataPtr != nullptr && MaterialDataPtr != nullptr)
 		{
-			TextureCount = static_cast<int32_t>(Effekseer::Min(MaterialParam->MaterialTextures.size(), ::Effekseer::UserTextureSlotMax));
+			TextureCount = static_cast<int32_t>(Effekseer::Min(MaterialRenderDataPtr->MaterialTextures.size(), ::Effekseer::UserTextureSlotMax));
 			for (size_t i = 0; i < TextureCount; i++)
 			{
-				if (MaterialParam->MaterialTextures[i].Type == 1)
+				if (MaterialRenderDataPtr->MaterialTextures[i].Type == 1)
 				{
-					if (MaterialParam->MaterialTextures[i].Index >= 0)
+					if (MaterialRenderDataPtr->MaterialTextures[i].Index >= 0)
 					{
-						Textures[i] = effect->GetNormalImage(MaterialParam->MaterialTextures[i].Index);
+						auto resource = effect->GetNormalImage(MaterialRenderDataPtr->MaterialTextures[i].Index);
+						Textures[i] = (resource != nullptr) ? resource->GetBackend() : nullptr;
 					}
 					else
 					{
@@ -1267,9 +1038,10 @@ struct ShaderParameterCollector
 				}
 				else
 				{
-					if (MaterialParam->MaterialTextures[i].Index >= 0)
+					if (MaterialRenderDataPtr->MaterialTextures[i].Index >= 0)
 					{
-						Textures[i] = effect->GetColorImage(MaterialParam->MaterialTextures[i].Index);
+						auto resource = effect->GetColorImage(MaterialRenderDataPtr->MaterialTextures[i].Index);
+						Textures[i] = (resource != nullptr) ? resource->GetBackend() : nullptr;
 					}
 					else
 					{
@@ -1339,11 +1111,13 @@ struct ShaderParameterCollector
 			// color/distortion
 			if (param->MaterialType == ::Effekseer::RendererMaterialType::BackDistortion)
 			{
-				TexturePtr = effect->GetDistortionImage(param->Texture1Index);
+				auto resource = effect->GetDistortionImage(param->TextureIndexes[0]);
+				TexturePtr = (resource != nullptr) ? resource->GetBackend() : nullptr;
 			}
 			else
 			{
-				TexturePtr = effect->GetColorImage(param->Texture1Index);
+				auto resource = effect->GetColorImage(param->TextureIndexes[0]);
+				TexturePtr = (resource != nullptr) ? resource->GetBackend() : nullptr;
 			}
 
 			if (TexturePtr == nullptr && renderer != nullptr)
@@ -1352,8 +1126,8 @@ struct ShaderParameterCollector
 			}
 
 			Textures[0] = TexturePtr;
-			TextureFilterTypes[0] = param->TextureFilter1;
-			TextureWrapTypes[0] = param->TextureWrap1;
+			TextureFilterTypes[0] = param->TextureFilters[0];
+			TextureWrapTypes[0] = param->TextureWraps[0];
 
 			// normal/background
 			if (param->MaterialType != ::Effekseer::RendererMaterialType::Default)
@@ -1366,7 +1140,8 @@ struct ShaderParameterCollector
 				}
 				else if (param->MaterialType == ::Effekseer::RendererMaterialType::Lighting)
 				{
-					NormalTexturePtr = effect->GetNormalImage(param->Texture2Index);
+					auto resource = effect->GetNormalImage(param->TextureIndexes[1]);
+					NormalTexturePtr = (resource != nullptr) ? resource->GetBackend() : nullptr;
 
 					if (NormalTexturePtr == nullptr && renderer != nullptr)
 					{
@@ -1383,8 +1158,8 @@ struct ShaderParameterCollector
 				}
 				else
 				{
-					TextureFilterTypes[1] = param->TextureFilter2;
-					TextureWrapTypes[1] = param->TextureWrap2;
+					TextureFilterTypes[1] = param->TextureFilters[1];
+					TextureWrapTypes[1] = param->TextureWraps[1];
 				}
 			}
 
@@ -1392,11 +1167,13 @@ struct ShaderParameterCollector
 			{
 				if (param->MaterialType == ::Effekseer::RendererMaterialType::BackDistortion)
 				{
-					AlphaTexturePtr = effect->GetDistortionImage(param->Texture3Index);
+					auto resource = effect->GetDistortionImage(param->TextureIndexes[2]);
+					AlphaTexturePtr = (resource != nullptr) ? resource->GetBackend() : nullptr;
 				}
 				else
 				{
-					AlphaTexturePtr = effect->GetColorImage(param->Texture3Index);
+					auto resource = effect->GetColorImage(param->TextureIndexes[2]);
+					AlphaTexturePtr = (resource != nullptr) ? resource->GetBackend() : nullptr;
 				}
 
 				if (AlphaTexturePtr == nullptr && renderer != nullptr)
@@ -1406,11 +1183,13 @@ struct ShaderParameterCollector
 
 				if (param->MaterialType == ::Effekseer::RendererMaterialType::BackDistortion)
 				{
-					UVDistortionTexturePtr = effect->GetDistortionImage(param->Texture4Index);
+					auto resource = effect->GetDistortionImage(param->TextureIndexes[3]);
+					UVDistortionTexturePtr = (resource != nullptr) ? resource->GetBackend() : nullptr;
 				}
 				else
 				{
-					UVDistortionTexturePtr = effect->GetColorImage(param->Texture4Index);
+					auto resource = effect->GetColorImage(param->TextureIndexes[3]);
+					UVDistortionTexturePtr = (resource != nullptr) ? resource->GetBackend() : nullptr;
 				}
 
 				if (UVDistortionTexturePtr == nullptr && renderer != nullptr)
@@ -1420,11 +1199,13 @@ struct ShaderParameterCollector
 
 				if (param->MaterialType == ::Effekseer::RendererMaterialType::BackDistortion)
 				{
-					BlendTexturePtr = effect->GetDistortionImage(param->Texture5Index);
+					auto resource = effect->GetDistortionImage(param->TextureIndexes[4]);
+					BlendTexturePtr = (resource != nullptr) ? resource->GetBackend() : nullptr;
 				}
 				else
 				{
-					BlendTexturePtr = effect->GetColorImage(param->Texture5Index);
+					auto resource = effect->GetColorImage(param->TextureIndexes[4]);
+					BlendTexturePtr = (resource != nullptr) ? resource->GetBackend() : nullptr;
 				}
 
 				if (BlendTexturePtr == nullptr && renderer != nullptr)
@@ -1434,11 +1215,13 @@ struct ShaderParameterCollector
 
 				if (param->MaterialType == ::Effekseer::RendererMaterialType::BackDistortion)
 				{
-					BlendAlphaTexturePtr = effect->GetDistortionImage(param->Texture6Index);
+					auto resource = effect->GetDistortionImage(param->TextureIndexes[5]);
+					BlendAlphaTexturePtr = (resource != nullptr) ? resource->GetBackend() : nullptr;
 				}
 				else
 				{
-					BlendAlphaTexturePtr = effect->GetColorImage(param->Texture6Index);
+					auto resource = effect->GetColorImage(param->TextureIndexes[5]);
+					BlendAlphaTexturePtr = (resource != nullptr) ? resource->GetBackend() : nullptr;
 				}
 
 				if (BlendAlphaTexturePtr == nullptr && renderer != nullptr)
@@ -1448,11 +1231,13 @@ struct ShaderParameterCollector
 
 				if (param->MaterialType == ::Effekseer::RendererMaterialType::BackDistortion)
 				{
-					BlendUVDistortionTexturePtr = effect->GetDistortionImage(param->Texture7Index);
+					auto resource = effect->GetDistortionImage(param->TextureIndexes[6]);
+					BlendUVDistortionTexturePtr = (resource != nullptr) ? resource->GetBackend() : nullptr;
 				}
 				else
 				{
-					BlendUVDistortionTexturePtr = effect->GetColorImage(param->Texture7Index);
+					auto resource = effect->GetColorImage(param->TextureIndexes[6]);
+					BlendUVDistortionTexturePtr = (resource != nullptr) ? resource->GetBackend() : nullptr;
 				}
 
 				if (BlendUVDistortionTexturePtr == nullptr && renderer != nullptr)
@@ -1468,24 +1253,24 @@ struct ShaderParameterCollector
 				}
 
 				Textures[offset + 0] = AlphaTexturePtr;
-				TextureFilterTypes[offset + 0] = param->TextureFilter3;
-				TextureWrapTypes[offset + 0] = param->TextureWrap3;
+				TextureFilterTypes[offset + 0] = param->TextureFilters[2];
+				TextureWrapTypes[offset + 0] = param->TextureWraps[2];
 
 				Textures[offset + 1] = UVDistortionTexturePtr;
-				TextureFilterTypes[offset + 1] = param->TextureFilter4;
-				TextureWrapTypes[offset + 1] = param->TextureWrap4;
+				TextureFilterTypes[offset + 1] = param->TextureFilters[3];
+				TextureWrapTypes[offset + 1] = param->TextureWraps[3];
 
 				Textures[offset + 2] = BlendTexturePtr;
-				TextureFilterTypes[offset + 2] = param->TextureFilter5;
-				TextureWrapTypes[offset + 2] = param->TextureWrap5;
+				TextureFilterTypes[offset + 2] = param->TextureFilters[4];
+				TextureWrapTypes[offset + 2] = param->TextureWraps[4];
 
 				Textures[offset + 3] = BlendAlphaTexturePtr;
-				TextureFilterTypes[offset + 3] = param->TextureFilter6;
-				TextureWrapTypes[offset + 3] = param->TextureWrap6;
+				TextureFilterTypes[offset + 3] = param->TextureFilters[5];
+				TextureWrapTypes[offset + 3] = param->TextureWraps[5];
 
 				Textures[offset + 4] = BlendUVDistortionTexturePtr;
-				TextureFilterTypes[offset + 4] = param->TextureFilter7;
-				TextureWrapTypes[offset + 4] = param->TextureWrap7;
+				TextureFilterTypes[offset + 4] = param->TextureFilters[6];
+				TextureWrapTypes[offset + 4] = param->TextureWraps[6];
 			}
 		}
 	}
@@ -1493,15 +1278,19 @@ struct ShaderParameterCollector
 
 struct SoftParticleParameter
 {
-	std::array<float, 4> softParticleAndReconstructionParam1; // x:softparticle y:reconstruction
+	std::array<float, 4> softParticleParams;
+	std::array<float, 4> reconstructionParam1;
 	std::array<float, 4> reconstructionParam2;
 
-	void SetParam(float softParticle, float magnification, float rescale1, float rescale2, float v33, float v34, float v43, float v44)
+	void SetParam(float distanceFar, float distanceNear, float distanceNearOffset, float magnification, float rescale1, float rescale2, float v33, float v34, float v43, float v44)
 	{
-		softParticleAndReconstructionParam1[0] = softParticle * magnification;
-		softParticleAndReconstructionParam1[1] = rescale1;
-		softParticleAndReconstructionParam1[2] = rescale2;
-		softParticleAndReconstructionParam1[3] = magnification;
+		softParticleParams[0] = distanceFar * magnification;
+		softParticleParams[1] = distanceNear * magnification;
+		softParticleParams[2] = distanceNearOffset * magnification;
+		softParticleParams[3] = distanceFar != 0.0f || distanceNear != 0.0f || distanceNearOffset != 0.0f ? 1.0f : 0.0f;
+
+		reconstructionParam1[0] = rescale1;
+		reconstructionParam1[1] = rescale2;
 
 		reconstructionParam2[0] = v33;
 		reconstructionParam2[1] = v34;
@@ -1512,7 +1301,8 @@ struct SoftParticleParameter
 
 struct FlipbookParameter
 {
-	union {
+	union
+	{
 		float Buffer[4];
 
 		struct
@@ -1525,7 +1315,8 @@ struct FlipbookParameter
 
 struct UVDistortionParameter
 {
-	union {
+	union
+	{
 		float Buffer[4];
 
 		struct
@@ -1539,7 +1330,8 @@ struct UVDistortionParameter
 
 struct BlendTextureParameter
 {
-	union {
+	union
+	{
 		float Buffer[4];
 
 		struct
@@ -1551,7 +1343,8 @@ struct BlendTextureParameter
 
 struct EmmisiveParameter
 {
-	union {
+	union
+	{
 		float Buffer[4];
 
 		struct
@@ -1563,9 +1356,10 @@ struct EmmisiveParameter
 
 struct EdgeParameter
 {
-	float EdgeColor[4];
+	std::array<float, 4> EdgeColor;
 
-	union {
+	union
+	{
 		float Buffer[4];
 
 		struct
@@ -1578,7 +1372,8 @@ struct EdgeParameter
 
 struct FalloffParameter
 {
-	union {
+	union
+	{
 		float Buffer[4];
 
 		struct
@@ -1589,8 +1384,101 @@ struct FalloffParameter
 		};
 	};
 
-	float BeginColor[4];
-	float EndColor[4];
+	std::array<float, 4> BeginColor;
+	std::array<float, 4> EndColor;
+};
+
+struct PixelConstantBuffer
+{
+	//! Lit only
+	std::array<float, 4> LightDirection;
+	std::array<float, 4> LightColor;
+	std::array<float, 4> LightAmbientColor;
+
+	FlipbookParameter FlipbookParam;
+	UVDistortionParameter UVDistortionParam;
+	BlendTextureParameter BlendTextureParam;
+
+	//! model only
+	float CameraFrontDirection[4];
+
+	//! model only
+	FalloffParameter FalloffParam;
+
+	EmmisiveParameter EmmisiveParam;
+	EdgeParameter EdgeParam;
+	SoftParticleParameter SoftParticleParam;
+
+	void SetModelFlipbookParameter(float enableInterpolation, float interpolationType)
+	{
+		FlipbookParam.EnableInterpolation = enableInterpolation;
+		FlipbookParam.InterpolationType = interpolationType;
+	}
+
+	void SetModelUVDistortionParameter(float intensity, float blendIntensity, const std::array<float, 2>& uvInversed)
+	{
+		UVDistortionParam.Intensity = intensity;
+		UVDistortionParam.BlendIntensity = blendIntensity;
+		UVDistortionParam.UVInversed[0] = uvInversed[0];
+		UVDistortionParam.UVInversed[1] = uvInversed[1];
+	}
+
+	void SetModelBlendTextureParameter(float blendType)
+	{
+		BlendTextureParam.BlendType = blendType;
+	}
+
+	void SetCameraFrontDirection(float x, float y, float z)
+	{
+		CameraFrontDirection[0] = x;
+		CameraFrontDirection[1] = y;
+		CameraFrontDirection[2] = z;
+		CameraFrontDirection[3] = 0.0f;
+	}
+
+	void SetFalloffParameter(float enable, float colorBlendType, float pow, const std::array<float, 4>& beginColor, const std::array<float, 4>& endColor)
+	{
+		FalloffParam.Enable = enable;
+		FalloffParam.ColorBlendType = colorBlendType;
+		FalloffParam.Pow = pow;
+
+		for (size_t i = 0; i < 4; i++)
+		{
+			FalloffParam.BeginColor[i] = beginColor[i];
+		}
+
+		for (size_t i = 0; i < 4; i++)
+		{
+			FalloffParam.EndColor[i] = endColor[i];
+		}
+	}
+
+	void SetEmissiveScaling(float emissiveScaling)
+	{
+		EmmisiveParam.EmissiveScaling = emissiveScaling;
+	}
+
+	void SetEdgeParameter(const std::array<float, 4>& edgeColor, float threshold, float colorScaling)
+	{
+		for (size_t i = 0; i < 4; i++)
+		{
+			EdgeParam.EdgeColor[i] = edgeColor[i];
+		}
+		EdgeParam.Threshold = threshold;
+		EdgeParam.ColorScaling = colorScaling;
+	}
+};
+
+struct PixelConstantBufferDistortion
+{
+	float DistortionIntencity[4];
+	float UVInversedBack[4];
+
+	//! unused in none advanced renderer
+	FlipbookParameter FlipbookParam;
+	UVDistortionParameter UVDistortionParam;
+	BlendTextureParameter BlendTextureParam;
+	SoftParticleParameter SoftParticleParam;
 };
 
 void CalculateAlignedTextureInformation(Effekseer::Backend::TextureFormatType format, const std::array<int, 2>& size, int32_t& sizePerWidth, int32_t& height);

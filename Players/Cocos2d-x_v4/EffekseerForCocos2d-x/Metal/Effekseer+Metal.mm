@@ -5,6 +5,7 @@
 #include "../../EffekseerRendererMetal/EffekseerRenderer/EffekseerRendererMetal.VertexBuffer.h"
 #include "../../EffekseerRendererMetal/EffekseerRendererMetal.h"
 #include "../../3rdParty/LLGI/src/Metal/LLGI.GraphicsMetal.h"
+#include "../../EffekseerRendererCommon/ModelLoader.h"
 #include "renderer/backend/metal/TextureMTL.h"
 #include "renderer/backend/metal/CommandBufferMTL.h"
 #include "renderer/backend/metal/Utils.h"
@@ -158,9 +159,7 @@ public:
 
 Effekseer::ModelLoaderRef CreateModelLoader(Effekseer::FileInterface* effectFile)
 {
-    auto device = EffekseerGraphicsDevice::create();
-    auto ret = EffekseerRendererMetal::CreateModelLoader(device.Get(), effectFile);
-    return ret;
+	return Effekseer::MakeRefPtr<::EffekseerRenderer::ModelLoader>(EffekseerGraphicsDevice::create(), effectFile);
 }
 
 ::Effekseer::MaterialLoaderRef CreateMaterialLoader(Effekseer::FileInterface* effectFile)
@@ -170,15 +169,16 @@ Effekseer::ModelLoaderRef CreateModelLoader(Effekseer::FileInterface* effectFile
     return ret;
 }
 
-void UpdateTextureData(::Effekseer::TextureData* textureData, cocos2d::Texture2D* texture)
+void UpdateTextureData(::Effekseer::TextureRef textureData, cocos2d::Texture2D* texture)
 {
     auto textureMTL = static_cast<cocos2d::backend::TextureMTL*>(texture->getBackendTexture());
-    auto tex = new LLGI::TextureMetal();
-    tex->Reset(textureMTL->getMTLTexture());
-    textureData->UserPtr = tex;
+	auto device = EffekseerGraphicsDevice::create().DownCast<::EffekseerRendererLLGI::Backend::GraphicsDevice>();
+
+	auto backend = device->CreateTexture(textureMTL);
+	textureData->SetBackend(backend);
 }
 
-void CleanupTextureData(::Effekseer::TextureData* textureData)
+void CleanupTextureData(::Effekseer::TextureRef textureData)
 {
     auto tex = (LLGI::TextureMetal*)textureData->UserPtr;
     tex->Release();

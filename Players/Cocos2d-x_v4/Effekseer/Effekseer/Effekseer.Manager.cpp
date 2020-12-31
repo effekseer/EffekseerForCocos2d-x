@@ -1,6 +1,7 @@
 #include "Effekseer.Manager.h"
 #include "Effekseer.ManagerImplemented.h"
 
+#include "Effekseer.Resource.h"
 #include "Effekseer.Effect.h"
 #include "Effekseer.EffectImplemented.h"
 #include "SIMD/Utils.h"
@@ -644,12 +645,12 @@ void ManagerImplemented::SetSoundPlayer(SoundPlayerRef soundPlayer)
 	m_soundPlayer = soundPlayer;
 }
 
-const RefPtr<Setting>& ManagerImplemented::GetSetting() const
+const SettingRef& ManagerImplemented::GetSetting() const
 {
 	return m_setting;
 }
 
-void ManagerImplemented::SetSetting(const RefPtr<Setting>& setting)
+void ManagerImplemented::SetSetting(const SettingRef& setting)
 {
 	m_setting = setting;
 }

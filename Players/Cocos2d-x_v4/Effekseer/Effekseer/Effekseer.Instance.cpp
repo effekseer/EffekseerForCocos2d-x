@@ -441,10 +441,9 @@ void Instance::FirstUpdate()
 	{
 		// TODO refactoring
 		auto& NurbsCurveParam = m_pEffectNode->TranslationNurbsCurve;
-
-		if (NurbsCurveParam.Index != -1)
+		CurveRef curve = static_cast<CurveRef>(m_pEffectNode->m_effect->GetCurve(NurbsCurveParam.Index));
+		if (curve != nullptr)
 		{
-			Curve* curve = static_cast<Curve*>(m_pEffectNode->m_effect->GetCurve(NurbsCurveParam.Index));
 			float moveSpeed = NurbsCurveParam.MoveSpeed;
 			int32_t loopType = NurbsCurveParam.LoopType;
 
@@ -757,7 +756,7 @@ void Instance::FirstUpdate()
 	else if (m_pEffectNode->GenerationLocation.type == ParameterGenerationLocation::TYPE_MODEL)
 	{
 		m_GenerationLocation = SIMD::Mat43f::Identity;
-		Model* model = nullptr;
+		ModelRef model = nullptr;
 		const ParameterGenerationLocation::eModelType type = m_pEffectNode->GenerationLocation.model.type;
 
 		if (m_pEffectNode->GenerationLocation.model.Reference == ModelReferenceType::File)
@@ -1305,10 +1304,9 @@ void Instance::CalculateMatrix(float deltaFrame)
 		else if (m_pEffectNode->TranslationType == ParameterTranslationType_NurbsCurve)
 		{
 			auto& NurbsCurveParam = m_pEffectNode->TranslationNurbsCurve;
-
-			if (NurbsCurveParam.Index != -1)
+			CurveRef curve = static_cast<CurveRef>(m_pEffectNode->m_effect->GetCurve(NurbsCurveParam.Index));
+			if (curve != nullptr)
 			{
-				Curve* curve = static_cast<Curve*>(m_pEffectNode->m_effect->GetCurve(NurbsCurveParam.Index));
 				float moveSpeed = NurbsCurveParam.MoveSpeed;
 				int32_t loopType = NurbsCurveParam.LoopType;
 

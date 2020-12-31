@@ -1,8 +1,8 @@
 #include "../EffekseerForCocos2d-x.h"
 #ifndef CC_USE_METAL
 
+#include "../../EffekseerRendererCommon/ModelLoader.h"
 #include "../../EffekseerRendererGL/EffekseerRendererGL.h"
-#include "../../EffekseerRendererGL/EffekseerRenderer/EffekseerRendererGL.ModelLoader.h"
 #include "../../EffekseerRendererGL/EffekseerRenderer/EffekseerRendererGL.MaterialLoader.h"
 #include "renderer/backend/opengl/TextureGL.h"
 
@@ -132,11 +132,7 @@ public:
 
 Effekseer::ModelLoaderRef CreateModelLoader(Effekseer::FileInterface* effectFile)
 {
-#if (CC_TARGET_PLATFORM == CC_PLATFORM_IOS || CC_TARGET_PLATFORM == CC_PLATFORM_ANDROID)
-    return Effekseer::MakeRefPtr<::EffekseerRendererGL::ModelLoader>(effectFile, EffekseerRendererGL::OpenGLDeviceType::OpenGLES2);
-#else
-	return Effekseer::MakeRefPtr<::EffekseerRendererGL::ModelLoader>(effectFile, EffekseerRendererGL::OpenGLDeviceType::OpenGL2);
-#endif
+	return Effekseer::MakeRefPtr<::EffekseerRenderer::ModelLoader>(EffekseerGraphicsDevice::create(), effectFile);
 }
 
 ::Effekseer::MaterialLoaderRef CreateMaterialLoader(Effekseer::FileInterface* effectFile)
@@ -144,24 +140,28 @@ Effekseer::ModelLoaderRef CreateModelLoader(Effekseer::FileInterface* effectFile
 	return Effekseer::MakeRefPtr<::EffekseerRendererGL::MaterialLoader>(EffekseerGraphicsDevice::create().DownCast<::EffekseerRendererGL::Backend::GraphicsDevice>(), effectFile);
 }
 
-void UpdateTextureData(::Effekseer::TextureData* textureData, cocos2d::Texture2D* texture)
+void UpdateTextureData(::Effekseer::TextureRef textureData, cocos2d::Texture2D* texture)
 {
 	auto textureGL = static_cast<cocos2d::backend::Texture2DGL*>(texture->getBackendTexture());
-	textureData->UserID = textureGL->getHandler();
+
+	auto device = EffekseerGraphicsDevice::create().DownCast<::EffekseerRendererGL::Backend::GraphicsDevice>();
+
+	auto backend = device->CreateTexture(textureGL->getHandler(), texture->hasMipmaps(), []() -> void {});
+	textureData->SetBackend(backend);
 }
 
-void CleanupTextureData(::Effekseer::TextureData* textureData) {}
+void CleanupTextureData(::Effekseer::TextureRef textureData) {}
 
 ::EffekseerRenderer::DistortingCallback* CreateDistortingCallback(::EffekseerRenderer::RendererRef renderer, ::EffekseerRenderer::CommandList* commandList)
 {
 	return new DistortingCallbackGL();
 }
 
-void EffectEmitter::beforeRender(EffekseerRenderer::Renderer* renderer, EffekseerRenderer::CommandList* commandList)
+void EffectEmitter::beforeRender(EffekseerRenderer::RendererRef renderer, EffekseerRenderer::CommandList* commandList)
 {
 }
 
-void EffectEmitter::afterRender(EffekseerRenderer::Renderer* renderer, EffekseerRenderer::CommandList* commandList)
+void EffectEmitter::afterRender(EffekseerRenderer::RendererRef renderer, EffekseerRenderer::CommandList* commandList)
 {
 }
 

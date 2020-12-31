@@ -530,7 +530,7 @@ public:
 		NodeRendererTextureUVTypeParameter* TextureUVTypeParameterPtr = nullptr;
 
 		RendererMaterialType MaterialType = RendererMaterialType::Default;
-		MaterialParameter* MaterialParameterPtr = nullptr;
+		MaterialRenderData* MaterialRenderDataPtr = nullptr;
 
 		bool EnableViewOffset = false;
 
@@ -732,7 +732,7 @@ public:
 		テクスチャを読み込む。
 		::Effekseer::Effect::Create実行時に使用される。
 	*/
-	virtual TextureData* Load(const char16_t* path, TextureType textureType)
+	virtual TextureRef Load(const char16_t* path, TextureType textureType)
 	{
 		return nullptr;
 	}
@@ -757,7 +757,7 @@ public:
 		\~English	a pointer of loaded texture
 		\~Japanese	読み込まれたテクスチャのポインタ
 	*/
-	virtual TextureData* Load(const void* data, int32_t size, TextureType textureType, bool isMipMapEnabled)
+	virtual TextureRef Load(const void* data, int32_t size, TextureType textureType, bool isMipMapEnabled)
 	{
 		return nullptr;
 	}
@@ -769,7 +769,7 @@ public:
 		テクスチャを破棄する。
 		::Effekseer::Effectのインスタンスが破棄された時に使用される。
 	*/
-	virtual void Unload(TextureData* data)
+	virtual void Unload(TextureRef data)
 	{
 	}
 };
@@ -782,6 +782,114 @@ public:
 //
 //----------------------------------------------------------------------------------
 #endif // __EFFEKSEER_TEXTURELOADER_H__
+
+#ifndef __EFFEKSEER_MODEL_H__
+#define __EFFEKSEER_MODEL_H__
+
+
+namespace Effekseer
+{
+
+namespace Backend
+{
+class GraphicsDevice;
+class VertexBuffer;
+class IndexBuffer;
+} // namespace Backend
+
+/**
+	@brief
+	\~English	Model class
+	\~Japanese	モデルクラス
+*/
+class Model : public Resource
+{
+public:
+	static const int32_t Version = 1;
+
+	struct Vertex
+	{
+		Vector3D Position;
+		Vector3D Normal;
+		Vector3D Binormal;
+		Vector3D Tangent;
+		Vector2D UV;
+		Color VColor;
+	};
+
+	struct Face
+	{
+		std::array<int32_t, 3> Indexes;
+	};
+
+	struct Emitter
+	{
+		Vector3D Position;
+		Vector3D Normal;
+		Vector3D Binormal;
+		Vector3D Tangent;
+	};
+
+protected:
+	struct InternalModel
+	{
+		CustomVector<Vertex> vertexes;
+		CustomVector<Face> faces;
+		RefPtr<Backend::VertexBuffer> vertexBuffer;
+		RefPtr<Backend::IndexBuffer> indexBuffer;
+		RefPtr<Backend::IndexBuffer> wireIndexBuffer;
+	};
+
+	int32_t version_ = 0;
+	CustomVector<InternalModel> models_;
+	bool isBufferStoredOnGPU_ = false;
+	bool isWireIndexBufferGenerated_ = false;
+
+public:
+	Model(const CustomVector<Vertex>& vertecies, const CustomVector<Face>& faces);
+
+	Model(const void* data, int32_t size);
+
+	virtual ~Model();
+
+	const RefPtr<Backend::VertexBuffer>& GetVertexBuffer(int32_t index) const;
+
+	const RefPtr<Backend::IndexBuffer>& GetIndexBuffer(int32_t index) const;
+
+	const RefPtr<Backend::IndexBuffer>& GetWireIndexBuffer(int32_t index) const;
+
+	const Vertex* GetVertexes(int32_t index = 0) const;
+
+	int32_t GetVertexCount(int32_t index = 0) const;
+
+	const Face* GetFaces(int32_t index = 0) const;
+
+	int32_t GetFaceCount(int32_t index = 0) const;
+
+	int32_t GetFrameCount() const;
+
+	Emitter GetEmitter(IRandObject* g, int32_t time, CoordinateSystem coordinate, float magnification);
+
+	Emitter GetEmitterFromVertex(IRandObject* g, int32_t time, CoordinateSystem coordinate, float magnification);
+
+	Emitter GetEmitterFromVertex(int32_t index, int32_t time, CoordinateSystem coordinate, float magnification);
+
+	Emitter GetEmitterFromFace(IRandObject* g, int32_t time, CoordinateSystem coordinate, float magnification);
+
+	Emitter GetEmitterFromFace(int32_t index, int32_t time, CoordinateSystem coordinate, float magnification);
+
+	bool StoreBufferToGPU(Backend::GraphicsDevice* graphicsDevice);
+
+	bool GetIsBufferStoredOnGPU() const;
+
+	bool GenerateWireIndexBuffer(Backend::GraphicsDevice* graphicsDevice);
+
+	bool GetIsWireIndexBufferGenerated() const;
+};
+
+} // namespace Effekseer
+
+#endif // __EFFEKSEER_MODEL_H__
 
 #ifndef __EFFEKSEER_MODELLOADER_H__
 #define __EFFEKSEER_MODELLOADER_H__
@@ -812,7 +920,7 @@ public:
 	\~English a pointer of loaded a model
 	\~Japanese 読み込まれたモデルのポインタ
 	*/
-	virtual Model* Load(const char16_t* path);
+	virtual ModelRef Load(const char16_t* path);
 
 	/**
 		@brief
@@ -828,7 +936,7 @@ public:
 		\~English	a pointer of loaded model
 		\~Japanese	読み込まれたモデルのポインタ
 	*/
-	virtual Effekseer::Model* Load(const void* data, int32_t size);
+	virtual ModelRef Load(const void* data, int32_t size);
 
 	/**
 		@brief
@@ -838,7 +946,7 @@ public:
 		\~English	a pointer of loaded a model
 		\~Japanese	読み込まれたモデルのポインタ
 	*/
-	virtual void Unload(Model* data);
+	virtual void Unload(ModelRef data);
 };
 
 //----------------------------------------------------------------------------------
@@ -890,7 +998,7 @@ public:
 		\~English	a pointer of loaded a material
 		\~Japanese	読み込まれたマテリアルのポインタ
 	*/
-	virtual MaterialData* Load(const char16_t* path)
+	virtual MaterialRef Load(const char16_t* path)
 	{
 		return nullptr;
 	}
@@ -912,7 +1020,7 @@ public:
 		\~English	a pointer of loaded a material
 		\~Japanese	読み込まれたマテリアルのポインタ
 	*/
-	virtual MaterialData* Load(const void* data, int32_t size, MaterialFileType fileType)
+	virtual MaterialRef Load(const void* data, int32_t size, MaterialFileType fileType)
 	{
 		return nullptr;
 	}
@@ -925,7 +1033,7 @@ public:
 		\~English	a pointer of loaded a material
 		\~Japanese	読み込まれたマテリアルのポインタ
 	*/
-	virtual void Unload(MaterialData* data)
+	virtual void Unload(MaterialRef data)
 	{
 	}
 };
@@ -953,7 +1061,7 @@ class IndexBuffer;
 	\~English	Model class
 	\~Japanese	モデルクラス
 */
-class Model
+class Model : public Resource
 {
 public:
 	static const int32_t Version = 1;
@@ -999,7 +1107,7 @@ protected:
 public:
 	Model(const CustomVector<Vertex>& vertecies, const CustomVector<Face>& faces);
 
-	Model(void* data, int32_t size);
+	Model(const void* data, int32_t size);
 
 	virtual ~Model();
 
@@ -1074,7 +1182,7 @@ public:
 \~English	Curve class
 \~Japanese	カーブクラス
 */
-class Curve
+class Curve : public Resource
 {
 	friend class CurveLoader;
 public:
@@ -1136,7 +1244,7 @@ public:
 	{
 	}
 
-	Curve(void* data, int32_t size)
+	Curve(const void* data, int32_t size)
 	{
 		uint8_t* pData = new uint8_t[size];
 		memcpy(pData, data, size);
@@ -1283,47 +1391,47 @@ public:
 //----------------------------------------------------------------------------------
 namespace Effekseer
 {
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
+
 /**
-@brief	カーブ読み込み破棄関数指定クラス
+	\~English	Curve loader
+	\~Japanese	カーブ読み込み破棄関数指定クラス
 */
 class CurveLoader : public ReferenceObject
 {
+private:
+	::Effekseer::DefaultFileInterface defaultFileInterface_;
+	::Effekseer::FileInterface* fileInterface_ = nullptr;
+
 public:
-	/**
-	@brief	コンストラクタ
-	*/
-	CurveLoader()
+
+	CurveLoader(::Effekseer::FileInterface* fileInterface = nullptr)
 	{
+		fileInterface_ = &defaultFileInterface_;
 	}
 
-	/**
-	@brief	デストラクタ
-	*/
-	virtual ~CurveLoader()
-	{
-	}
+	virtual ~CurveLoader() = default;
 
-	/**
-	@brief	Nカーブを読み込む。
-	@param	path	[in]	読み込み元パス
-	@return	カーブのポインタ
-	@note
-	カーブを読み込む。
-	::Effekseer::Effect::Create実行時に使用される。
+	/*
+	@brief
+	\~English load a curve
+	\~Japanese カーブを読み込む。
+	@param path
+	\~English a file path
+	\~Japanese 読み込み元パス
+	@ return
+	\~English a pointer of loaded a curve
+	\~Japanese 読み込まれたカーブのポインタ
 	*/
-	virtual void* Load(const char16_t* path)
+	virtual Effekseer::CurveRef Load(const char16_t* path)
 	{
-		::Effekseer::DefaultFileInterface fileInterface;
-		std::unique_ptr<::Effekseer::FileReader>reader(fileInterface.OpenRead(path));
+		
+		std::unique_ptr<::Effekseer::FileReader> reader(fileInterface_->OpenRead(path));
 		if (reader.get() == nullptr)
 		{
 			return nullptr;
 		}
 
-		Effekseer::Curve* curve = new Effekseer::Curve();
+		auto curve = Effekseer::MakeRefPtr<Effekseer::Curve>();
 
 		// load converter version
 		int converter_version = 0;
@@ -1375,23 +1483,19 @@ public:
 			curve->mLength += len;
 		}
 
-		return static_cast<void*>(curve);
+		return curve;
 	}
 
 	/**
-	@brief	カーブを破棄する。
-	@param	data	[in]	カーブ
-	@note
-	カーブを破棄する。
-	::Effekseer::Effectのインスタンスが破棄された時に使用される。
+		@brief
+		\~English	dispose a curve
+		\~Japanese	カーブを破棄する。
+		@param	data
+		\~English	a pointer of loaded a curve
+		\~Japanese	読み込まれたカーブのポインタ
 	*/
-	virtual void Unload(void* data)
+	virtual void Unload(CurveRef data)
 	{
-		if (data != nullptr)
-		{
-			Curve* curve = (Curve*)data;
-			ES_SAFE_DELETE(curve);
-		}
 	}
 };
 
@@ -1428,7 +1532,7 @@ class SoundPlayer : public ReferenceObject
 public:
 	struct InstanceParameter
 	{
-		void*		Data;
+		SoundDataRef	Data;
 		float		Volume;
 		float		Pan;
 		float		Pitch;
@@ -1484,6 +1588,19 @@ namespace Effekseer
 //
 //----------------------------------------------------------------------------------
 /**
+	@brief	サウンドデータ
+*/
+class SoundData : public Resource
+{
+public:
+	explicit SoundData() = default;
+	virtual ~SoundData() = default;
+};
+
+//----------------------------------------------------------------------------------
+//
+//----------------------------------------------------------------------------------
+/**
 	@brief	サウンド読み込み破棄関数指定クラス
 */
 class SoundLoader : public ReferenceObject
@@ -1511,7 +1628,7 @@ public:
 		サウンドを読み込む。
 		::Effekseer::Effect::Create実行時に使用される。
 	*/
-	virtual void* Load(const char16_t* path)
+	virtual SoundDataRef Load(const char16_t* path)
 	{
 		return nullptr;
 	}
@@ -1530,7 +1647,7 @@ public:
 		\~English	a pointer of loaded texture
 		\~Japanese	読み込まれたサウンドのポインタ
 	*/
-	virtual void* Load(const void* data, int32_t size)
+	virtual SoundDataRef Load(const void* data, int32_t size)
 	{
 		return nullptr;
 	}
@@ -1542,8 +1659,9 @@ public:
 		サウンドを破棄する。
 		::Effekseer::Effectのインスタンスが破棄された時に使用される。
 	*/
-	virtual void Unload(void* source)
+	virtual void Unload(SoundDataRef data)
 	{
+		data.Reset();
 	}
 };
 

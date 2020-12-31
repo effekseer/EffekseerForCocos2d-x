@@ -24,7 +24,7 @@ namespace EffekseerRendererLLGI
 {
 
 using Vertex = EffekseerRenderer::SimpleVertex;
-using VertexDistortion = EffekseerRenderer::VertexDistortion;
+//using VertexDistortion = EffekseerRenderer::VertexDistortion;
 
 class PiplineStateKey
 {
@@ -78,11 +78,11 @@ protected:
 
 	::EffekseerRenderer::RenderStateBase* m_renderState;
 
-	Effekseer::TextureData m_background;
-
 	std::set<DeviceObject*> m_deviceObjects;
 
 	EffekseerRenderer::DistortingCallback* m_distortingCallback;
+
+	::Effekseer::Backend::TextureRef m_backgroundLLGI;
 
 	Effekseer::RenderMode m_renderMode = Effekseer::RenderMode::Normal;
 
@@ -196,14 +196,7 @@ public:
 
 	::Effekseer::MaterialLoaderRef CreateMaterialLoader(::Effekseer::FileInterface* fileInterface = nullptr) override;
 
-	/**
-	@brief	背景を取得する。
-	*/
-	Effekseer::TextureData* GetBackground() override;
-
 	void SetBackground(LLGI::Texture* background) override;
-
-	void SetBackgroundTexture(Effekseer::TextureData* textuerData) override;
 
 	EffekseerRenderer::DistortingCallback* GetDistortingCallback() override;
 
@@ -235,13 +228,9 @@ public:
 
 	void SetPixelBufferToShader(const void* data, int32_t size, int32_t dstOffset);
 
-	void SetTextures(Shader* shader, Effekseer::TextureData** textures, int32_t count);
+	void SetTextures(Shader* shader, Effekseer::Backend::TextureRef* textures, int32_t count);
 
 	void ResetRenderState() override;
-
-	Effekseer::TextureData* CreateProxyTexture(EffekseerRenderer::ProxyTextureType type) override;
-
-	void DeleteProxyTexture(Effekseer::TextureData* data) override;
 
 	virtual int GetRef() override
 	{

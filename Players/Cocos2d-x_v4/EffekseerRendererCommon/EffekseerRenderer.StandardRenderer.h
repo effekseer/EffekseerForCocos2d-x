@@ -51,7 +51,9 @@ struct StandardRendererState
 	uint8_t EdgeColor[4];
 	int32_t EdgeColorScaling;
 	bool IsAlphaCuttoffEnabled = false;
-	float SoftParticleDistance = 0.0f;
+	float SoftParticleDistanceFar = 0.0f;
+	float SoftParticleDistanceNear = 0.0f;
+	float SoftParticleDistanceNearOffset = 0.0f;
 	float Maginification = 1.0f;
 
 	::Effekseer::RendererMaterialType MaterialType;
@@ -154,8 +156,15 @@ struct StandardRendererState
 		if (IsAlphaCuttoffEnabled != state.IsAlphaCuttoffEnabled)
 			return true;
 
-		if (SoftParticleDistance != state.SoftParticleDistance)
+		if (SoftParticleDistanceFar != state.SoftParticleDistanceFar)
 			return true;
+
+		if (SoftParticleDistanceNear != state.SoftParticleDistanceNear)
+			return true;
+
+		if (SoftParticleDistanceNearOffset != state.SoftParticleDistanceNearOffset)
+			return true;
+
 		if (Maginification != state.Maginification)
 			return true;
 
@@ -198,16 +207,20 @@ struct StandardRendererState
 		Collector = ShaderParameterCollector();
 		Collector.Collect(renderer, effect, basicParam, false, renderer->GetImpl()->isSoftParticleEnabled);
 
-		if (Collector.MaterialParam != nullptr && Collector.MaterialDataPtr != nullptr)
+		SoftParticleDistanceFar = basicParam->SoftParticleDistanceFar;
+		SoftParticleDistanceNear = basicParam->SoftParticleDistanceNear;
+		SoftParticleDistanceNearOffset = basicParam->SoftParticleDistanceNearOffset;
+
+		if (Collector.MaterialRenderDataPtr != nullptr && Collector.MaterialDataPtr != nullptr)
 		{
 			CustomData1Count = Collector.MaterialDataPtr->CustomData1;
 			CustomData2Count = Collector.MaterialDataPtr->CustomData2;
 
 			MaterialUniformCount =
-				static_cast<int32_t>(Effekseer::Min(Collector.MaterialParam->MaterialUniforms.size(), MaterialUniforms.size()));
+				static_cast<int32_t>(Effekseer::Min(Collector.MaterialRenderDataPtr->MaterialUniforms.size(), MaterialUniforms.size()));
 			for (size_t i = 0; i < MaterialUniformCount; i++)
 			{
-				MaterialUniforms[i] = Collector.MaterialParam->MaterialUniforms[i];
+				MaterialUniforms[i] = Collector.MaterialRenderDataPtr->MaterialUniforms[i];
 			}
 		}
 		else
@@ -241,50 +254,13 @@ struct StandardRendererVertexBuffer
 	} flipbookParameter;
 };
 
-struct StandardRendererPixelBuffer
-{
-	FlipbookParameter FlipbookParam;
-
-	UVDistortionParameter UVDistortionParam;
-
-	BlendTextureParameter BlendTextureParam;
-
-	EmmisiveParameter EmmisiveParam;
-
-	EdgeParameter EdgeParam;
-
-	SoftParticleParameter SoftParticleParam;
-};
-
-struct StandardRendererDistortionPixelBuffer
-{
-	float scale[4];
-	float uvInversed[4];
-
-	FlipbookParameter FlipbookParam;
-
-	UVDistortionParameter UVDistortionParam;
-
-	BlendTextureParameter BlendTextureParam;
-
-	SoftParticleParameter SoftParticleParam;
-};
-
-struct StandardRendererLitPixelBuffer
-{
-	std::array<float, 4> lightDirection;
-	std::array<float, 4> lightColor;
-	std::array<float, 4> lightAmbientColor;
-	StandardRendererPixelBuffer Buffer;
-};
-
 template <typename RENDERER, typename SHADER>
 class StandardRenderer
 {
 private:
 	RENDERER* m_renderer;
 
-	Effekseer::TextureData* m_texture;
+	Effekseer::Backend::TextureRef m_texture;
 
 	StandardRendererState m_state;
 
@@ -332,7 +308,7 @@ public:
 		}
 		else if (renderingMode_ == RendererShaderType::BackDistortion)
 		{
-			stride = sizeof(VertexDistortion);
+			stride = sizeof(LightingVertex);
 		}
 		else if (renderingMode_ == RendererShaderType::Unlit)
 		{
@@ -344,7 +320,7 @@ public:
 		}
 		else if (renderingMode_ == RendererShaderType::AdvancedBackDistortion)
 		{
-			stride = sizeof(AdvancedVertexDistortion);
+			stride = sizeof(AdvancedLightingVertex);
 		}
 		else if (renderingMode_ == RendererShaderType::AdvancedUnlit)
 		{
@@ -476,13 +452,16 @@ public:
 			textures[m_state.Collector.BackgroundIndex] = m_renderer->GetBackground();
 		}
 
-		::Effekseer::TextureData* depthTexture = nullptr;
+		::Effekseer::Backend::TextureRef depthTexture = nullptr;
 		::EffekseerRenderer::DepthReconstructionParameter reconstructionParam;
 		m_renderer->GetImpl()->GetDepth(depthTexture, reconstructionParam);
 
 		if (m_state.Collector.IsDepthRequired)
 		{
-			if (depthTexture == nullptr || (m_state.SoftParticleDistance == 0.0f && m_state.Collector.ShaderType != RendererShaderType::Material))
+			if (depthTexture == nullptr || (m_state.SoftParticleDistanceFar == 0.0f &&
+											m_state.SoftParticleDistanceNear == 0.0f &&
+											m_state.SoftParticleDistanceNearOffset == 0.0f &&
+											m_state.Collector.ShaderType != RendererShaderType::Material))
 			{
 				depthTexture = m_renderer->GetImpl()->GetProxyTexture(EffekseerRenderer::ProxyTextureType::White);
 			}
@@ -566,7 +545,7 @@ public:
 			state.TextureWrapTypes[i] = m_state.Collector.TextureWrapTypes[i];
 		}
 
-		m_renderer->SetTextures(shader_, reinterpret_cast<Effekseer::TextureData**>(textures.data()), m_state.Collector.TextureCount);
+		m_renderer->SetTextures(shader_, textures.data(), m_state.Collector.TextureCount);
 
 		std::array<float, 4> uvInversed;
 		std::array<float, 4> uvInversedBack;
@@ -612,6 +591,7 @@ public:
 			std::array<float, 4> predefined_uniforms;
 			predefined_uniforms.fill(0.5f);
 			predefined_uniforms[0] = m_renderer->GetTime();
+			predefined_uniforms[1] = m_state.Maginification;
 
 			// vs
 			int32_t vsOffset = 0;
@@ -650,8 +630,10 @@ public:
 			SoftParticleParameter softParticleParam;
 
 			softParticleParam.SetParam(
-				m_state.SoftParticleDistance,
-				m_state.Maginification,
+				0.0f,
+				0.0f,
+				0.0f,
+				0.0f,
 				reconstructionParam.DepthBufferScale,
 				reconstructionParam.DepthBufferOffset,
 				reconstructionParam.ProjectionMatrix33,
@@ -659,7 +641,7 @@ public:
 				reconstructionParam.ProjectionMatrix43,
 				reconstructionParam.ProjectionMatrix44);
 
-			m_renderer->SetPixelBufferToShader(softParticleParam.softParticleAndReconstructionParam1.data(), sizeof(float) * 4, psOffset);
+			m_renderer->SetPixelBufferToShader(softParticleParam.reconstructionParam1.data(), sizeof(float) * 4, psOffset);
 			psOffset += (sizeof(float) * 4);
 
 			m_renderer->SetPixelBufferToShader(softParticleParam.reconstructionParam2.data(), sizeof(float) * 4, psOffset);
@@ -707,7 +689,7 @@ public:
 		{
 			StandardRendererVertexBuffer vcb;
 			vcb.constantVSBuffer[0] = ToStruct(mCamera);
-			vcb.constantVSBuffer[1] = ToStruct(mProj);
+			vcb.constantVSBuffer[1] = ToStruct(mCamera * mProj);
 			vcb.uvInversed[0] = uvInversed[0];
 			vcb.uvInversed[1] = uvInversed[1];
 
@@ -719,15 +701,16 @@ public:
 			m_renderer->SetVertexBufferToShader(&vcb, sizeof(StandardRendererVertexBuffer), 0);
 
 			// ps
-			StandardRendererLitPixelBuffer lpcb{};
+			PixelConstantBuffer pcb{};
+
+			pcb.FalloffParam.Enable = 0;
 
 			auto lightDirection3 = m_renderer->GetLightDirection();
 			Effekseer::Vector3D::Normal(lightDirection3, lightDirection3);
-			lpcb.lightDirection = lightDirection3.ToFloat4();
-			lpcb.lightColor = m_renderer->GetLightColor().ToFloat4();
-			lpcb.lightAmbientColor = m_renderer->GetLightAmbientColor().ToFloat4();
+			pcb.LightDirection = lightDirection3.ToFloat4();
+			pcb.LightColor = m_renderer->GetLightColor().ToFloat4();
+			pcb.LightAmbientColor = m_renderer->GetLightAmbientColor().ToFloat4();
 
-			auto& pcb = lpcb.Buffer;
 			pcb.FlipbookParam.EnableInterpolation = static_cast<float>(m_state.EnableInterpolation);
 			pcb.FlipbookParam.InterpolationType = static_cast<float>(m_state.InterpolationType);
 
@@ -740,12 +723,14 @@ public:
 
 			pcb.EmmisiveParam.EmissiveScaling = m_state.EmissiveScaling;
 
-			ColorToFloat4(Effekseer::Color(m_state.EdgeColor[0], m_state.EdgeColor[1], m_state.EdgeColor[2], m_state.EdgeColor[3]), pcb.EdgeParam.EdgeColor);
+			pcb.EdgeParam.EdgeColor = Effekseer::Color(m_state.EdgeColor[0], m_state.EdgeColor[1], m_state.EdgeColor[2], m_state.EdgeColor[3]).ToFloat4();
 			pcb.EdgeParam.Threshold = m_state.EdgeThreshold;
 			pcb.EdgeParam.ColorScaling = static_cast<float>(m_state.EdgeColorScaling);
 
 			pcb.SoftParticleParam.SetParam(
-				m_state.SoftParticleDistance,
+				m_state.SoftParticleDistanceFar,
+				m_state.SoftParticleDistanceNear,
+				m_state.SoftParticleDistanceNearOffset,
 				m_state.Maginification,
 				reconstructionParam.DepthBufferScale,
 				reconstructionParam.DepthBufferOffset,
@@ -754,13 +739,13 @@ public:
 				reconstructionParam.ProjectionMatrix43,
 				reconstructionParam.ProjectionMatrix44);
 
-			m_renderer->SetPixelBufferToShader(&lpcb, sizeof(StandardRendererLitPixelBuffer), 0);
+			m_renderer->SetPixelBufferToShader(&pcb, sizeof(PixelConstantBuffer), 0);
 		}
 		else
 		{
 			StandardRendererVertexBuffer vcb;
 			vcb.constantVSBuffer[0] = ToStruct(mCamera);
-			vcb.constantVSBuffer[1] = ToStruct(mProj);
+			vcb.constantVSBuffer[1] = ToStruct(mCamera * mProj);
 			vcb.uvInversed[0] = uvInversed[0];
 			vcb.uvInversed[1] = uvInversed[1];
 			vcb.uvInversed[2] = 0.0f;
@@ -775,10 +760,10 @@ public:
 
 			if (distortion)
 			{
-				StandardRendererDistortionPixelBuffer pcb;
-				pcb.scale[0] = m_state.DistortionIntensity;
-				pcb.uvInversed[0] = uvInversedBack[0];
-				pcb.uvInversed[1] = uvInversedBack[1];
+				PixelConstantBufferDistortion pcb;
+				pcb.DistortionIntencity[0] = m_state.DistortionIntensity;
+				pcb.UVInversedBack[0] = uvInversedBack[0];
+				pcb.UVInversedBack[1] = uvInversedBack[1];
 
 				pcb.FlipbookParam.EnableInterpolation = static_cast<float>(m_state.EnableInterpolation);
 				pcb.FlipbookParam.InterpolationType = static_cast<float>(m_state.InterpolationType);
@@ -791,7 +776,9 @@ public:
 				pcb.BlendTextureParam.BlendType = static_cast<float>(m_state.TextureBlendType);
 
 				pcb.SoftParticleParam.SetParam(
-					m_state.SoftParticleDistance,
+					m_state.SoftParticleDistanceFar,
+					m_state.SoftParticleDistanceNear,
+					m_state.SoftParticleDistanceNearOffset,
 					m_state.Maginification,
 					reconstructionParam.DepthBufferScale,
 					reconstructionParam.DepthBufferOffset,
@@ -800,11 +787,11 @@ public:
 					reconstructionParam.ProjectionMatrix43,
 					reconstructionParam.ProjectionMatrix44);
 
-				m_renderer->SetPixelBufferToShader(&pcb, sizeof(StandardRendererDistortionPixelBuffer), 0);
+				m_renderer->SetPixelBufferToShader(&pcb, sizeof(PixelConstantBufferDistortion), 0);
 			}
 			else
 			{
-				StandardRendererPixelBuffer pcb;
+				PixelConstantBuffer pcb;
 				pcb.FlipbookParam.EnableInterpolation = static_cast<float>(m_state.EnableInterpolation);
 				pcb.FlipbookParam.InterpolationType = static_cast<float>(m_state.InterpolationType);
 
@@ -817,12 +804,14 @@ public:
 
 				pcb.EmmisiveParam.EmissiveScaling = m_state.EmissiveScaling;
 
-				ColorToFloat4(Effekseer::Color(m_state.EdgeColor[0], m_state.EdgeColor[1], m_state.EdgeColor[2], m_state.EdgeColor[3]), pcb.EdgeParam.EdgeColor);
+				pcb.EdgeParam.EdgeColor = Effekseer::Color(m_state.EdgeColor[0], m_state.EdgeColor[1], m_state.EdgeColor[2], m_state.EdgeColor[3]).ToFloat4();
 				pcb.EdgeParam.Threshold = m_state.EdgeThreshold;
 				pcb.EdgeParam.ColorScaling = static_cast<float>(m_state.EdgeColorScaling);
 
 				pcb.SoftParticleParam.SetParam(
-					m_state.SoftParticleDistance,
+					m_state.SoftParticleDistanceFar,
+					m_state.SoftParticleDistanceNear,
+					m_state.SoftParticleDistanceNearOffset,
 					m_state.Maginification,
 					reconstructionParam.DepthBufferScale,
 					reconstructionParam.DepthBufferOffset,
@@ -831,7 +820,7 @@ public:
 					reconstructionParam.ProjectionMatrix43,
 					reconstructionParam.ProjectionMatrix44);
 
-				m_renderer->SetPixelBufferToShader(&pcb, sizeof(StandardRendererPixelBuffer), 0);
+				m_renderer->SetPixelBufferToShader(&pcb, sizeof(PixelConstantBuffer), 0);
 			}
 		}
 

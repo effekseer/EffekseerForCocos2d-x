@@ -46,6 +46,8 @@ set(effekseer_src
     Effekseer/Effekseer.Matrix44.cpp
     Effekseer/Effekseer.Random.cpp
     Effekseer/Effekseer.RectF.cpp
+    Effekseer/Effekseer.Resource.cpp
+    Effekseer/Effekseer.ResourceManager.cpp
     Effekseer/Effekseer.Setting.cpp
     Effekseer/Effekseer.Server.cpp
     Effekseer/Effekseer.Socket.cpp
@@ -59,7 +61,7 @@ set(effekseer_src
     Effekseer/Culling/Culling3D.ReferenceObject.cpp
     Effekseer/Culling/Culling3D.Vector3DF.cpp
     Effekseer/Culling/Culling3D.WorldInternal.cpp
-    Effekseer/Material/Effekseer.Material.cpp
+    Effekseer/Material/Effekseer.MaterialFile.cpp
     Effekseer/Material/Effekseer.CompiledMaterial.cpp
     Effekseer/Material/Effekseer.MaterialCompiler.cpp
     Effekseer/IO/Effekseer.EfkEfcFactory.cpp
