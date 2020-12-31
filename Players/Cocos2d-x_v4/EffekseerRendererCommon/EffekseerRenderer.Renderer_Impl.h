@@ -15,8 +15,8 @@ private:
 	::Effekseer::SIMD::Mat44f cameraMat_;
 	::Effekseer::SIMD::Mat44f cameraProjMat_;
 
-	::Effekseer::SIMD::Vec3f cameraPosition_;
-	::Effekseer::SIMD::Vec3f cameraFrontDirection_;
+	::Effekseer::SIMD::Vec3f cameraPosition_{0.0f, 0.0f, 0.0f};
+	::Effekseer::SIMD::Vec3f cameraFrontDirection_{0.0f, 0.0f, 1.0f};
 
 	::Effekseer::SIMD::Vec3f lightDirection_ = ::Effekseer::SIMD::Vec3f(1.0f, 1.0f, 1.0f);
 	::Effekseer::Color lightColor_ = ::Effekseer::Color(255, 255, 255, 255);
@@ -28,12 +28,14 @@ private:
 
 	Effekseer::RenderMode renderMode_ = Effekseer::RenderMode::Normal;
 
-	::Effekseer::TextureData* whiteProxyTexture_ = nullptr;
-	::Effekseer::TextureData* normalProxyTexture_ = nullptr;
-	::Effekseer::TextureData* depthTexture_ = nullptr;
+	::Effekseer::Backend::TextureRef whiteProxyTexture_;
+	::Effekseer::Backend::TextureRef normalProxyTexture_;
 
-	::Effekseer::Backend::TextureRef depthBackendTexture_ = nullptr;
+	::Effekseer::Backend::TextureRef backgroundTexture_;
+	::Effekseer::Backend::TextureRef depthTexture_;
 	DepthReconstructionParameter reconstructionParam_;
+
+	void SetCameraParameterInternal(const ::Effekseer::SIMD::Vec3f& front, const ::Effekseer::SIMD::Vec3f& position);
 
 public:
 	int32_t drawcallCount = 0;
@@ -80,7 +82,7 @@ public:
 
 	void DeleteProxyTextures(Renderer* renderer);
 
-	::Effekseer::TextureData* GetProxyTexture(EffekseerRenderer::ProxyTextureType type);
+	::Effekseer::Backend::TextureRef GetProxyTexture(EffekseerRenderer::ProxyTextureType type);
 
 	UVStyle GetTextureUVStyle() const;
 
@@ -106,7 +108,9 @@ public:
 
 	void SetRenderMode(Effekseer::RenderMode renderMode);
 
-	void GetDepth(::Effekseer::TextureData*& texture, DepthReconstructionParameter& reconstructionParam);
+	const ::Effekseer::Backend::TextureRef& GetBackground();
+
+	void SetBackground(::Effekseer::Backend::TextureRef texture);
 
 	void GetDepth(::Effekseer::Backend::TextureRef& texture, DepthReconstructionParameter& reconstructionParam);
 

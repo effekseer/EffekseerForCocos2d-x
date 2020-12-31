@@ -15,11 +15,8 @@
 
 // #include "Shaders.h"
 
-#include "ShaderHeader/ad_sprite_distortion_ps.h"
 #include "ShaderHeader/ad_sprite_distortion_vs.h"
-#include "ShaderHeader/ad_sprite_lit_ps.h"
 #include "ShaderHeader/ad_sprite_lit_vs.h"
-#include "ShaderHeader/ad_sprite_unlit_ps.h"
 #include "ShaderHeader/ad_sprite_unlit_vs.h"
 
 #include "ShaderHeader/ad_model_distortion_ps.h"
@@ -30,11 +27,8 @@
 #include "ShaderHeader/ad_model_unlit_vs.h"
 
 #include "ShaderHeader/sprite_unlit_vs.h"
-#include "ShaderHeader/sprite_unlit_ps.h"
 #include "ShaderHeader/sprite_lit_vs.h"
-#include "ShaderHeader/sprite_lit_ps.h"
 #include "ShaderHeader/sprite_distortion_vs.h"
-#include "ShaderHeader/sprite_distortion_ps.h"
 
 #include "ShaderHeader/model_unlit_vs.h"
 #include "ShaderHeader/model_unlit_ps.h"
@@ -48,21 +42,19 @@
 namespace EffekseerRendererMetal
 {
 
-::Effekseer::TextureLoaderRef CreateTextureLoader(::Effekseer::Backend::GraphicsDevice* graphicsDevice, ::Effekseer::FileInterface* fileInterface)
+::Effekseer::TextureLoaderRef CreateTextureLoader(::Effekseer::Backend::GraphicsDeviceRef graphicsDevice, ::Effekseer::FileInterface* fileInterface)
 {
-    auto gd = static_cast<EffekseerRendererLLGI::Backend::GraphicsDevice*>(graphicsDevice);
-    return EffekseerRendererLLGI::CreateTextureLoader(gd, fileInterface);
+    return EffekseerRendererLLGI::CreateTextureLoader(graphicsDevice, fileInterface);
 }
 
-::Effekseer::ModelLoaderRef CreateModelLoader(::Effekseer::Backend::GraphicsDevice*graphicsDevice, ::Effekseer::FileInterface* fileInterface)
+::Effekseer::ModelLoaderRef CreateModelLoader(::Effekseer::Backend::GraphicsDeviceRef graphicsDevice, ::Effekseer::FileInterface* fileInterface)
 {
-    auto gd = static_cast<EffekseerRendererLLGI::Backend::GraphicsDevice*>(graphicsDevice);
-    return EffekseerRendererLLGI::CreateModelLoader(gd, fileInterface);
+    return EffekseerRendererLLGI::CreateModelLoader(graphicsDevice, fileInterface);
 }
 
-::Effekseer::MaterialLoaderRef CreateMaterialLoader(::Effekseer::Backend::GraphicsDevice*graphicsDevice, ::Effekseer::FileInterface* fileInterface)
+::Effekseer::MaterialLoaderRef CreateMaterialLoader(::Effekseer::Backend::GraphicsDeviceRef graphicsDevice, ::Effekseer::FileInterface* fileInterface)
 {
-    auto gd = static_cast<EffekseerRendererLLGI::Backend::GraphicsDevice*>(graphicsDevice);
+    auto gd = static_cast<EffekseerRendererLLGI::Backend::GraphicsDevice*>(graphicsDevice.Get());
     auto compiler = new ::Effekseer::MaterialCompilerMetal();
     auto ret = ::Effekseer::MaterialLoaderRef(new ::EffekseerRendererLLGI::MaterialLoader(gd, fileInterface, ::Effekseer::CompiledMaterialPlatformType::Metal, compiler));
     ES_SAFE_RELEASE(compiler);
@@ -86,11 +78,8 @@ static void CreateFixedShaderForMetal(EffekseerRendererLLGI::FixedShader* shader
         return;
 
 	shader->AdvancedSpriteUnlit_VS = GENERATE_VIEW(metal_ad_sprite_unlit_vs);
-	shader->AdvancedSpriteUnlit_PS = GENERATE_VIEW(metal_ad_sprite_unlit_ps);
 	shader->AdvancedSpriteLit_VS = GENERATE_VIEW(metal_ad_sprite_lit_vs);
-	shader->AdvancedSpriteLit_PS = GENERATE_VIEW(metal_ad_sprite_lit_ps);
 	shader->AdvancedSpriteDistortion_VS = GENERATE_VIEW(metal_ad_sprite_distortion_vs);
-	shader->AdvancedSpriteDistortion_PS = GENERATE_VIEW(metal_ad_sprite_distortion_ps);
 
 	shader->AdvancedModelUnlit_VS = GENERATE_VIEW(metal_ad_model_unlit_vs);
 	shader->AdvancedModelUnlit_PS = GENERATE_VIEW(metal_ad_model_unlit_ps);
@@ -100,11 +89,8 @@ static void CreateFixedShaderForMetal(EffekseerRendererLLGI::FixedShader* shader
 	shader->AdvancedModelDistortion_PS = GENERATE_VIEW(metal_ad_model_distortion_ps);
 
 	shader->SpriteUnlit_VS = GENERATE_VIEW(metal_sprite_unlit_vs);
-	shader->SpriteUnlit_PS = GENERATE_VIEW(metal_sprite_unlit_ps);
 	shader->SpriteLit_VS = GENERATE_VIEW(metal_sprite_lit_vs);
-	shader->SpriteLit_PS = GENERATE_VIEW(metal_sprite_lit_ps);
 	shader->SpriteDistortion_VS = GENERATE_VIEW(metal_sprite_distortion_vs);
-	shader->SpriteDistortion_PS = GENERATE_VIEW(metal_sprite_distortion_ps);
 
 	shader->ModelUnlit_VS = GENERATE_VIEW(metal_model_unlit_vs);
 	shader->ModelUnlit_PS = GENERATE_VIEW(metal_model_unlit_ps);
@@ -165,40 +151,17 @@ static void CreateFixedShaderForMetal(EffekseerRendererLLGI::FixedShader* shader
 	return nullptr;
 }
 
-Effekseer::TextureData* CreateTextureData(::EffekseerRenderer::Renderer* renderer, id<MTLTexture> texture)
+Effekseer::Backend::TextureRef CreateTexture(::EffekseerRenderer::Renderer* renderer, id<MTLTexture> texture)
 {
 	auto r = static_cast<::EffekseerRendererLLGI::RendererImplemented*>(renderer);
-	auto g = static_cast<LLGI::GraphicsMetal*>(r->GetGraphics());
-	auto texture_ = g->CreateTexture((uint64_t)texture);
-
-	auto textureData = new Effekseer::TextureData();
-	textureData->UserPtr = texture_;
-	textureData->UserID = 0;
-	textureData->TextureFormat = Effekseer::TextureFormatType::ABGR8;
-	textureData->Width = 0;
-	textureData->Height = 0;
-	return textureData;
+	auto g = r->GetGraphicsDeviceInternal();
+	return g->CreateTexture((uint64_t)texture, []()-> void{});
 }
 
-Effekseer::TextureData* CreateTextureData(::Effekseer::Backend::GraphicsDeviceRef graphicsDevice, id<MTLTexture> texture)
+Effekseer::Backend::TextureRef CreateTexture(::Effekseer::Backend::GraphicsDeviceRef graphicsDevice, id<MTLTexture> texture)
 {
     auto g = static_cast<::EffekseerRendererLLGI::Backend::GraphicsDevice*>(graphicsDevice.Get());
-    auto texturePtr = g->CreateTexture((uint64_t)texture, []()-> void{});
-
-    auto textureData = new Effekseer::TextureData();
-    textureData->TexturePtr = texturePtr;
-    textureData->UserID = 0;
-    textureData->TextureFormat = Effekseer::TextureFormatType::ABGR8;
-    textureData->Width = 0;
-    textureData->Height = 0;
-    return textureData;
-}
-
-void DeleteTextureData(Effekseer::TextureData* textureData)
-{
-	auto texture = (LLGI::Texture*)textureData->UserPtr;
-	ES_SAFE_RELEASE(texture);
-	delete textureData;
+    return g->CreateTexture((uint64_t)texture, []()-> void{});
 }
 
 void FlushAndWait(::EffekseerRenderer::RendererRef renderer)

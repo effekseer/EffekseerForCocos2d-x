@@ -23,7 +23,7 @@ namespace Effekseer
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-void EffectNodeSprite::LoadRendererParameter(unsigned char*& pos, const RefPtr<Setting>& setting)
+void EffectNodeSprite::LoadRendererParameter(unsigned char*& pos, const SettingRef& setting)
 {
 	int32_t type = 0;
 	memcpy(&type, pos, sizeof(int));
@@ -119,7 +119,7 @@ void EffectNodeSprite::LoadRendererParameter(unsigned char*& pos, const RefPtr<S
 		memcpy(&SpriteTexture, pos, sizeof(int));
 		pos += sizeof(int);
 		RendererCommon.ColorTextureIndex = SpriteTexture;
-		RendererCommon.BasicParameter.Texture1Index = SpriteTexture;
+		RendererCommon.BasicParameter.TextureIndexes[0] = SpriteTexture;
 	}
 
 	// 右手系左手系変換

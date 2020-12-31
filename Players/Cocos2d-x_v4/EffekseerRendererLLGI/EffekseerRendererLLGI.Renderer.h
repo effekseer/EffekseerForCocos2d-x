@@ -7,7 +7,7 @@
 
 #include "GraphicsDevice.h"
 #include <LLGI.CommandList.h>
-#include <LLGI.Constantbuffer.h>
+#include <LLGI.ConstantBuffer.h>
 #include <LLGI.Graphics.h>
 #include <LLGI.IndexBuffer.h>
 #include <LLGI.VertexBuffer.h>
@@ -15,9 +15,9 @@
 namespace EffekseerRendererLLGI
 {
 
-::Effekseer::TextureLoaderRef CreateTextureLoader(Backend::GraphicsDevice* graphicsDevice, ::Effekseer::FileInterface* fileInterface = nullptr);
+::Effekseer::TextureLoaderRef CreateTextureLoader(::Effekseer::Backend::GraphicsDeviceRef graphicsDevice, ::Effekseer::FileInterface* fileInterface = nullptr);
 
-::Effekseer::ModelLoaderRef CreateModelLoader(Backend::GraphicsDevice* graphicsDevice, ::Effekseer::FileInterface* fileInterface = nullptr);
+::Effekseer::ModelLoaderRef CreateModelLoader(::Effekseer::Backend::GraphicsDeviceRef graphicsDevice, ::Effekseer::FileInterface* fileInterface = nullptr);
 
 struct FixedShader
 {
@@ -28,9 +28,6 @@ struct FixedShader
 	std::vector<LLGI::DataStructure> ModelLit_VS;
 	std::vector<LLGI::DataStructure> ModelDistortion_VS;
 
-	std::vector<LLGI::DataStructure> SpriteUnlit_PS;
-	std::vector<LLGI::DataStructure> SpriteLit_PS;
-	std::vector<LLGI::DataStructure> SpriteDistortion_PS;
 	std::vector<LLGI::DataStructure> ModelUnlit_PS;
 	std::vector<LLGI::DataStructure> ModelLit_PS;
 	std::vector<LLGI::DataStructure> ModelDistortion_PS;
@@ -42,9 +39,6 @@ struct FixedShader
 	std::vector<LLGI::DataStructure> AdvancedModelLit_VS;
 	std::vector<LLGI::DataStructure> AdvancedModelDistortion_VS;
 
-	std::vector<LLGI::DataStructure> AdvancedSpriteUnlit_PS;
-	std::vector<LLGI::DataStructure> AdvancedSpriteLit_PS;
-	std::vector<LLGI::DataStructure> AdvancedSpriteDistortion_PS;
 	std::vector<LLGI::DataStructure> AdvancedModelUnlit_PS;
 	std::vector<LLGI::DataStructure> AdvancedModelLit_PS;
 	std::vector<LLGI::DataStructure> AdvancedModelDistortion_PS;

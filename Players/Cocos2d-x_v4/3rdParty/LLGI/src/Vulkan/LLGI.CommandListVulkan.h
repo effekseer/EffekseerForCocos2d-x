@@ -21,6 +21,11 @@ public:
 	void Reset();
 };
 
+struct PlatformContextVulkan
+{
+	VkCommandBuffer commandBuffer;
+};
+
 class CommandListVulkan : public CommandList
 {
 private:
@@ -41,8 +46,8 @@ public:
 	void Begin() override;
 	void End() override;
 
-	void BeginExternal(VkCommandBuffer nativeCommandBuffer);
-	void EndExternal();
+	bool BeginWithPlatform(void* platformContextPtr) override;
+	void EndWithPlatform() override;
 
 	void SetScissor(int32_t x, int32_t y, int32_t width, int32_t height) override;
 	void Draw(int32_t primitiveCount, int32_t instanceCount) override;

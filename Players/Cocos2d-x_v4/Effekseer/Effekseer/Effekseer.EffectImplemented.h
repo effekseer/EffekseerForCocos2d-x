@@ -85,13 +85,13 @@ public:
 		}
 	};
 
-	HolderCollection<TextureData*> images;
-	HolderCollection<TextureData*> normalImages;
-	HolderCollection<TextureData*> distortionImages;
-	HolderCollection<void*> sounds;
-	HolderCollection<Model*> models;
-	HolderCollection<MaterialData*> materials;
-	HolderCollection<void*> curves;
+	HolderCollection<TextureRef> images;
+	HolderCollection<TextureRef> normalImages;
+	HolderCollection<TextureRef> distortionImages;
+	HolderCollection<SoundDataRef> sounds;
+	HolderCollection<ModelRef> models;
+	HolderCollection<MaterialRef> materials;
+	HolderCollection<CurveRef> curves;
 };
 
 /**
@@ -104,10 +104,10 @@ class EffectImplemented : public Effect, public ReferenceObject
 	friend class EffectFactory;
 	friend class Instance;
 
-	static const int32_t SupportBinaryVersion = Version16Alpha4;
+	static const int32_t SupportBinaryVersion = Version16Alpha5;
 
 protected:
-	RefPtr<Setting> m_setting;
+	SettingRef m_setting;
 
 	mutable std::atomic<int32_t> m_reference;
 
@@ -115,38 +115,32 @@ protected:
 
 	int m_version;
 
-	int m_ImageCount;
-	char16_t** m_ImagePaths;
-	TextureData** m_pImages;
+	CustomVector<std::unique_ptr<char16_t[]>> m_ImagePaths;
+	CustomVector<TextureRef> m_pImages;
 
-	int m_normalImageCount;
-	char16_t** m_normalImagePaths;
-	TextureData** m_normalImages;
+	CustomVector<std::unique_ptr<char16_t[]>> m_normalImagePaths;
+	CustomVector<TextureRef> m_normalImages;
 
-	int m_distortionImageCount;
-	char16_t** m_distortionImagePaths;
-	TextureData** m_distortionImages;
+	CustomVector<std::unique_ptr<char16_t[]>> m_distortionImagePaths;
+	CustomVector<TextureRef> m_distortionImages;
 
-	int m_WaveCount = 0;
-	char16_t** m_WavePaths = nullptr;
-	void** m_pWaves = nullptr;
+	CustomVector<std::unique_ptr<char16_t[]>> m_WavePaths;
+	CustomVector<SoundDataRef> m_pWaves;
 
-	CustomVector<Model*> models_;
-	CustomVector<char16_t*> modelPaths_;
+	CustomVector<std::unique_ptr<char16_t[]>> modelPaths_;
+	CustomVector<ModelRef> models_;
 
-	CustomVector<Model*> procedualModels_;
+	CustomVector<ModelRef> procedualModels_;
 	CustomVector<ProcedualModelParameter> procedualModelParameters_;
 
-	int32_t materialCount_ = 0;
-	char16_t** materialPaths_ = nullptr;
-	MaterialData** materials_ = nullptr;
+	CustomVector<std::unique_ptr<char16_t[]>> materialPaths_;
+	CustomVector<MaterialRef> materials_;
 
-	int32_t curveCount_ = 0;
-	char16_t** curvePaths_ = nullptr;
-	void** curves_ = nullptr;
+	CustomVector<std::unique_ptr<char16_t[]>> curvePaths_;
+	CustomVector<CurveRef> curves_;
 
 	std::u16string name_;
-	std::basic_string<char16_t> m_materialPath;
+	std::u16string materialPath_;
 
 	//! dynamic inputs
 	std::array<float, 4> defaultDynamicInputs;
@@ -202,13 +196,13 @@ protected:
 
 public:
 
-	static EffectRef Create(const ManagerRef& pManager, void* pData, int size, float magnification, const char16_t* materialPath = nullptr);
+	static EffectRef Create(const ManagerRef& pManager, const void* pData, int size, float magnification, const char16_t* materialPath = nullptr);
 
-	static EffectRef Create(const SettingRef& setting, void* pData, int size, float magnification, const char16_t* materialPath = nullptr);
+	static EffectRef Create(const SettingRef& setting, const void* pData, int size, float magnification, const char16_t* materialPath = nullptr);
 
-	EffectImplemented(const ManagerRef& pManager, void* pData, int size);
+	EffectImplemented(const ManagerRef& pManager, const void* pData, int size);
 
-	EffectImplemented(const SettingRef& setting, void* pData, int size);
+	EffectImplemented(const SettingRef& setting, const void* pData, int size);
 
 	virtual ~EffectImplemented();
 
@@ -216,7 +210,7 @@ public:
 
 	float GetMaginification() const override;
 
-	bool Load(void* pData, int size, float mag, const char16_t* materialPath, ReloadingThreadType reloadingThreadType);
+	bool Load(const void* pData, int size, float mag, const char16_t* materialPath, ReloadingThreadType reloadingThreadType);
 
 	/**
 		@breif	何も読み込まれていない状態に戻す
@@ -246,67 +240,67 @@ public:
 
 	int GetVersion() const override;
 
-	TextureData* GetColorImage(int n) const override;
+	TextureRef GetColorImage(int n) const override;
 
 	int32_t GetColorImageCount() const override;
 
 	const char16_t* GetColorImagePath(int n) const override;
 
-	TextureData* GetNormalImage(int n) const override;
+	TextureRef GetNormalImage(int n) const override;
 
 	int32_t GetNormalImageCount() const override;
 
 	const char16_t* GetNormalImagePath(int n) const override;
 
-	TextureData* GetDistortionImage(int n) const override;
+	TextureRef GetDistortionImage(int n) const override;
 
 	int32_t GetDistortionImageCount() const override;
 
 	const char16_t* GetDistortionImagePath(int n) const override;
 
-	void* GetWave(int n) const override;
+	SoundDataRef GetWave(int n) const override;
 
 	int32_t GetWaveCount() const override;
 
 	const char16_t* GetWavePath(int n) const override;
 
-	Model* GetModel(int n) const override;
+	ModelRef GetModel(int n) const override;
 
 	int32_t GetModelCount() const override;
 
 	const char16_t* GetModelPath(int n) const override;
 
-	MaterialData* GetMaterial(int n) const override;
+	MaterialRef GetMaterial(int n) const override;
 
 	int32_t GetMaterialCount() const override;
 
 	const char16_t* GetMaterialPath(int n) const override;
 
-	void* GetCurve(int n) const override;
+	CurveRef GetCurve(int n) const override;
 
 	int32_t GetCurveCount() const override;
 
 	const char16_t* GetCurvePath(int n) const override;
 
-	Model* GetProcedualModel(int n) const override;
+	ModelRef GetProcedualModel(int n) const override;
 
 	int32_t GetProcedualModelCount() const override;
 
 	const ProcedualModelParameter* GetProcedualModelParameter(int n) const override;
 
-	void SetTexture(int32_t index, TextureType type, TextureData* data) override;
+	void SetTexture(int32_t index, TextureType type, TextureRef data) override;
 
-	void SetSound(int32_t index, void* data) override;
+	void SetSound(int32_t index, SoundDataRef data) override;
 
-	void SetModel(int32_t index, Model* data) override;
+	void SetModel(int32_t index, ModelRef data) override;
 
-	void SetMaterial(int32_t index, MaterialData* data) override;
+	void SetMaterial(int32_t index, MaterialRef data) override;
 
-	void SetCurve(int32_t index, void* data) override;
+	void SetCurve(int32_t index, CurveRef data) override;
 
 	bool Reload(ManagerRef* managers,
 				int32_t managersCount,
-				void* data,
+				const void* data,
 				int32_t size,
 				const char16_t* materialPath,
 				ReloadingThreadType reloadingThreadType) override;

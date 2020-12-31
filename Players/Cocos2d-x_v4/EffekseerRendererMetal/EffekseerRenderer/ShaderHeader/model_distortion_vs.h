@@ -21,9 +21,8 @@ struct VS_Output
 {
     float4 PosVS;
     float2 UV;
-    float4 Normal;
-    float4 Binormal;
-    float4 Tangent;
+    float4 ProjBinormal;
+    float4 ProjTangent;
     float4 PosP;
     float4 Color;
 };
@@ -31,7 +30,7 @@ struct VS_Output
 struct VS_ConstantBuffer
 {
     float4x4 mCameraProj;
-    float4x4 mModel[40];
+    float4x4 mModel_Inst[40];
     float4 fUV[40];
     float4 fModelColor[40];
     float4 fLightDirection;
@@ -43,11 +42,10 @@ struct VS_ConstantBuffer
 struct main0_out
 {
     float2 _entryPointOutput_UV [[user(locn0)]];
-    float4 _entryPointOutput_Normal [[user(locn1)]];
-    float4 _entryPointOutput_Binormal [[user(locn2)]];
-    float4 _entryPointOutput_Tangent [[user(locn3)]];
-    float4 _entryPointOutput_PosP [[user(locn4)]];
-    float4 _entryPointOutput_Color [[user(locn5)]];
+    float4 _entryPointOutput_ProjBinormal [[user(locn1)]];
+    float4 _entryPointOutput_ProjTangent [[user(locn2)]];
+    float4 _entryPointOutput_PosP [[user(locn3)]];
+    float4 _entryPointOutput_Color [[user(locn4)]];
     float4 gl_Position [[position]];
 };
 
@@ -65,30 +63,31 @@ static inline __attribute__((always_inline))
 VS_Output _main(VS_Input Input, constant VS_ConstantBuffer& v_31)
 {
     uint index = Input.Index;
-    float4x4 matModel = transpose(v_31.mModel[index]);
+    float4x4 mModel = transpose(v_31.mModel_Inst[index]);
     float4 uv = v_31.fUV[index];
     float4 modelColor = v_31.fModelColor[index] * Input.Color;
-    VS_Output Output = VS_Output{ float4(0.0), float2(0.0), float4(0.0), float4(0.0), float4(0.0), float4(0.0), float4(0.0) };
-    float4 localPosition = float4(Input.Pos.x, Input.Pos.y, Input.Pos.z, 1.0);
-    float4 localNormal = float4(Input.Pos.x + Input.Normal.x, Input.Pos.y + Input.Normal.y, Input.Pos.z + Input.Normal.z, 1.0);
-    float4 localBinormal = float4(Input.Pos.x + Input.Binormal.x, Input.Pos.y + Input.Binormal.y, Input.Pos.z + Input.Binormal.z, 1.0);
-    float4 localTangent = float4(Input.Pos.x + Input.Tangent.x, Input.Pos.y + Input.Tangent.y, Input.Pos.z + Input.Tangent.z, 1.0);
-    localPosition *= matModel;
-    localNormal *= matModel;
-    localBinormal *= matModel;
-    localTangent *= matModel;
-    localNormal = localPosition + normalize(localNormal - localPosition);
-    localBinormal = localPosition + normalize(localBinormal - localPosition);
-    localTangent = localPosition + normalize(localTangent - localPosition);
-    Output.PosVS = v_31.mCameraProj * localPosition;
-    Output.UV.x = (Input.UV.x * uv.z) + uv.x;
-    Output.UV.y = (Input.UV.y * uv.w) + uv.y;
-    Output.Normal = v_31.mCameraProj * localNormal;
-    Output.Binormal = v_31.mCameraProj * localBinormal;
-    Output.Tangent = v_31.mCameraProj * localTangent;
-    Output.PosP = Output.PosVS;
+    VS_Output Output = VS_Output{ float4(0.0), float2(0.0), float4(0.0), float4(0.0), float4(0.0), float4(0.0) };
+    float4 localPos = float4(Input.Pos.x, Input.Pos.y, Input.Pos.z, 1.0);
+    float4 worldPos = localPos * mModel;
+    Output.PosVS = v_31.mCameraProj * worldPos;
     Output.Color = modelColor;
-    Output.UV.y = v_31.mUVInversed.x + (v_31.mUVInversed.y * Output.UV.y);
+    float2 outputUV = Input.UV;
+    outputUV.x = (outputUV.x * uv.z) + uv.x;
+    outputUV.y = (outputUV.y * uv.w) + uv.y;
+    outputUV.y = v_31.mUVInversed.x + (v_31.mUVInversed.y * outputUV.y);
+    Output.UV = outputUV;
+    float4 localNormal = float4(Input.Normal.x, Input.Normal.y, Input.Normal.z, 0.0);
+    float4 localBinormal = float4(Input.Binormal.x, Input.Binormal.y, Input.Binormal.z, 0.0);
+    float4 localTangent = float4(Input.Tangent.x, Input.Tangent.y, Input.Tangent.z, 0.0);
+    float4 worldNormal = localNormal * mModel;
+    float4 worldBinormal = localBinormal * mModel;
+    float4 worldTangent = localTangent * mModel;
+    worldNormal = normalize(worldNormal);
+    worldBinormal = normalize(worldBinormal);
+    worldTangent = normalize(worldTangent);
+    Output.ProjBinormal = v_31.mCameraProj * (worldPos + worldBinormal);
+    Output.ProjTangent = v_31.mCameraProj * (worldPos + worldTangent);
+    Output.PosP = Output.PosVS;
     return Output;
 }
 
@@ -106,9 +105,8 @@ vertex main0_out main0(main0_in in [[stage_in]], constant VS_ConstantBuffer& v_3
     VS_Output flattenTemp = _main(Input, v_31);
     out.gl_Position = flattenTemp.PosVS;
     out._entryPointOutput_UV = flattenTemp.UV;
-    out._entryPointOutput_Normal = flattenTemp.Normal;
-    out._entryPointOutput_Binormal = flattenTemp.Binormal;
-    out._entryPointOutput_Tangent = flattenTemp.Tangent;
+    out._entryPointOutput_ProjBinormal = flattenTemp.ProjBinormal;
+    out._entryPointOutput_ProjTangent = flattenTemp.ProjTangent;
     out._entryPointOutput_PosP = flattenTemp.PosP;
     out._entryPointOutput_Color = flattenTemp.Color;
     return out;

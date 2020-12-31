@@ -22,7 +22,7 @@ struct VS_Output
 struct VS_ConstantBuffer
 {
     mat4 mCamera;
-    mat4 mProj;
+    mat4 mCameraProj;
     vec4 mUVInversed;
     vec4 mflipbookParameter;
 };
@@ -32,19 +32,19 @@ uniform VS_ConstantBuffer CBVS0;
 attribute vec3 Input_Pos;
 attribute vec4 Input_Color;
 attribute vec2 Input_UV;
-centroid varying vec4 _VSPS_Color;
-centroid varying vec2 _VSPS_UV;
+varying vec4 _VSPS_Color;
+varying vec2 _VSPS_UV;
 varying vec4 _VSPS_PosP;
 
 VS_Output _main(VS_Input Input)
 {
     VS_Output Output = VS_Output(vec4(0.0), vec4(0.0), vec2(0.0), vec4(0.0));
-    vec4 pos4 = vec4(Input.Pos.x, Input.Pos.y, Input.Pos.z, 1.0);
-    vec4 cameraPos = CBVS0.mCamera * pos4;
-    Output.PosVS = CBVS0.mProj * cameraPos;
+    vec4 worldPos = vec4(Input.Pos.x, Input.Pos.y, Input.Pos.z, 1.0);
+    Output.PosVS = CBVS0.mCameraProj * worldPos;
     Output.Color = Input.Color;
-    Output.UV = Input.UV;
-    Output.UV.y = CBVS0.mUVInversed.x + (CBVS0.mUVInversed.y * Input.UV.y);
+    vec2 uv1 = Input.UV;
+    uv1.y = CBVS0.mUVInversed.x + (CBVS0.mUVInversed.y * uv1.y);
+    Output.UV = uv1;
     Output.PosP = Output.PosVS;
     return Output;
 }
@@ -88,7 +88,7 @@ struct VS_Output
 struct VS_ConstantBuffer
 {
     mat4 mCamera;
-    mat4 mProj;
+    mat4 mCameraProj;
     vec4 mUVInversed;
     vec4 mflipbookParameter;
 };
@@ -105,12 +105,12 @@ out vec4 _VSPS_PosP;
 VS_Output _main(VS_Input Input)
 {
     VS_Output Output = VS_Output(vec4(0.0), vec4(0.0), vec2(0.0), vec4(0.0));
-    vec4 pos4 = vec4(Input.Pos.x, Input.Pos.y, Input.Pos.z, 1.0);
-    vec4 cameraPos = pos4 * CBVS0.mCamera;
-    Output.PosVS = cameraPos * CBVS0.mProj;
+    vec4 worldPos = vec4(Input.Pos.x, Input.Pos.y, Input.Pos.z, 1.0);
+    Output.PosVS = worldPos * CBVS0.mCameraProj;
     Output.Color = Input.Color;
-    Output.UV = Input.UV;
-    Output.UV.y = CBVS0.mUVInversed.x + (CBVS0.mUVInversed.y * Input.UV.y);
+    vec2 uv1 = Input.UV;
+    uv1.y = CBVS0.mUVInversed.x + (CBVS0.mUVInversed.y * uv1.y);
+    Output.UV = uv1;
     Output.PosP = Output.PosVS;
     return Output;
 }
@@ -151,7 +151,7 @@ struct VS_Output
 struct VS_ConstantBuffer
 {
     mat4 mCamera;
-    mat4 mProj;
+    mat4 mCameraProj;
     vec4 mUVInversed;
     vec4 mflipbookParameter;
 };
@@ -168,12 +168,12 @@ varying vec4 _VSPS_PosP;
 VS_Output _main(VS_Input Input)
 {
     VS_Output Output = VS_Output(vec4(0.0), vec4(0.0), vec2(0.0), vec4(0.0));
-    vec4 pos4 = vec4(Input.Pos.x, Input.Pos.y, Input.Pos.z, 1.0);
-    vec4 cameraPos = CBVS0.mCamera * pos4;
-    Output.PosVS = CBVS0.mProj * cameraPos;
+    vec4 worldPos = vec4(Input.Pos.x, Input.Pos.y, Input.Pos.z, 1.0);
+    Output.PosVS = CBVS0.mCameraProj * worldPos;
     Output.Color = Input.Color;
-    Output.UV = Input.UV;
-    Output.UV.y = CBVS0.mUVInversed.x + (CBVS0.mUVInversed.y * Input.UV.y);
+    vec2 uv1 = Input.UV;
+    uv1.y = CBVS0.mUVInversed.x + (CBVS0.mUVInversed.y * uv1.y);
+    Output.UV = uv1;
     Output.PosP = Output.PosVS;
     return Output;
 }
@@ -214,7 +214,7 @@ struct VS_Output
 struct VS_ConstantBuffer
 {
     mat4 mCamera;
-    mat4 mProj;
+    mat4 mCameraProj;
     vec4 mUVInversed;
     vec4 mflipbookParameter;
 };
@@ -231,12 +231,12 @@ out vec4 _VSPS_PosP;
 VS_Output _main(VS_Input Input)
 {
     VS_Output Output = VS_Output(vec4(0.0), vec4(0.0), vec2(0.0), vec4(0.0));
-    vec4 pos4 = vec4(Input.Pos.x, Input.Pos.y, Input.Pos.z, 1.0);
-    vec4 cameraPos = pos4 * CBVS0.mCamera;
-    Output.PosVS = cameraPos * CBVS0.mProj;
+    vec4 worldPos = vec4(Input.Pos.x, Input.Pos.y, Input.Pos.z, 1.0);
+    Output.PosVS = worldPos * CBVS0.mCameraProj;
     Output.Color = Input.Color;
-    Output.UV = Input.UV;
-    Output.UV.y = CBVS0.mUVInversed.x + (CBVS0.mUVInversed.y * Input.UV.y);
+    vec2 uv1 = Input.UV;
+    uv1.y = CBVS0.mUVInversed.x + (CBVS0.mUVInversed.y * uv1.y);
+    Output.UV = uv1;
     Output.PosP = Output.PosVS;
     return Output;
 }

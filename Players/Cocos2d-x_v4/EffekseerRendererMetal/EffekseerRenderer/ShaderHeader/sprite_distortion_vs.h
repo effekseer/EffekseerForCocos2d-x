@@ -10,36 +10,37 @@ struct VS_Input
 {
     float3 Pos;
     float4 Color;
-    float2 UV;
-    float3 Binormal;
-    float3 Tangent;
+    float4 Normal;
+    float4 Tangent;
+    float2 UV1;
+    float2 UV2;
 };
 
 struct VS_Output
 {
     float4 PosVS;
-    float4 Color;
     float2 UV;
+    float4 ProjBinormal;
+    float4 ProjTangent;
     float4 PosP;
-    float4 PosU;
-    float4 PosR;
+    float4 Color;
 };
 
 struct VS_ConstantBuffer
 {
     float4x4 mCamera;
-    float4x4 mProj;
+    float4x4 mCameraProj;
     float4 mUVInversed;
     float4 mflipbookParameter;
 };
 
 struct main0_out
 {
-    float4 _entryPointOutput_Color [[user(locn0)]];
-    float2 _entryPointOutput_UV [[user(locn1)]];
-    float4 _entryPointOutput_PosP [[user(locn2)]];
-    float4 _entryPointOutput_PosU [[user(locn3)]];
-    float4 _entryPointOutput_PosR [[user(locn4)]];
+    float2 _entryPointOutput_UV [[user(locn0)]];
+    float4 _entryPointOutput_ProjBinormal [[user(locn1)]];
+    float4 _entryPointOutput_ProjTangent [[user(locn2)]];
+    float4 _entryPointOutput_PosP [[user(locn3)]];
+    float4 _entryPointOutput_Color [[user(locn4)]];
     float4 gl_Position [[position]];
 };
 
@@ -47,55 +48,48 @@ struct main0_in
 {
     float3 Input_Pos [[attribute(0)]];
     float4 Input_Color [[attribute(1)]];
-    float2 Input_UV [[attribute(2)]];
-    float3 Input_Binormal [[attribute(3)]];
-    float3 Input_Tangent [[attribute(4)]];
+    float4 Input_Normal [[attribute(2)]];
+    float4 Input_Tangent [[attribute(3)]];
+    float2 Input_UV1 [[attribute(4)]];
+    float2 Input_UV2 [[attribute(5)]];
 };
 
 static inline __attribute__((always_inline))
-VS_Output _main(VS_Input Input, constant VS_ConstantBuffer& v_63)
+VS_Output _main(VS_Input Input, constant VS_ConstantBuffer& v_72)
 {
-    VS_Output Output = VS_Output{ float4(0.0), float4(0.0), float2(0.0), float4(0.0), float4(0.0), float4(0.0) };
-    float4 pos4 = float4(Input.Pos.x, Input.Pos.y, Input.Pos.z, 1.0);
-    float4 localBinormal = float4(Input.Pos.x + Input.Binormal.x, Input.Pos.y + Input.Binormal.y, Input.Pos.z + Input.Binormal.z, 1.0);
-    float4 localTangent = float4(Input.Pos.x + Input.Tangent.x, Input.Pos.y + Input.Tangent.y, Input.Pos.z + Input.Tangent.z, 1.0);
-    localBinormal = v_63.mCamera * localBinormal;
-    localTangent = v_63.mCamera * localTangent;
-    float4 cameraPos = v_63.mCamera * pos4;
-    cameraPos /= float4(cameraPos.w);
-    localBinormal /= float4(localBinormal.w);
-    localTangent /= float4(localTangent.w);
-    localBinormal = cameraPos + normalize(localBinormal - cameraPos);
-    localTangent = cameraPos + normalize(localTangent - cameraPos);
-    Output.PosVS = v_63.mProj * cameraPos;
-    Output.PosP = Output.PosVS;
-    Output.PosU = v_63.mProj * localBinormal;
-    Output.PosR = v_63.mProj * localTangent;
-    Output.PosU /= float4(Output.PosU.w);
-    Output.PosR /= float4(Output.PosR.w);
-    Output.PosP /= float4(Output.PosP.w);
+    VS_Output Output = VS_Output{ float4(0.0), float2(0.0), float4(0.0), float4(0.0), float4(0.0), float4(0.0) };
+    float4 worldNormal = float4((Input.Normal.xyz - float3(0.5)) * 2.0, 0.0);
+    float4 worldTangent = float4((Input.Tangent.xyz - float3(0.5)) * 2.0, 0.0);
+    float4 worldBinormal = float4(cross(worldNormal.xyz, worldTangent.xyz), 0.0);
+    float4 worldPos = float4(Input.Pos.x, Input.Pos.y, Input.Pos.z, 1.0);
+    Output.PosVS = v_72.mCameraProj * worldPos;
     Output.Color = Input.Color;
-    Output.UV = Input.UV;
-    Output.UV.y = v_63.mUVInversed.x + (v_63.mUVInversed.y * Input.UV.y);
+    float2 uv1 = Input.UV1;
+    uv1.y = v_72.mUVInversed.x + (v_72.mUVInversed.y * uv1.y);
+    Output.UV = uv1;
+    Output.ProjTangent = v_72.mCameraProj * (worldPos + worldTangent);
+    Output.ProjBinormal = v_72.mCameraProj * (worldPos + worldBinormal);
+    Output.PosP = Output.PosVS;
     return Output;
 }
 
-vertex main0_out main0(main0_in in [[stage_in]], constant VS_ConstantBuffer& v_63 [[buffer(0)]])
+vertex main0_out main0(main0_in in [[stage_in]], constant VS_ConstantBuffer& v_72 [[buffer(0)]])
 {
     main0_out out = {};
     VS_Input Input;
     Input.Pos = in.Input_Pos;
     Input.Color = in.Input_Color;
-    Input.UV = in.Input_UV;
-    Input.Binormal = in.Input_Binormal;
+    Input.Normal = in.Input_Normal;
     Input.Tangent = in.Input_Tangent;
-    VS_Output flattenTemp = _main(Input, v_63);
+    Input.UV1 = in.Input_UV1;
+    Input.UV2 = in.Input_UV2;
+    VS_Output flattenTemp = _main(Input, v_72);
     out.gl_Position = flattenTemp.PosVS;
-    out._entryPointOutput_Color = flattenTemp.Color;
     out._entryPointOutput_UV = flattenTemp.UV;
+    out._entryPointOutput_ProjBinormal = flattenTemp.ProjBinormal;
+    out._entryPointOutput_ProjTangent = flattenTemp.ProjTangent;
     out._entryPointOutput_PosP = flattenTemp.PosP;
-    out._entryPointOutput_PosU = flattenTemp.PosU;
-    out._entryPointOutput_PosR = flattenTemp.PosR;
+    out._entryPointOutput_Color = flattenTemp.Color;
     return out;
 }
 

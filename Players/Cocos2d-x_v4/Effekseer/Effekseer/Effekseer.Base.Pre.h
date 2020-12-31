@@ -15,6 +15,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+#include <string>
 #include <thread>
 #include <vector>
 
@@ -80,11 +81,14 @@ class SoundLoader;
 class ModelLoader;
 class CurveLoader;
 
+class Texture;
+class SoundData;
 class SoundPlayer;
 class Model;
 struct ProcedualModelParameter;
 class ProcedualModelGenerator;
 class Curve;
+class Material;
 
 typedef int Handle;
 
@@ -803,6 +807,11 @@ RefPtr<T> MakeRefPtr(Arg&&... args)
 using SettingRef = RefPtr<Setting>;
 using ManagerRef = RefPtr<Manager>;
 using EffectRef = RefPtr<Effect>;
+using TextureRef = RefPtr<Texture>;
+using SoundDataRef = RefPtr<SoundData>;
+using ModelRef = RefPtr<Model>;
+using MaterialRef = RefPtr<Material>;
+using CurveRef = RefPtr<Curve>;
 
 using SpriteRendererRef = RefPtr<SpriteRenderer>;
 using RibbonRendererRef = RefPtr<RibbonRenderer>;
@@ -924,25 +933,6 @@ enum class ColorSpaceType : int32_t
 	Linear,
 };
 
-/**
-	@brief	\~english	Texture data
-			\~japanese	テクスチャデータ
-*/
-struct TextureData
-{
-	int32_t Width;
-	int32_t Height;
-	TextureFormatType TextureFormat;
-	void* UserPtr;
-	int64_t UserID;
-
-	//! for OpenGL, it is ignored in other apis
-	bool HasMipmap = true;
-
-	//! A backend which contains a native data
-	RefPtr<Backend::Texture> TexturePtr;
-};
-
 enum class ShadingModelType : int32_t
 {
 	Lit,
@@ -961,30 +951,6 @@ enum class RendererMaterialType : int32_t
 };
 
 /**
-	@brief	\~english	Material data
-			\~japanese	マテリアルデータ
-*/
-class MaterialData
-{
-public:
-	ShadingModelType ShadingModel = ShadingModelType::Lit;
-	bool IsSimpleVertex = false;
-	bool IsRefractionRequired = false;
-	int32_t CustomData1 = 0;
-	int32_t CustomData2 = 0;
-	int32_t TextureCount = 0;
-	int32_t UniformCount = 0;
-	std::array<TextureWrapType, UserTextureSlotMax> TextureWrapTypes;
-	void* UserPtr = nullptr;
-	void* ModelUserPtr = nullptr;
-	void* RefractionUserPtr = nullptr;
-	void* RefractionModelUserPtr = nullptr;
-
-	MaterialData() = default;
-	virtual ~MaterialData() = default;
-};
-
-/**
 	@brief	\~english	Textures used by material
 			\~japanese	マテリアルに使用されるテクスチャ
 */
@@ -999,7 +965,7 @@ struct MaterialTextureParameter
 	@brief	\~english	Material parameter for shaders
 			\~japanese	シェーダー向けマテリアルパラメーター
 */
-struct MaterialParameter
+struct MaterialRenderData
 {
 	//! material index in MaterialType::File
 	int32_t MaterialIndex = -1;
@@ -1032,36 +998,15 @@ struct NodeRendererDepthParameter
 struct NodeRendererBasicParameter
 {
 	RendererMaterialType MaterialType = RendererMaterialType::Default;
-	int32_t Texture1Index = -1;
-	int32_t Texture2Index = -1;
-	int32_t Texture3Index = -1;
-	int32_t Texture4Index = -1;
-	int32_t Texture5Index = -1;
-	int32_t Texture6Index = -1;
-	int32_t Texture7Index = -1;
+
+	std::array<int32_t, TextureSlotMax> TextureIndexes;
 
 	float DistortionIntensity = 0.0f;
-	MaterialParameter* MaterialParameterPtr = nullptr;
+	MaterialRenderData* MaterialRenderDataPtr = nullptr;
 	AlphaBlendType AlphaBlend = AlphaBlendType::Blend;
 
-	TextureFilterType TextureFilter1 = TextureFilterType::Nearest;
-	TextureWrapType TextureWrap1 = TextureWrapType::Repeat;
-	TextureFilterType TextureFilter2 = TextureFilterType::Nearest;
-	TextureWrapType TextureWrap2 = TextureWrapType::Repeat;
-	TextureFilterType TextureFilter3 = TextureFilterType::Nearest;
-	TextureWrapType TextureWrap3 = TextureWrapType::Repeat;
-
-	TextureFilterType TextureFilter4 = TextureFilterType::Nearest;
-	TextureWrapType TextureWrap4 = TextureWrapType::Repeat;
-
-	TextureFilterType TextureFilter5 = TextureFilterType::Nearest;
-	TextureWrapType TextureWrap5 = TextureWrapType::Repeat;
-
-	TextureFilterType TextureFilter6 = TextureFilterType::Nearest;
-	TextureWrapType TextureWrap6 = TextureWrapType::Repeat;
-
-	TextureFilterType TextureFilter7 = TextureFilterType::Nearest;
-	TextureWrapType TextureWrap7 = TextureWrapType::Repeat;
+	std::array<TextureFilterType, TextureSlotMax> TextureFilters;
+	std::array<TextureWrapType, TextureSlotMax> TextureWraps;
 
 	float UVDistortionIntensity = 1.0f;
 
@@ -1084,7 +1029,16 @@ struct NodeRendererBasicParameter
 	//! copy from alphacutoff
 	bool IsAlphaCutoffEnabled = false;
 
-	float SoftParticleDistance = 0.0f;
+	float SoftParticleDistanceFar = 0.0f;
+	float SoftParticleDistanceNear = 0.0f;
+	float SoftParticleDistanceNearOffset = 0.0f;
+
+	NodeRendererBasicParameter()
+	{
+		TextureIndexes.fill(-1);
+		TextureFilters.fill(TextureFilterType::Nearest);
+		TextureWraps.fill(TextureWrapType::Repeat);
+	}
 
 	//! Whether are particles rendered with AdvancedRenderer
 	bool GetIsRenderedWithAdvancedRenderer() const
@@ -1092,20 +1046,13 @@ struct NodeRendererBasicParameter
 		if (MaterialType == RendererMaterialType::File)
 			return false;
 
-		if (Texture3Index >= 0)
-			return true;
-
-		if (Texture4Index >= 0)
-			return true;
-
-		if (Texture5Index >= 0)
-			return true;
-
-		if (Texture6Index >= 0)
-			return true;
-
-		if (Texture7Index >= 0)
-			return true;
+		for (size_t i = 2; i < TextureIndexes.size(); i++)
+		{
+			if(TextureIndexes[i] >= 0)
+			{
+				return true;
+			}
+		}
 
 		if (EnableInterpolation)
 			return true;

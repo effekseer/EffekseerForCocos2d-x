@@ -127,7 +127,7 @@ public:
 	\~English set texture data into specified index
 	\~Japanese	指定されたインデックスにテクスチャを設定する。
 	*/
-	void SetTexture(Effect* effect, int32_t index, TextureType type, TextureData* data);
+	void SetTexture(Effect* effect, int32_t index, TextureType type, TextureRef data);
 
 	/**
 	@brief
@@ -135,35 +135,35 @@ public:
 	\~Japanese	指定されたインデックスに音を設定する。
 	*/
 
-	void SetSound(Effect* effect, int32_t index, void* data);
+	void SetSound(Effect* effect, int32_t index, SoundDataRef data);
 
 	/**
 	@brief
 	\~English set model data into specified index
 	\~Japanese	指定されたインデックスにモデルを設定する。
 	*/
-	void SetModel(Effect* effect, int32_t index, Model* data);
+	void SetModel(Effect* effect, int32_t index, ModelRef data);
 
 	/**
 	@brief
 	\~English set material data into specified index
 	\~Japanese	指定されたインデックスにマテリアルを設定する。
 	*/
-	void SetMaterial(Effect* effect, int32_t index, MaterialData* data);
+	void SetMaterial(Effect* effect, int32_t index, MaterialRef data);
 
 	/**
 	@brief
 	\~English set curve data into specified index
 	\~Japanese	指定されたインデックスにカーブを設定する。
 	*/
-	void SetCurve(Effect* effect, int32_t index, void* data);
+	void SetCurve(Effect* effect, int32_t index, CurveRef data);
 
 	/**
 	@brief
 	\~English set model data into specified index
 	\~Japanese	指定されたインデックスにモデルを設定する。
 	*/
-	void SetProcedualModel(Effect* effect, int32_t index, Model* data);
+	void SetProcedualModel(Effect* effect, int32_t index, ModelRef data);
 
 	/**
 	@brief
@@ -245,7 +245,7 @@ public:
 		@param	materialPath	[in]	素材ロード時の基準パス
 		@return	エフェクト。失敗した場合はnullptrを返す。
 	*/
-	static EffectRef Create(const ManagerRef& manager, void* data, int32_t size, float magnification = 1.0f, const char16_t* materialPath = nullptr);
+	static EffectRef Create(const ManagerRef& manager, const void* data, int32_t size, float magnification = 1.0f, const char16_t* materialPath = nullptr);
 
 	/**
 		@brief	エフェクトを生成する。
@@ -266,7 +266,7 @@ public:
 	@param	materialPath	[in]	素材ロード時の基準パス
 	@return	エフェクト。失敗した場合はnullptrを返す。
 */
-	static EffectRef Create(const SettingRef& setting, void* data, int32_t size, float magnification = 1.0f, const char16_t* materialPath = nullptr);
+	static EffectRef Create(const SettingRef& setting, const void* data, int32_t size, float magnification = 1.0f, const char16_t* materialPath = nullptr);
 
 	/**
 		@brief	エフェクトを生成する。
@@ -326,7 +326,7 @@ public:
 		@param	n	[in]	画像のインデックス
 		@return	画像のポインタ
 	*/
-	virtual TextureData* GetColorImage(int n) const = 0;
+	virtual TextureRef GetColorImage(int n) const = 0;
 
 	/**
 	@brief	格納されている画像のポインタの個数を取得する。
@@ -344,7 +344,7 @@ public:
 	@param	n	[in]	画像のインデックス
 	@return	画像のポインタ
 	*/
-	virtual TextureData* GetNormalImage(int n) const = 0;
+	virtual TextureRef GetNormalImage(int n) const = 0;
 
 	/**
 	@brief	格納されている法線画像のポインタの個数を取得する。
@@ -362,7 +362,7 @@ public:
 	@param	n	[in]	画像のインデックス
 	@return	画像のポインタ
 	*/
-	virtual TextureData* GetDistortionImage(int n) const = 0;
+	virtual TextureRef GetDistortionImage(int n) const = 0;
 
 	/**
 	@brief	格納されている歪み画像のポインタの個数を取得する。
@@ -378,7 +378,7 @@ public:
 	/**
 		@brief	格納されている音波形のポインタを取得する。
 	*/
-	virtual void* GetWave(int n) const = 0;
+	virtual SoundDataRef GetWave(int n) const = 0;
 
 	/**
 	@brief	格納されている音波形のポインタの個数を取得する。
@@ -394,7 +394,7 @@ public:
 	/**
 		@brief	格納されているモデルのポインタを取得する。
 	*/
-	virtual Model* GetModel(int n) const = 0;
+	virtual ModelRef GetModel(int n) const = 0;
 
 	/**
 	@brief	格納されているモデルのポインタの個数を取得する。
@@ -411,7 +411,7 @@ public:
 	@brief	\~English	Get a material's pointer
 	\~Japanese	格納されているマテリアルのポインタを取得する。
 	*/
-	virtual MaterialData* GetMaterial(int n) const = 0;
+	virtual MaterialRef GetMaterial(int n) const = 0;
 
 	/**
 	@brief	\~English	Get the number of stored material pointer
@@ -429,7 +429,7 @@ public:
 	@brief	\~English	Get a curve's pointer
 	\~Japanese	格納されているカーブのポインタを取得する。
 	*/
-	virtual void* GetCurve(int n) const = 0;
+	virtual CurveRef GetCurve(int n) const = 0;
 
 	/**
 	@brief	\~English	Get the number of stored curve pointer
@@ -447,7 +447,7 @@ public:
 	@brief	\~English	Get a procedual model's pointer
 	\~Japanese	格納されているプロシージャルモデルのポインタを取得する。
 	*/
-	virtual Model* GetProcedualModel(int n) const = 0;
+	virtual ModelRef GetProcedualModel(int n) const = 0;
 
 	/**
 	@brief	\~English	Get the number of stored procedual model's pointer
@@ -466,7 +466,7 @@ public:
 		\~English set texture data into specified index
 		\~Japanese	指定されたインデックスにテクスチャを設定する。
 	*/
-	virtual void SetTexture(int32_t index, TextureType type, TextureData* data) = 0;
+	virtual void SetTexture(int32_t index, TextureType type, TextureRef data) = 0;
 
 	/**
 		@brief
@@ -474,28 +474,28 @@ public:
 		\~Japanese	指定されたインデックスに音を設定する。
 	*/
 
-	virtual void SetSound(int32_t index, void* data) = 0;
+	virtual void SetSound(int32_t index, SoundDataRef data) = 0;
 
 	/**
 		@brief
 		\~English set model data into specified index
 		\~Japanese	指定されたインデックスにモデルを設定する。
 	*/
-	virtual void SetModel(int32_t index, Model* data) = 0;
+	virtual void SetModel(int32_t index, ModelRef data) = 0;
 
 	/**
 		@brief
 		\~English set material data into specified index
 		\~Japanese	指定されたインデックスにマテリアルを設定する。
 	*/
-	virtual void SetMaterial(int32_t index, MaterialData* data) = 0;
+	virtual void SetMaterial(int32_t index, MaterialRef data) = 0;
 
 	/**
 		@brief
 		\~English set curve data into specified index
 		\~Japanese	指定されたインデックスにカーブを設定する。
 	*/
-	virtual void SetCurve(int32_t index, void* data) = 0;
+	virtual void SetCurve(int32_t index, CurveRef data) = 0;
 
 	/**
 		@brief
@@ -532,7 +532,7 @@ public:
 	*/
 	virtual bool Reload(ManagerRef* managers,
 						int32_t managersCount,
-						void* data,
+						const void* data,
 						int32_t size,
 						const char16_t* materialPath = nullptr,
 						ReloadingThreadType reloadingThreadType = ReloadingThreadType::Main) = 0;
@@ -643,8 +643,8 @@ struct EffectBasicRenderParameter
 	struct
 	{
 		int32_t ColorBlendType;
-		float BeginColor[4];
-		float EndColor[4];
+		std::array<float, 4> BeginColor;
+		std::array<float, 4> EndColor;
 		float Pow = 1.0f;
 	} FalloffParam;
 

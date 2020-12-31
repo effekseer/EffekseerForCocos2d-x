@@ -19,9 +19,9 @@ Effekseer::ModelLoaderRef CreateModelLoader(Effekseer::FileInterface*);
 
 ::Effekseer::MaterialLoaderRef CreateMaterialLoader(Effekseer::FileInterface*);
 
-void UpdateTextureData(::Effekseer::TextureData* textureData, cocos2d::Texture2D* texture);
+void UpdateTextureData(::Effekseer::TextureRef textureData, cocos2d::Texture2D* texture);
 
-void CleanupTextureData(::Effekseer::TextureData* textureData);
+void CleanupTextureData(::Effekseer::TextureRef textureData);
 
 ::EffekseerRenderer::DistortingCallback* CreateDistortingCallback(::EffekseerRenderer::RendererRef, ::EffekseerRenderer::CommandList*);
 
@@ -141,9 +141,9 @@ Effekseer::FileReader* EffekseerFile::OpenRead(const EFK_CHAR* path)
 
 Effekseer::FileWriter* EffekseerFile::OpenWrite(const EFK_CHAR* path) { return nullptr; }
 
-static std::map<Effekseer::TextureData*, std::basic_string<EFK_CHAR>> g_glTex2FilePath;
+static std::map<Effekseer::TextureRef, std::basic_string<EFK_CHAR>> g_glTex2FilePath;
 static std::map<std::basic_string<EFK_CHAR>, cocos2d::Texture2D*> g_filePath2CTex;
-static std::map<std::basic_string<EFK_CHAR>, Effekseer::TextureData*> g_filePath2EffectData;
+static std::map<std::basic_string<EFK_CHAR>, Effekseer::TextureRef> g_filePath2EffectData;
 
 class TextureLoader : public ::Effekseer::TextureLoader
 {
@@ -156,9 +156,9 @@ public:
 	virtual ~TextureLoader();
 
 public:
-	Effekseer::TextureData* Load(const EFK_CHAR* path, ::Effekseer::TextureType textureType) override;
+	Effekseer::TextureRef Load(const EFK_CHAR* path, ::Effekseer::TextureType textureType) override;
 
-	void Unload(Effekseer::TextureData* data) override;
+	void Unload(Effekseer::TextureRef data) override;
 };
 
 TextureLoader::TextureLoader(::Effekseer::FileInterface* fileInterface) : m_fileInterface(fileInterface)
@@ -171,7 +171,7 @@ TextureLoader::TextureLoader(::Effekseer::FileInterface* fileInterface) : m_file
 
 TextureLoader::~TextureLoader() {}
 
-Effekseer::TextureData* TextureLoader::Load(const EFK_CHAR* path, ::Effekseer::TextureType textureType)
+Effekseer::TextureRef TextureLoader::Load(const EFK_CHAR* path, ::Effekseer::TextureType textureType)
 {
 	auto key = std::basic_string<EFK_CHAR>(path);
 	if (g_filePath2CTex.find(key) != g_filePath2CTex.end())
@@ -226,12 +226,8 @@ Effekseer::TextureData* TextureLoader::Load(const EFK_CHAR* path, ::Effekseer::T
 
 		delete[] data_texture;
 
-		Effekseer::TextureData* textureData = new Effekseer::TextureData();
+		Effekseer::TextureRef textureData = Effekseer::MakeRefPtr<Effekseer::Texture>();;
 		UpdateTextureData(textureData, texture);
-		textureData->Width = texture->getPixelsWide();
-		textureData->Height = texture->getPixelsHigh();
-		textureData->TextureFormat = Effekseer::TextureFormatType::ABGR8;
-		textureData->HasMipmap = texture->hasMipmaps();
 		g_filePath2CTex[key] = texture;
 		g_filePath2EffectData[key] = textureData;
 		g_glTex2FilePath[textureData] = key;
@@ -243,7 +239,7 @@ Effekseer::TextureData* TextureLoader::Load(const EFK_CHAR* path, ::Effekseer::T
 	return NULL;
 }
 
-void TextureLoader::Unload(Effekseer::TextureData* data)
+void TextureLoader::Unload(Effekseer::TextureRef data)
 {
 	if (data != NULL)
 	{
@@ -256,80 +252,10 @@ void TextureLoader::Unload(Effekseer::TextureData* data)
 			g_glTex2FilePath.erase(data);
 			g_filePath2EffectData.erase(path);
 			g_filePath2CTex.erase(path);
-			delete data;
 		}
 		tex->release();
 	}
 }
-
-class CachedMaterialLoader : public ::Effekseer::MaterialLoader
-{
-private:
-	struct Cached
-	{
-		::Effekseer::MaterialData* DataPtr;
-		int32_t Count;
-
-		Cached()
-		{
-			DataPtr = nullptr;
-			Count = 1;
-		}
-	};
-
-	::Effekseer::MaterialLoaderRef loader_;
-	std::map<std::basic_string<EFK_CHAR>, Cached> cache_;
-	std::map<void*, std::basic_string<EFK_CHAR>> data2key_;
-
-public:
-	CachedMaterialLoader(::Effekseer::MaterialLoaderRef loader) { this->loader_ = loader; }
-
-	~CachedMaterialLoader() override = default;
-
-	virtual ::Effekseer::MaterialData* Load(const EFK_CHAR* path) override
-	{
-		auto key = std::basic_string<EFK_CHAR>(path);
-
-		auto it = cache_.find(key);
-
-		if (it != cache_.end())
-		{
-			it->second.Count++;
-			return it->second.DataPtr;
-		}
-
-		Cached v;
-		v.DataPtr = loader_->Load(path);
-
-		if (v.DataPtr != nullptr)
-		{
-			cache_[key] = v;
-			data2key_[v.DataPtr] = key;
-		}
-
-		return v.DataPtr;
-	}
-
-	virtual void Unload(::Effekseer::MaterialData* data) override
-	{
-		if (data == nullptr)
-			return;
-		auto key = data2key_[data];
-
-		auto it = cache_.find(key);
-
-		if (it != cache_.end())
-		{
-			it->second.Count--;
-			if (it->second.Count == 0)
-			{
-				loader_->Unload(it->second.DataPtr);
-				data2key_.erase(data);
-				cache_.erase(key);
-			}
-		}
-	}
-};
 
 class EffekseerSetting;
 
@@ -348,7 +274,7 @@ public:
 		SetEffectLoader(Effekseer::Effect::CreateEffectLoader(effectFile));
 		SetTextureLoader(Effekseer::MakeRefPtr<TextureLoader>(effectFile));
 		SetModelLoader(CreateModelLoader(effectFile));
-        SetMaterialLoader(Effekseer::MakeRefPtr<CachedMaterialLoader>(CreateMaterialLoader(effectFile)));
+		SetMaterialLoader(CreateMaterialLoader(effectFile));
 		// TODO sound
 	}
 

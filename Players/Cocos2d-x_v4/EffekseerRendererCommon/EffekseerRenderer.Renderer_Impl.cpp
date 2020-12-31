@@ -1,12 +1,30 @@
 #include "EffekseerRenderer.Renderer_Impl.h"
 #include "EffekseerRenderer.Renderer.h"
+#include <iostream>
 
 namespace EffekseerRenderer
 {
 
 Renderer::Impl::~Impl()
 {
-	ES_SAFE_DELETE(depthTexture_);
+}
+
+void Renderer::Impl::SetCameraParameterInternal(const ::Effekseer::SIMD::Vec3f& front, const ::Effekseer::SIMD::Vec3f& position)
+{
+	cameraPosition_ = position;
+
+	// To optimize particle, cameraFontDirection_ is normalized
+	const auto length = front.GetLength();
+	const auto eps = 0.0001f;
+	if (length > eps)
+	{
+		cameraFrontDirection_ = front / length;
+	}
+	else
+	{
+		std::cout << "Warning : cameraFrontDirection is too small." << std::endl;
+		cameraFrontDirection_ = ::Effekseer::SIMD::Vec3f{0.0f, 0.0f, 1.0f};
+	}
 }
 
 ::Effekseer::Vector3D Renderer::Impl::GetLightDirection() const
@@ -61,17 +79,14 @@ void Renderer::Impl::SetProjectionMatrix(const ::Effekseer::Matrix44& mat)
 
 void Renderer::Impl::SetCameraMatrix(const ::Effekseer::Matrix44& mat)
 {
-	cameraFrontDirection_ = ::Effekseer::SIMD::Vec3f(mat.Values[0][2], mat.Values[1][2], mat.Values[2][2]);
+	const auto f = ::Effekseer::SIMD::Vec3f(mat.Values[0][2], mat.Values[1][2], mat.Values[2][2]);
+	const auto r = ::Effekseer::SIMD::Vec3f(mat.Values[0][0], mat.Values[1][0], mat.Values[2][0]);
+	const auto u = ::Effekseer::SIMD::Vec3f(mat.Values[0][1], mat.Values[1][1], mat.Values[2][1]);
+	const auto localPos = ::Effekseer::SIMD::Vec3f(-mat.Values[3][0], -mat.Values[3][1], -mat.Values[3][2]);
 
-	auto localPos = ::Effekseer::SIMD::Vec3f(-mat.Values[3][0], -mat.Values[3][1], -mat.Values[3][2]);
-	auto f = cameraFrontDirection_;
-	auto r = ::Effekseer::SIMD::Vec3f(mat.Values[0][0], mat.Values[1][0], mat.Values[2][0]);
-	auto u = ::Effekseer::SIMD::Vec3f(mat.Values[0][1], mat.Values[1][1], mat.Values[2][1]);
+	const auto cameraPosition = r * localPos.GetX() + u * localPos.GetY() + f * localPos.GetZ();
 
-	cameraPosition_ = r * localPos.GetX() + u * localPos.GetY() + f * localPos.GetZ();
-
-	// To optimize particle, cameraFontDirection_ is normalized
-	cameraFrontDirection_ = cameraFrontDirection_.NormalizePrecisely();
+	SetCameraParameterInternal(f, cameraPosition);
 	cameraMat_ = mat;
 }
 
@@ -92,11 +107,7 @@ void Renderer::Impl::SetCameraMatrix(const ::Effekseer::Matrix44& mat)
 
 void Renderer::Impl::SetCameraParameter(const ::Effekseer::Vector3D& front, const ::Effekseer::Vector3D& position)
 {
-	cameraFrontDirection_ = front;
-	cameraPosition_ = position;
-
-	// To optimize particle, cameraFontDirection_ is normalized
-	cameraFrontDirection_ = cameraFrontDirection_.NormalizePrecisely();
+	SetCameraParameterInternal(front, position);
 }
 
 void Renderer::Impl::CreateProxyTextures(Renderer* renderer)
@@ -113,7 +124,7 @@ void Renderer::Impl::DeleteProxyTextures(Renderer* renderer)
 	normalProxyTexture_ = nullptr;
 }
 
-::Effekseer::TextureData* Renderer::Impl::GetProxyTexture(EffekseerRenderer::ProxyTextureType type)
+::Effekseer::Backend::TextureRef Renderer::Impl::GetProxyTexture(EffekseerRenderer::ProxyTextureType type)
 {
 	if (type == EffekseerRenderer::ProxyTextureType::White)
 		return whiteProxyTexture_;
@@ -188,36 +199,26 @@ void Renderer::Impl::SetRenderMode(Effekseer::RenderMode renderMode)
 	renderMode_ = renderMode;
 }
 
-void Renderer::Impl::GetDepth(::Effekseer::TextureData*& texture, DepthReconstructionParameter& reconstructionParam)
+const ::Effekseer::Backend::TextureRef& Renderer::Impl::GetBackground()
+{
+	return backgroundTexture_;
+}
+
+void Renderer::Impl::SetBackground(::Effekseer::Backend::TextureRef texture)
+{
+	backgroundTexture_ = texture;
+}
+
+void Renderer::Impl::GetDepth(::Effekseer::Backend::TextureRef& texture, DepthReconstructionParameter& reconstructionParam)
 {
 	texture = depthTexture_;
 	reconstructionParam = reconstructionParam_;
 }
 
-void Renderer::Impl::GetDepth(::Effekseer::Backend::TextureRef& texture, DepthReconstructionParameter& reconstructionParam)
-{
-	texture = depthBackendTexture_;
-	reconstructionParam = reconstructionParam_;
-}
-
 void Renderer::Impl::SetDepth(::Effekseer::Backend::TextureRef texture, const DepthReconstructionParameter& reconstructionParam)
 {
-	depthBackendTexture_ = texture;
+	depthTexture_ = texture;
 	reconstructionParam_ = reconstructionParam;
-
-	if (texture != nullptr)
-	{
-		if (depthTexture_ == nullptr)
-		{
-			depthTexture_ = new Effekseer::TextureData();		
-		}
-		depthTexture_->HasMipmap = depthBackendTexture_->GetHasMipmap();
-		depthTexture_->TexturePtr = depthBackendTexture_;
-	}
-	else if (texture == nullptr && depthTexture_ != nullptr)
-	{
-		ES_SAFE_DELETE(depthTexture_);
-	}
 }
 
 } // namespace EffekseerRenderer

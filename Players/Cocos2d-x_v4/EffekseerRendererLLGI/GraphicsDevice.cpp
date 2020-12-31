@@ -226,6 +226,7 @@ bool Texture::Init(const Effekseer::Backend::TextureParameter& param)
 
 	texture_ = LLGI::CreateSharedPtr(texture);
 
+	size_ = param.Size;
 	type_ = Effekseer::Backend::TextureType::Color2D;
 
 	return true;
@@ -244,6 +245,16 @@ bool Texture::Init(uint64_t id, std::function<void()> onDisposed)
 
 	type_ = Effekseer::Backend::TextureType::Color2D;
 
+	return true;
+}
+
+bool Texture::Init(LLGI::Texture* texture)
+{
+	LLGI::SafeAddRef(texture);
+	texture_ = LLGI::CreateSharedPtr(texture);
+	type_ = Effekseer::Backend::TextureType::Color2D;
+	auto size = texture_->GetSizeAs2D();
+	size_ = {size.X, size.Y};
 	return true;
 }
 
@@ -334,6 +345,18 @@ Effekseer::Backend::TextureRef GraphicsDevice::CreateTexture(uint64_t id, const 
 	auto ret = Effekseer::MakeRefPtr<Texture>(this);
 
 	if (!ret->Init(id, onDisposed))
+	{
+		return nullptr;
+	}
+
+	return ret;
+}
+
+Effekseer::Backend::TextureRef GraphicsDevice::CreateTexture(LLGI::Texture* texture)
+{
+	auto ret = Effekseer::MakeRefPtr<Texture>(this);
+
+	if (!ret->Init(texture))
 	{
 		return nullptr;
 	}

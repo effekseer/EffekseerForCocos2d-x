@@ -75,16 +75,16 @@ void ModelRenderer::InitRenderer()
 	shader_ad_lit_->SetVertexConstantBufferSize(sizeof(::EffekseerRenderer::ModelRendererAdvancedVertexConstantBuffer<N>));
 	shader_ad_unlit_->SetVertexConstantBufferSize(sizeof(::EffekseerRenderer::ModelRendererAdvancedVertexConstantBuffer<N>));
 	shader_ad_distortion_->SetVertexConstantBufferSize(sizeof(::EffekseerRenderer::ModelRendererAdvancedVertexConstantBuffer<N>));
-	shader_ad_lit_->SetPixelConstantBufferSize(sizeof(::EffekseerRenderer::ModelRendererAdvancedPixelConstantBuffer));
-	shader_ad_unlit_->SetPixelConstantBufferSize(sizeof(::EffekseerRenderer::ModelRendererAdvancedPixelConstantBuffer));
-	shader_ad_distortion_->SetPixelConstantBufferSize(sizeof(::EffekseerRenderer::ModelRendererDistortionPixelConstantBuffer));
+	shader_ad_lit_->SetPixelConstantBufferSize(sizeof(::EffekseerRenderer::PixelConstantBuffer));
+	shader_ad_unlit_->SetPixelConstantBufferSize(sizeof(::EffekseerRenderer::PixelConstantBuffer));
+	shader_ad_distortion_->SetPixelConstantBufferSize(sizeof(::EffekseerRenderer::PixelConstantBufferDistortion));
 
 	shader_lit_->SetVertexConstantBufferSize(sizeof(::EffekseerRenderer::ModelRendererVertexConstantBuffer<N>));
 	shader_unlit_->SetVertexConstantBufferSize(sizeof(::EffekseerRenderer::ModelRendererVertexConstantBuffer<N>));
 	shader_distortion_->SetVertexConstantBufferSize(sizeof(::EffekseerRenderer::ModelRendererVertexConstantBuffer<N>));
-	shader_lit_->SetPixelConstantBufferSize(sizeof(::EffekseerRenderer::ModelRendererPixelConstantBuffer));
-	shader_unlit_->SetPixelConstantBufferSize(sizeof(::EffekseerRenderer::ModelRendererPixelConstantBuffer));
-	shader_distortion_->SetPixelConstantBufferSize(sizeof(::EffekseerRenderer::ModelRendererDistortionPixelConstantBuffer));
+	shader_lit_->SetPixelConstantBufferSize(sizeof(::EffekseerRenderer::PixelConstantBuffer));
+	shader_unlit_->SetPixelConstantBufferSize(sizeof(::EffekseerRenderer::PixelConstantBuffer));
+	shader_distortion_->SetPixelConstantBufferSize(sizeof(::EffekseerRenderer::PixelConstantBufferDistortion));
 
 	for (auto& shader : {shader_ad_lit_, shader_lit_})
 	{
@@ -99,7 +99,7 @@ void ModelRenderer::InitRenderer()
 	for (auto& shader : {shader_ad_unlit_, shader_unlit_})
 	{
 		shader->GetAttribIdList(NumAttribs_Model, g_model_attribs);
-		shader->SetTextureSlot(0, shader->GetUniformId("Sampler_g_colorTex"));
+		shader->SetTextureSlot(0, shader->GetUniformId("Sampler_sampler_colorTex"));
 	}
 	applyPSAdvancedRendererParameterTexture(shader_ad_unlit_, 1);
 	shader_unlit_->SetTextureSlot(1, shader_unlit_->GetUniformId("Sampler_sampler_depthTex"));
@@ -130,7 +130,14 @@ void ModelRenderer::InitRenderer()
 
 		vsOffset += sizeof(Effekseer::Matrix44);
 
-		shaders[i]->AddVertexConstantLayout(CONSTANT_TYPE_MATRIX44, shaders[i]->GetUniformId("CBVS0.mModel"), vsOffset, N);
+		if (VertexType == EffekseerRenderer::ModelRendererVertexType::Instancing)
+		{
+			shaders[i]->AddVertexConstantLayout(CONSTANT_TYPE_MATRIX44, shaders[i]->GetUniformId("CBVS0.mModel_Inst"), vsOffset, N);
+		}
+		else
+		{
+			shaders[i]->AddVertexConstantLayout(CONSTANT_TYPE_MATRIX44, shaders[i]->GetUniformId("CBVS0.mModel"), vsOffset, N);
+		}
 
 		vsOffset += sizeof(Effekseer::Matrix44) * N;
 
@@ -193,66 +200,7 @@ void ModelRenderer::InitRenderer()
 
 		vsOffset += sizeof(float[4]) * 1;
 
-		int psOffset = 0;
-		shaders[i]->AddPixelConstantLayout(CONSTANT_TYPE_VECTOR4, shaders[i]->GetUniformId("CBPS0.fLightDirection"), psOffset);
-
-		psOffset += sizeof(float[4]) * 1;
-
-		shaders[i]->AddPixelConstantLayout(CONSTANT_TYPE_VECTOR4, shaders[i]->GetUniformId("CBPS0.fLightColor"), psOffset);
-
-		psOffset += sizeof(float[4]) * 1;
-
-		shaders[i]->AddPixelConstantLayout(CONSTANT_TYPE_VECTOR4, shaders[i]->GetUniformId("CBPS0.fLightAmbient"), psOffset);
-
-		psOffset += sizeof(float[4]) * 1;
-
-		if (isAd)
-		{
-			shaders[i]->AddPixelConstantLayout(CONSTANT_TYPE_VECTOR4, shaders[i]->GetUniformId("CBPS0.fFlipbookParameter"), psOffset);
-
-			psOffset += sizeof(float[4]) * 1;
-
-			shaders[i]->AddPixelConstantLayout(CONSTANT_TYPE_VECTOR4, shaders[i]->GetUniformId("CBPS0.fUVDistortionParameter"), psOffset);
-
-			psOffset += sizeof(float[4]) * 1;
-
-			shaders[i]->AddPixelConstantLayout(CONSTANT_TYPE_VECTOR4, shaders[i]->GetUniformId("CBPS0.fBlendTextureParameter"), psOffset);
-
-			psOffset += sizeof(float[4]) * 1;
-
-			shaders[i]->AddPixelConstantLayout(CONSTANT_TYPE_VECTOR4, shaders[i]->GetUniformId("CBPS0.fCameraFrontDirection"), psOffset);
-
-			psOffset += sizeof(float[4]) * 1;
-
-			shaders[i]->AddPixelConstantLayout(CONSTANT_TYPE_VECTOR4, shaders[i]->GetUniformId("CBPS0.fFalloffParam.Param"), psOffset);
-
-			psOffset += sizeof(float[4]) * 1;
-
-			shaders[i]->AddPixelConstantLayout(CONSTANT_TYPE_VECTOR4, shaders[i]->GetUniformId("CBPS0.fFalloffParam.BeginColor"), psOffset);
-
-			psOffset += sizeof(float[4]) * 1;
-
-			shaders[i]->AddPixelConstantLayout(CONSTANT_TYPE_VECTOR4, shaders[i]->GetUniformId("CBPS0.fFalloffParam.EndColor"), psOffset);
-
-			psOffset += sizeof(float[4]) * 1;
-
-			shaders[i]->AddPixelConstantLayout(CONSTANT_TYPE_VECTOR4, shaders[i]->GetUniformId("CBPS0.fEmissiveScaling"), psOffset);
-
-			psOffset += sizeof(float[4]) * 1;
-
-			shaders[i]->AddPixelConstantLayout(CONSTANT_TYPE_VECTOR4, shaders[i]->GetUniformId("CBPS0.fEdgeColor"), psOffset);
-
-			psOffset += sizeof(float[4]) * 1;
-
-			shaders[i]->AddPixelConstantLayout(CONSTANT_TYPE_VECTOR4, shaders[i]->GetUniformId("CBPS0.fEdgeParameter"), psOffset);
-
-			psOffset += sizeof(float[4]) * 1;
-		}
-
-		shaders[i]->AddPixelConstantLayout(CONSTANT_TYPE_VECTOR4, shaders[i]->GetUniformId("CBPS0.softParticleAndReconstructionParam1"), psOffset);
-		psOffset += sizeof(float[4]) * 1;
-		shaders[i]->AddPixelConstantLayout(CONSTANT_TYPE_VECTOR4, shaders[i]->GetUniformId("CBPS0.reconstructionParam2"), psOffset);
-		psOffset += sizeof(float[4]) * 1;
+		AssignPixelConstantBuffer(shaders[i]);
 	}
 
 	Shader* shaders_d[2];
@@ -268,7 +216,14 @@ void ModelRenderer::InitRenderer()
 
 		vsOffset += sizeof(Effekseer::Matrix44);
 
-		shaders_d[i]->AddVertexConstantLayout(CONSTANT_TYPE_MATRIX44, shaders_d[i]->GetUniformId("CBVS0.mModel"), vsOffset, N);
+		if (VertexType == EffekseerRenderer::ModelRendererVertexType::Instancing)
+		{
+			shaders_d[i]->AddVertexConstantLayout(CONSTANT_TYPE_MATRIX44, shaders_d[i]->GetUniformId("CBVS0.mModel_Inst"), vsOffset, N);
+		}
+		else
+		{
+			shaders_d[i]->AddVertexConstantLayout(CONSTANT_TYPE_MATRIX44, shaders_d[i]->GetUniformId("CBVS0.mModel"), vsOffset, N);
+		}
 
 		vsOffset += sizeof(Effekseer::Matrix44) * N;
 
@@ -331,37 +286,7 @@ void ModelRenderer::InitRenderer()
 
 		vsOffset += sizeof(float[4]) * 1;
 
-		int psOffset = 0;
-
-		shaders_d[i]->AddPixelConstantLayout(CONSTANT_TYPE_VECTOR4, shaders_d[i]->GetUniformId("CBPS0.g_scale"), psOffset);
-
-		psOffset += sizeof(float[4]) * 1;
-
-		shaders_d[i]->AddPixelConstantLayout(CONSTANT_TYPE_VECTOR4, shaders_d[i]->GetUniformId("CBPS0.mUVInversedBack"), psOffset);
-
-		psOffset += sizeof(float[4]) * 1;
-
-		if (isAd)
-		{
-			shaders_d[i]->AddPixelConstantLayout(CONSTANT_TYPE_VECTOR4, shaders_d[i]->GetUniformId("CBPS0.fFlipbookParameter"), psOffset);
-
-			psOffset += sizeof(float[4]) * 1;
-
-			shaders_d[i]->AddPixelConstantLayout(
-				CONSTANT_TYPE_VECTOR4, shaders_d[i]->GetUniformId("CBPS0.fUVDistortionParameter"), psOffset);
-
-			psOffset += sizeof(float[4]) * 1;
-
-			shaders_d[i]->AddPixelConstantLayout(
-				CONSTANT_TYPE_VECTOR4, shaders_d[i]->GetUniformId("CBPS0.fBlendTextureParameter"), psOffset);
-
-			psOffset += sizeof(float[4]) * 1;
-		}
-
-		shaders_d[i]->AddPixelConstantLayout(CONSTANT_TYPE_VECTOR4, shaders_d[i]->GetUniformId("CBPS0.softParticleAndReconstructionParam1"), psOffset);
-		psOffset += sizeof(float[4]) * 1;
-		shaders_d[i]->AddPixelConstantLayout(CONSTANT_TYPE_VECTOR4, shaders_d[i]->GetUniformId("CBPS0.reconstructionParam2"), psOffset);
-		psOffset += sizeof(float[4]) * 1;
+		AssignDistortionPixelConstantBuffer(shaders_d[i]);
 	}
 }
 
@@ -383,8 +308,8 @@ ModelRenderer::ModelRenderer(RendererImplemented* renderer,
 	graphicsDevice_ = renderer->GetGraphicsDevice().DownCast<Backend::GraphicsDevice>();
 	if (renderer->GetDeviceType() == OpenGLDeviceType::OpenGL3 || renderer->GetDeviceType() == OpenGLDeviceType::OpenGLES3)
 	{
-		InitRenderer<InstanceCount>();
 		VertexType = EffekseerRenderer::ModelRendererVertexType::Instancing;
+		InitRenderer<InstanceCount>();
 	}
 	else
 	{
@@ -552,7 +477,7 @@ void ModelRenderer::EndRendering(const efkModelNodeParam& parameter, void* userD
 		return;
 	}
 
-	Effekseer::Model* model = nullptr;
+	Effekseer::ModelRef model = nullptr;
 
 	if (parameter.IsProcedualMode)
 	{
