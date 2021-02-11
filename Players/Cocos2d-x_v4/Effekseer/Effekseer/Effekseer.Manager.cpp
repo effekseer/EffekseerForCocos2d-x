@@ -34,6 +34,8 @@
 #include <algorithm>
 #include <iostream>
 
+#include "Utils/Profiler.h"
+
 namespace Effekseer
 {
 
@@ -222,7 +224,6 @@ void ManagerImplemented::GCDrawSet(bool isRemovingManager)
 
 			if (m_cullingWorld != nullptr && drawset.CullingObjectPointer != nullptr)
 			{
-				m_cullingWorld->RemoveObject(drawset.CullingObjectPointer);
 				Culling3D::SafeRelease(drawset.CullingObjectPointer);
 			}
 
@@ -262,6 +263,11 @@ void ManagerImplemented::GCDrawSet(bool isRemovingManager)
 				{
 					(*it).second.RemovingCallback(this, (*it).first, isRemovingManager);
 				}
+                
+                		if (m_cullingWorld != NULL && (*it).second.CullingObjectPointer != nullptr)
+                		{
+                    			m_cullingWorld->RemoveObject((*it).second.CullingObjectPointer);
+                		}
 
 				m_RemovingDrawSets[0][(*it).first] = (*it).second;
 				m_DrawSets.erase(it++);
@@ -1178,8 +1184,20 @@ void ManagerImplemented::SetAutoDrawing(Handle handle, bool autoDraw)
 	}
 }
 
+void ManagerImplemented::SetUserData(Handle handle, void* userData)
+{
+	auto it = m_DrawSets.find(handle);
+
+	if (it != m_DrawSets.end())
+	{
+		it->second.GlobalPointer->SetUserData(userData);
+	}
+}
+
 void ManagerImplemented::Flip()
 {
+	PROFILER_BLOCK("Manager::Flip", profiler::colors::Red);
+
 	if (!m_autoFlip)
 	{
 		m_renderingMutex.lock();
@@ -1329,6 +1347,8 @@ void ManagerImplemented::Update(float deltaFrame)
 
 void ManagerImplemented::Update(const UpdateParameter& parameter)
 {
+	PROFILER_BLOCK("Manager::Update", profiler::colors::Red);
+
 	if (m_WorkerThreads.size() == 0)
 	{
 		DoUpdate(parameter);
@@ -1348,6 +1368,7 @@ void ManagerImplemented::Update(const UpdateParameter& parameter)
 
 void ManagerImplemented::DoUpdate(const UpdateParameter& parameter)
 {
+	PROFILER_BLOCK("Manager::DoUpdate", profiler::colors::Red);
 	// start to measure time
 	int64_t beginTime = ::Effekseer::GetTime();
 
@@ -1424,6 +1445,7 @@ void ManagerImplemented::DoUpdate(const UpdateParameter& parameter)
 					const uint32_t chunkOffset = threadID;
 					// Process on worker thread
 					m_WorkerThreads[threadID].RunAsync([this, &chunks, chunkOffset, chunkStep]() {
+						PROFILER_BLOCK("DoUpdate::RunAsync", profiler::colors::Red);
 						for (size_t i = chunkOffset; i < chunks.size(); i += chunkStep)
 						{
 							chunks[i]->UpdateInstances();
@@ -1722,6 +1744,8 @@ void ManagerImplemented::ResetAndPlayWithDataSet(DrawSet& drawSet, float frame)
 
 void ManagerImplemented::Draw(const Manager::DrawParameter& drawParameter)
 {
+	PROFILER_BLOCK("Manager::Draw", profiler::colors::Blue);
+
 	if (m_WorkerThreads.size() > 0)
 	{
 		m_WorkerThreads[0].WaitForComplete();
@@ -2279,7 +2303,7 @@ void ManagerImplemented::CalcCulling(const Matrix44& cameraProjMat, bool isOpenG
 	}
 
 	// sort with handle
-	std::sort(m_culledObjects.begin(), m_culledObjects.end(), [](DrawSet* const& lhs, DrawSet* const& rhs) { return lhs->Self > rhs->Self; });
+	std::sort(m_culledObjects.begin(), m_culledObjects.end(), [](DrawSet* const& lhs, DrawSet* const& rhs) { return lhs->Self < rhs->Self; });
 
 	m_culled = true;
 }
@@ -2293,6 +2317,16 @@ void ManagerImplemented::RessignCulling()
 	m_culledObjectSets.clear();
 
 	m_cullingWorld->Reassign();
+}
+
+void ManagerImplemented::LockRendering()
+{
+	m_renderingMutex.lock();
+}
+
+void ManagerImplemented::UnlockRendering()
+{
+	m_renderingMutex.unlock();
 }
 
 } // namespace Effekseer

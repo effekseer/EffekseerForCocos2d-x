@@ -381,6 +381,8 @@ public:
 
 	void SetAutoDrawing(Handle handle, bool autoDraw) override;
 
+	void SetUserData(Handle handle, void* userData) override;
+
 	void Flip() override;
 
 	void Update(float deltaFrame) override;
@@ -459,6 +461,10 @@ public:
 	{
 		return ReferenceObject::Release();
 	}
+
+	void LockRendering() override;
+
+	void UnlockRendering() override;
 
 	ManagerImplemented* GetImplemented() override
 	{

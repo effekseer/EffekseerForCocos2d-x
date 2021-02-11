@@ -113,7 +113,7 @@ void Instance::GenerateChildrenInRequired()
 		return;
 	}
 
-	const float currentTime = m_LivingTime;
+	const float& currentTime = m_LivingTime;
 
 	auto effect = this->m_pEffectNode->m_effect;
 	auto instanceGlobal = this->m_pContainer->GetRootInstance();
@@ -158,24 +158,6 @@ void Instance::GenerateChildrenInRequired()
 				break;
 			}
 		}
-
-		/*int32_t instanceNumberOffset = m_generatedChildrenCount[i];
-
-		// GenerationTimeOffset can be minus value.
-		// Minus frame particles is generated simultaniously at frame 0.
-		while (maxGenerationChildrenCount[i] > m_generatedChildrenCount[i] &&
-			m_nextGenerationTime[i] <= currentTime)
-		{
-			m_generatedChildrenCount[i]++;
-
-			auto gt = ApplyEq(node->CommonValues.RefEqGenerationTime, node->CommonValues.GenerationTime);
-			m_nextGenerationTime[i] += Max(0.0f, gt.getValue(rand));
-		}
-
-		int32_t generatingCount = m_generatedChildrenCount[i] - instanceNumberOffset;
-
-		// Create instances
-		group->CreateInstances(instanceNumberOffset, generatingCount, m_LivingTime, m_GlobalMatrix43);*/
 	}
 }
 
@@ -1015,7 +997,8 @@ void Instance::Update(float deltaFrame, bool shown)
 
 			if (living_time <= (float)soundValues.delay && (float)soundValues.delay < living_time_p)
 			{
-				m_pEffectNode->PlaySound_(*this, m_pContainer->GetRootInstance(), m_pManager);
+				auto instanceGlobal = m_pContainer->GetRootInstance();
+				m_pEffectNode->PlaySound_(*this, instanceGlobal, instanceGlobal->GetUserData(), m_pManager);
 			}
 		}
 	}
@@ -1492,9 +1475,12 @@ void Instance::CalculateMatrix(float deltaFrame)
 			currentLocalPosition = localPosition;
 		}
 
-		currentLocalPosition += forceField_.ModifyLocation;
-		forceField_.ExternalVelocity = localVelocity;
-		forceField_.Update(m_pEffectNode->LocalForceField, currentLocalPosition, m_pEffectNode->GetEffect()->GetMaginification());
+		if (m_pEffectNode->LocalForceField.HasValue)
+		{
+			currentLocalPosition += forceField_.ModifyLocation;
+			forceField_.ExternalVelocity = localVelocity;
+			forceField_.Update(m_pEffectNode->LocalForceField, currentLocalPosition, m_pEffectNode->GetEffect()->GetMaginification(), deltaFrame);		
+		}
 
 		/* 描画部分の更新 */
 		m_pEffectNode->UpdateRenderedInstance(*this, m_pManager);
@@ -1659,7 +1645,7 @@ void Instance::ApplyDynamicParameterToFixedScaling()
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-void Instance::Draw(Instance* next)
+void Instance::Draw(Instance* next, void* userData)
 {
 	assert(m_pEffectNode != nullptr);
 
@@ -1671,7 +1657,7 @@ void Instance::Draw(Instance* next)
 		CalculateMatrix(0);
 	}
 
-	m_pEffectNode->Rendering(*this, next, m_pManager);
+	m_pEffectNode->Rendering(*this, next, m_pManager, userData);
 }
 
 //----------------------------------------------------------------------------------

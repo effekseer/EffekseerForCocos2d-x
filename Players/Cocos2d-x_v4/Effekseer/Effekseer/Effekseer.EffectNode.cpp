@@ -675,17 +675,31 @@ void EffectNodeImplemented::LoadParameter(unsigned char*& pos, EffectNode* paren
 			RendererCommon.reset();
 		}
 
-		if (m_effect->GetVersion() >= 1600)
+		if (m_effect->GetVersion() >= Version16Alpha1)
 		{
-			AlphaCutoff.load(pos, m_effect->GetVersion());
-			RendererCommon.BasicParameter.EdgeThreshold = AlphaCutoff.EdgeThreshold;
-			RendererCommon.BasicParameter.EdgeColor[0] = AlphaCutoff.EdgeColor.R;
-			RendererCommon.BasicParameter.EdgeColor[1] = AlphaCutoff.EdgeColor.G;
-			RendererCommon.BasicParameter.EdgeColor[2] = AlphaCutoff.EdgeColor.B;
-			RendererCommon.BasicParameter.EdgeColor[3] = AlphaCutoff.EdgeColor.A;
-			RendererCommon.BasicParameter.EdgeColorScaling = AlphaCutoff.EdgeColorScaling;
+			bool alphaCutoffEnabled = true;
 
-			RendererCommon.BasicParameter.IsAlphaCutoffEnabled = AlphaCutoff.Type != ParameterAlphaCutoff::EType::FIXED || AlphaCutoff.Fixed.Threshold != 0.0f;
+			if (m_effect->GetVersion() >= Version16Alpha6)
+			{
+				int32_t AlphaCutoffFlag = 0;
+				memcpy(&AlphaCutoffFlag, pos, sizeof(int));
+				pos += sizeof(int);
+				alphaCutoffEnabled = (AlphaCutoffFlag == 1);
+			}
+			RendererCommon.BasicParameter.IsAlphaCutoffEnabled = alphaCutoffEnabled;
+
+			if (alphaCutoffEnabled)
+			{
+				AlphaCutoff.load(pos, m_effect->GetVersion());
+				RendererCommon.BasicParameter.EdgeThreshold = AlphaCutoff.EdgeThreshold;
+				RendererCommon.BasicParameter.EdgeColor[0] = AlphaCutoff.EdgeColor.R;
+				RendererCommon.BasicParameter.EdgeColor[1] = AlphaCutoff.EdgeColor.G;
+				RendererCommon.BasicParameter.EdgeColor[2] = AlphaCutoff.EdgeColor.B;
+				RendererCommon.BasicParameter.EdgeColor[3] = AlphaCutoff.EdgeColor.A;
+				RendererCommon.BasicParameter.EdgeColorScaling = AlphaCutoff.EdgeColorScaling;
+
+				RendererCommon.BasicParameter.IsAlphaCutoffEnabled = AlphaCutoff.Type != ParameterAlphaCutoff::EType::FIXED || AlphaCutoff.Fixed.Threshold != 0.0f;
+			}
 		}
 
 		if (m_effect->GetVersion() >= Version16Alpha3)
@@ -834,6 +848,8 @@ EffectNode* EffectNodeImplemented::GetChild(int index) const
 EffectBasicRenderParameter EffectNodeImplemented::GetBasicRenderParameter()
 {
 	EffectBasicRenderParameter param;
+	param.MaterialIndex = RendererCommon.MaterialData.MaterialIndex;
+
 	param.ColorTextureIndex = RendererCommon.ColorTextureIndex;
 	param.AlphaTextureIndex = RendererCommon.AlphaTextureIndex;
 	param.AlphaTexWrapType = RendererCommon.WrapTypes[2];
@@ -912,6 +928,11 @@ EffectBasicRenderParameter EffectNodeImplemented::GetBasicRenderParameter()
 	param.WrapType = RendererCommon.WrapTypes[0];
 	param.ZTest = RendererCommon.ZTest;
 	param.ZWrite = RendererCommon.ZWrite;
+
+	param.SoftParticleDistanceFar = RendererCommon.BasicParameter.SoftParticleDistanceFar;
+	param.SoftParticleDistanceNear = RendererCommon.BasicParameter.SoftParticleDistanceNear;
+	param.SoftParticleDistanceNearOffset = RendererCommon.BasicParameter.SoftParticleDistanceNearOffset;
+
 	return param;
 }
 
@@ -978,32 +999,32 @@ void EffectNodeImplemented::LoadRendererParameter(unsigned char*& pos, const Set
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-void EffectNodeImplemented::BeginRendering(int32_t count, Manager* manager)
+void EffectNodeImplemented::BeginRendering(int32_t count, Manager* manager, void* userData)
 {
 }
 
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-void EffectNodeImplemented::BeginRenderingGroup(InstanceGroup* group, Manager* manager)
+void EffectNodeImplemented::BeginRenderingGroup(InstanceGroup* group, Manager* manager, void* userData)
 {
 }
 
-void EffectNodeImplemented::EndRenderingGroup(InstanceGroup* group, Manager* manager)
-{
-}
-
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-void EffectNodeImplemented::Rendering(const Instance& instance, const Instance* next_instance, Manager* manager)
+void EffectNodeImplemented::EndRenderingGroup(InstanceGroup* group, Manager* manager, void* userData)
 {
 }
 
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-void EffectNodeImplemented::EndRendering(Manager* manager)
+void EffectNodeImplemented::Rendering(const Instance& instance, const Instance* next_instance, Manager* manager, void* userData)
+{
+}
+
+//----------------------------------------------------------------------------------
+//
+//----------------------------------------------------------------------------------
+void EffectNodeImplemented::EndRendering(Manager* manager, void* userData)
 {
 }
 
@@ -1062,7 +1083,7 @@ float EffectNodeImplemented::GetFadeAlpha(const Instance& instance)
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-void EffectNodeImplemented::PlaySound_(Instance& instance, SoundTag tag, Manager* manager)
+void EffectNodeImplemented::PlaySound_(Instance& instance, SoundTag tag, void* userData, Manager* manager)
 {
 	IRandObject& rand = instance.GetRandObject();
 
@@ -1083,6 +1104,7 @@ void EffectNodeImplemented::PlaySound_(Instance& instance, SoundTag tag, Manager
 		parameter.Mode3D = (Sound.PanType == ParameterSoundPanType_3D);
 		parameter.Position = ToStruct(instance.GetGlobalMatrix43().GetTranslation());
 		parameter.Distance = Sound.Distance;
+		parameter.UserData = userData;
 
 		player->Play(tag, parameter);
 	}

@@ -129,7 +129,14 @@ public:
 			return 0.0f;
 		}
 
-		return power / powf(distance - fffc.MinDistance, fffc.Power);
+		const auto deg = powf(distance - fffc.MinDistance + 1.0f, fffc.Power);
+
+		if (deg == 0.0f)
+		{
+			return power;
+		}
+
+		return power / deg;
 	}
 
 	//! Tube
@@ -146,7 +153,7 @@ public:
 			return 0.0f;
 		}
 
-		if (distance < fffc.MinDistance)
+		if (distance <= fffc.MinDistance)
 		{
 			return 0.0f;
 		}
@@ -167,7 +174,14 @@ public:
 			return 0.0f;
 		}
 
-		return power / powf(distance, fffc.Power) / powf(tubeRadius - ffft.MinRadius, ffft.RadiusPower);
+		const auto deg = powf(distance+ 1.0f, fffc.Power) * powf(tubeRadius - ffft.MinRadius + 1.0f, ffft.RadiusPower);
+
+		if (deg == 0.0f)
+		{
+			return power;
+		}
+
+		return power / deg;
 	}
 
 	float GetPower(float power,
@@ -182,7 +196,7 @@ public:
 			return 0.0f;
 		}
 
-		if (distance < fffc.MinDistance)
+		if (distance <= fffc.MinDistance)
 		{
 			return 0.0f;
 		}
@@ -205,7 +219,10 @@ public:
 		}
 
 		const auto e = 0.000001f;
-		return power / powf(distance, fffc.Power) / powf((angle - ffft.MinAngle) / (ffft.MaxAngle - ffft.MinAngle + e), ffft.AnglePower);
+
+		const auto deg = powf(distance + 1.0f, fffc.Power) * powf((angle - ffft.MinAngle) / (ffft.MaxAngle - ffft.MinAngle + e) + 1.0f, ffft.AnglePower);
+
+		return power / deg;
 	}
 };
 
@@ -227,7 +244,7 @@ public:
 			return dir * ffp.Power / distance;
 		}
 
-		return dir * ffp.Power;
+		return dir * ffp.Power * ffc.DeltaFrame;
 	}
 
 	/**
@@ -236,7 +253,7 @@ public:
 	SIMD::Vec3f GetAcceleration(const ForceFieldCommonParameter& ffc, const ForceFieldWindParameter& ffp)
 	{
 		auto dir = SIMD::Vec3f(0, 1, 0);
-		return dir * ffp.Power;
+		return dir * ffp.Power * ffc.DeltaFrame;
 	}
 
 	/**
@@ -272,7 +289,7 @@ public:
 
 		auto xlen = power / distance * (power / 2.0f);
 		auto flen = sqrt(power * power - xlen * xlen);
-		return (front * flen - localPos * xlen) * direction - ffc.PreviousVelocity;
+		return ((front * flen - localPos * xlen) * direction - ffc.PreviousVelocity) * ffc.DeltaFrame;
 	}
 
 	/**
@@ -291,11 +308,11 @@ public:
 		}
 		else if (ffp.LightNoise != nullptr)
 		{
-			vel = ffp.LightNoise->Get(localPos) * ffp.Power * LightNoisePowerScale;		
+			vel = ffp.LightNoise->Get(localPos) * ffp.Power * LightNoisePowerScale;
 		}
 
 		auto acc = vel - ffc.PreviousVelocity;
-		return acc;
+		return acc * ffc.DeltaFrame;
 	}
 
 	/**
@@ -303,12 +320,12 @@ public:
 	*/
 	SIMD::Vec3f GetAcceleration(const ForceFieldCommonParameter& ffc, const ForceFieldDragParameter& ffp)
 	{
-		return -ffc.PreviousSumVelocity * ffp.Power;
+		return -ffc.PreviousSumVelocity * ffp.Power * ffc.DeltaFrame;
 	}
 
 	SIMD::Vec3f GetAcceleration(const ForceFieldCommonParameter& ffc, const ForceFieldGravityParameter& ffp)
 	{
-		return ffp.Gravity;
+		return ffp.Gravity * ffc.DeltaFrame;
 	}
 
 	SIMD::Vec3f GetAcceleration(const ForceFieldCommonParameter& ffc, const ForceFieldAttractiveForceParameter& ffp)
@@ -423,7 +440,7 @@ struct LocalForceFieldInstance
 	SIMD::Vec3f GlobalVelocitySum;
 	SIMD::Vec3f GlobalModifyLocation;
 
-	void Update(const LocalForceFieldParameter& parameter, const SIMD::Vec3f& location, float magnification);
+	void Update(const LocalForceFieldParameter& parameter, const SIMD::Vec3f& location, float magnification, float deltaFrame);
 
 	void UpdateGlobal(const LocalForceFieldParameter& parameter, const SIMD::Vec3f& location, float magnification, const SIMD::Vec3f& targetPosition, float deltaTime);
 

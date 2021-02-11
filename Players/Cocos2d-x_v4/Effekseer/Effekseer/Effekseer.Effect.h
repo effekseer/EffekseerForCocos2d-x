@@ -499,6 +499,13 @@ public:
 
 	/**
 		@brief
+		\~English set a model data into specified index
+		\~Japanese	指定されたインデックスにカーブを設定する。
+	*/
+	virtual void SetProcedualModel(int32_t index, ModelRef data) = 0;
+
+	/**
+		@brief
 		\~English	Reload this effect
 		\~Japanese	エフェクトのリロードを行う。
 		@param	managers
@@ -606,6 +613,8 @@ public:
 */
 struct EffectBasicRenderParameter
 {
+	int32_t MaterialIndex = -1;
+
 	int32_t ColorTextureIndex;
 
 	int32_t AlphaTextureIndex;
@@ -664,6 +673,10 @@ struct EffectBasicRenderParameter
 	bool ZTest;
 	bool Distortion;
 	float DistortionIntensity;
+
+	float SoftParticleDistanceFar = 0.0f;
+	float SoftParticleDistanceNear = 0.0f;
+	float SoftParticleDistanceNearOffset = 0.0f;
 };
 
 /**

@@ -104,7 +104,7 @@ class EffectImplemented : public Effect, public ReferenceObject
 	friend class EffectFactory;
 	friend class Instance;
 
-	static const int32_t SupportBinaryVersion = Version16Alpha5;
+	static const int32_t SupportBinaryVersion = Version16Alpha8;
 
 protected:
 	SettingRef m_setting;
@@ -297,6 +297,8 @@ public:
 	void SetMaterial(int32_t index, MaterialRef data) override;
 
 	void SetCurve(int32_t index, CurveRef data) override;
+
+	void SetProcedualModel(int32_t index, ModelRef data) override;
 
 	bool Reload(ManagerRef* managers,
 				int32_t managersCount,

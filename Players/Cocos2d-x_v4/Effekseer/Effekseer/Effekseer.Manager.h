@@ -620,6 +620,13 @@ public:
 	virtual void SetAutoDrawing(Handle handle, bool autoDraw) = 0;
 
 	/**
+		@brief
+		\~English	Specify a user pointer for custom renderer and custom sound player
+		\~Japanese	ハンドルごとにカスタムレンダラーやカスタムサウンド向けにユーザーポインタを設定する。
+	*/
+	virtual void SetUserData(Handle handle, void* userData) = 0;
+
+	/**
 		@brief	今までのPlay等の処理をUpdate実行時に適用するようにする。
 	*/
 	virtual void Flip() = 0;
@@ -809,6 +816,26 @@ public:
 		@brief	現在存在するエフェクトのハンドルからカリングの空間を配置しなおす。
 	*/
 	virtual void RessignCulling() = 0;
+
+	/**
+		@brief
+		\~English	Lock rendering events
+		\~Japanese	レンダリングのイベントをロックする。
+		@note
+		\~English	I recommend to read internal codes.
+		\~Japanese	内部コードを読むことを勧めます。
+	*/
+	virtual void LockRendering() = 0;
+
+	/**
+		@brief
+		\~English	Unlock rendering events
+		\~Japanese	レンダリングのイベントをアンロックする。
+		@note
+		\~English	I recommend to read internal codes.
+		\~Japanese	内部コードを読むことを勧めます。
+	*/
+	virtual void UnlockRendering() = 0;
 
 	virtual ManagerImplemented* GetImplemented() = 0;
 };

@@ -3,6 +3,7 @@
 //
 //----------------------------------------------------------------------------------
 #include "Effekseer.Effect.h"
+#include "Backend/GraphicsDevice.h"
 #include "Effekseer.CurveLoader.h"
 #include "Effekseer.DefaultEffectLoader.h"
 #include "Effekseer.EffectImplemented.h"
@@ -11,12 +12,11 @@
 #include "Effekseer.Manager.h"
 #include "Effekseer.ManagerImplemented.h"
 #include "Effekseer.MaterialLoader.h"
+#include "Effekseer.Resource.h"
+#include "Effekseer.ResourceManager.h"
 #include "Effekseer.Setting.h"
 #include "Effekseer.SoundLoader.h"
 #include "Effekseer.TextureLoader.h"
-#include "Effekseer.ResourceManager.h"
-#include "Backend/GraphicsDevice.h"
-#include "Effekseer.Resource.h"
 #include "Model/Model.h"
 #include "Model/ModelLoader.h"
 #include "Model/ProcedualModelGenerator.h"
@@ -308,7 +308,7 @@ void EffectFactory::OnUnloadingResource(Effect* effect)
 		resourceMgr->UnloadSoundData(effect->GetWave(i));
 		SetSound(effect, i, nullptr);
 	}
-	\
+
 	for (auto i = 0; i < effect->GetModelCount(); i++)
 	{
 		resourceMgr->UnloadModel(effect->GetModel(i));
@@ -541,6 +541,50 @@ bool EffectImplemented::LoadBody(const uint8_t* data, int32_t size, float mag)
 		}
 	}
 
+	const auto loadCurves = [&]() -> void {
+		// curve
+		int32_t curveCount = 0;
+		binaryReader.Read(curveCount, 0, elementCountMax);
+
+		if (curveCount > 0)
+		{
+			curvePaths_.resize(curveCount);
+			curves_.resize(curveCount);
+
+			for (int i = 0; i < curveCount; i++)
+			{
+				int length = 0;
+				binaryReader.Read(length, 0, elementCountMax);
+
+				curvePaths_[i].reset(new char16_t[length]);
+				binaryReader.Read(curvePaths_[i].get(), length);
+			}
+		}
+	};
+
+	const auto loadProcedualModels = [&]() -> void {
+		// curve
+		int32_t pmCount = 0;
+
+		binaryReader.Read(pmCount, 0, elementCountMax);
+
+		procedualModelParameters_.resize(pmCount);
+		procedualModels_.resize(pmCount);
+
+		for (int32_t i = 0; i < pmCount; i++)
+		{
+			procedualModelParameters_[i].Load(binaryReader);
+			procedualModels_[i] = nullptr;
+		}
+	};
+
+	if (Version16Alpha8 <= m_version)
+	{
+		loadCurves();
+
+		loadProcedualModels();
+	}
+
 	if (m_version >= 14)
 	{
 		// inputs
@@ -584,40 +628,11 @@ bool EffectImplemented::LoadBody(const uint8_t* data, int32_t size, float mag)
 		defaultDynamicInputs.fill(0);
 	}
 
-	if (m_version >= Version16Alpha1)
+	if (Version16Alpha8 > m_version && m_version >= Version16Alpha1)
 	{
-		// curve
-		int32_t curveCount = 0;
-		binaryReader.Read(curveCount, 0, elementCountMax);
+		loadCurves();
 
-		if (curveCount > 0)
-		{
-			curvePaths_.resize(curveCount);
-			curves_.resize(curveCount);
-
-			for (int i = 0; i < curveCount; i++)
-			{
-				int length = 0;
-				binaryReader.Read(length, 0, elementCountMax);
-
-				curvePaths_[i].reset(new char16_t[length]);
-				binaryReader.Read(curvePaths_[i].get(), length);
-			}
-		}
-
-		// procedual material
-		int32_t pmCount = 0;
-
-		binaryReader.Read(pmCount, 0, elementCountMax);
-
-		procedualModelParameters_.resize(pmCount);
-		procedualModels_.resize(pmCount);
-
-		for (int32_t i = 0; i < pmCount; i++)
-		{
-			procedualModelParameters_[i].Load(binaryReader);
-			procedualModels_[i] = nullptr;
-		}
+		loadProcedualModels();
 	}
 
 	if (m_version >= 13)
@@ -1124,7 +1139,7 @@ CurveRef EffectImplemented::GetCurve(int n) const
 	{
 		return nullptr;
 	}
-	
+
 	return curves_[n];
 }
 
@@ -1139,7 +1154,7 @@ const char16_t* EffectImplemented::GetCurvePath(int n) const
 	{
 		return nullptr;
 	}
-	
+
 	return curvePaths_[n].get();
 }
 
@@ -1236,6 +1251,14 @@ void EffectImplemented::SetCurve(int32_t index, CurveRef data)
 	assert(0 <= index && index < curves_.size());
 	resourceMgr->UnloadCurve(curves_[index]);
 	curves_[index] = data;
+}
+
+void EffectImplemented::SetProcedualModel(int32_t index, ModelRef data)
+{
+	auto resourceMgr = GetSetting()->GetResourceManager();
+	assert(0 <= index && index < procedualModels_.size());
+	resourceMgr->UngenerateProcedualModel(procedualModels_[index]);
+	procedualModels_[index] = data;
 }
 
 bool EffectImplemented::Reload(ManagerRef* managers,
