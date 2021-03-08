@@ -9,14 +9,13 @@
 namespace LLGI
 {
 
-DescriptorPoolVulkan::DescriptorPoolVulkan(std::shared_ptr<GraphicsVulkan> graphics, int32_t size, int stage)
-	: graphics_(graphics), slotSizeMax_(size)
+DescriptorPoolVulkan::DescriptorPoolVulkan(std::shared_ptr<GraphicsVulkan> graphics, int32_t size, int stage) : graphics_(graphics)
 {
 	std::array<vk::DescriptorPoolSize, 3> poolSizes;
 	poolSizes[0].type = vk::DescriptorType::eUniformBufferDynamic;
 	poolSizes[0].descriptorCount = size * stage;
 	poolSizes[1].type = vk::DescriptorType::eCombinedImageSampler;
-	poolSizes[1].descriptorCount = size * stage * TextureSlotMax;
+	poolSizes[1].descriptorCount = size * stage;
 
 	vk::DescriptorPoolCreateInfo poolInfo;
 	poolInfo.poolSizeCount = 2;
@@ -41,12 +40,6 @@ const std::vector<vk::DescriptorSet>& DescriptorPoolVulkan::Get(PipelineStateVul
 	{
 		offset++;
 		return cache[offset - 1];
-	}
-
-	if (offset >= slotSizeMax_)
-	{
-		Log(LogType::Warning, "Lack of allocated memory.");
-		return dummySet_;
 	}
 
 	// TODO : improve it
@@ -248,11 +241,7 @@ void CommandListVulkan::Draw(int32_t primitiveCount, int32_t instanceCount)
 
 	auto& dp = descriptorPools[currentSwapBufferIndex_];
 
-	const auto& descriptorSets = dp->Get(pip);
-	if (descriptorSets.size() == 0)
-	{
-		return;
-	}
+	std::vector<vk::DescriptorSet> descriptorSets = dp->Get(pip);
 	/*
 	vk::DescriptorSetAllocateInfo allocateInfo;
 	allocateInfo.descriptorPool = descriptorPool;

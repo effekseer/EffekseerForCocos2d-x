@@ -237,8 +237,9 @@ void InstanceContainer::Draw(bool recursive)
 			}
 		}
 
-		if (count > 0 && m_pEffectNode->IsRendered)
+		if (count > 0)
 		{
+			/* 描画 */
 			m_pEffectNode->BeginRendering(count, m_pManager);
 
 			for (InstanceGroup* group = m_headGroups; group != NULL; group = group->NextUsedByContainer)
