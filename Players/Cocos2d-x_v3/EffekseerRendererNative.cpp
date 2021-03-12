@@ -4368,7 +4368,12 @@ MaterialLoader ::~MaterialLoader()
 
 		// compiled
 		Effekseer::Material material;
-		material.Load((const uint8_t*)compiled.GetOriginalData().data(), static_cast<int32_t>(compiled.GetOriginalData().size()));
+		if(!material.Load((const uint8_t*)compiled.GetOriginalData().data(), static_cast<int32_t>(compiled.GetOriginalData().size())))
+		{
+			std::cout << "Error : Invalid material is loaded." << std::endl;
+			return nullptr;
+		}
+
 		auto binary = compiled.GetBinary(::Effekseer::CompiledMaterialPlatformType::OpenGL);
 
 		return LoadAcutually(material, binary);
@@ -4379,7 +4384,9 @@ MaterialLoader ::~MaterialLoader()
 		if (!material.Load((const uint8_t*)data, size))
 		{
 			std::cout << "Error : Invalid material is loaded." << std::endl;
+			return nullptr;
 		}
+
 		auto compiler = ::Effekseer::CreateUniqueReference(new Effekseer::MaterialCompilerGL());
 		auto binary = ::Effekseer::CreateUniqueReference(compiler->Compile(&material));
 

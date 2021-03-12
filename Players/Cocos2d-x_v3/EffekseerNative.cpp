@@ -464,6 +464,17 @@ bool Material::Load(const uint8_t* data, int32_t size)
 	memcpy(&version, data + offset, 4);
 	offset += sizeof(int);
 
+	if (version < OldestSupportVersion)
+	{
+		return false;
+	}
+
+	// Too new
+	if (version > LatestSupportVersion)
+	{
+		return false;
+	}
+
 	memcpy(&guid_, data + offset, 8);
 	offset += sizeof(uint64_t);
 
@@ -862,8 +873,14 @@ bool CompiledMaterial::Load(const uint8_t* data, int32_t size)
 	memcpy(&version, data + offset, 4);
 	offset += sizeof(int);
 
-	// bacause of camera position node, structure of uniform is changed
-	if (version == 0)
+	// bacause of camera position node, structure of uniform is changed, etc
+	if (version < OldestSupportVersion)
+	{
+		return false;
+	}
+
+	// Too new
+	if (version > LatestSupportVersion)
 	{
 		return false;
 	}
@@ -20191,14 +20208,7 @@ RectF Instance::GetUV() const
 	}
 	else if (m_pEffectNode->RendererCommon.UVType == ParameterRendererCommon::UV_ANIMATION)
 	{
-		auto offset = uvTimeOffset;
-		if (offset > std::numeric_limits<int32_t>::max() / 1000)
-		{
-			const auto allFrameLength = m_pEffectNode->RendererCommon.UV.Animation.FrameCountX * m_pEffectNode->RendererCommon.UV.Animation.FrameCountY * m_pEffectNode->RendererCommon.UV.Animation.FrameLength;
-			offset -= allFrameLength * (std::numeric_limits<int32_t>::max() / 1000 / allFrameLength);
-		}
-
-		auto time = m_LivingTime + offset;
+		auto time = m_LivingTime + uvTimeOffset;
 
 		int32_t frameNum = (int32_t)(time / m_pEffectNode->RendererCommon.UV.Animation.FrameLength);
 		int32_t frameCount = m_pEffectNode->RendererCommon.UV.Animation.FrameCountX * m_pEffectNode->RendererCommon.UV.Animation.FrameCountY;
