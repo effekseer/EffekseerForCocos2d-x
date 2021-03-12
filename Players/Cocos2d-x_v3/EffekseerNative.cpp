@@ -9642,6 +9642,10 @@ public:
 	{
 		return ReferenceObject::Release();
 	}
+
+	void LockRendering() override;
+
+	void UnlockRendering() override;
 };
 
 } // namespace Effekseer
@@ -16153,7 +16157,6 @@ void ManagerImplemented::GCDrawSet(bool isRemovingManager)
 
 			if (m_cullingWorld != NULL && drawset.CullingObjectPointer != nullptr)
 			{
-				m_cullingWorld->RemoveObject(drawset.CullingObjectPointer);
 				Culling3D::SafeRelease(drawset.CullingObjectPointer);
 			}
 
@@ -16193,6 +16196,11 @@ void ManagerImplemented::GCDrawSet(bool isRemovingManager)
 				{
 					(*it).second.RemovingCallback(this, (*it).first, isRemovingManager);
 				}
+                
+                		if (m_cullingWorld != NULL && (*it).second.CullingObjectPointer != nullptr)
+                		{
+                    			m_cullingWorld->RemoveObject((*it).second.CullingObjectPointer);
+                		}
 
 				m_RemovingDrawSets[0][(*it).first] = (*it).second;
 				m_DrawSets.erase(it++);
@@ -18011,7 +18019,7 @@ void ManagerImplemented::CalcCulling(const Matrix44& cameraProjMat, bool isOpenG
 	}
 
 	// sort with handle
-	std::sort(m_culledObjects.begin(), m_culledObjects.end(), [](DrawSet* const& lhs, DrawSet* const& rhs) { return lhs->Self > rhs->Self; });
+	std::sort(m_culledObjects.begin(), m_culledObjects.end(), [](DrawSet* const& lhs, DrawSet* const& rhs) { return lhs->Self < rhs->Self; });
 
 	m_culled = true;
 }
@@ -18025,6 +18033,16 @@ void ManagerImplemented::RessignCulling()
 	m_culledObjectSets.clear();
 
 	m_cullingWorld->Reassign();
+}
+
+void ManagerImplemented::LockRendering()
+{
+	m_renderingMutex.lock();
+}
+
+void ManagerImplemented::UnlockRendering()
+{
+	m_renderingMutex.unlock();
 }
 
 } // namespace Effekseer
@@ -18275,9 +18293,8 @@ void InstanceContainer::Draw(bool recursive)
 			}
 		}
 
-		if (count > 0)
+		if (count > 0 && m_pEffectNode->IsRendered)
 		{
-			/* 描画 */
 			m_pEffectNode->BeginRendering(count, m_pManager);
 
 			for (InstanceGroup* group = m_headGroups; group != NULL; group = group->NextUsedByContainer)
@@ -20063,7 +20080,8 @@ RectF Instance::GetUV(const int32_t index) const
 		// Avoid overflow
 		if(uvTimeOffset > std::numeric_limits<int32_t>::max() / 1000)
 		{
-			uvTimeOffset = std::numeric_limits<int32_t>::max() / 1000;
+			const auto allFrameLength = UV.Animation.FrameCountX * UV.Animation.FrameCountY * UV.Animation.FrameLength;
+			uvTimeOffset -= allFrameLength * (std::numeric_limits<int32_t>::max() / 1000 / allFrameLength);
 		}
 
 		auto time = m_LivingTime + uvTimeOffset;
@@ -20173,7 +20191,14 @@ RectF Instance::GetUV() const
 	}
 	else if (m_pEffectNode->RendererCommon.UVType == ParameterRendererCommon::UV_ANIMATION)
 	{
-		auto time = m_LivingTime + uvTimeOffset;
+		auto offset = uvTimeOffset;
+		if (offset > std::numeric_limits<int32_t>::max() / 1000)
+		{
+			const auto allFrameLength = m_pEffectNode->RendererCommon.UV.Animation.FrameCountX * m_pEffectNode->RendererCommon.UV.Animation.FrameCountY * m_pEffectNode->RendererCommon.UV.Animation.FrameLength;
+			offset -= allFrameLength * (std::numeric_limits<int32_t>::max() / 1000 / allFrameLength);
+		}
+
+		auto time = m_LivingTime + offset;
 
 		int32_t frameNum = (int32_t)(time / m_pEffectNode->RendererCommon.UV.Animation.FrameLength);
 		int32_t frameCount = m_pEffectNode->RendererCommon.UV.Animation.FrameCountX * m_pEffectNode->RendererCommon.UV.Animation.FrameCountY;

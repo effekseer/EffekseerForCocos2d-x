@@ -1686,7 +1686,8 @@ RectF Instance::GetUV(const int32_t index) const
 		// Avoid overflow
 		if(uvTimeOffset > std::numeric_limits<int32_t>::max() / 1000)
 		{
-			uvTimeOffset = std::numeric_limits<int32_t>::max() / 1000;
+			const auto allFrameLength = UV.Animation.FrameCountX * UV.Animation.FrameCountY * UV.Animation.FrameLength;
+			uvTimeOffset -= allFrameLength * (std::numeric_limits<int32_t>::max() / 1000 / allFrameLength);
 		}
 
 		auto time = m_LivingTime + uvTimeOffset;
@@ -1796,7 +1797,14 @@ RectF Instance::GetUV() const
 	}
 	else if (m_pEffectNode->RendererCommon.UVType == ParameterRendererCommon::UV_ANIMATION)
 	{
-		auto time = m_LivingTime + uvTimeOffset;
+		auto offset = uvTimeOffset;
+		if (offset > std::numeric_limits<int32_t>::max() / 1000)
+		{
+			const auto allFrameLength = m_pEffectNode->RendererCommon.UV.Animation.FrameCountX * m_pEffectNode->RendererCommon.UV.Animation.FrameCountY * m_pEffectNode->RendererCommon.UV.Animation.FrameLength;
+			offset -= allFrameLength * (std::numeric_limits<int32_t>::max() / 1000 / allFrameLength);
+		}
+
+		auto time = m_LivingTime + offset;
 
 		int32_t frameNum = (int32_t)(time / m_pEffectNode->RendererCommon.UV.Animation.FrameLength);
 		int32_t frameCount = m_pEffectNode->RendererCommon.UV.Animation.FrameCountX * m_pEffectNode->RendererCommon.UV.Animation.FrameCountY;

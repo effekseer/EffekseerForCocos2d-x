@@ -17,7 +17,7 @@ public:
 	void Initialize() override;
 	void Compile(CompilerResult& result, const char* code, ShaderStageType shaderStage) override;
 
-	DeviceType GetDeviceType() const override { return DeviceType::Default; }
+	DeviceType GetDeviceType() const override { return DeviceType::Vulkan; }
 };
 
 } // namespace LLGI

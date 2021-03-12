@@ -206,7 +206,6 @@ void ManagerImplemented::GCDrawSet(bool isRemovingManager)
 
 			if (m_cullingWorld != NULL && drawset.CullingObjectPointer != nullptr)
 			{
-				m_cullingWorld->RemoveObject(drawset.CullingObjectPointer);
 				Culling3D::SafeRelease(drawset.CullingObjectPointer);
 			}
 
@@ -246,6 +245,11 @@ void ManagerImplemented::GCDrawSet(bool isRemovingManager)
 				{
 					(*it).second.RemovingCallback(this, (*it).first, isRemovingManager);
 				}
+                
+                		if (m_cullingWorld != NULL && (*it).second.CullingObjectPointer != nullptr)
+                		{
+                    			m_cullingWorld->RemoveObject((*it).second.CullingObjectPointer);
+                		}
 
 				m_RemovingDrawSets[0][(*it).first] = (*it).second;
 				m_DrawSets.erase(it++);
@@ -2064,7 +2068,7 @@ void ManagerImplemented::CalcCulling(const Matrix44& cameraProjMat, bool isOpenG
 	}
 
 	// sort with handle
-	std::sort(m_culledObjects.begin(), m_culledObjects.end(), [](DrawSet* const& lhs, DrawSet* const& rhs) { return lhs->Self > rhs->Self; });
+	std::sort(m_culledObjects.begin(), m_culledObjects.end(), [](DrawSet* const& lhs, DrawSet* const& rhs) { return lhs->Self < rhs->Self; });
 
 	m_culled = true;
 }
@@ -2078,6 +2082,16 @@ void ManagerImplemented::RessignCulling()
 	m_culledObjectSets.clear();
 
 	m_cullingWorld->Reassign();
+}
+
+void ManagerImplemented::LockRendering()
+{
+	m_renderingMutex.lock();
+}
+
+void ManagerImplemented::UnlockRendering()
+{
+	m_renderingMutex.unlock();
 }
 
 } // namespace Effekseer
