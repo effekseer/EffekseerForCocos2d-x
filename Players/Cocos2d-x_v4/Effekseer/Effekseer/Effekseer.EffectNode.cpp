@@ -19,10 +19,12 @@
 #include "Effekseer.EffectNodeRing.h"
 #include "Effekseer.EffectNodeRoot.h"
 #include "Effekseer.EffectNodeSprite.h"
+#include "Effekseer.Resource.h"
 #include "Effekseer.Setting.h"
 #include "Sound/Effekseer.SoundPlayer.h"
 #include "Utils/Effekseer.BinaryReader.h"
-#include "Effekseer.Resource.h"
+
+#include "Utils/Compatiblity.h"
 
 //----------------------------------------------------------------------------------
 //
@@ -373,9 +375,11 @@ void EffectNodeImplemented::LoadParameter(unsigned char*& pos, EffectNode* paren
 		{
 			memcpy(&size, pos, sizeof(int));
 			pos += sizeof(int);
-			assert(size == sizeof(ParameterRotationAxisEasing));
-			memcpy(&RotationAxisEasing, pos, size);
-			pos += size;
+
+			memcpy(&RotationAxisEasing.axis, pos, sizeof(RotationAxisEasing.axis));
+			pos += sizeof(RotationAxisEasing.axis);
+
+			LoadFloatEasing(RotationAxisEasing.easing, pos, m_effect->GetVersion());
 		}
 		else if (RotationType == ParameterRotationType_FCurve)
 		{
@@ -448,8 +452,8 @@ void EffectNodeImplemented::LoadParameter(unsigned char*& pos, EffectNode* paren
 		{
 			memcpy(&size, pos, sizeof(int));
 			pos += sizeof(int);
-			assert(size == sizeof(easing_float));
-			memcpy(&ScalingSingleEasing, pos, size);
+
+			ScalingSingleEasing.Load(pos, size, m_effect->GetVersion());
 			pos += size;
 		}
 		else if (ScalingType == ParameterScalingType_FCurve)
@@ -732,7 +736,7 @@ void EffectNodeImplemented::LoadParameter(unsigned char*& pos, EffectNode* paren
 
 		LoadRendererParameter(pos, m_effect->GetSetting());
 
-			// rescale intensity after 1.5
+		// rescale intensity after 1.5
 #ifndef __EFFEKSEER_FOR_UE4__ // Hack for EffekseerForUE4
 		RendererCommon.BasicParameter.DistortionIntensity *= m_effect->GetMaginification();
 		RendererCommon.DistortionIntensity *= m_effect->GetMaginification();
@@ -892,7 +896,7 @@ EffectBasicRenderParameter EffectNodeImplemented::GetBasicRenderParameter()
 
 	if (GetType() == eEffectNodeType::EFFECT_NODE_TYPE_MODEL)
 	{
-		EffectNodeModel* pNodeModel = reinterpret_cast<EffectNodeModel*>(this);
+		EffectNodeModel* pNodeModel = static_cast<EffectNodeModel*>(this);
 		param.EnableFalloff = pNodeModel->EnableFalloff;
 		param.FalloffParam.ColorBlendType = static_cast<int32_t>(pNodeModel->FalloffParam.ColorBlendType);
 		param.FalloffParam.BeginColor[0] = static_cast<float>(pNodeModel->FalloffParam.BeginColor.R) / 255.0f;
@@ -1038,14 +1042,14 @@ void EffectNodeImplemented::InitializeRenderedInstanceGroup(InstanceGroup& insta
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-void EffectNodeImplemented::InitializeRenderedInstance(Instance& instance, Manager* manager)
+void EffectNodeImplemented::InitializeRenderedInstance(Instance& instance, InstanceGroup& instanceGroup, Manager* manager)
 {
 }
 
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-void EffectNodeImplemented::UpdateRenderedInstance(Instance& instance, Manager* manager)
+void EffectNodeImplemented::UpdateRenderedInstance(Instance& instance, InstanceGroup& instanceGroup, Manager* manager)
 {
 }
 
@@ -1078,36 +1082,6 @@ float EffectNodeImplemented::GetFadeAlpha(const Instance& instance)
 	}
 
 	return Clamp(alpha, 1.0f, 0.0f);
-}
-
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-void EffectNodeImplemented::PlaySound_(Instance& instance, SoundTag tag, void* userData, Manager* manager)
-{
-	IRandObject& rand = instance.GetRandObject();
-
-	SoundPlayerRef player = manager->GetSoundPlayer();
-	if (player == nullptr)
-	{
-		return;
-	}
-
-	if (Sound.WaveId >= 0)
-	{
-		SoundPlayer::InstanceParameter parameter;
-		parameter.Data = m_effect->GetWave(Sound.WaveId);
-		parameter.Volume = Sound.Volume.getValue(rand);
-		parameter.Pitch = Sound.Pitch.getValue(rand);
-		parameter.Pan = Sound.Pan.getValue(rand);
-
-		parameter.Mode3D = (Sound.PanType == ParameterSoundPanType_3D);
-		parameter.Position = ToStruct(instance.GetGlobalMatrix43().GetTranslation());
-		parameter.Distance = Sound.Distance;
-		parameter.UserData = userData;
-
-		player->Play(tag, parameter);
-	}
 }
 
 EffectInstanceTerm EffectNodeImplemented::CalculateInstanceTerm(EffectInstanceTerm& parentTerm) const

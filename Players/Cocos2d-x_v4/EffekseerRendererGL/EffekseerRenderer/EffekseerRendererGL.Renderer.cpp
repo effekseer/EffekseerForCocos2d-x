@@ -28,17 +28,17 @@
 #endif
 
 #include "ShaderHeader/ad_model_distortion_ps.h"
-#include "ShaderHeader/ad_sprite_distortion_vs.h"
 #include "ShaderHeader/ad_model_lit_ps.h"
-#include "ShaderHeader/ad_sprite_lit_vs.h"
 #include "ShaderHeader/ad_model_unlit_ps.h"
+#include "ShaderHeader/ad_sprite_distortion_vs.h"
+#include "ShaderHeader/ad_sprite_lit_vs.h"
 #include "ShaderHeader/ad_sprite_unlit_vs.h"
 
 #include "ShaderHeader/model_distortion_ps.h"
-#include "ShaderHeader/sprite_distortion_vs.h"
 #include "ShaderHeader/model_lit_ps.h"
-#include "ShaderHeader/sprite_lit_vs.h"
 #include "ShaderHeader/model_unlit_ps.h"
+#include "ShaderHeader/sprite_distortion_vs.h"
+#include "ShaderHeader/sprite_lit_vs.h"
 #include "ShaderHeader/sprite_unlit_vs.h"
 
 #include "GraphicsDevice.h"
@@ -46,9 +46,9 @@
 namespace EffekseerRendererGL
 {
 
-::Effekseer::Backend::GraphicsDeviceRef CreateGraphicsDevice(OpenGLDeviceType deviceType)
+::Effekseer::Backend::GraphicsDeviceRef CreateGraphicsDevice(OpenGLDeviceType deviceType, bool isExtensionsEnabled)
 {
-	return Effekseer::MakeRefPtr<Backend::GraphicsDevice>(deviceType);
+	return Effekseer::MakeRefPtr<Backend::GraphicsDevice>(deviceType, isExtensionsEnabled);
 }
 
 ::Effekseer::TextureLoaderRef CreateTextureLoader(::Effekseer::FileInterface* fileInterface, ::Effekseer::ColorSpaceType colorSpaceType)
@@ -94,16 +94,27 @@ Effekseer::Backend::TextureRef CreateTexture(Effekseer::Backend::GraphicsDeviceR
 	return gd->CreateTexture(buffer, hasMipmap, onDisposed);
 }
 
-RendererRef Renderer::Create(int32_t squareMaxCount, OpenGLDeviceType deviceType)
+TextureProperty GetTextureProperty(::Effekseer::Backend::TextureRef texture)
 {
-	return Create(CreateGraphicsDevice(deviceType), squareMaxCount);
+	if (texture != nullptr)
+	{
+		auto t = texture.DownCast<Backend::Texture>();
+		return TextureProperty{t->GetBuffer()};
+	}
+	else
+	{
+		return TextureProperty{};
+	}
+}
+
+RendererRef Renderer::Create(int32_t squareMaxCount, OpenGLDeviceType deviceType, bool isExtensionsEnabled)
+{
+	return Create(CreateGraphicsDevice(deviceType, isExtensionsEnabled), squareMaxCount);
 }
 
 RendererRef Renderer::Create(Effekseer::Backend::GraphicsDeviceRef graphicsDevice, int32_t squareMaxCount)
 {
 	auto g = graphicsDevice.DownCast<Backend::GraphicsDevice>();
-
-	GLExt::Initialize(g->GetDeviceType());
 
 	auto renderer = ::Effekseer::MakeRefPtr<RendererImplemented>(squareMaxCount, g);
 	if (renderer->Initialize())
@@ -1227,6 +1238,9 @@ void AssignPixelConstantBuffer(Shader* shader)
 	shader->AddPixelConstantLayout(CONSTANT_TYPE_VECTOR4, shader->GetUniformId("CBPS0.reconstructionParam1"), psOffset);
 	psOffset += sizeof(float[4]) * 1;
 	shader->AddPixelConstantLayout(CONSTANT_TYPE_VECTOR4, shader->GetUniformId("CBPS0.reconstructionParam2"), psOffset);
+	psOffset += sizeof(float[4]) * 1;
+
+	shader->AddPixelConstantLayout(CONSTANT_TYPE_VECTOR4, shader->GetUniformId("CBPS0.mUVInversedBack"), psOffset);
 	psOffset += sizeof(float[4]) * 1;
 }
 

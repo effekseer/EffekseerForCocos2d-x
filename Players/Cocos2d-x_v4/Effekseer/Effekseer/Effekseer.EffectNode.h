@@ -20,6 +20,7 @@
 #include "Parameter/Easing.h"
 #include "Parameter/Effekseer.Parameters.h"
 #include "SIMD/Utils.h"
+#include "Utils/BinaryVersion.h"
 
 //----------------------------------------------------------------------------------
 //
@@ -53,7 +54,7 @@ bool operator==(const TranslationParentBindType& lhs, const BindType& rhs);
 enum class ModelReferenceType : int32_t
 {
 	File,
-	Procedual,
+	Procedural,
 };
 
 //----------------------------------------------------------------------------------
@@ -365,7 +366,7 @@ struct ParameterRotationAxisPVA
 struct ParameterRotationAxisEasing
 {
 	random_vector3d axis;
-	easing_float easing;
+	ParameterEasingFloat easing{Version16Alpha9, Version16Alpha9};
 };
 
 //----------------------------------------------------------------------------------
@@ -585,6 +586,7 @@ enum ParameterCustomDataType : int32_t
 	FCurve2D = 23,
 	Fixed4D = 40,
 	FCurveColor = 53,
+	DynamicInput = 60,
 	Unknown,
 };
 
@@ -679,6 +681,9 @@ struct ParameterCustomData
 		{
 			FCurveColor.Values = new FCurveVectorColor();
 			pos += FCurveColor.Values->Load(pos, version);
+		}
+		else if (Type == ParameterCustomDataType::DynamicInput)
+		{
 		}
 		else
 		{
@@ -1190,7 +1195,7 @@ struct ParameterRendererCommon
 		BasicParameter.AlphaBlend = AlphaBlend;
 		BasicParameter.TextureFilters = FilterTypes;
 		BasicParameter.TextureWraps = WrapTypes;
-		
+
 		BasicParameter.DistortionIntensity = DistortionIntensity;
 		BasicParameter.MaterialType = MaterialType;
 		BasicParameter.TextureIndexes[0] = ColorTextureIndex;
@@ -1267,7 +1272,7 @@ struct ParameterAlphaCutoff
 		random_float EndThreshold;
 	} FourPointInterpolation;
 
-	ParameterEasingFloat Easing;
+	ParameterEasingFloat Easing{Version16Alpha1, Version16Alpha1};
 
 	struct
 	{
@@ -1328,7 +1333,7 @@ struct ParameterAlphaCutoff
 		if (version >= Version16Alpha7)
 		{
 			memcpy(&EdgeColorScaling, pos, sizeof(float));
-			pos += sizeof(float);		
+			pos += sizeof(float);
 		}
 		else
 		{
@@ -1491,7 +1496,7 @@ public:
 	ParameterEasingSIMDVec3 ScalingEasing;
 	// ParameterScalingEasing ScalingEasing;
 	ParameterScalingSinglePVA ScalingSinglePVA;
-	easing_float ScalingSingleEasing;
+	ParameterEasingFloat ScalingSingleEasing{Version16Alpha9, Version16Alpha9};
 	FCurveVector3D* ScalingFCurve;
 	FCurveScalar* ScalingSingleFCurve = nullptr;
 
@@ -1561,22 +1566,17 @@ public:
 	/**
 	@brief	描画部分初期化
 	*/
-	virtual void InitializeRenderedInstance(Instance& instance, Manager* manager);
+	virtual void InitializeRenderedInstance(Instance& instance, InstanceGroup& instanceGroup, Manager* manager);
 
 	/**
 	@brief	描画部分更新
 	*/
-	virtual void UpdateRenderedInstance(Instance& instance, Manager* manager);
+	virtual void UpdateRenderedInstance(Instance& instance, InstanceGroup& instanceGroup, Manager* manager);
 
 	/**
 	@brief	描画部分更新
 	*/
 	virtual float GetFadeAlpha(const Instance& instance);
-
-	/**
-	@brief	サウンド再生
-	*/
-	virtual void PlaySound_(Instance& instance, SoundTag tag, void* userData, Manager* manager);
 
 	EffectInstanceTerm CalculateInstanceTerm(EffectInstanceTerm& parentTerm) const override;
 

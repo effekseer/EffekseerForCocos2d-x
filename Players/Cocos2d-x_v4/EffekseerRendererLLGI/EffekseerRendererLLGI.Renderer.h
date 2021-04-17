@@ -15,10 +15,6 @@
 namespace EffekseerRendererLLGI
 {
 
-::Effekseer::TextureLoaderRef CreateTextureLoader(::Effekseer::Backend::GraphicsDeviceRef graphicsDevice, ::Effekseer::FileInterface* fileInterface = nullptr);
-
-::Effekseer::ModelLoaderRef CreateModelLoader(::Effekseer::Backend::GraphicsDeviceRef graphicsDevice, ::Effekseer::FileInterface* fileInterface = nullptr);
-
 struct FixedShader
 {
 	std::vector<LLGI::DataStructure> SpriteUnlit_VS;
@@ -59,12 +55,6 @@ protected:
 
 public:
 	virtual LLGI::Graphics* GetGraphics() const = 0;
-
-	/**
-		@brief	\~English	Set background
-				\~Japanese	背景を設定する
-	*/
-	virtual void SetBackground(LLGI::Texture* background) = 0;
 };
 
 class SingleFrameMemoryPool : public ::EffekseerRenderer::SingleFrameMemoryPool, public ::Effekseer::ReferenceObject
@@ -107,12 +97,20 @@ public:
 	}
 };
 
+enum class CommandListState
+{
+	Wait,
+	Running,
+	RunningWithPlatformCommandList,
+};
+
 class CommandList : public ::EffekseerRenderer::CommandList, public ::Effekseer::ReferenceObject
 {
 private:
 	LLGI::Graphics* graphics_ = nullptr;
 	LLGI::CommandList* commandList_ = nullptr;
 	LLGI::SingleFrameMemoryPool* memoryPool_ = nullptr;
+	CommandListState state_ = CommandListState::Wait;
 
 public:
 	CommandList(LLGI::Graphics* graphics, LLGI::CommandList* commandList, LLGI::SingleFrameMemoryPool* memoryPool)
@@ -142,9 +140,19 @@ public:
 		return commandList_;
 	}
 
-	LLGI::SingleFrameMemoryPool* GetMemoryPooll()
+	LLGI::SingleFrameMemoryPool* GetMemoryPool()
 	{
 		return memoryPool_;
+	}
+
+	CommandListState GetState() const
+	{
+		return state_;
+	}
+
+	void SetState(CommandListState state)
+	{
+		state_ = state;
 	}
 
 	virtual int GetRef() override

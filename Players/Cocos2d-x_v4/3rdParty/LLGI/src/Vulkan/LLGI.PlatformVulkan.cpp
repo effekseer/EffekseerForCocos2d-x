@@ -312,7 +312,7 @@ bool PlatformVulkan::ValidateLayers(std::vector<const char*> requiredLayers, con
 		if (!std::any_of(
 				properties.begin(), properties.end(), [&](const VkLayerProperties& p) { return strcmp(p.layerName, requiredLayer) == 0; }))
 		{
-			Log(LogType::Info, std::string(requiredLayer) + " is not found.");
+			Log(LogType::Debug, std::string(requiredLayer) + " is not found.");
 			return false;
 		}
 	}
@@ -334,12 +334,25 @@ std::vector<const char*> PlatformVulkan::GetOptimalLayers(const std::vector<VkLa
 	{
 		if (ValidateLayers(layerGroup, properties))
 		{
+			std::stringstream ss;
+
+			for (const auto& layer : layerGroup)
+			{
+				ss << layer << ",";
+			}
+			Log(LogType::Info, ss.str() + " is found.");
 			return layerGroup;
 		}
 	}
 
 	// not found.
 	Log(LogType::Info, "Optimal layers are not found.");
+
+	for (const auto& prop : properties)
+	{
+		Log(LogType::Info, "Layer : " + std::string(prop.layerName));
+	}
+
 	return {};
 }
 

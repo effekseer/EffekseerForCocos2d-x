@@ -1,3 +1,4 @@
+#if !defined(__EMSCRIPTEN__)
 static const char model_unlit_ps_gl2[] = R"(
 #version 120
 #ifdef GL_ARB_shading_language_420pack
@@ -30,6 +31,7 @@ struct PS_ConstanBuffer
     vec4 softParticleParam;
     vec4 reconstructionParam1;
     vec4 reconstructionParam2;
+    vec4 mUVInversedBack;
 };
 
 uniform PS_ConstanBuffer CBPS0;
@@ -43,6 +45,8 @@ varying vec4 _VSPS_PosP;
 vec4 _main(PS_Input Input)
 {
     vec4 Output = texture2D(Sampler_sampler_colorTex, Input.UV) * Input.Color;
+    vec3 _45 = Output.xyz * CBPS0.fEmissiveScaling.x;
+    Output = vec4(_45.x, _45.y, _45.z, Output.w);
     if (Output.w == 0.0)
     {
         discard;
@@ -57,8 +61,8 @@ void main()
     Input.Color = _VSPS_Color;
     Input.UV = _VSPS_UV;
     Input.PosP = _VSPS_PosP;
-    vec4 _69 = _main(Input);
-    gl_FragData[0] = _69;
+    vec4 _83 = _main(Input);
+    gl_FragData[0] = _83;
 }
 
 )";
@@ -95,6 +99,7 @@ struct PS_ConstanBuffer
     vec4 softParticleParam;
     vec4 reconstructionParam1;
     vec4 reconstructionParam2;
+    vec4 mUVInversedBack;
 };
 
 uniform PS_ConstanBuffer CBPS0;
@@ -124,10 +129,13 @@ float SoftParticle(float backgroundZ, float meshZ, vec4 softparticleParam, vec4 
 vec4 _main(PS_Input Input)
 {
     vec4 Output = texture(Sampler_sampler_colorTex, Input.UV) * Input.Color;
+    vec3 _125 = Output.xyz * CBPS0.fEmissiveScaling.x;
+    Output = vec4(_125.x, _125.y, _125.z, Output.w);
     vec4 screenPos = Input.PosP / vec4(Input.PosP.w);
     vec2 screenUV = (screenPos.xy + vec2(1.0)) / vec2(2.0);
     screenUV.y = 1.0 - screenUV.y;
     screenUV.y = 1.0 - screenUV.y;
+    screenUV.y = CBPS0.mUVInversedBack.x + (CBPS0.mUVInversedBack.y * screenUV.y);
     if (!(CBPS0.softParticleParam.w == 0.0))
     {
         float backgroundZ = texture(Sampler_sampler_depthTex, screenUV).x;
@@ -152,11 +160,13 @@ void main()
     Input.Color = _VSPS_Color;
     Input.UV = _VSPS_UV;
     Input.PosP = _VSPS_PosP;
-    vec4 _208 = _main(Input);
-    _entryPointOutput = _208;
+    vec4 _227 = _main(Input);
+    _entryPointOutput = _227;
 }
 
 )";
+
+#endif
 
 static const char model_unlit_ps_gles2[] = R"(
 
@@ -189,6 +199,7 @@ struct PS_ConstanBuffer
     highp vec4 softParticleParam;
     highp vec4 reconstructionParam1;
     highp vec4 reconstructionParam2;
+    highp vec4 mUVInversedBack;
 };
 
 uniform PS_ConstanBuffer CBPS0;
@@ -202,6 +213,8 @@ varying  vec4 _VSPS_PosP;
 highp vec4 _main(PS_Input Input)
 {
     highp vec4 Output = texture2D(Sampler_sampler_colorTex, Input.UV) * Input.Color;
+    highp vec3 _45 = Output.xyz * CBPS0.fEmissiveScaling.x;
+    Output = vec4(_45.x, _45.y, _45.z, Output.w);
     if (Output.w == 0.0)
     {
         discard;
@@ -216,8 +229,8 @@ void main()
     Input.Color = _VSPS_Color;
     Input.UV = _VSPS_UV;
     Input.PosP = _VSPS_PosP;
-    highp vec4 _69 = _main(Input);
-    gl_FragData[0] = _69;
+    highp vec4 _83 = _main(Input);
+    gl_FragData[0] = _83;
 }
 
 )";
@@ -253,6 +266,7 @@ struct PS_ConstanBuffer
     highp vec4 softParticleParam;
     highp vec4 reconstructionParam1;
     highp vec4 reconstructionParam2;
+    highp vec4 mUVInversedBack;
 };
 
 uniform PS_ConstanBuffer CBPS0;
@@ -282,10 +296,13 @@ highp float SoftParticle(highp float backgroundZ, highp float meshZ, highp vec4 
 highp vec4 _main(PS_Input Input)
 {
     highp vec4 Output = texture(Sampler_sampler_colorTex, Input.UV) * Input.Color;
+    highp vec3 _125 = Output.xyz * CBPS0.fEmissiveScaling.x;
+    Output = vec4(_125.x, _125.y, _125.z, Output.w);
     highp vec4 screenPos = Input.PosP / vec4(Input.PosP.w);
     highp vec2 screenUV = (screenPos.xy + vec2(1.0)) / vec2(2.0);
     screenUV.y = 1.0 - screenUV.y;
     screenUV.y = 1.0 - screenUV.y;
+    screenUV.y = CBPS0.mUVInversedBack.x + (CBPS0.mUVInversedBack.y * screenUV.y);
     if (!(CBPS0.softParticleParam.w == 0.0))
     {
         highp float backgroundZ = texture(Sampler_sampler_depthTex, screenUV).x;
@@ -310,8 +327,8 @@ void main()
     Input.Color = _VSPS_Color;
     Input.UV = _VSPS_UV;
     Input.PosP = _VSPS_PosP;
-    highp vec4 _208 = _main(Input);
-    _entryPointOutput = _208;
+    highp vec4 _227 = _main(Input);
+    _entryPointOutput = _227;
 }
 
 )";
@@ -319,10 +336,12 @@ void main()
 
     static const char* get_model_unlit_ps (EffekseerRendererGL::OpenGLDeviceType deviceType)
     {
+    #if !defined(__EMSCRIPTEN__)
         if (deviceType == EffekseerRendererGL::OpenGLDeviceType::OpenGL3)
             return model_unlit_ps_gl3;
         if (deviceType == EffekseerRendererGL::OpenGLDeviceType::OpenGL2)
             return model_unlit_ps_gl2;
+    #endif
         if (deviceType == EffekseerRendererGL::OpenGLDeviceType::OpenGLES3)
             return model_unlit_ps_gles3;
         if (deviceType == EffekseerRendererGL::OpenGLDeviceType::OpenGLES2)

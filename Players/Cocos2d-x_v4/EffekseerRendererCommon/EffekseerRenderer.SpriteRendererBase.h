@@ -69,7 +69,6 @@ protected:
 						   const StandardRendererState& state,
 						   const ::Effekseer::SIMD::Mat44f& camera)
 	{
-		void* userData = nullptr;
 		const ShaderParameterCollector& collector = state.Collector;
 		if (collector.ShaderType == RendererShaderType::Material)
 		{
@@ -164,10 +163,10 @@ protected:
 	{
 		if (parameter.ZSort == Effekseer::ZSortType::None)
 		{
-			auto camera = m_renderer->GetCameraMatrix();
+			auto cameraMat = m_renderer->GetCameraMatrix();
 			const auto& state = m_renderer->GetStandardRenderer()->GetState();
 
-			RenderingInstance(instanceParameter, parameter, state, camera);
+			RenderingInstance(instanceParameter, parameter, state, cameraMat);
 		}
 		else
 		{

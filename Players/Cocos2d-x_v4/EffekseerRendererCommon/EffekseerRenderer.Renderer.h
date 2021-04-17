@@ -79,18 +79,6 @@ enum class ProxyTextureType
 	Normal,
 };
 
-/**
-	@brief
-	\~english A class which contains a graphics device
-	\~japanese グラフィックデバイスを格納しているクラス
-*/
-class GraphicsDevice : public ::Effekseer::IReference
-{
-public:
-	GraphicsDevice() = default;
-	virtual ~GraphicsDevice() = default;
-};
-
 class CommandList : public ::Effekseer::IReference
 {
 public:
@@ -123,6 +111,12 @@ struct DepthReconstructionParameter
 	float ProjectionMatrix43 = 0.0f;
 	float ProjectionMatrix44 = 0.0f;
 };
+
+::Effekseer::TextureLoaderRef CreateTextureLoader(::Effekseer::Backend::GraphicsDeviceRef gprahicsDevice,
+												  ::Effekseer::FileInterface* fileInterface = nullptr,
+												  ::Effekseer::ColorSpaceType colorSpaceType = ::Effekseer::ColorSpaceType::Gamma);
+
+::Effekseer::ModelLoaderRef CreateModelLoader(::Effekseer::Backend::GraphicsDeviceRef gprahicsDevice, ::Effekseer::FileInterface* fileInterface = nullptr);
 
 class Renderer : public ::Effekseer::IReference
 {
@@ -394,7 +388,7 @@ public:
 	\~English	specify a command list to render.  This function is available except DirectX9, DirectX11 and OpenGL.
 	\~Japanese	描画に使用するコマンドリストを設定する。この関数はDirectX9、DirectX11、OpenGL以外で使用できる。
 	*/
-	virtual void SetCommandList(CommandList* commandList)
+	virtual void SetCommandList(Effekseer::RefPtr<CommandList> commandList)
 	{
 	}
 

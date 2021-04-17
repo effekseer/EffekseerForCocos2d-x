@@ -158,6 +158,8 @@ namespace GLExt
 
 #define GL_RED 0x1903
 
+#define GL_MAX_VARYING_VECTORS 0x8DFC
+
 #if defined(__APPLE__) || defined(__ANDROID__)
 #else
 typedef ptrdiff_t GLsizeiptr;
@@ -166,7 +168,7 @@ typedef char GLchar;
 #endif
 
 OpenGLDeviceType GetDeviceType();
-bool Initialize(OpenGLDeviceType deviceType);
+bool Initialize(OpenGLDeviceType deviceType, bool isExtensionsEnabled);
 bool IsSupportedVertexArray();
 bool IsSupportedBufferRange();
 bool IsSupportedMapBuffer();

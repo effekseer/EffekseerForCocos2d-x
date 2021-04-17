@@ -36,6 +36,8 @@ public:
 	bool operator<(const PiplineStateKey& v) const;
 };
 
+LLGI::TextureFormatType ConvertTextureFormat(Effekseer::Backend::TextureFormatType format);
+
 class RendererImplemented : public Renderer, public ::Effekseer::ReferenceObject
 {
 	friend class DeviceObject;
@@ -46,14 +48,17 @@ protected:
 	int32_t currentVertexBufferStride_ = 0;
 	LLGI::TopologyType currentTopologyType_ = LLGI::TopologyType::Triangle;
 
+	std::unordered_map<LLGI::RenderPassPipelineStateKey, std::shared_ptr<LLGI::RenderPassPipelineState>, LLGI::RenderPassPipelineStateKey::Hash> renderpassPipelineStates_;
+
 	// TODO
 	/**
 		Create constants and copy
 		Shader
 	*/
 
+
 	Backend::GraphicsDeviceRef graphicsDevice_ = nullptr;
-	LLGI::RenderPassPipelineState* renderPassPipelineState_ = nullptr;
+	std::shared_ptr<LLGI::RenderPassPipelineState> currentRenderPassPipelineState_ = nullptr;
 
 	VertexBuffer* m_vertexBuffer;
 	IndexBuffer* m_indexBuffer;
@@ -86,7 +91,7 @@ protected:
 
 	Effekseer::RenderMode m_renderMode = Effekseer::RenderMode::Normal;
 
-	CommandList* commandList_ = nullptr;
+	Effekseer::RefPtr<EffekseerRenderer::CommandList> commandList_ = nullptr;
 
 	LLGI::CommandList* GetCurrentCommandList();
 
@@ -109,23 +114,22 @@ public:
 	~RendererImplemented();
 
 	void OnLostDevice() override;
-	;
+
 	void OnResetDevice() override;
-	;
+	
+	bool Initialize(Backend::GraphicsDeviceRef graphicsDevice, LLGI::RenderPassPipelineStateKey key, bool isReversedDepth);
 
-	bool Initialize(Backend::GraphicsDeviceRef graphicsDevice, LLGI::RenderPassPipelineState* renderPassPipelineState, bool isReversedDepth);
-
-	bool Initialize(LLGI::Graphics* graphics, LLGI::RenderPassPipelineState* renderPassPipelineState, bool isReversedDepth);
+	bool Initialize(LLGI::Graphics* graphics, LLGI::RenderPassPipelineStateKey key, bool isReversedDepth);
 
 	void SetRestorationOfStatesFlag(bool flag) override;
 
-	void SetRenderPassPipelineState(LLGI::RenderPassPipelineState* renderPassPipelineState);
+	void ChangeRenderPassPipelineState(LLGI::RenderPassPipelineStateKey key);
 
 	bool BeginRendering() override;
 
 	bool EndRendering() override;
 
-	void SetCommandList(EffekseerRenderer::CommandList* commandList) override;
+	void SetCommandList(Effekseer::RefPtr<EffekseerRenderer::CommandList> commandList) override;
 
 	Effekseer::Backend::GraphicsDeviceRef GetGraphicsDevice() const override
 	{
@@ -196,7 +200,7 @@ public:
 
 	::Effekseer::MaterialLoaderRef CreateMaterialLoader(::Effekseer::FileInterface* fileInterface = nullptr) override;
 
-	void SetBackground(LLGI::Texture* background) override;
+	void SetBackgroundInternal(LLGI::Texture* background);
 
 	EffekseerRenderer::DistortingCallback* GetDistortingCallback() override;
 

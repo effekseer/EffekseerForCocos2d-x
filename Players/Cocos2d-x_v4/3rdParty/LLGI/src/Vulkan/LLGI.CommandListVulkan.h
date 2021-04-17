@@ -13,6 +13,8 @@ private:
 	vk::DescriptorPool descriptorPool_ = nullptr;
 	int32_t offset = 0;
 	std::vector<std::vector<vk::DescriptorSet>> cache;
+	int32_t slotSizeMax_;
+	std::vector<vk::DescriptorSet> dummySet_;
 
 public:
 	DescriptorPoolVulkan(std::shared_ptr<GraphicsVulkan> graphics, int32_t size, int stage);

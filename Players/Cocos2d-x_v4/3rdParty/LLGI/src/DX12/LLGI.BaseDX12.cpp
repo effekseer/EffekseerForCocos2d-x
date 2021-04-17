@@ -161,11 +161,32 @@ DXGI_FORMAT ConvertFormat(TextureFormatType format)
 	if (format == TextureFormatType::R8_UNORM)
 		return DXGI_FORMAT_R8_UNORM;
 
+	if (format == TextureFormatType::BC1)
+		return DXGI_FORMAT_BC1_UNORM;
+
+	if (format == TextureFormatType::BC2)
+		return DXGI_FORMAT_BC2_UNORM;
+
+	if (format == TextureFormatType::BC3)
+		return DXGI_FORMAT_BC3_UNORM;
+
+	if (format == TextureFormatType::BC1_SRGB)
+		return DXGI_FORMAT_BC1_UNORM_SRGB;
+
+	if (format == TextureFormatType::BC2_SRGB)
+		return DXGI_FORMAT_BC2_UNORM_SRGB;
+
+	if (format == TextureFormatType::BC3_SRGB)
+		return DXGI_FORMAT_BC3_UNORM_SRGB;
+
 	if (format == TextureFormatType::D32)
 		return DXGI_FORMAT_D32_FLOAT;
 
 	if (format == TextureFormatType::D24S8)
 		return DXGI_FORMAT_D24_UNORM_S8_UINT;
+
+	if (format == TextureFormatType::D32S8)
+		return DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
 
 	if (format == TextureFormatType::Unknown)
 		return DXGI_FORMAT_UNKNOWN;
@@ -193,11 +214,32 @@ TextureFormatType ConvertFormat(DXGI_FORMAT format)
 	if (format == DXGI_FORMAT_R8_UNORM)
 		return TextureFormatType::R8_UNORM;
 
+	if (format == DXGI_FORMAT_BC1_UNORM)
+		return TextureFormatType::BC1;
+
+	if (format == DXGI_FORMAT_BC2_UNORM)
+		return TextureFormatType::BC2;
+
+	if (format == DXGI_FORMAT_BC3_UNORM)
+		return TextureFormatType::BC3;
+
+	if (format == DXGI_FORMAT_BC1_UNORM_SRGB)
+		return TextureFormatType::BC1_SRGB;
+
+	if (format == DXGI_FORMAT_BC2_UNORM_SRGB)
+		return TextureFormatType::BC2_SRGB;
+
+	if (format == DXGI_FORMAT_BC3_UNORM_SRGB)
+		return TextureFormatType::BC3_SRGB;
+
 	if (format == DXGI_FORMAT_D32_FLOAT)
 		return TextureFormatType::D32;
 
 	if (format == DXGI_FORMAT_D24_UNORM_S8_UINT)
 		return TextureFormatType::D24S8;
+
+	if (format == DXGI_FORMAT_D32_FLOAT_S8X24_UINT)
+		return TextureFormatType::D32S8;
 
 	if (format == DXGI_FORMAT_UNKNOWN)
 		return TextureFormatType::Unknown;

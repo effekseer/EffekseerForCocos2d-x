@@ -969,7 +969,7 @@ struct ShaderParameterCollector
 			IsDepthRequired = true;
 		}
 
-		if (param->MaterialType == ::Effekseer::RendererMaterialType::File)
+		if (param->MaterialType == ::Effekseer::RendererMaterialType::File && isMaterial)
 		{
 			MaterialRenderDataPtr = param->MaterialRenderDataPtr;
 			if (MaterialRenderDataPtr != nullptr)
@@ -1408,6 +1408,7 @@ struct PixelConstantBuffer
 	EmmisiveParameter EmmisiveParam;
 	EdgeParameter EdgeParam;
 	SoftParticleParameter SoftParticleParam;
+	float UVInversedBack[4];
 
 	void SetModelFlipbookParameter(float enableInterpolation, float interpolationType)
 	{

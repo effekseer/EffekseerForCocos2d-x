@@ -10,6 +10,8 @@ copy_tree("../Effekseer/Dev/Cpp/EffekseerRendererLLGI", "./Players/Cocos2d-x_v4/
 copy_tree("../Effekseer/Dev/Cpp/EffekseerRendererMetal", "./Players/Cocos2d-x_v4/EffekseerRendererMetal")
 
 os.makedirs("./Players/Cocos2d-x_v4/LLGI/", exist_ok=True)
+shutil.copyfile("../Effekseer/Dev/Cpp/3rdParty/LLGI/CMakeLists.txt", "./Players/Cocos2d-x_v4/3rdParty/LLGI/CMakeLists.txt")
 copy_tree("../Effekseer/Dev/Cpp/3rdParty/LLGI/src", "./Players/Cocos2d-x_v4/3rdParty/LLGI/src")
+copy_tree("../Effekseer/Dev/Cpp/3rdParty/LLGI/cmake", "./Players/Cocos2d-x_v4/3rdParty/LLGI/cmake")
 
 copy_tree("../Effekseer/cmake", "./Players/Cocos2d-x_v4/cmake")

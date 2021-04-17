@@ -30,8 +30,10 @@ struct RingSingleParameter
 	union {
 		float fixed;
 		random_float random;
-		easing_float easing;
 	};
+
+	// TODO : make variant after C++17
+	ParameterEasingFloat easing{Version16Alpha9, Version16Alpha9};
 };
 
 //----------------------------------------------------------------------------------
@@ -103,11 +105,7 @@ struct RingSingleValues
 
 		} random;
 
-		struct
-		{
-			float start;
-			float end;
-		} easing;
+		InstanceEasing<float> easing;
 	};
 };
 
@@ -242,9 +240,9 @@ public:
 
 	void EndRendering(Manager* manager, void* userData) override;
 
-	void InitializeRenderedInstance(Instance& instance, Manager* manager) override;
+	void InitializeRenderedInstance(Instance& instance, InstanceGroup& instanceGroup, Manager* manager) override;
 
-	void UpdateRenderedInstance(Instance& instance, Manager* manager) override;
+	void UpdateRenderedInstance(Instance& instance, InstanceGroup& instanceGroup, Manager* manager) override;
 
 	eEffectNodeType GetType() const override
 	{

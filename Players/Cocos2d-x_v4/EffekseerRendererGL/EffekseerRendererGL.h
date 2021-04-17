@@ -155,18 +155,6 @@ enum class ProxyTextureType
 	Normal,
 };
 
-/**
-	@brief
-	\~english A class which contains a graphics device
-	\~japanese グラフィックデバイスを格納しているクラス
-*/
-class GraphicsDevice : public ::Effekseer::IReference
-{
-public:
-	GraphicsDevice() = default;
-	virtual ~GraphicsDevice() = default;
-};
-
 class CommandList : public ::Effekseer::IReference
 {
 public:
@@ -199,6 +187,12 @@ struct DepthReconstructionParameter
 	float ProjectionMatrix43 = 0.0f;
 	float ProjectionMatrix44 = 0.0f;
 };
+
+::Effekseer::TextureLoaderRef CreateTextureLoader(::Effekseer::Backend::GraphicsDeviceRef gprahicsDevice,
+												  ::Effekseer::FileInterface* fileInterface = nullptr,
+												  ::Effekseer::ColorSpaceType colorSpaceType = ::Effekseer::ColorSpaceType::Gamma);
+
+::Effekseer::ModelLoaderRef CreateModelLoader(::Effekseer::Backend::GraphicsDeviceRef gprahicsDevice, ::Effekseer::FileInterface* fileInterface = nullptr);
 
 class Renderer : public ::Effekseer::IReference
 {
@@ -470,7 +464,7 @@ public:
 	\~English	specify a command list to render.  This function is available except DirectX9, DirectX11 and OpenGL.
 	\~Japanese	描画に使用するコマンドリストを設定する。この関数はDirectX9、DirectX11、OpenGL以外で使用できる。
 	*/
-	virtual void SetCommandList(CommandList* commandList)
+	virtual void SetCommandList(Effekseer::RefPtr<CommandList> commandList)
 	{
 	}
 
@@ -552,19 +546,32 @@ public:
 namespace EffekseerRendererGL
 {
 
-::Effekseer::Backend::GraphicsDeviceRef CreateGraphicsDevice(OpenGLDeviceType deviceType);
+::Effekseer::Backend::GraphicsDeviceRef CreateGraphicsDevice(OpenGLDeviceType deviceType, bool isExtensionsEnabled = true);
 
+[[deprecated("please use EffekseerRenderer::CreateTextureLoader")]]
 ::Effekseer::TextureLoaderRef CreateTextureLoader(
 	Effekseer::Backend::GraphicsDeviceRef graphicsDevice,
 	::Effekseer::FileInterface* fileInterface = nullptr,
 	::Effekseer::ColorSpaceType colorSpaceType = ::Effekseer::ColorSpaceType::Gamma);
 
+[[deprecated("please use EffekseerRenderer::CreateModelLoader")]]
 ::Effekseer::ModelLoaderRef CreateModelLoader(::Effekseer::FileInterface* fileInterface = nullptr, OpenGLDeviceType deviceType = OpenGLDeviceType::OpenGL2);
 
 ::Effekseer::MaterialLoaderRef CreateMaterialLoader(Effekseer::Backend::GraphicsDeviceRef graphicsDevice,
 												  ::Effekseer::FileInterface* fileInterface = nullptr);
 
 Effekseer::Backend::TextureRef CreateTexture(Effekseer::Backend::GraphicsDeviceRef graphicsDevice, GLuint buffer, bool hasMipmap, const std::function<void()>& onDisposed);
+
+/**
+		@brief	\~English	Properties in a texture
+				\~Japanese	テクスチャ内のプロパティ
+*/
+struct TextureProperty
+{
+	GLuint Buffer = 0;
+};
+
+TextureProperty GetTextureProperty(::Effekseer::Backend::TextureRef texture);
 
 class Renderer;
 using RendererRef = ::Effekseer::RefPtr<Renderer>;
@@ -590,14 +597,14 @@ public:
 	@param	deviceType
 	\~english	device type of opengl
 	\~japanese	デバイスの種類
-	@param	graphicDevice
-	\~english	for a middleware. it should be nullptr.
-	\~japanese	ミドルウェア向け。 nullptrにすべきである。
+	@param	isExtensionsEnabled
+	\~english	whether does make extensions enabled.
+	\~japanese	拡張を有効にするかどうか
 	@return
 	\~english	instance
 	\~japanese	インスタンス
 	*/
-	static RendererRef Create(int32_t squareMaxCount, OpenGLDeviceType deviceType = OpenGLDeviceType::OpenGL2);
+	static RendererRef Create(int32_t squareMaxCount, OpenGLDeviceType deviceType = OpenGLDeviceType::OpenGL2, bool isExtensionsEnabled = true);
 
 	static RendererRef Create(Effekseer::Backend::GraphicsDeviceRef graphicsDevice, int32_t squareMaxCount);
 

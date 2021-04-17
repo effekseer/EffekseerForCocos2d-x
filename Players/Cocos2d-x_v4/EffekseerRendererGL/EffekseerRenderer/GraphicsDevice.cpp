@@ -646,14 +646,20 @@ bool RenderPass::Init(Effekseer::FixedSizeVector<Effekseer::Backend::TextureRef,
 	return true;
 }
 
-GraphicsDevice::GraphicsDevice(OpenGLDeviceType deviceType)
+GraphicsDevice::GraphicsDevice(OpenGLDeviceType deviceType, bool isExtensionsEnabled)
 	: deviceType_(deviceType)
 {
-	GLExt::Initialize(deviceType);
+	GLExt::Initialize(deviceType, isExtensionsEnabled);
 
 	if (deviceType == OpenGLDeviceType::OpenGL3 || deviceType == OpenGLDeviceType::OpenGLES3)
 	{
 		GLExt::glGenSamplers(Effekseer::TextureSlotMax, samplers_.data());
+	}
+
+	{
+		GLint v;
+		glGetIntegerv(GL_MAX_VARYING_VECTORS, &v);
+		properties_[DevicePropertyType::MaxVaryingVectors] = v;
 	}
 }
 
@@ -663,6 +669,11 @@ GraphicsDevice::~GraphicsDevice()
 	{
 		GLExt::glDeleteSamplers(Effekseer::TextureSlotMax, samplers_.data());
 	}
+}
+
+int GraphicsDevice::GetProperty(DevicePropertyType type) const
+{
+	return properties_.at(type);
 }
 
 void GraphicsDevice::LostDevice()
@@ -1201,7 +1212,7 @@ void GraphicsDevice::Draw(const Effekseer::Backend::DrawParameter& drawParam)
 
 	if (drawParam.InstanceCount > 1)
 	{
-		GLExt::glDrawElementsInstanced(primitiveMode, indexPerPrimitive * drawParam.PrimitiveCount, indexStrideType, nullptr, drawParam.PrimitiveCount);
+		GLExt::glDrawElementsInstanced(primitiveMode, indexPerPrimitive * drawParam.PrimitiveCount, indexStrideType, nullptr, drawParam.InstanceCount);
 	}
 	else
 	{

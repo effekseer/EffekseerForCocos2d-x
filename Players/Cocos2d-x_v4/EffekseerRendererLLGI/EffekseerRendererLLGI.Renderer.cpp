@@ -6,10 +6,10 @@
 
 #include "EffekseerRendererLLGI.DeviceObject.h"
 #include "EffekseerRendererLLGI.IndexBuffer.h"
+#include "EffekseerRendererLLGI.MaterialLoader.h"
+#include "EffekseerRendererLLGI.ModelRenderer.h"
 #include "EffekseerRendererLLGI.Shader.h"
 #include "EffekseerRendererLLGI.VertexBuffer.h"
-#include "EffekseerRendererLLGI.ModelRenderer.h"
-#include "EffekseerRendererLLGI.MaterialLoader.h"
 
 #include "../EffekseerRendererCommon/EffekseerRenderer.RibbonRendererBase.h"
 #include "../EffekseerRendererCommon/EffekseerRenderer.RingRendererBase.h"
@@ -25,20 +25,6 @@
 
 namespace EffekseerRendererLLGI
 {
-
-::Effekseer::TextureLoaderRef CreateTextureLoader(::Effekseer::Backend::GraphicsDeviceRef graphicsDevice, ::Effekseer::FileInterface* fileInterface)
-{
-#ifdef __EFFEKSEER_RENDERER_INTERNAL_LOADER__
-	return ::Effekseer::MakeRefPtr<EffekseerRenderer::TextureLoader>(graphicsDevice.Get(), fileInterface);
-#else
-	return nullptr;
-#endif
-}
-
-::Effekseer::ModelLoaderRef CreateModelLoader(::Effekseer::Backend::GraphicsDeviceRef graphicsDevice, ::Effekseer::FileInterface* fileInterface)
-{
-	return ::Effekseer::MakeRefPtr<EffekseerRenderer::ModelLoader>(graphicsDevice, fileInterface);
-}
 
 bool PiplineStateKey::operator<(const PiplineStateKey& v) const
 {
@@ -70,11 +56,76 @@ bool PiplineStateKey::operator<(const PiplineStateKey& v) const
 	return false;
 }
 
+LLGI::TextureFormatType ConvertTextureFormat(Effekseer::Backend::TextureFormatType format)
+{
+	switch (format)
+	{
+	case Effekseer::Backend::TextureFormatType::R8G8B8A8_UNORM:
+		return LLGI::TextureFormatType::R8G8B8A8_UNORM;
+		break;
+	case Effekseer::Backend::TextureFormatType::B8G8R8A8_UNORM:
+		return LLGI::TextureFormatType::B8G8R8A8_UNORM;
+		break;
+	case Effekseer::Backend::TextureFormatType::R8_UNORM:
+		return LLGI::TextureFormatType::R8_UNORM;
+		break;
+	case Effekseer::Backend::TextureFormatType::R16G16_FLOAT:
+		return LLGI::TextureFormatType::R16G16_FLOAT;
+		break;
+	case Effekseer::Backend::TextureFormatType::R16G16B16A16_FLOAT:
+		return LLGI::TextureFormatType::R16G16B16A16_FLOAT;
+		break;
+	case Effekseer::Backend::TextureFormatType::R32G32B32A32_FLOAT:
+		return LLGI::TextureFormatType::R32G32B32A32_FLOAT;
+		break;
+	case Effekseer::Backend::TextureFormatType::BC1:
+		return LLGI::TextureFormatType::BC1;
+		break;
+	case Effekseer::Backend::TextureFormatType::BC2:
+		return LLGI::TextureFormatType::BC2;
+		break;
+	case Effekseer::Backend::TextureFormatType::BC3:
+		return LLGI::TextureFormatType::BC3;
+		break;
+	case Effekseer::Backend::TextureFormatType::R8G8B8A8_UNORM_SRGB:
+		return LLGI::TextureFormatType::R8G8B8A8_UNORM_SRGB;
+		break;
+	case Effekseer::Backend::TextureFormatType::B8G8R8A8_UNORM_SRGB:
+		return LLGI::TextureFormatType::B8G8R8A8_UNORM_SRGB;
+		break;
+	case Effekseer::Backend::TextureFormatType::BC1_SRGB:
+		return LLGI::TextureFormatType::BC1_SRGB;
+		break;
+	case Effekseer::Backend::TextureFormatType::BC2_SRGB:
+		return LLGI::TextureFormatType::BC2_SRGB;
+		break;
+	case Effekseer::Backend::TextureFormatType::BC3_SRGB:
+		return LLGI::TextureFormatType::BC3_SRGB;
+		break;
+	case Effekseer::Backend::TextureFormatType::D32:
+		return LLGI::TextureFormatType::D32;
+		break;
+	case Effekseer::Backend::TextureFormatType::D24S8:
+		return LLGI::TextureFormatType::D24S8;
+		break;
+	case Effekseer::Backend::TextureFormatType::D32S8:
+		return LLGI::TextureFormatType::D32S8;
+		break;
+	case Effekseer::Backend::TextureFormatType::Unknown:
+		break;
+	default:
+		break;
+	}
+
+	return LLGI::TextureFormatType::Unknown;
+}
+
 LLGI::CommandList* RendererImplemented::GetCurrentCommandList()
 {
 	if (commandList_ != nullptr)
 	{
-		return commandList_->GetInternal();
+		auto cl = commandList_.DownCast<CommandList>();
+		return cl->GetInternal();
 	}
 
 	assert(0);
@@ -87,7 +138,7 @@ LLGI::PipelineState* RendererImplemented::GetOrCreatePiplineState()
 	key.state = m_renderState->GetActiveState();
 	key.shader = currentShader;
 	key.topologyType = currentTopologyType_;
-	key.renderPassPipelineState = renderPassPipelineState_;
+	key.renderPassPipelineState = currentRenderPassPipelineState_.get();
 
 	auto it = piplineStates_.find(key);
 	if (it != piplineStates_.end())
@@ -171,7 +222,7 @@ LLGI::PipelineState* RendererImplemented::GetOrCreatePiplineState()
 		piplineState->BlendEquationAlpha = LLGI::BlendEquationType::Add;
 	}
 
-	piplineState->SetRenderPassPipelineState(renderPassPipelineState_);
+	piplineState->SetRenderPassPipelineState(currentRenderPassPipelineState_.get());
 
 	if (!piplineState->Compile())
 	{
@@ -237,10 +288,7 @@ RendererImplemented::~RendererImplemented()
 	}
 	piplineStates_.clear();
 
-	ES_SAFE_RELEASE(renderPassPipelineState_);
-
-	ES_SAFE_RELEASE(commandList_);
-
+	commandList_.Reset();
 	GetImpl()->DeleteProxyTextures(this);
 
 	ES_SAFE_DELETE(m_distortingCallback);
@@ -275,28 +323,28 @@ void RendererImplemented::OnResetDevice()
 {
 }
 
-bool RendererImplemented::Initialize(LLGI::Graphics* graphics, LLGI::RenderPassPipelineState* renderPassPipelineState, bool isReversedDepth)
+bool RendererImplemented::Initialize(LLGI::Graphics* graphics, LLGI::RenderPassPipelineStateKey key, bool isReversedDepth)
 {
 
 	auto gd = Effekseer::MakeRefPtr<Backend::GraphicsDevice>(graphics);
 
-	auto ret = Initialize(gd, renderPassPipelineState, isReversedDepth);
+	auto ret = Initialize(gd, key, isReversedDepth);
 
 	return ret;
 }
 
 bool RendererImplemented::Initialize(Backend::GraphicsDeviceRef graphicsDevice,
-									 LLGI::RenderPassPipelineState* renderPassPipelineState,
+									 LLGI::RenderPassPipelineStateKey key,
 									 bool isReversedDepth)
 {
 	graphicsDevice_ = graphicsDevice;
-	renderPassPipelineState_ = renderPassPipelineState;
+	ChangeRenderPassPipelineState(key);
 	isReversedDepth_ = isReversedDepth;
 
 	LLGI::SetLogger([](LLGI::LogType type, const std::string& message) { std::cout << message << std::endl; });
 
 	LLGI::SafeAddRef(graphicsDevice_);
-	LLGI::SafeAddRef(renderPassPipelineState_);
+	LLGI::SafeAddRef(currentRenderPassPipelineState_);
 
 	// Generate vertex buffer
 	{
@@ -371,10 +419,10 @@ bool RendererImplemented::Initialize(Backend::GraphicsDeviceRef graphicsDevice,
 	layouts_normal_ad.push_back(VertexLayout{LLGI::VertexLayoutFormat::R32G32_FLOAT, "TEXCOORD", 4});
 	layouts_normal_ad.push_back(VertexLayout{LLGI::VertexLayoutFormat::R32G32_FLOAT, "TEXCOORD", 5});
 	layouts_normal_ad.push_back(VertexLayout{LLGI::VertexLayoutFormat::R32G32B32A32_FLOAT, "TEXCOORD", 6}); // AlphaTextureUV + UVDistortionTextureUV
-	layouts_normal_ad.push_back(VertexLayout{LLGI::VertexLayoutFormat::R32G32_FLOAT, "TEXCOORD", 7});		  // BlendUV
+	layouts_normal_ad.push_back(VertexLayout{LLGI::VertexLayoutFormat::R32G32_FLOAT, "TEXCOORD", 7});		// BlendUV
 	layouts_normal_ad.push_back(VertexLayout{LLGI::VertexLayoutFormat::R32G32B32A32_FLOAT, "TEXCOORD", 8}); // BlendAlphaUV + BlendUVDistortionUV
-	layouts_normal_ad.push_back(VertexLayout{LLGI::VertexLayoutFormat::R32_FLOAT, "TEXCOORD", 9});		  // FlipbookIndexAndNextRate
-	layouts_normal_ad.push_back(VertexLayout{LLGI::VertexLayoutFormat::R32_FLOAT, "TEXCOORD", 10});		  // AlphaThreshold
+	layouts_normal_ad.push_back(VertexLayout{LLGI::VertexLayoutFormat::R32_FLOAT, "TEXCOORD", 9});			// FlipbookIndexAndNextRate
+	layouts_normal_ad.push_back(VertexLayout{LLGI::VertexLayoutFormat::R32_FLOAT, "TEXCOORD", 10});			// AlphaThreshold
 
 	shader_unlit_ = Shader::Create(graphicsDevice_.Get(),
 								   fixedShader_.SpriteUnlit_VS.data(),
@@ -468,28 +516,39 @@ void RendererImplemented::SetRestorationOfStatesFlag(bool flag)
 {
 }
 
-void RendererImplemented::SetRenderPassPipelineState(LLGI::RenderPassPipelineState* renderPassPipelineState)
+void RendererImplemented::ChangeRenderPassPipelineState(LLGI::RenderPassPipelineStateKey key)
 {
-	ES_SAFE_RELEASE(renderPassPipelineState_);
-	renderPassPipelineState_ = renderPassPipelineState;
-	LLGI::SafeAddRef(renderPassPipelineState_);
+	auto it = renderpassPipelineStates_.find(key);
+	if (it != renderpassPipelineStates_.end())
+	{
+		currentRenderPassPipelineState_ = it->second;
+	}
+	else
+	{
+		auto gd = graphicsDevice_.DownCast<EffekseerRendererLLGI::Backend::GraphicsDevice>();
+		auto pipelineState = LLGI::CreateSharedPtr(gd->GetGraphics()->CreateRenderPassPipelineState(key));
+		if (pipelineState != nullptr)
+		{
+			renderpassPipelineStates_[key] = pipelineState;
+		}
+		currentRenderPassPipelineState_ = pipelineState;
+	}
 }
 
 bool RendererImplemented::BeginRendering()
 {
 	assert(graphicsDevice_ != nullptr);
 
+	if (commandList_ == nullptr)
+	{
+		return false;
+	}
+
 	impl->CalculateCameraProjectionMatrix();
 
 	// initialize states
 	m_renderState->GetActiveState().Reset();
 	m_renderState->Update(true);
-
-	if (commandList_ == nullptr)
-	{
-		GetCurrentCommandList()->Begin();
-		// GetCurrentCommandList()->BeginRenderPass(nullptr);
-	}
 
 	// reset renderer
 	m_standardRenderer->ResetAndRenderingIfRequired();
@@ -501,25 +560,20 @@ bool RendererImplemented::EndRendering()
 {
 	assert(graphicsDevice_ != nullptr);
 
+	if (commandList_ == nullptr)
+	{
+		return false;
+	}
+
 	// reset renderer
 	m_standardRenderer->ResetAndRenderingIfRequired();
 
-	if (commandList_ == nullptr)
-	{
-		// GetCurrentCommandList()->EndRenderPass();
-		GetCurrentCommandList()->End();
-		GetGraphics()->Execute(GetCurrentCommandList());
-	}
 	return true;
 }
 
-void RendererImplemented::SetCommandList(EffekseerRenderer::CommandList* commandList)
+void RendererImplemented::SetCommandList(Effekseer::RefPtr<EffekseerRenderer::CommandList> commandList)
 {
-
-	ES_SAFE_ADDREF(commandList);
-	ES_SAFE_RELEASE(commandList_);
-
-	commandList_ = static_cast<CommandList*>(commandList);
+	commandList_ = commandList;
 }
 
 VertexBuffer* RendererImplemented::GetVertexBuffer()
@@ -593,7 +647,7 @@ int32_t RendererImplemented::GetSquareMaxCount() const
 	return ::Effekseer::MakeRefPtr<MaterialLoader>(graphicsDevice_.Get(), fileInterface, platformType_, materialCompiler_);
 }
 
-void RendererImplemented::SetBackground(LLGI::Texture* background)
+void RendererImplemented::SetBackgroundInternal(LLGI::Texture* background)
 {
 	if (m_backgroundLLGI == nullptr)
 	{
@@ -673,9 +727,11 @@ void RendererImplemented::DrawSprites(int32_t spriteCount, int32_t vertexOffset)
 	LLGI::ConstantBuffer* constantBufferVS = nullptr;
 	LLGI::ConstantBuffer* constantBufferPS = nullptr;
 
+	auto cl = commandList_.DownCast<CommandList>();
+
 	if (currentShader->GetVertexConstantBufferSize() > 0)
 	{
-		constantBufferVS = commandList_->GetMemoryPooll()->CreateConstantBuffer(currentShader->GetVertexConstantBufferSize());
+		constantBufferVS = cl->GetMemoryPool()->CreateConstantBuffer(currentShader->GetVertexConstantBufferSize());
 		assert(constantBufferVS != nullptr);
 		memcpy(constantBufferVS->Lock(), currentShader->GetVertexConstantBuffer(), currentShader->GetVertexConstantBufferSize());
 		constantBufferVS->Unlock();
@@ -684,7 +740,7 @@ void RendererImplemented::DrawSprites(int32_t spriteCount, int32_t vertexOffset)
 
 	if (currentShader->GetPixelConstantBufferSize() > 0)
 	{
-		constantBufferPS = commandList_->GetMemoryPooll()->CreateConstantBuffer(currentShader->GetPixelConstantBufferSize());
+		constantBufferPS = cl->GetMemoryPool()->CreateConstantBuffer(currentShader->GetPixelConstantBufferSize());
 		assert(constantBufferPS != nullptr);
 		memcpy(constantBufferPS->Lock(), currentShader->GetPixelConstantBuffer(), currentShader->GetPixelConstantBufferSize());
 		constantBufferPS->Unlock();
@@ -725,9 +781,11 @@ void RendererImplemented::DrawPolygonInstanced(int32_t vertexCount, int32_t inde
 	LLGI::ConstantBuffer* constantBufferVS = nullptr;
 	LLGI::ConstantBuffer* constantBufferPS = nullptr;
 
+	auto cl = commandList_.DownCast<CommandList>();
+
 	if (currentShader->GetVertexConstantBufferSize() > 0)
 	{
-		constantBufferVS = commandList_->GetMemoryPooll()->CreateConstantBuffer(currentShader->GetVertexConstantBufferSize());
+		constantBufferVS = cl->GetMemoryPool()->CreateConstantBuffer(currentShader->GetVertexConstantBufferSize());
 		assert(constantBufferVS != nullptr);
 		memcpy(constantBufferVS->Lock(), currentShader->GetVertexConstantBuffer(), currentShader->GetVertexConstantBufferSize());
 		constantBufferVS->Unlock();
@@ -736,7 +794,7 @@ void RendererImplemented::DrawPolygonInstanced(int32_t vertexCount, int32_t inde
 
 	if (currentShader->GetPixelConstantBufferSize() > 0)
 	{
-		constantBufferPS = commandList_->GetMemoryPooll()->CreateConstantBuffer(currentShader->GetPixelConstantBufferSize());
+		constantBufferPS = cl->GetMemoryPool()->CreateConstantBuffer(currentShader->GetPixelConstantBufferSize());
 		assert(constantBufferPS != nullptr);
 		memcpy(constantBufferPS->Lock(), currentShader->GetPixelConstantBuffer(), currentShader->GetPixelConstantBufferSize());
 		constantBufferPS->Unlock();
