@@ -13,7 +13,7 @@
 
 namespace efk {
 
-void SetMTLObjectsFromCocos2d(EffekseerRenderer::CommandList* commandList)
+void SetMTLObjectsFromCocos2d(Effekseer::RefPtr<EffekseerRenderer::CommandList> commandList)
 {
     auto d = cocos2d::Director::getInstance();
     auto buffer = d->getCommandBuffer();
@@ -38,29 +38,29 @@ class DistortingCallbackMetal
     : public EffekseerRenderer::DistortingCallback
 {
 
-    EffekseerRenderer::CommandList* commandList_ = nullptr;
+    Effekseer::RefPtr<EffekseerRenderer::CommandList> commandList_ = nullptr;
     id<MTLTexture>                                  texture = nullptr;
-    LLGI::Texture*                                  textureLLGI = nullptr;
+    Effekseer::Backend::TextureRef textureInternal_ = nullptr;
 
 public:
-    DistortingCallbackMetal(EffekseerRenderer::CommandList* commandList);
+    DistortingCallbackMetal(Effekseer::RefPtr<EffekseerRenderer::CommandList> commandList);
 
     virtual ~DistortingCallbackMetal();
 
     virtual bool OnDistorting(EffekseerRenderer::Renderer* renderer) override;
 };
 
-DistortingCallbackMetal::DistortingCallbackMetal(EffekseerRenderer::CommandList* commandList)
+DistortingCallbackMetal::DistortingCallbackMetal(Effekseer::RefPtr<EffekseerRenderer::CommandList> commandList)
 : commandList_(commandList)
 {
 }
 
 DistortingCallbackMetal::~DistortingCallbackMetal()
 {
-    if(textureLLGI != nullptr)
+    if(textureInternal_ != nullptr)
     {
         [texture release];
-        ES_SAFE_RELEASE(textureLLGI);
+        textureInternal_.Reset();
     }
 }
 
@@ -69,7 +69,7 @@ bool DistortingCallbackMetal::OnDistorting(EffekseerRenderer::Renderer* renderer
     // to get viewport
     auto drawable = cocos2d::backend::DeviceMTL::getCurrentDrawable();
 
-    if(textureLLGI == nullptr)
+    if(textureInternal_ == nullptr)
     {
         auto deviceMTL = static_cast<cocos2d::backend::DeviceMTL*>(cocos2d::backend::Device::getInstance());
         
@@ -80,10 +80,7 @@ bool DistortingCallbackMetal::OnDistorting(EffekseerRenderer::Renderer* renderer
                                                        mipmapped:NO];
         
         texture = [deviceMTL->getMTLDevice() newTextureWithDescriptor:textureDescriptor];
-        
-        auto tex = new LLGI::TextureMetal;
-        tex->Reset(texture);
-        textureLLGI = tex;
+        textureInternal_ = EffekseerRendererMetal::CreateTexture(renderer->GetGraphicsDevice(), texture);
     }
 
     auto commandBuffer = static_cast<cocos2d::backend::CommandBufferMTL*>(cocos2d::Director::getInstance()->getCommandBuffer());
@@ -106,7 +103,7 @@ bool DistortingCallbackMetal::OnDistorting(EffekseerRenderer::Renderer* renderer
     SetMTLObjectsFromCocos2d(commandList_);
     
     auto r = static_cast<EffekseerRendererLLGI::Renderer*>(renderer);
-    r->SetBackground(textureLLGI);
+    r->SetBackground(textureInternal_);
 
     return true;
 }
@@ -182,18 +179,18 @@ void CleanupTextureData(::Effekseer::TextureRef textureData)
 {
 }
 
-::EffekseerRenderer::DistortingCallback* CreateDistortingCallback(::EffekseerRenderer::RendererRef renderer, ::EffekseerRenderer::CommandList* commandList)
+::EffekseerRenderer::DistortingCallback* CreateDistortingCallback(::EffekseerRenderer::RendererRef renderer, Effekseer::RefPtr<::EffekseerRenderer::CommandList> commandList)
 {
     return new DistortingCallbackMetal(commandList);
 }
 
 
-void EffectEmitter::beforeRender(EffekseerRenderer::RendererRef renderer, EffekseerRenderer::CommandList* commandList)
+void EffectEmitter::beforeRender(EffekseerRenderer::RendererRef renderer, Effekseer::RefPtr<EffekseerRenderer::CommandList> commandList)
 {
     SetMTLObjectsFromCocos2d(commandList);
 }
 
-void EffectEmitter::afterRender(EffekseerRenderer::RendererRef renderer, EffekseerRenderer::CommandList* commandList)
+void EffectEmitter::afterRender(EffekseerRenderer::RendererRef renderer, Effekseer::RefPtr<EffekseerRenderer::CommandList> commandList)
 {
     EffekseerRendererMetal::EndCommandList(commandList);
 }
@@ -212,8 +209,8 @@ void EffectManager::CreateRenderer(int32_t spriteSize)
                                                 cocos2d::backend::Utils::getDefaultDepthStencilAttachmentPixelFormat(),
                                                 false);
 
-    memoryPool_ = EffekseerRendererMetal::CreateSingleFrameMemoryPool(renderer2d);
-    commandList_ = EffekseerRendererMetal::CreateCommandList(renderer2d, memoryPool_);
+    memoryPool_ = EffekseerRenderer::CreateSingleFrameMemoryPool(device);
+    commandList_ = EffekseerRenderer::CreateCommandList(device, memoryPool_);
     renderer2d->SetCommandList(commandList_);
 }
 

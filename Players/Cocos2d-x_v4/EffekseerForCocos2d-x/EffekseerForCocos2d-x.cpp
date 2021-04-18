@@ -23,7 +23,7 @@ void UpdateTextureData(::Effekseer::TextureRef textureData, cocos2d::Texture2D* 
 
 void CleanupTextureData(::Effekseer::TextureRef textureData);
 
-::EffekseerRenderer::DistortingCallback* CreateDistortingCallback(::EffekseerRenderer::RendererRef, ::EffekseerRenderer::CommandList*);
+::EffekseerRenderer::DistortingCallback* CreateDistortingCallback(::EffekseerRenderer::RendererRef, Effekseer::RefPtr<::EffekseerRenderer::CommandList>);
 
 void ResetBackground(::EffekseerRenderer::RendererRef renderer);
 
@@ -124,7 +124,7 @@ EffekseerFile::~EffekseerFile() {}
 Effekseer::FileReader* EffekseerFile::OpenRead(const EFK_CHAR* path)
 {
 	char path_[300];
-	::Effekseer::ConvertUtf16ToUtf8((int8_t*)path_, 300, (const int16_t*)path);
+	::Effekseer::ConvertUtf16ToUtf8(path_, 300, path);
 
 	cocos2d::Data data_ = cocos2d::FileUtils::getInstance()->getDataFromFile(path_);
 
@@ -211,7 +211,7 @@ Effekseer::TextureRef TextureLoader::Load(const EFK_CHAR* path, ::Effekseer::Tex
 				else
 				{
 					char path8[300];
-					::Effekseer::ConvertUtf16ToUtf8((int8_t*)path8, 300, (const int16_t*)path);
+					::Effekseer::ConvertUtf16ToUtf8(path8, 300, path);
 					CCLOG("%s : The texture is not shown on a mobile. The size is not power of two.", path8);
 				}
 #endif
@@ -275,6 +275,7 @@ public:
 		SetTextureLoader(Effekseer::MakeRefPtr<TextureLoader>(effectFile));
 		SetModelLoader(CreateModelLoader(effectFile));
 		SetMaterialLoader(CreateMaterialLoader(effectFile));
+		SetCurveLoader(Effekseer::MakeRefPtr<Effekseer::CurveLoader>(effectFile));
 		// TODO sound
 	}
 
@@ -462,7 +463,7 @@ InternalManager* getGlobalInternalManager()
 Effect* Effect::create(const std::string& filename, float maginification)
 {
 	EFK_CHAR path_[300];
-	::Effekseer::ConvertUtf8ToUtf16((int16_t*)path_, 300, (const int8_t*)filename.c_str());
+	::Effekseer::ConvertUtf8ToUtf16(path_, 300, filename.c_str());
 
 	auto internalManager = getGlobalInternalManager();
 
@@ -844,9 +845,9 @@ EffectManager::~EffectManager()
 		renderer2d = nullptr;
 	}
 
-    ES_SAFE_RELEASE(memoryPool_);
-    ES_SAFE_RELEASE(commandList_);
-	ES_SAFE_RELEASE(internalManager_);
+    memoryPool_.Reset();
+    commandList_.Reset();
+    ES_SAFE_RELEASE(internalManager_);
 }
 
 void EffectManager::setIsDistortionEnabled(bool value)
