@@ -23,7 +23,7 @@ void UpdateTextureData(::Effekseer::TextureRef textureData, cocos2d::Texture2D* 
 
 void CleanupTextureData(::Effekseer::TextureRef textureData);
 
-::EffekseerRenderer::DistortingCallback* CreateDistortingCallback(::EffekseerRenderer::RendererRef, ::EffekseerRenderer::CommandList*);
+::EffekseerRenderer::DistortingCallback* CreateDistortingCallback(::EffekseerRenderer::RendererRef, Effekseer::RefPtr<::EffekseerRenderer::CommandList>);
 
 void ResetBackground(::EffekseerRenderer::RendererRef renderer);
 
@@ -845,9 +845,9 @@ EffectManager::~EffectManager()
 		renderer2d = nullptr;
 	}
 
-    ES_SAFE_RELEASE(memoryPool_);
-    ES_SAFE_RELEASE(commandList_);
-	ES_SAFE_RELEASE(internalManager_);
+    memoryPool_.Reset();
+    commandList_.Reset();
+    ES_SAFE_RELEASE(internalManager_);
 }
 
 void EffectManager::setIsDistortionEnabled(bool value)
