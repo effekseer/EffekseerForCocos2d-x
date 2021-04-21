@@ -86,8 +86,8 @@ private:
 
 	cocos2d::CallbackCommand renderCommand;
 	
-	void beforeRender(EffekseerRenderer::RendererRef, EffekseerRenderer::CommandList*);
-    void afterRender(EffekseerRenderer::RendererRef, EffekseerRenderer::CommandList*);
+	void beforeRender(EffekseerRenderer::RendererRef, Effekseer::RefPtr<EffekseerRenderer::CommandList>);
+    void afterRender(EffekseerRenderer::RendererRef, Effekseer::RefPtr<EffekseerRenderer::CommandList>);
 
 public:
 	/**
@@ -315,8 +315,8 @@ private:
 	::Effekseer::ManagerRef manager2d = nullptr;
 	::EffekseerRenderer::RendererRef renderer2d = nullptr;
 	::EffekseerRenderer::DistortingCallback* distortingCallback = NULL;
-    ::EffekseerRenderer::SingleFrameMemoryPool* memoryPool_ = nullptr;
-    ::EffekseerRenderer::CommandList* commandList_ = nullptr;
+    ::Effekseer::RefPtr<::EffekseerRenderer::SingleFrameMemoryPool> memoryPool_ = nullptr;
+    ::Effekseer::RefPtr<::EffekseerRenderer::CommandList> commandList_ = nullptr;
     
 	bool isDistortionEnabled = false;
 
@@ -432,7 +432,7 @@ public:
 	void setCameraMatrix(const cocos2d::Mat4& mat);
 	void setProjectionMatrix(const cocos2d::Mat4& mat);
     
-    ::EffekseerRenderer::CommandList* getInternalCommandList() { return commandList_; }
+    Effekseer::RefPtr<::EffekseerRenderer::CommandList> getInternalCommandList() { return commandList_; }
 };
 
 class NetworkServer : public cocos2d::Ref

@@ -152,7 +152,7 @@ void UpdateTextureData(::Effekseer::TextureRef textureData, cocos2d::Texture2D* 
 
 void CleanupTextureData(::Effekseer::TextureRef textureData) {}
 
-::EffekseerRenderer::DistortingCallback* CreateDistortingCallback(::EffekseerRenderer::RendererRef renderer, ::EffekseerRenderer::CommandList* commandList)
+::EffekseerRenderer::DistortingCallback* CreateDistortingCallback(::EffekseerRenderer::RendererRef renderer, Effekseer::RefPtr<::EffekseerRenderer::CommandList> commandList)
 {
 	return new DistortingCallbackGL();
 }
