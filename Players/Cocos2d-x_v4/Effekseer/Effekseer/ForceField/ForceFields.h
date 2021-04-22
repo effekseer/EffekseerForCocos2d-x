@@ -312,7 +312,7 @@ public:
 		}
 
 		auto acc = vel - ffc.PreviousVelocity;
-		return acc;
+		return acc * ffc.DeltaFrame;
 	}
 
 	/**
