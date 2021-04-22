@@ -157,11 +157,11 @@ void CleanupTextureData(::Effekseer::TextureRef textureData) {}
 	return new DistortingCallbackGL();
 }
 
-void EffectEmitter::beforeRender(EffekseerRenderer::RendererRef renderer, EffekseerRenderer::CommandList* commandList)
+void EffectEmitter::beforeRender(EffekseerRenderer::RendererRef renderer, ::Effekseer::RefPtr<EffekseerRenderer::CommandList> commandList)
 {
 }
 
-void EffectEmitter::afterRender(EffekseerRenderer::RendererRef renderer, EffekseerRenderer::CommandList* commandList)
+void EffectEmitter::afterRender(EffekseerRenderer::RendererRef renderer, ::Effekseer::RefPtr<EffekseerRenderer::CommandList> commandList)
 {
 }
 
