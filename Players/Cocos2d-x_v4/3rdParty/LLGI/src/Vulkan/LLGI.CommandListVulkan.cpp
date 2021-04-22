@@ -182,7 +182,7 @@ bool CommandListVulkan::BeginWithPlatform(void* platformContextPtr)
 	currentSwapBufferIndex_++;
 	currentSwapBufferIndex_ %= commandBuffers_.size();
 
-	currentCommandBuffer_ = ptr->commandBuffer;
+	currentCommandBuffer_ = vk::CommandBuffer(ptr->commandBuffer);
 
 	auto& dp = descriptorPools[currentSwapBufferIndex_];
 	dp->Reset();
