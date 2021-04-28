@@ -200,21 +200,25 @@ Effekseer::TextureRef TextureLoader::Load(const EFK_CHAR* path, ::Effekseer::Tex
 			if (texture->initWithImage(image))
 			{
 
+				if(texture->getPixelsWide() > 1 || texture->getPixelsHigh() > 1)
+				{
 #ifdef CC_USE_METAL
-				texture->generateMipmap();
-#else
-				if (texture->getPixelsWide() == ccNextPOT(texture->getPixelsWide()) &&
-					texture->getPixelsHigh() == ccNextPOT(texture->getPixelsHigh()))
-				{
 					texture->generateMipmap();
-				}
-				else
-				{
-					char path8[300];
-					::Effekseer::ConvertUtf16ToUtf8(path8, 300, path);
-					CCLOG("%s : The texture is not shown on a mobile. The size is not power of two.", path8);
-				}
+#else
+					if (texture->getPixelsWide() == ccNextPOT(texture->getPixelsWide()) &&
+						texture->getPixelsHigh() == ccNextPOT(texture->getPixelsHigh()))
+					{
+						texture->generateMipmap();
+					}
+					else
+					{
+						char path8[300];
+						::Effekseer::ConvertUtf16ToUtf8(path8, 300, path);
+						CCLOG("%s : The texture is not shown on a mobile. The size is not power of two.", path8);
+					}
 #endif
+				}
+
 			}
 			else
 			{
