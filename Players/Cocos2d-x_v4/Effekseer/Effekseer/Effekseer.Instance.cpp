@@ -205,16 +205,16 @@ void Instance::Initialize(Instance* parent, int32_t instanceNumber, const SIMD::
 {
 	assert(this->m_pContainer != nullptr);
 
-	// 状態の初期化
+	// Initialize a state
 	m_State = INSTANCE_STATE_ACTIVE;
 
-	// 親の設定
+	// Initialize paramaters about a parent
 	m_pParent = parent;
+	m_ParentMatrix = SIMD::Mat43f::Identity;
 
 	m_GlobalMatrix43 = globalMatrix;
 	assert(m_GlobalMatrix43.IsValid());
 
-	// 時間周りの初期化
 	m_LivingTime = 0.0f;
 	m_LivedTime = FLT_MAX;
 
@@ -316,8 +316,7 @@ void Instance::FirstUpdate()
 	forceField_.Reset();
 	m_GenerationLocation = SIMD::Mat43f::Identity;
 
-	// 親の初期化
-	if (parameter->CommonValues.TranslationBindType == BindType::WhenCreating ||
+	if (parameter->CommonValues.TranslationBindType == TranslationParentBindType::WhenCreating ||
 		parameter->CommonValues.TranslationBindType == TranslationParentBindType::WhenCreating_FollowParent ||
 		parameter->CommonValues.RotationBindType == BindType::WhenCreating ||
 		parameter->CommonValues.ScalingBindType == BindType::WhenCreating)

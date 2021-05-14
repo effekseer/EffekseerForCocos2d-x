@@ -41,6 +41,9 @@ private:
 		bool GoingToStopRoot;
 		EffectInstanceRemovingCallback RemovingCallback;
 
+		Matrix43 Rotation;
+		Vector3D Scaling = { 1.f, 1.f, 1.f };
+
 		SIMD::Mat43f BaseMatrix;
 		SIMD::Mat43f GlobalMatrix;
 
@@ -83,6 +86,7 @@ private:
 			, Speed(1.0f)
 			, Self(-1)
 		{
+			Rotation.Indentity();
 		}
 
 		DrawSet()
@@ -99,6 +103,7 @@ private:
 			, Speed(1.0f)
 			, Self(-1)
 		{
+			Rotation.Indentity();
 		}
 
 		SIMD::Mat43f* GetEnabledGlobalMatrix();
@@ -169,7 +174,7 @@ private:
 	CustomAlignedMap<Handle, DrawSet> m_renderingDrawSetMaps;
 
 	// mutex for rendering
-	std::mutex m_renderingMutex;
+	std::recursive_mutex m_renderingMutex;
 	bool m_isLockedWithRenderingMutex = false;
 
 	SettingRef m_setting;
