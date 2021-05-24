@@ -13,187 +13,11 @@
 namespace LLGI
 {
 
-CommandList_Impl::CommandList_Impl() {}
-
-CommandList_Impl::~CommandList_Impl()
+CommandListMetal::CommandListMetal(Graphics* graphics)
 {
-	if (commandBuffer != nullptr)
-	{
-		[commandBuffer release];
-		commandBuffer = nullptr;
-	}
-
-	if (renderEncoder != nullptr)
-	{
-		[renderEncoder release];
-	}
-
-	if (fence != nullptr)
-	{
-		[fence release];
-	}
-}
-
-bool CommandList_Impl::Initialize(Graphics_Impl* graphics)
-{
-	graphics_ = graphics;
-	fence = [graphics->device newFence];
-	return true;
-}
-
-void CommandList_Impl::Begin()
-{
-	if (commandBuffer != nullptr)
-	{
-		[commandBuffer release];
-		commandBuffer = nullptr;
-	}
-
-	commandBuffer = [graphics_->commandQueue commandBuffer];
-	[commandBuffer retain];
-
-	auto t = this;
-
-	[commandBuffer addCompletedHandler:^(id buffer) {
-	  t->isCompleted = true;
-	}];
-}
-
-void CommandList_Impl::End() {}
-
-void CommandList_Impl::BeginRenderPass(RenderPass_Impl* renderPass)
-{
-	for (size_t i = 0; i < renderPass->pixelFormats.size(); i++)
-	{
-		if (renderPass->isColorCleared)
-		{
-			auto r_ = renderPass->clearColor.R / 255.0;
-			auto g_ = renderPass->clearColor.G / 255.0;
-			auto b_ = renderPass->clearColor.B / 255.0;
-			auto a_ = renderPass->clearColor.A / 255.0;
-
-			renderPass->renderPassDescriptor.colorAttachments[i].loadAction = MTLLoadActionClear;
-			renderPass->renderPassDescriptor.colorAttachments[i].clearColor = MTLClearColorMake(r_, g_, b_, a_);
-		}
-		else
-		{
-			renderPass->renderPassDescriptor.colorAttachments[i].loadAction = MTLLoadActionDontCare;
-		}
-	}
-
-	if (renderPass->isDepthCleared)
-	{
-		renderPass->renderPassDescriptor.depthAttachment.loadAction = MTLLoadActionClear;
-		renderPass->renderPassDescriptor.depthAttachment.clearDepth = 1.0;
-
-		if (renderPass->depthStencilFormat != MTLPixelFormatDepth32Float_Stencil8
-#if TARGET_OS_MACOS
-			&& renderPass->depthStencilFormat != MTLPixelFormatDepth24Unorm_Stencil8
-#endif
-		)
-		{
-			renderPass->renderPassDescriptor.stencilAttachment.loadAction = MTLLoadActionClear;
-			renderPass->renderPassDescriptor.stencilAttachment.clearStencil = 0;
-		}
-	}
-	else
-	{
-		renderPass->renderPassDescriptor.depthAttachment.loadAction = MTLLoadActionDontCare;
-		renderPass->renderPassDescriptor.stencilAttachment.loadAction = MTLLoadActionDontCare;
-	}
-
-	renderEncoder = [commandBuffer renderCommandEncoderWithDescriptor:renderPass->renderPassDescriptor];
-
-	[renderEncoder waitForFence:fence beforeStages:MTLRenderStageVertex];
-}
-
-void CommandList_Impl::EndRenderPass()
-{
-	if (renderEncoder)
-	{
-		[renderEncoder updateFence:fence afterStages:MTLRenderStageFragment];
-		[renderEncoder endEncoding];
-		renderEncoder = nullptr;
-	}
-}
-
-void CommandList_Impl::BeginRenderPassWithPlatform(id<MTLRenderCommandEncoder> renderEncoder)
-{
-	this->renderEncoder = renderEncoder;
-
-	if (this->renderEncoder)
-	{
-		[this->renderEncoder retain];
-		// TODO : make correct. wait can do only once per encorder
-		// [this->renderEncoder waitForFence:fence beforeStages:MTLRenderStageVertex];
-	}
-}
-
-void CommandList_Impl::EndRenderPassWithPlatform()
-{
-	if (renderEncoder)
-	{
-		// TODO : make correct. wait can do only once per encorder
-		// [renderEncoder updateFence:fence afterStages:MTLRenderStageFragment];
-		[renderEncoder release];
-		renderEncoder = nullptr;
-	}
-}
-
-void CommandList_Impl::SetScissor(int32_t x, int32_t y, int32_t width, int32_t height)
-{
-	MTLScissorRect rect;
-	rect.x = x;
-	rect.y = y;
-	rect.width = width;
-	rect.height = height;
-	[renderEncoder setScissorRect:rect];
-}
-
-void CommandList_Impl::SetVertexBuffer(Buffer_Impl* vertexBuffer, int32_t stride, int32_t offset)
-{
-	[renderEncoder setVertexBuffer:vertexBuffer->buffer offset:offset atIndex:VertexBufferIndex];
-}
-
-CommandListMetal::CommandListMetal() { impl = new CommandList_Impl(); }
-
-CommandListMetal::~CommandListMetal()
-{
-	if (isInRenderPass_)
-	{
-		EndRenderPass();
-	}
-
-	if (isInBegin_)
-	{
-		End();
-	}
-
-	WaitUntilCompleted();
-
-	for (int w = 0; w < 2; w++)
-	{
-		for (int f = 0; f < 2; f++)
-		{
-			for (int m = 0; m < 2; m++)
-			{
-				[samplers[w][f][m] release];
-				[samplerStates[w][f][m] release];
-			}
-		}
-	}
-
-	SafeDelete(impl);
-	SafeRelease(graphics_);
-}
-
-bool CommandListMetal::Initialize(Graphics* graphics)
-{
-	SafeAddRef(graphics);
-	SafeRelease(graphics_);
-	graphics_ = graphics;
-
-	auto graphics_metal_ = static_cast<GraphicsMetal*>(graphics);
+	auto g = static_cast<GraphicsMetal*>(graphics);
+	SafeAddRef(g);
+	graphics_ = g;
 
 	// Sampler
 	for (int w = 0; w < 2; w++)
@@ -222,35 +46,100 @@ bool CommandListMetal::Initialize(Graphics* graphics)
 				samplerDescriptor.sAddressMode = ws[w];
 				samplerDescriptor.tAddressMode = ws[w];
 
-				samplers[w][f][m] = samplerDescriptor;
-				samplerStates[w][f][m] = [graphics_metal_->GetImpl()->device newSamplerStateWithDescriptor:samplerDescriptor];
+				samplers_[w][f][m] = samplerDescriptor;
+				samplerStates_[w][f][m] = [g->GetDevice() newSamplerStateWithDescriptor:samplerDescriptor];
 			}
 		}
 	}
 
-	return impl->Initialize(graphics_metal_->GetImpl());
+	fence_ = [g->GetDevice() newFence];
+}
+
+CommandListMetal::~CommandListMetal()
+{
+	if (isInRenderPass_)
+	{
+		EndRenderPass();
+	}
+
+	if (isInBegin_)
+	{
+		End();
+	}
+
+	WaitUntilCompleted();
+
+	for (int w = 0; w < 2; w++)
+	{
+		for (int f = 0; f < 2; f++)
+		{
+			for (int m = 0; m < 3; m++)
+			{
+				[samplers_[w][f][m] release];
+				[samplerStates_[w][f][m] release];
+			}
+		}
+	}
+
+	if (commandBuffer_ != nullptr)
+	{
+		[commandBuffer_ release];
+		commandBuffer_ = nullptr;
+	}
+
+	if (renderEncoder_ != nullptr)
+	{
+		[renderEncoder_ release];
+	}
+
+	if (fence_ != nullptr)
+	{
+		[fence_ release];
+	}
+
+	SafeRelease(graphics_);
 }
 
 void CommandListMetal::Begin()
 {
-	impl->Begin();
+	@autoreleasepool
+	{
+		if (commandBuffer_ != nullptr)
+		{
+			[commandBuffer_ release];
+			commandBuffer_ = nullptr;
+		}
 
-	CommandList::Begin();
+		commandBuffer_ = [graphics_->GetCommandQueue() commandBuffer];
+		[commandBuffer_ retain];
+
+		auto t = this;
+
+		[commandBuffer_ addCompletedHandler:^(id buffer) {
+		  t->isCompleted_ = true;
+		}];
+
+		CommandList::Begin();
+	}
 }
 
-void CommandListMetal::End()
+void CommandListMetal::End() { CommandList::End(); }
+
+void CommandListMetal::SetScissor(int32_t x, int32_t y, int32_t width, int32_t height)
 {
-	impl->End();
-	CommandList::End();
+	MTLScissorRect rect;
+	rect.x = x;
+	rect.y = y;
+	rect.width = width;
+	rect.height = height;
+	[renderEncoder_ setScissorRect:rect];
 }
-
-void CommandListMetal::SetScissor(int32_t x, int32_t y, int32_t width, int32_t height) { impl->SetScissor(x, y, width, height); }
 
 void CommandListMetal::Draw(int32_t primitiveCount, int32_t instanceCount)
 {
-	BindingVertexBuffer vb_;
-	BindingIndexBuffer ib_;
-	PipelineState* pip_ = nullptr;
+	BindingVertexBuffer bvb;
+	BindingIndexBuffer bib;
+	PipelineState* bpip = nullptr;
 
 	const int mipmapFilter = 1;
 
@@ -258,37 +147,37 @@ void CommandListMetal::Draw(int32_t primitiveCount, int32_t instanceCount)
 	bool isIBDirtied = false;
 	bool isPipDirtied = false;
 
-	GetCurrentVertexBuffer(vb_, isVBDirtied);
-	GetCurrentIndexBuffer(ib_, isIBDirtied);
-	GetCurrentPipelineState(pip_, isPipDirtied);
+	GetCurrentVertexBuffer(bvb, isVBDirtied);
+	GetCurrentIndexBuffer(bib, isIBDirtied);
+	GetCurrentPipelineState(bpip, isPipDirtied);
 
-	assert(vb_.vertexBuffer != nullptr);
-	assert(ib_.indexBuffer != nullptr);
-	assert(pip_ != nullptr);
+	assert(bvb.vertexBuffer != nullptr);
+	assert(bib.indexBuffer != nullptr);
+	assert(bpip != nullptr);
 
-	auto vb = static_cast<VertexBufferMetal*>(vb_.vertexBuffer);
-	auto ib = static_cast<IndexBufferMetal*>(ib_.indexBuffer);
-	auto pip = static_cast<PipelineStateMetal*>(pip_);
+	auto vb = static_cast<VertexBufferMetal*>(bvb.vertexBuffer);
+	auto ib = static_cast<IndexBufferMetal*>(bib.indexBuffer);
+	auto pip = static_cast<PipelineStateMetal*>(bpip);
 
 	// set cull mode
 	if (pip->Culling == LLGI::CullingMode::Clockwise)
 	{
-		[impl->renderEncoder setCullMode:MTLCullModeFront];
+		[renderEncoder_ setCullMode:MTLCullModeFront];
 	}
 	else if (pip->Culling == LLGI::CullingMode::CounterClockwise)
 	{
-		[impl->renderEncoder setCullMode:MTLCullModeBack];
+		[renderEncoder_ setCullMode:MTLCullModeBack];
 	}
 	else
 	{
-		[impl->renderEncoder setCullMode:MTLCullModeNone];
+		[renderEncoder_ setCullMode:MTLCullModeNone];
 	}
 
-	[impl->renderEncoder setFrontFacingWinding:MTLWindingCounterClockwise];
+	[renderEncoder_ setFrontFacingWinding:MTLWindingCounterClockwise];
 
 	if (isVBDirtied)
 	{
-		impl->SetVertexBuffer(vb->GetImpl(), vb_.stride, vb_.offset);
+		[renderEncoder_ setVertexBuffer:vb->GetBuffer().GetBuffer() offset:bvb.offset atIndex:VertexBufferIndex];
 	}
 
 	// assign constant buffer
@@ -297,7 +186,7 @@ void CommandListMetal::Draw(int32_t primitiveCount, int32_t instanceCount)
 	if (vcb != nullptr)
 	{
 		auto vcb_ = static_cast<ConstantBufferMetal*>(vcb);
-		[impl->renderEncoder setVertexBuffer:vcb_->GetImpl()->buffer offset:vcb_->GetOffset() atIndex:0];
+		[renderEncoder_ setVertexBuffer:vcb_->GetBuffer().GetBuffer() offset:vcb_->GetOffset() atIndex:0];
 	}
 
 	ConstantBuffer* pcb = nullptr;
@@ -305,7 +194,7 @@ void CommandListMetal::Draw(int32_t primitiveCount, int32_t instanceCount)
 	if (pcb != nullptr)
 	{
 		auto pcb_ = static_cast<ConstantBufferMetal*>(pcb);
-		[impl->renderEncoder setFragmentBuffer:pcb_->GetImpl()->buffer offset:pcb_->GetOffset() atIndex:0];
+		[renderEncoder_ setFragmentBuffer:pcb_->GetBuffer().GetBuffer() offset:pcb_->GetOffset() atIndex:0];
 	}
 
 	// Assign textures
@@ -320,35 +209,35 @@ void CommandListMetal::Draw(int32_t primitiveCount, int32_t instanceCount)
 			auto wm = (int32_t)currentTextures[stage_ind][unit_ind].wrapMode;
 			auto mm = (int32_t)currentTextures[stage_ind][unit_ind].minMagFilter;
 			auto pm = 0;
-			if (texture->GetImpl()->texture.mipmapLevelCount >= 2)
+			if (texture->GetTexture().mipmapLevelCount >= 2)
 			{
 				pm = mipmapFilter;
 			}
 
 			if (stage_ind == (int32_t)ShaderStageType::Vertex)
 			{
-				[impl->renderEncoder setVertexTexture:texture->GetImpl()->texture atIndex:unit_ind];
-				[impl->renderEncoder setVertexSamplerState:samplerStates[wm][mm][pm] atIndex:unit_ind];
+				[renderEncoder_ setVertexTexture:texture->GetTexture() atIndex:unit_ind];
+				[renderEncoder_ setVertexSamplerState:samplerStates_[wm][mm][pm] atIndex:unit_ind];
 			}
 
 			if (stage_ind == (int32_t)ShaderStageType::Pixel)
 			{
-				[impl->renderEncoder setFragmentTexture:texture->GetImpl()->texture atIndex:unit_ind];
-				[impl->renderEncoder setFragmentSamplerState:samplerStates[wm][mm][pm] atIndex:unit_ind];
+				[renderEncoder_ setFragmentTexture:texture->GetTexture() atIndex:unit_ind];
+				[renderEncoder_ setFragmentSamplerState:samplerStates_[wm][mm][pm] atIndex:unit_ind];
 			}
 		}
 	}
 
 	if (isPipDirtied)
 	{
-		[impl->renderEncoder setRenderPipelineState:pip->GetImpl()->pipelineState];
+		[renderEncoder_ setRenderPipelineState:pip->GetRenderPipelineState()];
 
-		if (pip->GetImpl()->depthStencilState != nullptr)
+		if (pip->GetDepthStencilState() != nullptr)
 		{
-			[impl->renderEncoder setDepthStencilState:pip->GetImpl()->depthStencilState];
+			[renderEncoder_ setDepthStencilState:pip->GetDepthStencilState()];
 		}
 
-		[impl->renderEncoder setStencilReferenceValue:pip->StencilRef];
+		[renderEncoder_ setStencilReferenceValue:pip->StencilRef];
 	}
 
 	// draw
@@ -356,17 +245,17 @@ void CommandListMetal::Draw(int32_t primitiveCount, int32_t instanceCount)
 	MTLIndexType indexType = MTLIndexTypeUInt32;
 	int indexPerPrim = 0;
 
-	if (pip_->Topology == TopologyType::Triangle)
+	if (bpip->Topology == TopologyType::Triangle)
 	{
 		indexPerPrim = 3;
 		topology = MTLPrimitiveTypeTriangle;
 	}
-	else if (pip_->Topology == TopologyType::Line)
+	else if (bpip->Topology == TopologyType::Line)
 	{
 		indexPerPrim = 2;
 		topology = MTLPrimitiveTypeLine;
 	}
-	else if (pip_->Topology == TopologyType::Point)
+	else if (bpip->Topology == TopologyType::Point)
 	{
 		indexPerPrim = 1;
 		topology = MTLPrimitiveTypePoint;
@@ -381,82 +270,138 @@ void CommandListMetal::Draw(int32_t primitiveCount, int32_t instanceCount)
 		indexType = MTLIndexTypeUInt16;
 	}
 
-	[impl->renderEncoder drawIndexedPrimitives:topology
-									indexCount:primitiveCount * indexPerPrim
-									 indexType:indexType
-								   indexBuffer:ib->GetImpl()->buffer
-							 indexBufferOffset:ib_.offset
-								 instanceCount:instanceCount];
+	[renderEncoder_ drawIndexedPrimitives:topology
+							   indexCount:primitiveCount * indexPerPrim
+								indexType:indexType
+							  indexBuffer:ib->GetBuffer().GetBuffer()
+						indexBufferOffset:bib.offset
+							instanceCount:instanceCount];
 
 	CommandList::Draw(primitiveCount, instanceCount);
 }
 
 void CommandListMetal::CopyTexture(Texture* src, Texture* dst)
 {
-	if (isInRenderPass_)
+	@autoreleasepool
 	{
-		Log(LogType::Error, "Please call CopyTexture outside of RenderPass");
-		return;
+		if (isInRenderPass_)
+		{
+			Log(LogType::Error, "Please call CopyTexture outside of RenderPass");
+			return;
+		}
+
+		auto srcTex = static_cast<TextureMetal*>(src);
+		auto dstTex = static_cast<TextureMetal*>(dst);
+
+		id<MTLBlitCommandEncoder> blitEncoder = [commandBuffer_ blitCommandEncoder];
+
+		auto regionSize = srcTex->GetSizeAs2D();
+
+		MTLRegion region = {{0, 0, 0}, {(uint32_t)regionSize.X, (uint32_t)regionSize.Y, 1}};
+
+		[blitEncoder copyFromTexture:srcTex->GetTexture()
+						 sourceSlice:0
+						 sourceLevel:0
+						sourceOrigin:region.origin
+						  sourceSize:region.size
+						   toTexture:dstTex->GetTexture()
+					destinationSlice:0
+					destinationLevel:0
+				   destinationOrigin:{0, 0, 0}];
+		[blitEncoder endEncoding];
+
+		RegisterReferencedObject(src);
+		RegisterReferencedObject(dst);
 	}
-
-	auto srcTex = static_cast<TextureMetal*>(src);
-	auto dstTex = static_cast<TextureMetal*>(dst);
-
-	id<MTLBlitCommandEncoder> blitEncoder = [impl->commandBuffer blitCommandEncoder];
-
-	auto regionSize = srcTex->GetSizeAs2D();
-
-	MTLRegion region = {{0, 0, 0}, {(uint32_t)regionSize.X, (uint32_t)regionSize.Y, 1}};
-
-	[blitEncoder copyFromTexture:srcTex->GetImpl()->texture
-					 sourceSlice:0
-					 sourceLevel:0
-					sourceOrigin:region.origin
-					  sourceSize:region.size
-					   toTexture:dstTex->GetImpl()->texture
-				destinationSlice:0
-				destinationLevel:0
-			   destinationOrigin:{0, 0, 0}];
-	[blitEncoder endEncoding];
-
-	RegisterReferencedObject(src);
-	RegisterReferencedObject(dst);
 }
 
 void CommandListMetal::GenerateMipMap(Texture* src)
 {
 	auto srcTex = static_cast<TextureMetal*>(src);
 
-	id<MTLBlitCommandEncoder> blitEncoder = [impl->commandBuffer blitCommandEncoder];
-	[blitEncoder generateMipmapsForTexture:srcTex->GetImpl()->texture];
+	id<MTLBlitCommandEncoder> blitEncoder = [commandBuffer_ blitCommandEncoder];
+	[blitEncoder generateMipmapsForTexture:srcTex->GetTexture()];
 	[blitEncoder endEncoding];
 }
 
 void CommandListMetal::BeginRenderPass(RenderPass* renderPass)
 {
-	auto renderPass_ = static_cast<RenderPassMetal*>(renderPass)->GetImpl();
-	impl->BeginRenderPass(renderPass_);
+	@autoreleasepool
+	{
+		auto rp = static_cast<RenderPassMetal*>(renderPass);
+		auto rpd = rp->GetRenderPassDescriptor();
 
-	CommandList::BeginRenderPass(renderPass);
+		for (size_t i = 0; i < rp->pixelFormats.size(); i++)
+		{
+			if (rp->isColorCleared)
+			{
+				auto r_ = rp->clearColor.R / 255.0;
+				auto g_ = rp->clearColor.G / 255.0;
+				auto b_ = rp->clearColor.B / 255.0;
+				auto a_ = rp->clearColor.A / 255.0;
+
+				rpd.colorAttachments[i].loadAction = MTLLoadActionClear;
+				rpd.colorAttachments[i].clearColor = MTLClearColorMake(r_, g_, b_, a_);
+			}
+			else
+			{
+				rpd.colorAttachments[i].loadAction = MTLLoadActionDontCare;
+			}
+		}
+
+		if (rp->isDepthCleared)
+		{
+			rpd.depthAttachment.loadAction = MTLLoadActionClear;
+			rpd.depthAttachment.clearDepth = 1.0;
+
+			if (rp->depthStencilFormat != MTLPixelFormatDepth32Float_Stencil8
+#if TARGET_OS_MACOS
+				&& rp->depthStencilFormat != MTLPixelFormatDepth24Unorm_Stencil8
+#endif
+			)
+			{
+				rpd.stencilAttachment.loadAction = MTLLoadActionClear;
+				rpd.stencilAttachment.clearStencil = 0;
+			}
+		}
+		else
+		{
+			rpd.depthAttachment.loadAction = MTLLoadActionDontCare;
+			rpd.stencilAttachment.loadAction = MTLLoadActionDontCare;
+		}
+
+		renderEncoder_ = [commandBuffer_ renderCommandEncoderWithDescriptor:rpd];
+		[renderEncoder_ retain];
+		[renderEncoder_ waitForFence:fence_ beforeStages:MTLRenderStageVertex];
+
+		CommandList::BeginRenderPass(renderPass);
+	}
 }
 
 void CommandListMetal::EndRenderPass()
 {
-	impl->EndRenderPass();
+	if (renderEncoder_)
+	{
+		[renderEncoder_ updateFence:fence_ afterStages:MTLRenderStageFragment];
+		[renderEncoder_ endEncoding];
+		[renderEncoder_ release];
+		renderEncoder_ = nullptr;
+	}
+
 	CommandList::EndRenderPass();
 }
 
 void CommandListMetal::WaitUntilCompleted()
 {
-	if (impl->commandBuffer != nullptr)
+	if (commandBuffer_ != nullptr)
 	{
-		auto status = [impl->commandBuffer status];
+		auto status = [commandBuffer_ status];
 		if (status == MTLCommandBufferStatusNotEnqueued)
 		{
 			return;
 		}
 
-		[impl->commandBuffer waitUntilCompleted];
+		[commandBuffer_ waitUntilCompleted];
 	}
 }
 
@@ -468,16 +413,29 @@ bool CommandListMetal::BeginRenderPassWithPlatformPtr(void* platformPtr)
 {
 	auto pp = reinterpret_cast<CommandListMetalPlatformRenderPassContext*>(platformPtr);
 
-	impl->BeginRenderPassWithPlatform(pp->RenderEncoder);
+	this->renderEncoder_ = pp->RenderEncoder;
+
+	if (this->renderEncoder_)
+	{
+		[this->renderEncoder_ retain];
+		// TODO : make correct. wait can do only once per encorder
+		// [this->renderEncoder waitForFence:fence beforeStages:MTLRenderStageVertex];
+	}
+
 	return CommandList::BeginRenderPassWithPlatformPtr(platformPtr);
 }
 
 bool CommandListMetal::EndRenderPassWithPlatformPtr()
 {
-	impl->EndRenderPassWithPlatform();
+	if (renderEncoder_)
+	{
+		// TODO : make correct. wait can do only once per encorder
+		// [renderEncoder updateFence:fence afterStages:MTLRenderStageFragment];
+		[renderEncoder_ release];
+		renderEncoder_ = nullptr;
+	}
+
 	return CommandList::EndRenderPassWithPlatformPtr();
 }
-
-CommandList_Impl* CommandListMetal::GetImpl() { return impl; }
 
 }

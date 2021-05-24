@@ -31,9 +31,9 @@ public:
 
 	int32_t GetSize() override;
 
-	Buffer_Impl* GetImpl() const;
-
 	int32_t GetOffset() const { return offset_; }
+
+	BufferMetal& GetBuffer() { return *buffer_; }
 };
 
 } // namespace LLGI

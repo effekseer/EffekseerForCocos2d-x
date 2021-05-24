@@ -145,17 +145,17 @@ static void CalculateNormal(ProceduralMesh& mesh)
 	CustomAlignedUnorderedMap<SIMD::Vec3f, int32_t> vertexCounts;
 
 	auto generateKey = [](SIMD::Vec3f s) -> SIMD::Vec3f {
-		s.SetX(roundf(s.GetX() * 1024.0f));
-		s.SetY(roundf(s.GetY() * 1024.0f));
-		s.SetZ(roundf(s.GetZ() * 1024.0f));
-		return s;
+		return SIMD::Vec3f{
+			roundf(s.GetX() * 1024.0f),
+			roundf(s.GetY() * 1024.0f),
+			roundf(s.GetZ() * 1024.0f)};
 	};
 
 	for (size_t i = 0; i < mesh.Faces.size(); i++)
 	{
 		for (size_t j = 0; j < 3; j++)
 		{
-			const auto& key = generateKey(mesh.Vertexes[mesh.Faces[i].Indexes[j]].Position);
+			const auto key = generateKey(mesh.Vertexes[mesh.Faces[i].Indexes[j]].Position);
 
 			if (normals.count(key) == 0)
 			{
@@ -177,7 +177,7 @@ static void CalculateNormal(ProceduralMesh& mesh)
 
 	for (size_t i = 0; i < mesh.Vertexes.size(); i++)
 	{
-		const auto& key = generateKey(mesh.Vertexes[i].Position);
+		const auto key = generateKey(mesh.Vertexes[i].Position);
 		mesh.Vertexes[i].Normal = normals[key] / static_cast<float>(vertexCounts[key]);
 		mesh.Vertexes[i].Tangent = tangents[key] / static_cast<float>(vertexCounts[key]);
 	}
@@ -552,19 +552,6 @@ struct RotatorMeshGenerator
 			}
 		}
 
-		/*
-		for (size_t i = 0; i < ret.Vertexes.size(); i++)
-		{
-			auto r = ret.Vertexes[i].Position.GetY();
-			auto x = ret.Vertexes[i].Position.GetX();
-			auto z = ret.Vertexes[i].Position.GetZ();
-			auto newX = cosf(r) * x + sinf(r) * z;
-			auto newZ = - sinf(r) * x + cosf(r) * z;
-			ret.Vertexes[i].Position.SetX(newX);
-			ret.Vertexes[i].Position.SetZ(newZ);
-		}
-		*/
-
 		for (size_t i = 0; i < ret.Vertexes.size(); i++)
 		{
 			ret.Vertexes[i].Position = Noise(ret.Vertexes[i].Position);
@@ -616,14 +603,12 @@ struct RotatedWireMeshGenerator
 
 		if (CrossSectionType == ProceduralModelCrossSectionType::Cross)
 		{
-			vertexPoses = {
-				SIMD::Vec3f(+0.5f, 0.0f, 0.0f),
-				SIMD::Vec3f(+0.0f, 0.0f, 0.0f),
-				SIMD::Vec3f(-0.5f, 0.0f, 0.0f),
-				SIMD::Vec3f(0.0f, 0.0f, -0.5f),
-				SIMD::Vec3f(0.0f, 0.0f, +0.0f),
-				SIMD::Vec3f(0.0f, 0.0f, +0.5f),
-			};
+			vertexPoses.emplace_back(+0.5f, 0.0f, 0.0f);
+			vertexPoses.emplace_back(+0.0f, 0.0f, 0.0f);
+			vertexPoses.emplace_back(-0.5f, 0.0f, 0.0f);
+			vertexPoses.emplace_back(0.0f, 0.0f, -0.5f);
+			vertexPoses.emplace_back(0.0f, 0.0f, +0.0f);
+			vertexPoses.emplace_back(0.0f, 0.0f, +0.5f);
 
 			edgeIDs = {
 				0,
@@ -647,11 +632,9 @@ struct RotatedWireMeshGenerator
 		}
 		else if (CrossSectionType == ProceduralModelCrossSectionType::Plane)
 		{
-			vertexPoses = {
-				SIMD::Vec3f(+0.5f, 0.0f, 0.0f),
-				SIMD::Vec3f(+0.0f, 0.0f, 0.0f),
-				SIMD::Vec3f(-0.5f, 0.0f, 0.0f),
-			};
+			vertexPoses.emplace_back(+0.5f, 0.0f, 0.0f);
+			vertexPoses.emplace_back(+0.0f, 0.0f, 0.0f);
+			vertexPoses.emplace_back(-0.5f, 0.0f, 0.0f);
 
 			edgeIDs = {
 				0,
@@ -668,9 +651,7 @@ struct RotatedWireMeshGenerator
 		}
 		else if (CrossSectionType == ProceduralModelCrossSectionType::Point)
 		{
-			vertexPoses = {
-				SIMD::Vec3f(0.0f, 0.0f, 0.0f),
-			};
+			vertexPoses.emplace_back(0.0f, 0.0f, 0.0f);
 
 			edgeIDs = {
 				0,

@@ -3,10 +3,12 @@
 #include "../LLGI.CommandList.h"
 #import <MetalKit/MetalKit.h>
 
+#include <memory>
+
 namespace LLGI
 {
 
-struct CommandList_Impl;
+class GraphicsMetal;
 class IndexBuffer;
 
 struct CommandListMetalPlatformRenderPassContext
@@ -16,17 +18,19 @@ struct CommandListMetalPlatformRenderPassContext
 
 class CommandListMetal : public CommandList
 {
-	CommandList_Impl* impl = nullptr;
-	Graphics* graphics_ = nullptr;
+	GraphicsMetal* graphics_ = nullptr;
 
-	MTLSamplerDescriptor* samplers[2][2][3];
-	id<MTLSamplerState> samplerStates[2][2][3];
+	MTLSamplerDescriptor* samplers_[2][2][3];
+	id<MTLSamplerState> samplerStates_[2][2][3];
+
+	id<MTLCommandBuffer> commandBuffer_ = nullptr;
+	id<MTLRenderCommandEncoder> renderEncoder_ = nullptr;
+	id<MTLFence> fence_ = nullptr;
+	bool isCompleted_ = true;
 
 public:
-	CommandListMetal();
+	CommandListMetal(Graphics* graphics);
 	~CommandListMetal() override;
-
-	bool Initialize(Graphics* graphics);
 
 	void Begin() override;
 	void End() override;
@@ -45,7 +49,12 @@ public:
 	bool BeginRenderPassWithPlatformPtr(void* platformPtr) override;
 	bool EndRenderPassWithPlatformPtr() override;
 
-	CommandList_Impl* GetImpl();
+	bool GetIsCompleted() { return isCompleted_; }
+
+	void ResetCompleted() { isCompleted_ = false; }
+
+	id<MTLCommandBuffer>& GetCommandBuffer() { return commandBuffer_; }
+	id<MTLRenderCommandEncoder>& GetRenderCommandEncorder() { return renderEncoder_; }
 };
 
 } // namespace LLGI

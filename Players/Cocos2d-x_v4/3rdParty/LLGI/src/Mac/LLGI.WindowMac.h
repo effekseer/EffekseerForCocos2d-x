@@ -11,7 +11,7 @@ struct WindowMac_Impl;
 class WindowMac : public Window
 {
 private:
-	std::shared_ptr<WindowMac_Impl> impl = nullptr;
+	std::shared_ptr<WindowMac_Impl> impl_ = nullptr;
 	Vec2I windowSize_;
 
 public:

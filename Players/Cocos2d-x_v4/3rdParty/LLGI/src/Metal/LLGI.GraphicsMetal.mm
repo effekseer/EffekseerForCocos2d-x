@@ -16,50 +16,10 @@
 namespace LLGI
 {
 
-Graphics_Impl::Graphics_Impl() {}
-
-Graphics_Impl::~Graphics_Impl()
-{
-	if (device != nullptr)
-	{
-		[device release];
-	}
-
-	if (commandQueue != nullptr)
-	{
-		[commandQueue release];
-	}
-}
-
-bool Graphics_Impl::Initialize()
-{
-	device = MTLCreateSystemDefaultDevice();
-	commandQueue = [device newCommandQueue];
-
-	maxMultiSamplingCount = 0;
-	int testSampleCounts[] = {8, 4, 2, 1};
-	for (int count : testSampleCounts)
-	{
-		bool supported = [device supportsTextureSampleCount:count];
-		if (supported)
-		{
-			maxMultiSamplingCount = count;
-			break;
-		}
-	}
-	if (maxMultiSamplingCount == 0)
-		throw "Unsupported.";
-
-	return true;
-}
-
-void Graphics_Impl::Execute(CommandList_Impl* commandBuffer) { [commandBuffer->commandBuffer commit]; }
-
-GraphicsMetal::GraphicsMetal() { impl = new Graphics_Impl(); }
+GraphicsMetal::GraphicsMetal() {}
 
 GraphicsMetal::~GraphicsMetal()
 {
-
 	for (auto cb : executingCommandList_)
 	{
 		cb->Release();
@@ -67,17 +27,38 @@ GraphicsMetal::~GraphicsMetal()
 	executingCommandList_.clear();
 
 	renderPassPipelineStates_.clear();
-	SafeDelete(impl);
+
+	if (commandQueue_ != nullptr)
+	{
+		[commandQueue_ release];
+	}
+
+	if (device_ != nullptr)
+	{
+		[device_ release];
+	}
 }
 
 bool GraphicsMetal::Initialize(std::function<GraphicsView()> getGraphicsView)
 {
 	getGraphicsView_ = getGraphicsView;
 
-	if (!impl->Initialize())
+	device_ = MTLCreateSystemDefaultDevice();
+	commandQueue_ = [device_ newCommandQueue];
+
+	maxMultiSamplingCount_ = 0;
+	int testSampleCounts[] = {8, 4, 2, 1};
+	for (int count : testSampleCounts)
 	{
-		return false;
+		bool supported = [device_ supportsTextureSampleCount:count];
+		if (supported)
+		{
+			maxMultiSamplingCount_ = count;
+			break;
+		}
 	}
+	if (maxMultiSamplingCount_ == 0)
+		throw "Unsupported.";
 
 	renderPass_ = CreateSharedPtr(new RenderPassMetal());
 
@@ -91,7 +72,7 @@ void GraphicsMetal::Execute(CommandList* commandList)
 	// remove finished commands
 	auto it = std::remove_if(executingCommandList_.begin(), executingCommandList_.end(), [](CommandList* cb) {
 		auto c = static_cast<CommandListMetal*>(cb);
-		if (c->GetImpl()->isCompleted)
+		if (c->GetIsCompleted())
 		{
 			cb->Release();
 			return true;
@@ -102,8 +83,8 @@ void GraphicsMetal::Execute(CommandList* commandList)
 	executingCommandList_.erase(it, executingCommandList_.end());
 
 	auto commandList_ = (CommandListMetal*)commandList;
-	commandList_->GetImpl()->isCompleted = false;
-	impl->Execute(commandList_->GetImpl());
+	commandList_->ResetCompleted();
+	[commandList_->GetCommandBuffer() commit];
 
 	SafeAddRef(commandList);
 	executingCommandList_.push_back(commandList);
@@ -141,27 +122,9 @@ RenderPass* GraphicsMetal::GetCurrentScreen(const Color8& clearColor, bool isCol
 }
 */
 
-VertexBuffer* GraphicsMetal::CreateVertexBuffer(int32_t size)
-{
-	auto ret = new VertexBufferMetal();
-	if (ret->Initialize(this, size))
-	{
-		return ret;
-	}
-	SafeRelease(ret);
-	return nullptr;
-}
+VertexBuffer* GraphicsMetal::CreateVertexBuffer(int32_t size) { return new VertexBufferMetal(this, size); }
 
-IndexBuffer* GraphicsMetal::CreateIndexBuffer(int32_t stride, int32_t count)
-{
-	auto ret = new IndexBufferMetal();
-	if (ret->Initialize(this, stride, count))
-	{
-		return ret;
-	}
-	SafeRelease(ret);
-	return nullptr;
-}
+IndexBuffer* GraphicsMetal::CreateIndexBuffer(int32_t stride, int32_t count) { return new IndexBufferMetal(this, stride, count); }
 
 Shader* GraphicsMetal::CreateShader(DataStructure* data, int32_t count)
 {
@@ -192,17 +155,7 @@ SingleFrameMemoryPool* GraphicsMetal::CreateSingleFrameMemoryPool(int32_t consta
 	return new SingleFrameMemoryPoolMetal(this, false, constantBufferPoolSize, drawingCount);
 }
 
-CommandList* GraphicsMetal::CreateCommandList(SingleFrameMemoryPool* memoryPool)
-{
-	auto commandList = new CommandListMetal();
-	if (commandList->Initialize(this))
-	{
-		return commandList;
-	}
-
-	SafeRelease(commandList);
-	return nullptr;
-}
+CommandList* GraphicsMetal::CreateCommandList(SingleFrameMemoryPool* memoryPool) { return new CommandListMetal(this); }
 
 ConstantBuffer* GraphicsMetal::CreateConstantBuffer(int32_t size)
 {
@@ -337,14 +290,14 @@ std::vector<uint8_t> GraphicsMetal::CaptureRenderTarget(Texture* renderTarget)
 	auto metalTexture = static_cast<TextureMetal*>(renderTarget);
 	auto width = metalTexture->GetSizeAs2D().X;
 	auto height = metalTexture->GetSizeAs2D().Y;
-	auto impl = metalTexture->GetImpl();
+	auto& texture = metalTexture->GetTexture();
 
-	id<MTLCommandQueue> queue = [this->impl->device newCommandQueue];
+	id<MTLCommandQueue> queue = [this->device_ newCommandQueue];
 	id<MTLCommandBuffer> commandBuffer = [queue commandBuffer];
 	id<MTLBlitCommandEncoder> blitEncoder = [commandBuffer blitCommandEncoder];
 
 #if !(TARGET_OS_IPHONE) && !(TARGET_OS_SIMULATOR)
-	[blitEncoder synchronizeTexture:impl->texture slice:0 level:0];
+	[blitEncoder synchronizeTexture:texture slice:0 level:0];
 #endif
 	[blitEncoder endEncoding];
 
@@ -358,11 +311,13 @@ std::vector<uint8_t> GraphicsMetal::CaptureRenderTarget(Texture* renderTarget)
 
 	std::vector<uint8_t> data;
 	data.resize(imageByteCount);
-	[impl->texture getBytes:data.data() bytesPerRow:bytesPerRow fromRegion:region mipmapLevel:0];
+	[texture getBytes:data.data() bytesPerRow:bytesPerRow fromRegion:region mipmapLevel:0];
 
 	return data;
 }
 
-Graphics_Impl* GraphicsMetal::GetImpl() const { return impl; }
+id<MTLDevice>& GraphicsMetal::GetDevice() { return device_; }
+
+id<MTLCommandQueue>& GraphicsMetal::GetCommandQueue() { return commandQueue_; }
 
 }

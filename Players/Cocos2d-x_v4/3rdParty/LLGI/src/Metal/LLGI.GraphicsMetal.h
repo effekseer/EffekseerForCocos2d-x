@@ -9,10 +9,6 @@
 namespace LLGI
 {
 
-struct Graphics_Impl;
-struct RenderPass_Impl;
-struct RenderPassPipelineState_Impl;
-
 class GraphicsMetal;
 class RenderPassMetal;
 class RenderPassPipelineStateMetal;
@@ -25,8 +21,6 @@ struct GraphicsView
 
 class GraphicsMetal : public Graphics
 {
-	Graphics_Impl* impl = nullptr;
-
 	//! cached
 	std::unordered_map<RenderPassPipelineStateKey, std::shared_ptr<RenderPassPipelineStateMetal>, RenderPassPipelineStateKey::Hash>
 		renderPassPipelineStates_;
@@ -34,6 +28,10 @@ class GraphicsMetal : public Graphics
 	std::shared_ptr<RenderPassMetal> renderPass_ = nullptr;
 	std::function<GraphicsView()> getGraphicsView_;
 	std::vector<CommandList*> executingCommandList_;
+
+	id<MTLDevice> device_ = nullptr;
+	id<MTLCommandQueue> commandQueue_ = nullptr;
+	int maxMultiSamplingCount_ = 0;
 
 public:
 	GraphicsMetal();
@@ -79,9 +77,11 @@ public:
 
 	std::vector<uint8_t> CaptureRenderTarget(Texture* renderTarget) override;
 
-	Graphics_Impl* GetImpl() const;
-
 	RenderPassMetal* GetRenderPass() const { return renderPass_.get(); }
+
+	id<MTLDevice>& GetDevice();
+
+	id<MTLCommandQueue>& GetCommandQueue();
 };
 
 } // namespace LLGI

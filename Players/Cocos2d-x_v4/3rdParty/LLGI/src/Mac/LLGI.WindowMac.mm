@@ -84,8 +84,8 @@ struct Cocoa_Impl
 
 struct WindowMac_Impl
 {
-	NSWindow* window = nullptr;
-	NSAutoreleasePool* pool = nullptr;
+	NSWindow* window_ = nullptr;
+	NSAutoreleasePool* pool_ = nullptr;
 
 	WindowMac_Impl(const char* title, Vec2I windowSize)
 	{
@@ -93,35 +93,35 @@ struct WindowMac_Impl
 		int height = windowSize.Y;
 
 		NSRect frame = NSMakeRect(0, 0, width, height);
-		window = [[NSWindow alloc] initWithContentRect:frame
-											 styleMask:(NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskResizable)
-											   backing:NSBackingStoreBuffered
-												 defer:NO];
+		window_ = [[NSWindow alloc] initWithContentRect:frame
+											  styleMask:(NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskResizable)
+												backing:NSBackingStoreBuffered
+												  defer:NO];
 
-		window.title = [NSString stringWithCString:title encoding:NSUTF8StringEncoding];
-		window.releasedWhenClosed = false;
-		[window center];
-		[window orderFrontRegardless];
+		window_.title = [NSString stringWithCString:title encoding:NSUTF8StringEncoding];
+		window_.releasedWhenClosed = false;
+		[window_ center];
+		[window_ orderFrontRegardless];
 
-		pool = [[NSAutoreleasePool alloc] init];
+		pool_ = [[NSAutoreleasePool alloc] init];
 	}
 
 	~WindowMac_Impl()
 	{
-		if (window != nullptr)
+		if (window_ != nullptr)
 		{
-			[window close];
-			[window release];
-			window = nullptr;
+			[window_ close];
+			[window_ release];
+			window_ = nullptr;
 		}
 
-		[pool drain];
+		[pool_ drain];
 	}
 
 	void gc()
 	{
-		[pool drain];
-		pool = [[NSAutoreleasePool alloc] init];
+		[pool_ drain];
+		pool_ = [[NSAutoreleasePool alloc] init];
 	}
 
 	bool newFrame()
@@ -140,7 +140,7 @@ struct WindowMac_Impl
 
 		gc();
 
-		if (!window.isVisible)
+		if (!window_.isVisible)
 		{
 			return false;
 		}
@@ -152,16 +152,16 @@ struct WindowMac_Impl
 bool WindowMac::Initialize(const char* title, const Vec2I& windowSize)
 {
 	Cocoa_Impl::initialize();
-	impl = std::make_shared<WindowMac_Impl>(title, windowSize);
+	impl_ = std::make_shared<WindowMac_Impl>(title, windowSize);
 	windowSize_ = windowSize;
 	return true;
 }
 
-bool WindowMac::DoEvent() { return impl->newFrame(); }
+bool WindowMac::DoEvent() { return impl_->newFrame(); }
 
-void WindowMac::Terminate() { impl.reset(); }
+void WindowMac::Terminate() { impl_.reset(); }
 
-void* WindowMac::GetNSWindowAsVoidPtr() { return impl->window; }
+void* WindowMac::GetNSWindowAsVoidPtr() { return impl_->window_; }
 
 bool WindowMac::OnNewFrame() { return DoEvent(); }
 
@@ -173,8 +173,8 @@ Vec2I WindowMac::GetFrameBufferSize() const
 {
 	@autoreleasepool
 	{
-		NSRect contentRect = [impl->window.contentView frame];
-		NSRect rect = [impl->window.contentView convertRectToBacking:contentRect];
+		NSRect contentRect = [impl_->window_.contentView frame];
+		NSRect rect = [impl_->window_.contentView convertRectToBacking:contentRect];
 		return Vec2I(rect.size.width, rect.size.height);
 	}
 }

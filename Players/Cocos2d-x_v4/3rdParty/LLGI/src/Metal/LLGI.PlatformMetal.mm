@@ -18,16 +18,16 @@ namespace LLGI
 
 struct PlatformMetal_Impl
 {
-	Window* window_ = nullptr;
-	bool waitVSync_ = false;
+	Window* window_;
+	bool waitVSync_;
 
 	id<MTLDevice> device;
 	id<MTLCommandQueue> commandQueue;
-	id<MTLCommandBuffer> commandBuffer;
 	CAMetalLayer* layer;
-	id<CAMetalDrawable> drawable;
+	id<CAMetalDrawable> drawable = nullptr;
+	NSAutoreleasePool* pool;
 
-	PlatformMetal_Impl(Window* window, bool waitVSync)
+	PlatformMetal_Impl(Window* window, bool waitVSync) : window_(window), waitVSync_(waitVSync)
 	{
 		device = MTLCreateSystemDefaultDevice();
 		window_ = window;
@@ -45,6 +45,11 @@ struct PlatformMetal_Impl
 			[layer release];
 			layer = nullptr;
 		}
+
+		if (drawable != nullptr)
+		{
+			[drawable release];
+		}
 	}
 
 	bool newFrame()
@@ -54,16 +59,27 @@ struct PlatformMetal_Impl
 			return false;
 		}
 
-		drawable = layer.nextDrawable;
+		@autoreleasepool
+		{
+			if (drawable != nullptr)
+			{
+				[drawable release];
+			}
 
+			drawable = layer.nextDrawable;
+			[drawable retain];
+		}
 		return true;
 	}
 
 	void preset()
 	{
-		commandBuffer = [commandQueue commandBuffer];
-		[commandBuffer presentDrawable:drawable];
-		[commandBuffer commit];
+		@autoreleasepool
+		{
+			id<MTLCommandBuffer> commandBuffer = [commandQueue commandBuffer];
+			[commandBuffer presentDrawable:drawable];
+			[commandBuffer commit];
+		}
 	}
 
 	void resetLayer()

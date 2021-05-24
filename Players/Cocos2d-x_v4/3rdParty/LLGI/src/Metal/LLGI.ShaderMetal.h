@@ -2,25 +2,25 @@
 #pragma once
 
 #include "../LLGI.Shader.h"
+#import <MetalKit/MetalKit.h>
 
 namespace LLGI
 {
 
 class GraphicsMetal;
-struct Shader_Impl;
 
 class ShaderMetal : public Shader
 {
 private:
 	GraphicsMetal* graphics_ = nullptr;
-	Shader_Impl* impl = nullptr;
+	id<MTLLibrary> library_ = nullptr;
 
 public:
 	ShaderMetal();
 	~ShaderMetal() override;
 	bool Initialize(GraphicsMetal* graphics, DataStructure* data, int32_t count);
 
-	Shader_Impl* GetImpl() { return impl; }
+	id<MTLLibrary>& GetLibrary() { return library_; }
 };
 
 } // namespace LLGI

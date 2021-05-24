@@ -5,25 +5,21 @@
 namespace LLGI
 {
 
-struct Buffer_Impl;
+class BufferMetal;
 
 class VertexBufferMetal : public VertexBuffer
 {
 private:
-	Buffer_Impl* impl = nullptr;
+	BufferMetal* buffer_ = nullptr;
 
 public:
-	VertexBufferMetal();
+	VertexBufferMetal(Graphics* graphics, int32_t size);
 	~VertexBufferMetal() override;
-
-	bool Initialize(Graphics* graphics, int32_t size);
-
 	void* Lock() override;
 	void* Lock(int32_t offset, int32_t size) override;
 	void Unlock() override;
 	int32_t GetSize() override;
-
-	Buffer_Impl* GetImpl() const { return impl; }
+	BufferMetal& GetBuffer() { return *buffer_; }
 };
 
 } // namespace LLGI

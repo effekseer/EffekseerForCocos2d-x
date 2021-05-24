@@ -7,14 +7,19 @@
 namespace LLGI
 {
 
-struct Texture_Impl;
-
 class TextureMetal : public Texture
 {
 private:
 	ReferenceObject* owner_ = nullptr;
-	Texture_Impl* impl = nullptr;
 	std::vector<uint8_t> data;
+
+	id<MTLTexture> texture_ = nullptr;
+	Vec2I size_;
+	bool fromExternal_ = false;
+
+	bool
+	Initialize(id<MTLDevice> device, const Vec2I& size, TextureFormatType format, int samplingCount, TextureType type, int MipMapCount);
+	void Write(const uint8_t* data);
 
 public:
 	TextureMetal();
@@ -29,7 +34,7 @@ public:
 	void Unlock() override;
 	Vec2I GetSizeAs2D() const override;
 
-	Texture_Impl* GetImpl() const;
+	id<MTLTexture>& GetTexture() { return texture_; }
 };
 
 } // namespace LLGI

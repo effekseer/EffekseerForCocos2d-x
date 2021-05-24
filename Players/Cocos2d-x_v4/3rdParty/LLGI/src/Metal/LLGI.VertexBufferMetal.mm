@@ -1,4 +1,5 @@
 #include "LLGI.VertexBufferMetal.h"
+#include "LLGI.BufferMetal.h"
 #include "LLGI.GraphicsMetal.h"
 #include "LLGI.Metal_Impl.h"
 
@@ -7,29 +8,22 @@
 namespace LLGI
 {
 
-VertexBufferMetal::VertexBufferMetal() { impl = new Buffer_Impl(); }
+VertexBufferMetal::VertexBufferMetal(Graphics* graphics, int32_t size) { buffer_ = new BufferMetal(graphics, size); }
 
-VertexBufferMetal::~VertexBufferMetal() { SafeDelete(impl); }
+VertexBufferMetal::~VertexBufferMetal() { SafeRelease(buffer_); }
 
-bool VertexBufferMetal::Initialize(Graphics* graphics, int32_t size)
-{
-	auto graphics_ = static_cast<GraphicsMetal*>(graphics);
-	return impl->Initialize(graphics_->GetImpl(), size);
-}
-
-void* VertexBufferMetal::Lock() { return impl->GetBuffer(); }
+void* VertexBufferMetal::Lock() { return buffer_->GetData(); }
 
 void* VertexBufferMetal::Lock(int32_t offset, int32_t size)
 {
-	NSCAssert(0 <= offset && offset + size <= impl->size_, @"Run off the buffer");
-
-	auto buffer_ = static_cast<uint8_t*>(impl->GetBuffer());
-	buffer_ += offset;
-	return buffer_;
+	NSCAssert(0 <= offset && offset + size <= buffer_->GetSize(), @"Run off the buffer");
+	auto buffer = static_cast<uint8_t*>(buffer_->GetData());
+	buffer += offset;
+	return buffer;
 }
 
 void VertexBufferMetal::Unlock() {}
 
-int32_t VertexBufferMetal::GetSize() { return impl->size_; }
+int32_t VertexBufferMetal::GetSize() { return buffer_->GetSize(); }
 
 }
