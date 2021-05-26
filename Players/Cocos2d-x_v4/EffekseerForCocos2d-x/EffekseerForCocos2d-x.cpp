@@ -778,11 +778,11 @@ void EffectManager::setScale(::Effekseer::Handle handle, float x, float y, float
 
 bool EffectManager::Initialize(cocos2d::Size visibleSize)
 {
-	// large buffer make application slow on Android
-	int32_t spriteSize = 600;
+	int32_t spriteSize = 4000;
 
-#if (CC_TARGET_PLATFORM == CC_PLATFORM_IOS)
-	spriteSize = 4000;
+#if (CC_TARGET_PLATFORM == CC_PLATFORM_ANDROID)
+	// large buffer make application slow on Android
+	spriteSize = 600;
 #endif
 
 	CreateRenderer(spriteSize);
