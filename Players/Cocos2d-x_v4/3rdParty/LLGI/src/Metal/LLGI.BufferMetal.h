@@ -22,7 +22,7 @@ public:
 
 	id<MTLBuffer>& GetBuffer() { return buffer_; }
 
-	int32_t GetSize() const { return buffer_.length; }
+	int32_t GetSize() const { return static_cast<int32_t>(buffer_.length); }
 };
 
 } // namespace LLGI
