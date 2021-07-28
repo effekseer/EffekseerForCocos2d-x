@@ -1,8 +1,7 @@
 #include "../EffekseerForCocos2d-x.h"
 #ifdef CC_USE_METAL
 
-#include "../../EffekseerRendererMetal/EffekseerRenderer/EffekseerRendererMetal.RendererImplemented.h"
-#include "../../EffekseerRendererMetal/EffekseerRenderer/EffekseerRendererMetal.VertexBuffer.h"
+#include "../../EffekseerRendererLLGI/EffekseerRendererLLGI.RendererImplemented.h"
 #include "../../EffekseerRendererMetal/EffekseerRendererMetal.h"
 #include "../../3rdParty/LLGI/src/Metal/LLGI.GraphicsMetal.h"
 #include "../../EffekseerRendererCommon/ModelLoader.h"
@@ -221,14 +220,13 @@ void EffectManager::newFrame()
         memoryPool_->NewFrame();
     }
     
-    auto r = static_cast<::EffekseerRendererMetal::RendererImplemented*>(renderer2d.Get());
-    auto vb = static_cast<::EffekseerRendererMetal::VertexBuffer*>(r->GetVertexBuffer());
-    vb->NewFrame();
+    auto r = static_cast<::EffekseerRendererLLGI::RendererImplemented*>(renderer2d.Get());
+    auto vb = static_cast<::EffekseerRendererLLGI::VertexBuffer*>(r->GetVertexBuffer());
 }
 
 void ResetBackground(::EffekseerRenderer::RendererRef renderer)
 {
-    auto r = static_cast<::EffekseerRendererMetal::RendererImplemented*>(renderer.Get());
+    auto r = static_cast<::EffekseerRendererLLGI::RendererImplemented*>(renderer.Get());
     r->SetBackground(nullptr);
 }
 
