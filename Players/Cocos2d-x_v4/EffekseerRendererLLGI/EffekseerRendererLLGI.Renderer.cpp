@@ -175,7 +175,7 @@ LLGI::PipelineState* RendererImplemented::GetOrCreatePiplineState()
 
 	if (isReversedDepth_)
 	{
-		if (key.state.CullingType == ::Effekseer::CullingType::Back)
+		if(key.state.CullingType == ::Effekseer::CullingType::Back)
 		{
 			piplineState->Culling = LLGI::CullingMode::Clockwise;
 		}
@@ -255,17 +255,8 @@ LLGI::PipelineState* RendererImplemented::GetOrCreatePiplineState()
 
 void RendererImplemented::GenerateVertexBuffer()
 {
-	ringVs_.clear();
-
-	for (size_t i = 0; i < ringVertexCount_; i++)
-	{
-		auto rv = std::make_shared<RingVertex>();
-		rv->vertexBuffer = std::unique_ptr<VertexBuffer>(VertexBuffer::Create(graphicsDevice_.Get(), EffekseerRenderer::GetMaximumVertexSizeInAllTypes() * m_squareMaxCount * 4, true, false));
-		ringVs_.emplace_back(rv);
-	}
-
-	GetImpl()->CurrentRingBufferIndex = 0;
-	GetImpl()->RingBufferCount = ringVertexCount_;
+	m_vertexBuffer =
+		VertexBuffer::Create(graphicsDevice_.Get(), EffekseerRenderer::GetMaximumVertexSizeInAllTypes() * m_squareMaxCount * 4, true, false);
 }
 
 void RendererImplemented::GenerateIndexBuffer()
@@ -292,6 +283,7 @@ void RendererImplemented::GenerateIndexBuffer()
 
 RendererImplemented::RendererImplemented(int32_t squareMaxCount)
 	: graphicsDevice_(nullptr)
+	, m_vertexBuffer(nullptr)
 	, m_indexBuffer(nullptr)
 	, m_squareMaxCount(squareMaxCount)
 	, m_coordinateSystem(::Effekseer::CoordinateSystem::RH)
@@ -329,8 +321,8 @@ RendererImplemented::~RendererImplemented()
 	ES_SAFE_DELETE(shader_ad_lit_);
 	ES_SAFE_DELETE(shader_ad_distortion_);
 
-	ringVs_.clear();
 	ES_SAFE_DELETE(m_renderState);
+	ES_SAFE_DELETE(m_vertexBuffer);
 	ES_SAFE_DELETE(m_indexBuffer);
 	ES_SAFE_DELETE(m_indexBufferForWireframe);
 
@@ -372,14 +364,8 @@ bool RendererImplemented::Initialize(Backend::GraphicsDeviceRef graphicsDevice,
 	// Generate vertex buffer
 	{
 		GenerateVertexBuffer();
-
-		for (auto rv : ringVs_)
-		{
-			if (rv->vertexBuffer == nullptr)
-			{
-				return false;
-			}
-		}
+		if (m_vertexBuffer == nullptr)
+			return false;
 	}
 
 	// Generate index buffer
@@ -609,7 +595,7 @@ void RendererImplemented::SetCommandList(Effekseer::RefPtr<EffekseerRenderer::Co
 
 VertexBuffer* RendererImplemented::GetVertexBuffer()
 {
-	return ringVs_[GetImpl()->CurrentRingBufferIndex]->vertexBuffer.get();
+	return m_vertexBuffer;
 }
 
 IndexBuffer* RendererImplemented::GetIndexBuffer()
