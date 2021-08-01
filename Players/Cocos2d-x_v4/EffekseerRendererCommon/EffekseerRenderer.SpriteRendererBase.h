@@ -46,6 +46,7 @@ protected:
 	Effekseer::CustomAlignedVector<KeyValue> instances;
 	int32_t vertexCount_ = 0;
 	int32_t stride_ = 0;
+	int32_t instanceMaxCount_ = 0;
 	int32_t customData1Count_ = 0;
 	int32_t customData2Count_ = 0;
 
@@ -146,12 +147,11 @@ protected:
 		customData1Count_ = state.CustomData1Count;
 		customData2Count_ = state.CustomData2Count;
 
-		count = (std::min)(count, m_renderer->GetSquareMaxCount());
+		instanceMaxCount_ = (std::min)(count, m_renderer->GetSquareMaxCount());
+		vertexCount_ = instanceMaxCount_ * 4;
 
-		renderer->GetStandardRenderer()->BeginRenderingAndRenderingIfRequired(state, count * 4, stride_, (void*&)m_ringBufferData);
+		renderer->GetStandardRenderer()->BeginRenderingAndRenderingIfRequired(state, vertexCount_, stride_, (void*&)m_ringBufferData);
 		m_spriteCount = 0;
-
-		vertexCount_ = count * 4;
 
 		instances.clear();
 	}
@@ -169,6 +169,11 @@ protected:
 		}
 		else
 		{
+			if (instances.size() >= instanceMaxCount_)
+			{
+				return;
+			}
+
 			KeyValue kv;
 			kv.Value = instanceParameter;
 			instances.push_back(kv);
@@ -319,7 +324,9 @@ protected:
 			{
 				if (!parameter.IsRightHand)
 				{
+					// It has a bug. But it is difficult to fix
 					F = -F;
+					R = -R;
 				}
 
 				StrideView<VERTEX> vs(verteies.pointerOrigin_, stride_, 4);
@@ -361,6 +368,8 @@ protected:
 
 					if (!parameter.IsRightHand)
 					{
+						// It has a bug. But it is difficult to fix
+						tangentX = -tangentX;
 						tangentZ = -tangentZ;
 					}
 
@@ -406,7 +415,7 @@ protected:
 				auto frontDirection = m_renderer->GetCameraFrontDirection();
 				if (!param.IsRightHand)
 				{
-					frontDirection.Z = -frontDirection.Z;
+					frontDirection = -frontDirection;
 				}
 
 				kv.Key = Effekseer::SIMD::Vec3f::Dot(t, frontDirection);
@@ -439,6 +448,8 @@ public:
 
 	void Rendering(const efkSpriteNodeParam& parameter, const efkSpriteInstanceParam& instanceParameter, void* userData) override
 	{
+		if (m_ringBufferData == nullptr)
+			return;
 		if (m_spriteCount == m_renderer->GetSquareMaxCount())
 			return;
 		Rendering_(parameter, instanceParameter, m_renderer->GetCameraMatrix());
@@ -446,6 +457,9 @@ public:
 
 	void EndRendering(const efkSpriteNodeParam& parameter, void* userData) override
 	{
+		if (m_ringBufferData == nullptr)
+			return;
+
 		EndRendering_(m_renderer, parameter);
 	}
 };
