@@ -169,6 +169,9 @@ typedef void(EFK_STDCALL* EffectInstanceRemovingCallback)(Manager* manager, Hand
 //! the maximum number of texture slot which can be specified by an user
 const int32_t UserTextureSlotMax = 6;
 
+//! the maximum number of uniform slot which can be specified by an user
+const int32_t UserUniformSlotMax = 16;
+
 //! the maximum number of texture slot including textures system specified
 const int32_t TextureSlotMax = 8;
 
@@ -866,6 +869,12 @@ enum class LogType
 void SetLogger(const std::function<void(LogType, const std::string&)>& logger);
 
 void Log(LogType logType, const std::string& message);
+
+enum class TextureColorType : int32_t
+{
+	Color,
+	Value,
+};
 
 enum class ColorSpaceType : int32_t
 {
