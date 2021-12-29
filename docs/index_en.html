@@ -81,25 +81,6 @@ add_subdirectory(Cocos2d-x_v4)
 target_link_libraries(${APP_NAME} EffekseerForCocos2d-x)
 </pre>
 
-		<h2>Installation method (Version3)</h2>
-		<p>
-		<b>Players/Cocos2d-x_v3</b>following files to the directory exists.
-		</p>
-
-<ul>
-<li>Effekseer.cpp</li>
-<li>Effekseer.h</li>
-<li>EffekseerNative.cpp</li>
-<li>EffekseerNative.h</li>
-<li>EffekseerRendererNative.cpp</li>
-<li>EffekseerRendererNative.h</li>
-</ul>
-
-		<p>
-		Please copy these files to the project of Cocos 2d - x and add it to compile them.
-		</p>
-
-
 		<h2>How to use</h2>
 
 <p>
@@ -186,6 +167,7 @@ this->addChild(emitter, 0);
 
 <p>
 Update the manager every frame.
+The effect will be rendered in the posture it was in when the manager was updated.
 </p>
 
 <pre>

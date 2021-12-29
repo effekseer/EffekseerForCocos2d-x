@@ -82,20 +82,6 @@ add_subdirectory(Cocos2d-x_v4)
 target_link_libraries(${APP_NAME} EffekseerForCocos2d-x)
 </pre>
 
-		<h2>インストール方法(バージョン3)</h2>
-		<p>
-		<b>Players/Cocos2d-x_v3</b>ディレクトリに以下のファイルが存在します。
-		</p>
-
-<ul>
-<li>Effekseer.cpp</li>
-<li>Effekseer.h</li>
-<li>EffekseerNative.cpp</li>
-<li>EffekseerNative.h</li>
-<li>EffekseerRendererNative.cpp</li>
-<li>EffekseerRendererNative.h</li>
-</ul>
-
 		<p>
 		これらのファイルをCocos2d-xのプロジェクトにコピーして、コンパイルする対象に追加してください。
 		</p>
@@ -189,6 +175,7 @@ this->addChild(emitter, 0);
 
 <p>
 毎フレーム、マネージャーを更新します。
+マネージャーが更新されたときの姿勢でエフェクトが描画されます。
 </p>
 
 <pre>
