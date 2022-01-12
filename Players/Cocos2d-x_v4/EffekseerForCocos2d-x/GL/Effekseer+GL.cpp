@@ -77,7 +77,7 @@ bool DistortingCallbackGL::OnDistorting(EffekseerRenderer::Renderer* renderer)
 
 	glBindTexture(GL_TEXTURE_2D, backGroundTexture);
 	//glCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, width, height );
-	glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, viewport[0], viewport[1], width, height);
+	glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, viewport[0], viewport[1], width, height);//bad performace.(Iphone - OpenGL ES3)
 	glBindTexture(GL_TEXTURE_2D, 0);
 
 	auto r = static_cast<EffekseerRendererGL::Renderer*>(renderer);
