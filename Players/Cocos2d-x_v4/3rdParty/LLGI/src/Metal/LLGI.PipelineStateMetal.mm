@@ -11,6 +11,19 @@ namespace LLGI
 
 bool PipelineStateMetal::Compile(PipelineState* self, Graphics* graphics)
 {
+	auto pipstate = static_cast<PipelineStateMetal*>(self);
+	if(pipstate->GetShaders()[static_cast<int>(ShaderStageType::Compute)])
+	{
+		return CreateComputePipelineState(self, graphics);
+	}
+	else
+	{
+		return CreateRenderPipelineState(self, graphics);
+	}
+}
+
+bool PipelineStateMetal::CreateRenderPipelineState(PipelineState* self, Graphics* graphics)
+{
 	@autoreleasepool
 	{
 		auto g = static_cast<GraphicsMetal*>(graphics);
@@ -80,6 +93,9 @@ bool PipelineStateMetal::Compile(PipelineState* self, Graphics* graphics)
 		// setup shaders
 		auto vs = static_cast<ShaderMetal*>(pipstate->GetShaders()[static_cast<int>(ShaderStageType::Vertex)]);
 		auto ps = static_cast<ShaderMetal*>(pipstate->GetShaders()[static_cast<int>(ShaderStageType::Pixel)]);
+
+		if (vs == nullptr || ps == nullptr)
+			return false;
 
 		id<MTLFunction> vf = [[vs->GetLibrary() newFunctionWithName:@"main0"] autorelease];
 		id<MTLFunction> pf = [[ps->GetLibrary() newFunctionWithName:@"main0"] autorelease];
@@ -274,6 +290,28 @@ bool PipelineStateMetal::Compile(PipelineState* self, Graphics* graphics)
 	}
 }
 
+bool PipelineStateMetal::CreateComputePipelineState(PipelineState* self, Graphics* graphics)
+{
+	@autoreleasepool
+	{
+		auto g = static_cast<GraphicsMetal*>(graphics);
+
+		auto pipstate = static_cast<PipelineStateMetal*>(self);
+
+		auto cs = static_cast<ShaderMetal*>(pipstate->GetShaders()[static_cast<int>(ShaderStageType::Compute)]);
+
+		if (cs == nullptr)
+			return false;
+
+		id<MTLFunction> cf = [[cs->GetLibrary() newFunctionWithName:@"main0"] autorelease];
+
+		NSError* pipelineError = nil;
+		computePipelineState_ = [g->GetDevice() newComputePipelineStateWithFunction:cf error:&pipelineError];
+
+		return true;
+	}
+}
+
 PipelineStateMetal::PipelineStateMetal() { shaders.fill(nullptr); }
 
 PipelineStateMetal::~PipelineStateMetal()
@@ -293,6 +331,12 @@ PipelineStateMetal::~PipelineStateMetal()
 	{
 		[pipelineState_ release];
 		pipelineState_ = nullptr;
+	}
+
+	if (computePipelineState_ != nullptr)
+	{
+		[computePipelineState_ release];
+		computePipelineState_ = nullptr;
 	}
 
 	SafeRelease(graphics_);

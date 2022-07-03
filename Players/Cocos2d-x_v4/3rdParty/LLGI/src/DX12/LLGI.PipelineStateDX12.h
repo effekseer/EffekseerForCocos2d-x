@@ -19,11 +19,18 @@ private:
 	std::array<Shader*, static_cast<int>(ShaderStageType::Max)> shaders_;
 
 	ID3D12PipelineState* pipelineState_ = nullptr;
+	ID3D12PipelineState* computePipelineState_ = nullptr;
 
 	ID3DBlob* signature_ = nullptr;
+	ID3DBlob* computeSignature_ = nullptr;
 	ID3D12RootSignature* rootSignature_ = nullptr;
+	ID3D12RootSignature* computeRootSignature_ = nullptr;
 
 	bool CreateRootSignature();
+	bool CreateComputeRootSignature();
+
+	bool CreatePipelineState();
+	bool CreateComputePipelineState();
 
 public:
 	PipelineStateDX12() = default;
@@ -35,6 +42,9 @@ public:
 
 	ID3D12PipelineState* GetPipelineState() { return pipelineState_; }
 	ID3D12RootSignature* GetRootSignature() { return rootSignature_; }
+
+	ID3D12PipelineState* GetComputePipelineState() { return computePipelineState_; }
+	ID3D12RootSignature* GetComputeRootSignature() { return computeRootSignature_; }
 };
 
 } // namespace LLGI

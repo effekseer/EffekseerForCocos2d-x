@@ -2,14 +2,11 @@
 #include "LLGI.BaseDX12.h"
 #include "LLGI.BufferDX12.h"
 #include "LLGI.CommandListDX12.h"
-#include "LLGI.ConstantBufferDX12.h"
-#include "LLGI.IndexBufferDX12.h"
 #include "LLGI.PipelineStateDX12.h"
 #include "LLGI.PlatformDX12.h"
 #include "LLGI.ShaderDX12.h"
 #include "LLGI.SingleFrameMemoryPoolDX12.h"
 #include "LLGI.TextureDX12.h"
-#include "LLGI.VertexBufferDX12.h"
 
 namespace LLGI
 {
@@ -69,34 +66,10 @@ void GraphicsDX12::WaitFinish()
 	}
 }
 
-VertexBuffer* GraphicsDX12::CreateVertexBuffer(int32_t size)
+Buffer* GraphicsDX12::CreateBuffer(BufferUsageType usage, int32_t size)
 {
-	auto obj = new VertexBufferDX12();
-	if (!obj->Initialize(this, size))
-	{
-		SafeRelease(obj);
-		return nullptr;
-	}
-
-	return obj;
-}
-
-IndexBuffer* GraphicsDX12::CreateIndexBuffer(int32_t stride, int32_t count)
-{
-	auto obj = new IndexBufferDX12();
-	if (!obj->Initialize(this, stride, count))
-	{
-		SafeRelease(obj);
-		return nullptr;
-	}
-
-	return obj;
-}
-
-ConstantBuffer* GraphicsDX12::CreateConstantBuffer(int32_t size)
-{
-	auto obj = new ConstantBufferDX12();
-	if (!obj->Initialize(this, size))
+	auto obj = new BufferDX12();
+	if (!obj->Initialize(this, usage, size))
 	{
 		SafeRelease(obj);
 		return nullptr;
@@ -173,6 +146,17 @@ RenderPass* GraphicsDX12::CreateRenderPass(Texture* texture, Texture* resolvedTe
 	return renderPass;
 }
 
+Texture* GraphicsDX12::CreateTexture(const TextureParameter& parameter)
+{
+	auto obj = new TextureDX12(this, true);
+	if (!obj->Initialize(parameter))
+	{
+		SafeRelease(obj);
+		return nullptr;
+	}
+	return obj;
+}
+
 Texture* GraphicsDX12::CreateTexture(uint64_t id)
 {
 	auto obj = new TextureDX12(this, true);
@@ -186,8 +170,15 @@ Texture* GraphicsDX12::CreateTexture(uint64_t id)
 
 Texture* GraphicsDX12::CreateTexture(const TextureInitializationParameter& parameter)
 {
+	TextureParameter param;
+	param.Dimension = 2;
+	param.Format = parameter.Format;
+	param.MipLevelCount = parameter.MipMapCount;
+	param.SampleCount = 1;
+	param.Size = {parameter.Size.X, parameter.Size.Y, 1};
+
 	auto obj = new TextureDX12(this, true);
-	if (!obj->Initialize(parameter.Size, TextureType::Color, parameter.Format, 1))
+	if (!obj->Initialize(param))
 	{
 		SafeRelease(obj);
 		return nullptr;
@@ -197,8 +188,16 @@ Texture* GraphicsDX12::CreateTexture(const TextureInitializationParameter& param
 
 Texture* GraphicsDX12::CreateRenderTexture(const RenderTextureInitializationParameter& parameter)
 {
+	TextureParameter param;
+	param.Dimension = 2;
+	param.Format = parameter.Format;
+	param.MipLevelCount = 1;
+	param.SampleCount = parameter.SamplingCount;
+	param.Size = {parameter.Size.X, parameter.Size.Y, 1};
+	param.Usage = TextureUsageType::RenderTarget;
+
 	auto obj = new TextureDX12(this, true);
-	if (!obj->Initialize(parameter.Size, TextureType::Render, parameter.Format, parameter.SamplingCount))
+	if (!obj->Initialize(param))
 	{
 		SafeRelease(obj);
 		return nullptr;
@@ -208,15 +207,21 @@ Texture* GraphicsDX12::CreateRenderTexture(const RenderTextureInitializationPara
 
 Texture* GraphicsDX12::CreateDepthTexture(const DepthTextureInitializationParameter& parameter)
 {
-	auto obj = new TextureDX12(this, true);
-
 	auto format = TextureFormatType::D32;
 	if (parameter.Mode == DepthTextureMode::DepthStencil)
 	{
 		format = TextureFormatType::D24S8;
 	}
 
-	if (!obj->Initialize(parameter.Size, TextureType::Depth, format, parameter.SamplingCount))
+	TextureParameter param;
+	param.Dimension = 2;
+	param.Format = format;
+	param.MipLevelCount = 1;
+	param.SampleCount = parameter.SamplingCount;
+	param.Size = {parameter.Size.X, parameter.Size.Y, 1};
+
+	auto obj = new TextureDX12(this, true);
+	if (!obj->Initialize(param))
 	{
 		SafeRelease(obj);
 		return nullptr;
@@ -272,7 +277,7 @@ ID3D12Resource* GraphicsDX12::CreateResource(D3D12_HEAP_TYPE heapType,
 											 D3D12_RESOURCE_FLAGS flags,
 											 Vec2I size)
 {
-	return CreateResourceBuffer(device_, heapType, format, resourceDimention, resourceState, flags, size, 1);
+	return CreateResourceBuffer(device_, heapType, format, resourceDimention, resourceState, flags, {size.X, size.Y, 1}, 1);
 }
 
 std::vector<uint8_t> GraphicsDX12::CaptureRenderTarget(Texture* renderTarget)
@@ -290,6 +295,8 @@ std::vector<uint8_t> GraphicsDX12::CaptureRenderTarget(Texture* renderTarget)
 		return std::vector<uint8_t>();
 	}
 
+	const auto rtSize = renderTarget->GetSizeAs2D();
+	const auto rtSize3 = Vec3I{rtSize.X, rtSize.Y, 1};
 	auto device = GetDevice();
 
 	std::vector<uint8_t> result;
@@ -300,7 +307,7 @@ std::vector<uint8_t> GraphicsDX12::CaptureRenderTarget(Texture* renderTarget)
 	auto dstFootprint = texture->GetFootprint().Footprint;
 
 	BufferDX12 dstBuffer;
-	if (!dstBuffer.Initialize(this, dstFootprint.RowPitch * dstFootprint.Height))
+	if (!dstBuffer.Initialize(this, BufferUsageType::CopyDst | BufferUsageType::MapRead, dstFootprint.RowPitch * dstFootprint.Height))
 	{
 		auto msg = (std::string("Error : ") + std::string(__FILE__) + " : " + std::to_string(__LINE__) + std::string(" : "));
 		::LLGI::Log(::LLGI::LogType::Error, msg.c_str());
@@ -354,24 +361,27 @@ std::vector<uint8_t> GraphicsDX12::CaptureRenderTarget(Texture* renderTarget)
 	SafeRelease(commandList);
 	SafeRelease(commandAllocator);
 
-	if (GetTextureMemorySize(renderTarget->GetFormat(), renderTarget->GetSizeAs2D()) != dstBuffer.GetSize())
-	{
-		result.resize(GetTextureMemorySize(renderTarget->GetFormat(), renderTarget->GetSizeAs2D()));
-		auto raw = static_cast<uint8_t*>(dstBuffer.Lock());
+	auto locked = dstBuffer.Lock();
 
-		for (int32_t y = 0; y < renderTarget->GetSizeAs2D().Y; y++)
+	if (locked)
+	{
+		auto raw = static_cast<uint8_t*>(locked);
+
+		if (GetTextureMemorySize(renderTarget->GetFormat(), rtSize3) != dstBuffer.GetSize())
 		{
-			auto pitch = GetTextureMemorySize(renderTarget->GetFormat(), renderTarget->GetSizeAs2D()) / renderTarget->GetSizeAs2D().Y;
-			memcpy(result.data() + pitch * y, raw + dstFootprint.RowPitch * y, pitch);
-		}
+			result.resize(GetTextureMemorySize(renderTarget->GetFormat(), rtSize3));
 
-		dstBuffer.Unlock();
-	}
-	else
-	{
-		result.resize(dstBuffer.GetSize());
-		auto raw = dstBuffer.Lock();
-		memcpy(result.data(), raw, result.size());
+			for (int32_t y = 0; y < renderTarget->GetSizeAs2D().Y; y++)
+			{
+				auto pitch = GetTextureMemorySize(renderTarget->GetFormat(), rtSize3) / renderTarget->GetSizeAs2D().Y;
+				memcpy(result.data() + pitch * y, raw + dstFootprint.RowPitch * y, pitch);
+			}
+		}
+		else
+		{
+			result.resize(dstBuffer.GetSize());
+			memcpy(result.data(), raw, result.size());
+		}
 		dstBuffer.Unlock();
 	}
 

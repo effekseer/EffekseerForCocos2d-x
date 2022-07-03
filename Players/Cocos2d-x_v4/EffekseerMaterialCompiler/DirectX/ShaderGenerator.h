@@ -1,7 +1,10 @@
 #pragma once
 
 #include "../../Effekseer/Effekseer/Material/Effekseer.MaterialCompiler.h"
+#include <string>
 #include <vector>
+
+#include "../HLSL/HLSL.h"
 
 #ifdef _WIN32
 #undef min
@@ -28,22 +31,22 @@ enum class ShaderGeneratorTarget
 class ShaderGenerator
 {
 protected:
-	const char* common_define_;
-	const char* common_functions_;
-	const char* common_vs_define_;
-	const char* sprite_vs_pre_;
-	const char* sprite_vs_pre_simple_;
-	const char* model_vs_pre_;
-	const char* sprite_vs_suf1_;
-	const char* sprite_vs_suf1_simple_;
-	const char* model_vs_suf1_;
-	const char* sprite_vs_suf2_;
-	const char* model_vs_suf2_;
-	const char* ps_pre_;
-	const char* ps_suf1_;
-	const char* ps_suf2_lit_;
-	const char* ps_suf2_unlit_;
-	const char* ps_suf2_refraction_;
+	std::string common_define_;
+	std::string common_functions_;
+	std::string common_vs_define_;
+	std::string sprite_vs_pre_;
+	std::string sprite_vs_pre_simple_;
+	std::string model_vs_pre_;
+	std::string sprite_vs_suf1_;
+	std::string sprite_vs_suf1_simple_;
+	std::string model_vs_suf1_;
+	std::string sprite_vs_suf2_;
+	std::string model_vs_suf2_;
+	std::string ps_pre_;
+	std::string ps_suf1_;
+	std::string ps_suf2_lit_;
+	std::string ps_suf2_unlit_;
+	std::string ps_suf2_refraction_;
 	ShaderGeneratorTarget target_;
 
 	std::string Replace(std::string target, std::string from_, std::string to_)
@@ -113,6 +116,37 @@ protected:
 		auto cind = 0;
 
 		maincode << common_define_;
+
+		// gradient
+		bool hasGradient = false;
+		bool hasNoise = false;
+
+		for (const auto& type : materialFile->RequiredMethods)
+		{
+			if (type == MaterialFile::RequiredPredefinedMethodType::Gradient)
+			{
+				hasGradient = true;
+			}
+			else if (type == MaterialFile::RequiredPredefinedMethodType::Noise)
+			{
+				hasNoise = true;
+			}
+		}
+
+		if (hasGradient)
+		{
+			maincode << HLSL::material_gradient;
+		}
+
+		if (hasNoise)
+		{
+			maincode << HLSL::material_noise;
+		}
+
+		for (const auto& gradient : materialFile->FixedGradients)
+		{
+			maincode << HLSL::GetFixedGradient(gradient.Name.c_str(), gradient.Data);
+		}
 
 		if (stage == 0)
 		{
@@ -247,22 +281,22 @@ protected:
 	}
 
 public:
-	ShaderGenerator(const char* common_define,
-					const char* common_functions,
-					const char* common_vs_define,
-					const char* sprite_vs_pre,
-					const char* sprite_vs_pre_simple,
-					const char* model_vs_pre,
-					const char* sprite_vs_suf1,
-					const char* sprite_vs_suf1_simple,
-					const char* model_vs_suf1,
-					const char* sprite_vs_suf2,
-					const char* model_vs_suf2,
-					const char* ps_pre,
-					const char* ps_suf1,
-					const char* ps_suf2_lit,
-					const char* ps_suf2_unlit,
-					const char* ps_suf2_refraction,
+	ShaderGenerator(const std::string& common_define,
+					const std::string& common_functions,
+					const std::string& common_vs_define,
+					const std::string& sprite_vs_pre,
+					const std::string& sprite_vs_pre_simple,
+					const std::string& model_vs_pre,
+					const std::string& sprite_vs_suf1,
+					const std::string& sprite_vs_suf1_simple,
+					const std::string& model_vs_suf1,
+					const std::string& sprite_vs_suf2,
+					const std::string& model_vs_suf2,
+					const std::string& ps_pre,
+					const std::string& ps_suf1,
+					const std::string& ps_suf2_lit,
+					const std::string& ps_suf2_unlit,
+					const std::string& ps_suf2_refraction,
 					ShaderGeneratorTarget target)
 		: common_define_(common_define)
 		, common_functions_(common_functions)
@@ -313,7 +347,7 @@ public:
 				cind += 3;
 			}
 
-			if (materialFile->GetShadingModel() == ::Effekseer::ShadingModelType::Lit && stage == 1)
+			if (stage == 1)
 			{
 				ExportUniform(maincode, 4, "lightDirection", cind);
 				cind++;
@@ -321,7 +355,10 @@ public:
 				cind++;
 				ExportUniform(maincode, 4, "lightAmbientColor", cind);
 				cind++;
+			}
 
+			if (materialFile->GetShadingModel() == ::Effekseer::ShadingModelType::Lit && stage == 1)
+			{
 				maincode << "#define _MATERIAL_LIT_ 1" << std::endl;
 			}
 			else if (materialFile->GetShadingModel() == ::Effekseer::ShadingModelType::Unlit)
@@ -358,6 +395,16 @@ public:
 				cind++;
 			}
 
+			for (size_t i = 0; i < materialFile->Gradients.size(); i++)
+			{
+				// TODO : remove a magic number
+				for (size_t j = 0; j < 13; j++)
+				{
+					ExportUniform(maincode, 4, (materialFile->Gradients[i].Name + "_" + std::to_string(j)).c_str(), cind);
+				}
+				cind++;
+			}
+
 			// finish constant buffer
 			maincode << "};" << std::endl;
 
@@ -388,6 +435,18 @@ public:
 			// depth
 			ExportTexture(maincode, "efk_depth", 1 + textureSlotOffset);
 
+			if (std::find(materialFile->RequiredMethods.begin(), materialFile->RequiredMethods.end(), MaterialFile::RequiredPredefinedMethodType::Light) != materialFile->RequiredMethods.end())
+			{
+				if (stage == 0)
+				{
+					maincode << HLSL::material_light_vs;
+				}
+				else
+				{
+					maincode << HLSL::material_light_ps;
+				}
+			}
+
 			auto baseCode = std::string(materialFile->GetGenericCode());
 			baseCode = Replace(baseCode, "$F1$", "float");
 			baseCode = Replace(baseCode, "$F2$", "float2");
@@ -395,6 +454,7 @@ public:
 			baseCode = Replace(baseCode, "$F4$", "float4");
 			baseCode = Replace(baseCode, "$TIME$", "predefined_uniform.x");
 			baseCode = Replace(baseCode, "$EFFECTSCALE$", "predefined_uniform.y");
+			baseCode = Replace(baseCode, "$LOCALTIME$", "predefined_uniform.w");
 			baseCode = Replace(baseCode, "$UV$", "uv");
 			baseCode = Replace(baseCode, "$MOD", "fmod");
 

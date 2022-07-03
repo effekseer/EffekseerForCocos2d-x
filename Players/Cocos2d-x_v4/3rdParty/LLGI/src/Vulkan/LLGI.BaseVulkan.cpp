@@ -106,13 +106,13 @@ TextureFormatType VulkanHelper::VkFormatToTextureFormat(VkFormat format)
 	return TextureFormatType::Unknown;
 }
 
-Buffer::Buffer(GraphicsVulkan* graphics)
+InternalBuffer::InternalBuffer(GraphicsVulkan* graphics)
 {
 	SafeAddRef(graphics);
 	graphics_ = CreateSharedPtr(graphics);
 }
 
-Buffer::~Buffer()
+InternalBuffer::~InternalBuffer()
 {
 	if (buffer_)
 	{
@@ -125,7 +125,7 @@ Buffer::~Buffer()
 	}
 }
 
-void Buffer::Attach(vk::Buffer buffer, vk::DeviceMemory devMem, bool isExternalResource)
+void InternalBuffer::Attach(vk::Buffer buffer, vk::DeviceMemory devMem, bool isExternalResource)
 {
 	buffer_ = buffer;
 	devMem_ = devMem;

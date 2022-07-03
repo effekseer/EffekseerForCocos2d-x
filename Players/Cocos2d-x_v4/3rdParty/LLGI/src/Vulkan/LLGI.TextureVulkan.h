@@ -16,7 +16,6 @@ private:
 	ReferenceObject* owner_ = nullptr;
 	vk::Device device_ = nullptr;
 
-	bool isStrongRef_ = false;
 	vk::Image image_ = nullptr;
 	vk::ImageView view_ = nullptr;
 	std::vector<vk::ImageLayout> imageLayouts_;
@@ -24,10 +23,11 @@ private:
 	vk::Format vkTextureFormat_;
 	vk::ImageSubresourceRange subresourceRange_;
 
-	Vec2I textureSize;
+	Vec3I textureSize;
+	TextureParameter parameter_;
 
 	int32_t memorySize = 0;
-	std::unique_ptr<Buffer> cpuBuf;
+	std::unique_ptr<InternalBuffer> cpuBuf;
 	void* data = nullptr;
 
 	bool isExternalResource_ = false;
@@ -39,32 +39,24 @@ public:
 	~TextureVulkan() override;
 
 	bool Initialize(GraphicsVulkan* graphics,
-					bool isStrongRef,
-					const Vec2I& size,
-					vk::Format format,
-					int samplingCount,
-					int mipmapCount,
-					TextureType textureType);
-
-	bool InitializeAsRenderTexture(GraphicsVulkan* graphics, bool isStrongRef, const RenderTextureInitializationParameter& parameter);
+					vk::Device device,
+					vk::PhysicalDevice physicalDevice,
+					ReferenceObject* owner,
+					const TextureParameter& parameter);
 
 	/**
 		@brief	initialize as screen
 	*/
 	bool InitializeAsScreen(const vk::Image& image, const vk::ImageView& imageVew, vk::Format format, const Vec2I& size);
 
-	bool InitializeAsDepthStencil(vk::Device device,
-								  vk::PhysicalDevice physicalDevice,
-								  const Vec2I& size,
-								  vk::Format format,
-								  int samplingCount,
-								  ReferenceObject* owner);
-
 	bool InitializeAsExternal(vk::Device device, const VulkanImageInfo& info, ReferenceObject* owner);
 
 	void* Lock() override;
 	void Unlock() override;
+
+	Vec3I GetSize() const { return textureSize; }
 	Vec2I GetSizeAs2D() const override;
+	const TextureParameter& GetParameter() { return parameter_; }
 
 	const vk::Image& GetImage() const { return image_; }
 	const vk::ImageView& GetView() const { return view_; }

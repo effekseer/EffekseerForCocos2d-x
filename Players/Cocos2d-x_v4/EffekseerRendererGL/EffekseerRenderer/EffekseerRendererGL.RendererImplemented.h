@@ -210,14 +210,14 @@ public:
 	/**
 		@brief	テクスチャ読込クラスを生成する。
 	*/
-	::Effekseer::TextureLoaderRef CreateTextureLoader(::Effekseer::FileInterface* fileInterface = nullptr) override;
+	::Effekseer::TextureLoaderRef CreateTextureLoader(::Effekseer::FileInterfaceRef fileInterface = nullptr) override;
 
 	/**
 		@brief	モデル読込クラスを生成する。
 	*/
-	::Effekseer::ModelLoaderRef CreateModelLoader(::Effekseer::FileInterface* fileInterface = nullptr) override;
+	::Effekseer::ModelLoaderRef CreateModelLoader(::Effekseer::FileInterfaceRef fileInterface = nullptr) override;
 
-	::Effekseer::MaterialLoaderRef CreateMaterialLoader(::Effekseer::FileInterface* fileInterface = nullptr) override;
+	::Effekseer::MaterialLoaderRef CreateMaterialLoader(::Effekseer::FileInterfaceRef fileInterface = nullptr) override;
 
 	void SetBackground(GLuint background, bool hasMipmap) override;
 
@@ -299,9 +299,13 @@ private:
 	void GenerateIndexDataStride();
 };
 
-void AssignPixelConstantBuffer(Shader* shader);
+void AddVertexUniformLayout(Effekseer::CustomVector<Effekseer::Backend::UniformLayoutElement>& uniformLayout);
 
-void AssignDistortionPixelConstantBuffer(Shader* shader);
+void AddPixelUniformLayout(Effekseer::CustomVector<Effekseer::Backend::UniformLayoutElement>& uniformLayout);
+
+void AddDistortionPixelUniformLayout(Effekseer::CustomVector<Effekseer::Backend::UniformLayoutElement>& uniformLayout);
+
+Effekseer::CustomVector<Effekseer::CustomString<char>> GetTextureLocations(EffekseerRenderer::RendererShaderType type);
 
 //----------------------------------------------------------------------------------
 //

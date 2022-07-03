@@ -22,10 +22,6 @@ InstanceGroup::InstanceGroup(ManagerImplemented* manager, EffectNodeImplemented*
 	, m_effectNode(effectNode)
 	, m_container(container)
 	, m_global(global)
-	, m_time(0)
-	, IsReferencedFromInstance(true)
-	, NextUsedByInstance(nullptr)
-	, NextUsedByContainer(nullptr)
 {
 	parentMatrix_ = SIMD::Mat43f::Identity;
 }
@@ -46,18 +42,92 @@ void InstanceGroup::NotfyEraseInstance()
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-Instance* InstanceGroup::CreateInstance()
+void InstanceGroup::Initialize(RandObject& rand, Instance* parent)
 {
-	Instance* instance = nullptr;
+	m_generatedCount = 0;
 
-	instance = m_manager->CreateInstance(m_effectNode, m_container, this);
+	auto gt = ApplyEq(m_effectNode->GetEffect(), m_global, parent, &rand, m_effectNode->CommonValues.RefEqGenerationTimeOffset, m_effectNode->CommonValues.GenerationTimeOffset);
 
-	if (instance)
+	m_generationOffsetTime = gt.getValue(rand);
+	m_nextGenerationTime = m_generationOffsetTime;
+
+	if (m_effectNode->CommonValues.RefEqMaxGeneration >= 0)
+	{
+		auto maxGene = static_cast<float>(m_effectNode->CommonValues.MaxGeneration);
+		ApplyEq(maxGene, m_effectNode->GetEffect(), m_global, parent, &rand, m_effectNode->CommonValues.RefEqMaxGeneration, maxGene);
+		m_maxGenerationCount = static_cast<int32_t>(maxGene);
+	}
+	else
+	{
+		m_maxGenerationCount = m_effectNode->CommonValues.MaxGeneration;
+	}
+
+	if (m_effectNode->TriggerParam.ToStartGeneration.type == TriggerType::None)
+	{
+		m_generationState = GenerationState::Generating;
+	}
+}
+
+Instance* InstanceGroup::CreateRootInstance()
+{
+	auto instance = m_manager->CreateInstance(m_effectNode, m_container, this);
+	if (instance != nullptr)
 	{
 		m_instances.push_back(instance);
 		m_global->IncInstanceCount();
+		return instance;
 	}
-	return instance;
+	return nullptr;
+}
+
+void InstanceGroup::GenerateInstancesIfRequired(float localTime, RandObject& rand, Instance* parent)
+{
+	if (m_generationState == GenerationState::BeforeStart &&
+		m_effectNode->TriggerParam.ToStartGeneration.type != TriggerType::None)
+	{
+		if (m_global->GetInputTriggerCount(m_effectNode->TriggerParam.ToStartGeneration.index) > 0)
+		{
+			m_generationState = GenerationState::Generating;
+			m_nextGenerationTime = m_generationOffsetTime + localTime;
+		}
+	}
+	if (m_generationState == GenerationState::Generating &&
+		m_effectNode->TriggerParam.ToStopGeneration.type != TriggerType::None)
+	{
+		if (m_global->GetInputTriggerCount(m_effectNode->TriggerParam.ToStopGeneration.index) > 0)
+		{
+			m_generationState = GenerationState::Ended;
+		}
+	}
+
+	const bool isSpawnRestrictedByLOD = (m_global->CurrentLevelOfDetails & m_effectNode->LODsParam.MatchingLODs) == 0 && !m_effectNode->CanSpawnWithNonMatchingLOD();
+	const bool canSpawn = !m_global->IsSpawnDisabled && !isSpawnRestrictedByLOD;
+
+	// GenerationTimeOffset can be minus value.
+	// Minus frame particles is generated simultaniously at frame 0.
+	while (m_generationState == GenerationState::Generating &&
+		   m_maxGenerationCount > m_generatedCount &&
+		   localTime >= m_nextGenerationTime)
+	{
+		// Disabled spawn only prevents instance generation but spawn rate should not be affected once spawn is enabled again
+		if (canSpawn)
+		{
+			// Create a particle
+			auto instance = m_manager->CreateInstance(m_effectNode, m_container, this);
+			if (instance != nullptr)
+			{
+				m_instances.push_back(instance);
+				m_global->IncInstanceCount();
+
+				instance->Initialize(parent, m_nextGenerationTime, m_generatedCount);
+			}
+
+			m_generatedCount++;
+		}
+
+		auto gt = ApplyEq(m_effectNode->GetEffect(), m_global, parent, &rand, m_effectNode->CommonValues.RefEqGenerationTime, m_effectNode->CommonValues.GenerationTime);
+		m_nextGenerationTime += Max(0.0f, gt.getValue(rand));
+	}
 }
 
 //----------------------------------------------------------------------------------
@@ -89,7 +159,7 @@ void InstanceGroup::Update(bool shown)
 	{
 		auto instance = *it;
 
-		if (instance->m_State != INSTANCE_STATE_ACTIVE)
+		if (!instance->IsActive())
 		{
 			it = m_instances.erase(it);
 			NotfyEraseInstance();
@@ -100,20 +170,19 @@ void InstanceGroup::Update(bool shown)
 		}
 	}
 
-	m_time++;
+	time_ += m_global->GetNextDeltaFrame();
 }
 
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-void InstanceGroup::SetBaseMatrix(const SIMD::Mat43f& mat)
+void InstanceGroup::ApplyBaseMatrix(const SIMD::Mat43f& mat)
 {
 	for (auto instance : m_instances)
 	{
-		if (instance->m_State == INSTANCE_STATE_ACTIVE)
+		if (instance->IsActive())
 		{
-			instance->m_GlobalMatrix43 *= mat;
-			assert(instance->m_GlobalMatrix43.IsValid());
+			instance->ApplyBaseMatrix(mat);
 		}
 	}
 }
@@ -208,11 +277,18 @@ void InstanceGroup::KillAllInstances()
 		m_instances.pop_front();
 		NotfyEraseInstance();
 
-		if (instance->GetState() == INSTANCE_STATE_ACTIVE)
+		if (instance->IsActive())
 		{
 			instance->Kill();
 		}
 	}
+}
+
+bool InstanceGroup::IsActive() const
+{
+	return GetInstanceCount() > 0 ||
+		   (m_generationState != GenerationState::Ended &&
+			m_generatedCount < m_maxGenerationCount);
 }
 
 //----------------------------------------------------------------------------------

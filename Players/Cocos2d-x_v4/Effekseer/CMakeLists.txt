@@ -8,9 +8,14 @@ file(GLOB effekseer_h
     *.h
     Effekseer/*.h
     Effekseer/Renderer/*.h
-    Effekseer/Culling/*.h
     Effekseer/Material/*.h
     Effekseer/Parameter/*.h
+    Effekseer/Parameter/AllTypeColor.h
+    Effekseer/Parameter/AlphaCutoff.h
+    Effekseer/Parameter/CustomData.h
+    Effekseer/Parameter/Rotation.h
+    Effekseer/Parameter/Scaling.h
+    Effekseer/Parameter/UV.h
     Effekseer/IO/*.h
     Effekseer/Utils/*.h
     Effekseer/Noise/*.h
@@ -57,19 +62,13 @@ set(effekseer_src
     Effekseer/Effekseer.Vector2D.cpp
     Effekseer/Effekseer.Vector3D.cpp
     Effekseer/Effekseer.WorkerThread.cpp
-    Effekseer/Culling/Culling3D.Grid.cpp
-    Effekseer/Culling/Culling3D.Layer.cpp
-    Effekseer/Culling/Culling3D.Matrix44.cpp
-    Effekseer/Culling/Culling3D.ObjectInternal.cpp
-    Effekseer/Culling/Culling3D.ReferenceObject.cpp
-    Effekseer/Culling/Culling3D.Vector3DF.cpp
-    Effekseer/Culling/Culling3D.WorldInternal.cpp
     Effekseer/Material/Effekseer.MaterialFile.cpp
     Effekseer/Material/Effekseer.CompiledMaterial.cpp
     Effekseer/Material/Effekseer.MaterialCompiler.cpp
     Effekseer/IO/Effekseer.EfkEfcFactory.cpp
     Effekseer/Parameter/Easing.cpp
     Effekseer/Parameter/Effekseer.Parameters.cpp
+    Effekseer/Parameter/Rotation.cpp
     Effekseer/Utils/Effekseer.CustomAllocator.cpp
     Effekseer/SIMD/Mat43f.cpp
     Effekseer/SIMD/Mat44f.cpp
@@ -113,9 +112,7 @@ if(BUILD_WITH_EASY_PROFILER)
     add_dependencies(Effekseer ExternalProject_easy_profiler)
 endif()
 
-if(MSVC)
-    target_compile_options(${PROJECT_NAME} PRIVATE /we4456 /we4458)
-endif()
+WarnError(${PROJECT_NAME})
 
 if(BUILD_UNITYPLUGIN OR BUILD_UNITYPLUGIN_FOR_IOS)
     install(DIRECTORY "${PROJECT_SOURCE_DIR}"

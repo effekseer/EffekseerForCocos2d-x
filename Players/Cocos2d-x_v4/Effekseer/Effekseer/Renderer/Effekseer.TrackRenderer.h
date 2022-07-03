@@ -22,15 +22,12 @@ namespace Effekseer
 
 struct NodeRendererTextureUVTypeParameter;
 
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-
 class TrackRenderer : public ReferenceObject
 {
 public:
 	struct NodeParameter
 	{
+		float LocalTime;
 		Effect* EffectPointer;
 		bool ZTest;
 		bool ZWrite;
@@ -48,6 +45,8 @@ public:
 		MaterialRenderData* MaterialRenderDataPtr = nullptr;
 
 		bool EnableViewOffset = false;
+
+		TrailSmoothingType SmoothingType = TrailSmoothingType::Off;
 
 		RefPtr<RenderingUserData> UserData;
 	};

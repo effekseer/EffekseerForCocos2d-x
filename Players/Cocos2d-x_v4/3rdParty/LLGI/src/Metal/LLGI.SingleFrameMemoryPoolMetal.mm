@@ -1,5 +1,5 @@
 #include "LLGI.SingleFrameMemoryPoolMetal.h"
-#include "LLGI.ConstantBufferMetal.h"
+#include "LLGI.BufferMetal.h"
 #include "LLGI.GraphicsMetal.h"
 #import <MetalKit/MetalKit.h>
 
@@ -11,7 +11,8 @@ InternalSingleFrameMemoryPoolMetal::InternalSingleFrameMemoryPoolMetal(GraphicsM
 																	   int32_t drawingCount)
 {
 	constantBufferSize_ = static_cast<int32_t>(GetAlignedSize(static_cast<size_t>(constantBufferPoolSize), 256));
-	buffer_ = new BufferMetal(graphics, constantBufferSize_);
+    buffer_ = new BufferMetal();
+    buffer_->Initialize(graphics, BufferUsageType::Constant | BufferUsageType::MapWrite, constantBufferSize_);
 }
 
 InternalSingleFrameMemoryPoolMetal::~InternalSingleFrameMemoryPoolMetal() { SafeRelease(buffer_); }
@@ -65,13 +66,13 @@ SingleFrameMemoryPoolMetal::~SingleFrameMemoryPoolMetal()
 	}
 }
 
-ConstantBuffer* SingleFrameMemoryPoolMetal::CreateConstantBufferInternal(int32_t size)
+Buffer* SingleFrameMemoryPoolMetal::CreateBufferInternal(int32_t size)
 {
 	int32_t offset = 0;
 	BufferMetal* buffer = nullptr;
 	if (memoryPools[currentSwap_]->GetConstantBuffer(size, buffer, offset))
 	{
-		auto obj = new ConstantBufferMetal();
+		auto obj = new BufferMetal();
 		if (!obj->InitializeAsShortTime(buffer, offset, size))
 		{
 			SafeRelease(obj);
@@ -84,13 +85,13 @@ ConstantBuffer* SingleFrameMemoryPoolMetal::CreateConstantBufferInternal(int32_t
 	return nullptr;
 }
 
-ConstantBuffer* SingleFrameMemoryPoolMetal::ReinitializeConstantBuffer(ConstantBuffer* cb, int32_t size)
+Buffer* SingleFrameMemoryPoolMetal::ReinitializeBuffer(Buffer* cb, int32_t size)
 {
 	int32_t offset = 0;
 	BufferMetal* buffer = nullptr;
 	if (memoryPools[currentSwap_]->GetConstantBuffer(size, buffer, offset))
 	{
-		auto obj = static_cast<ConstantBufferMetal*>(cb);
+		auto obj = static_cast<BufferMetal*>(cb);
 		if (!obj->InitializeAsShortTime(buffer, offset, size))
 		{
 			return nullptr;

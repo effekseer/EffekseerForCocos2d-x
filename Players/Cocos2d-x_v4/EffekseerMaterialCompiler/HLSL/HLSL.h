@@ -4,34 +4,214 @@
 Refeence https://github.com/unitycoder/UnityBuiltinShaders/blob/master/CGIncludes/HLSLSupport.cginc
 */
 
-static char* material_common_define = R"(
+#pragma once
+
+#undef min
+#undef max
+
+namespace Effekseer
+{
+namespace HLSL
+{
+
+enum class ShaderType
+{
+	DirectX9,
+	DirectX11,
+	DirectX12,
+	PSSL,
+	XBOXONE,
+};
+
+static const char* material_gradient = R"(
+
+struct Gradient
+{
+	int colorCount;
+	int alphaCount;
+	int reserved1;
+	int reserved2;
+	float4 colors[8];
+	float2 alphas[8];
+};
+
+float4 SampleGradient(Gradient gradient, float t)
+{
+	float3 color = gradient.colors[0].xyz;
+	for(int i = 1; i < 8; i++)
+	{
+		float a = clamp((t - gradient.colors[i-1].w) / (gradient.colors[i].w - gradient.colors[i-1].w), 0.0, 1.0) * step(float(i), float(gradient.colorCount-1));
+		color = lerp(color, gradient.colors[i].xyz, a);
+	}
+
+	float alpha = gradient.alphas[0].x;
+	for(int i = 1; i < 8; i++)
+	{
+		float a = clamp((t - gradient.alphas[i-1].y) / (gradient.alphas[i].y - gradient.alphas[i-1].y), 0.0, 1.0) * step(float(i), float(gradient.alphaCount-1));
+		alpha = lerp(alpha, gradient.alphas[i].x, a);
+	}
+
+	return float4(color, alpha);
+}
+
+Gradient GradientParameter(float4 param_v, float4 param_c1, float4 param_c2, float4 param_c3, float4 param_c4, float4 param_c5, float4 param_c6, float4 param_c7, float4 param_c8, float4 param_a1, float4 param_a2, float4 param_a3, float4 param_a4)
+{
+	Gradient g;
+	g.colorCount = int(param_v.x);
+	g.alphaCount = int(param_v.y);
+	g.reserved1 = int(param_v.z);
+	g.reserved2 = int(param_v.w);
+	g.colors[0] = param_c1;
+	g.colors[1] = param_c2;
+	g.colors[2] = param_c3;
+	g.colors[3] = param_c4;
+	g.colors[4] = param_c5;
+	g.colors[5] = param_c6;
+	g.colors[6] = param_c7;
+	g.colors[7] = param_c8;
+	g.alphas[0].xy = param_a1.xy;
+	g.alphas[1].xy = param_a1.zw;
+	g.alphas[2].xy = param_a2.xy;
+	g.alphas[3].xy = param_a2.zw;
+	g.alphas[4].xy = param_a3.xy;
+	g.alphas[5].xy = param_a3.zw;
+	g.alphas[6].xy = param_a4.xy;
+	g.alphas[7].xy = param_a4.zw;
+	return g;
+}
+
+)";
+
+static const char* material_noise = R"(
+
+float Rand2(float2 n) { 
+	return FRAC(sin(dot(n, float2(12.9898, 78.233))) * 43758.5453123);
+}
+
+float SimpleNoise_Block(float2 p) {
+	int2 i = (int2)floor(p);
+	float2 f = FRAC(p);
+	f = f * f * (3.0 - 2.0 * f);
+	
+	float x0 = LERP(Rand2(i+int2(0,0)), Rand2(i+int2(1,0)), f.x);
+	float x1 = LERP(Rand2(i+int2(0,1)), Rand2(i+int2(1,1)), f.x);
+	return LERP(x0, x1, f.y);
+}
+
+float SimpleNoise(float2 uv, float scale) {
+	const int loop = 3;
+    float ret = 0.0;
+	for(int i = 0; i < loop; i++) {
+	    float freq = pow(2.0, float(i));
+		float intensity = pow(0.5, float(loop-i));
+	    ret += SimpleNoise_Block(uv * scale / freq) * intensity;
+	}
+
+	return ret;
+}
+
+)";
+
+static const char* material_light_vs = R"(
+float3 GetLightDirection() {
+	return float3(0,0,0);
+}
+float3 GetLightColor() {
+	return float3(0,0,0);
+}
+float3 GetLightAmbientColor() {
+	return float3(0,0,0);
+}
+)";
+
+static const char* material_light_ps = R"(
+float3 GetLightDirection() {
+	return lightDirection.xyz;
+}
+float3 GetLightColor() {
+	return lightColor.xyz;
+}
+float3 GetLightAmbientColor() {
+	return lightAmbientColor.xyz;
+}
+)";
+
+inline std::string GetFixedGradient(const char* name, const Gradient& gradient)
+{
+	std::stringstream ss;
+
+	ss << "Gradient " << name << "() {" << std::endl;
+	ss << "Gradient g;" << std::endl;
+	ss << "g.colorCount = " << gradient.ColorCount << ";" << std::endl;
+	ss << "g.alphaCount = " << gradient.AlphaCount << ";" << std::endl;
+	ss << "g.reserved1 = 0;" << std::endl;
+	ss << "g.reserved2 = 0;" << std::endl;
+
+	for (int32_t i = 0; i < gradient.Colors.size(); i++)
+	{
+		ss << "g.colors[" << i << "].x = " << gradient.Colors[i].Color[0] * gradient.Colors[i].Intensity << ";" << std::endl;
+		ss << "g.colors[" << i << "].y = " << gradient.Colors[i].Color[1] * gradient.Colors[i].Intensity << ";" << std::endl;
+		ss << "g.colors[" << i << "].z = " << gradient.Colors[i].Color[2] * gradient.Colors[i].Intensity << ";" << std::endl;
+		ss << "g.colors[" << i << "].w = " << gradient.Colors[i].Position << ";" << std::endl;
+	}
+
+	for (int32_t i = 0; i < gradient.Alphas.size(); i++)
+	{
+		ss << "g.alphas[" << i << "].x = " << gradient.Alphas[i].Alpha << ";" << std::endl;
+		ss << "g.alphas[" << i << "].y = " << gradient.Alphas[i].Position << ";" << std::endl;
+	}
+
+	ss << "return g; }" << std::endl;
+
+	return ss.str();
+}
+
+inline std::string GetMaterialCommonDefine(ShaderType type)
+{
+	std::stringstream ss;
+
+	ss << R"(
 #define MOD fmod
 #define FRAC frac
 #define LERP lerp
-)"
-
-#if defined(_DIRECTX11) || defined(_DIRECTX12)
-									  R"(
+)";
+	if (type == ShaderType::DirectX11 || type == ShaderType::DirectX12)
+	{
+		ss << R"(
 #define C_LINEAR linear
 #define C_CENTROID centroid
-)"
-#else
-									  R"(
+)";
+	}
+	else
+	{
+		ss << R"(
 #define C_LINEAR
 #define C_CENTROID
-)"
-#endif
+)";
+	}
 
-#if defined(_PSSL)
-R"(
+	if (type == ShaderType::DirectX9)
+	{
+		ss << R"(
+#define POSITION0 POSITION
+#define SV_POSITION POSITION
+#define SV_Target COLOR
+)";
+	}
+
+	if (type == ShaderType::PSSL)
+	{
+		ss << R"(
 #define SV_POSITION S_POSITION
 #define cbuffer ConstantBuffer
 #define SV_Target S_TARGET_OUTPUT
 #define SampleLevel SampleLOD
 #define SV_InstanceID S_INSTANCE_ID
-)"
-#endif
-;
+)";
+	}
+
+	return ss.str();
+}
 
 static char* material_common_functions = R"(
 
@@ -85,16 +265,7 @@ half4 ConvertToScreen(half4 c)
 
 )";
 
-static char* material_common_vs_functions = R"()"
-
-#if defined(_DIRECTX9)
-R"(
-#define POSITION0 POSITION
-#define SV_POSITION POSITION
-)"
-#endif
-
-R"(
+static char* material_common_vs_functions = R"(
 
 float2 GetUV(float2 uv)
 {
@@ -269,7 +440,11 @@ static char* material_sprite_vs_suf2 = R"(
 
 )";
 
-static char* model_vs_pre = R"(
+inline std::string GetModelVS_Pre(ShaderType type)
+{
+	std::stringstream ss;
+
+	ss << R"(
 struct VS_Input
 {
 	float3 Pos		: POSITION0;
@@ -278,22 +453,23 @@ struct VS_Input
 	float3 Tangent		: NORMAL2;
 	float2 UV		: TEXCOORD0;
 	float4 Color		: NORMAL3;
-)"
+)";
 
-#if defined(_DIRECTX9)
-R"(
+	if (type == ShaderType::DirectX9)
+	{
+		ss << R"(
 	float Index : BLENDINDICES0;
-};)"
-
-#elif !defined(DISABLE_INSTANCE)
-
-R"(
+)";
+	}
+	else
+	{
+		ss << R"(
 	uint Index : SV_InstanceID;
-};)"
+)";
+	}
 
-#endif
-
-R"(
+	ss << R"(
+};
 
 struct VS_Output
 {
@@ -312,13 +488,11 @@ struct VS_Output
 };
 
 cbuffer VSConstantBuffer : register(b0) {
+)";
 
-)"
-
-#if defined(_DIRECTX9)
-
-							R"(
-
+	if (type == ShaderType::DirectX9)
+	{
+		ss << R"(
 float4x4 mCameraProj		: register( c0 );
 float4x4 mModel[10]		: register( c4 );
 float4	fUV[10]			: register( c44 );
@@ -327,11 +501,11 @@ float4	fModelColor[10]		: register( c54 );
 float4 mUVInversed		: register(c64);
 float4 predefined_uniform : register(c65);
 float4 cameraPosition : register(c66);
-
-)"
-
-#else
-R"(
+)";
+	}
+	else
+	{
+		ss << R"(
 float4x4 mCameraProj		: register( c0 );
 float4x4 mModel[40]		: register( c4 );
 float4	fUV[40]			: register( c164 );
@@ -340,17 +514,17 @@ float4	fModelColor[40]		: register( c204 );
 float4 mUVInversed		: register(c244);
 float4 predefined_uniform : register(c245);
 float4 cameraPosition : register(c246);
+)";
+	}
 
-)"
-#endif
-
-R"(
+	ss << R"(
 // custom1
 // custom2
 )";
+	return ss.str();
+}
 
 static char* model_vs_suf1 = R"(
-
 
 VS_Output main( const VS_Input Input )
 {
@@ -412,28 +586,25 @@ static char* model_vs_suf2 = R"(
 	return Output;
 }
 
-
 )";
 
-static char* g_material_ps_pre = R"()"
+inline std::string GetMaterialPS_Pre(ShaderType type)
+{
+	std::stringstream ss;
 
-#if defined(_DIRECTX9)
-R"(
-#define SV_Target COLOR
-)"
-#endif
-
-R"(
+	ss << R"(
 struct PS_Input
 {
-)"
+)";
 
-#if defined(_DIRECTX11) || defined(_DIRECTX12) || defined(_XBOXONE) || defined(_PSSL)
-								 R"(
+	if (type != ShaderType::DirectX9)
+	{
+		ss << R"(
 	float4 Position		: SV_POSITION;
-)"
-#endif
-R"(
+)";
+	}
+
+	ss << R"(
 	C_LINEAR C_CENTROID float4 VColor		: COLOR;
 	C_LINEAR C_CENTROID float2 UV1		: TEXCOORD0;
 	C_LINEAR C_CENTROID float2 UV2		: TEXCOORD1;
@@ -446,21 +617,29 @@ R"(
 	//$C_PIN1$
 	//$C_PIN2$
 };
-)"
+)";
 
-#if defined(_DIRECTX9) || defined(_DIRECTX11) || defined(_PSSL)
-								 R"(
+	if (type == ShaderType::DirectX9 || type == ShaderType::DirectX11 || type == ShaderType::PSSL)
+	{
+		ss << R"(
 cbuffer PSConstantBuffer : register(b0) {
 )";
-
-#else
-R"(
+	}
+	else
+	{
+		ss << R"(
 cbuffer PSConstantBuffer : register(b1) {
 )";
+	}
 
-#endif
+	return ss.str();
+}
 
-static char* g_material_ps_suf1 = R"(
+inline std::string GetMaterialPS_Suf1(ShaderType type)
+{
+	std::stringstream ss;
+
+	ss << R"(
 
 float2 GetUV(float2 uv)
 {
@@ -476,17 +655,22 @@ float2 GetUVBack(float2 uv)
 
 float CalcDepthFade(float2 screenUV, float meshZ, float softParticleParam)
 {
-)"
-#if defined(_DIRECTX9)
-R"(
+)";
+
+	if (type == ShaderType::DirectX9)
+	{
+		ss << R"(
 	float backgroundZ = tex2D(efk_depth_sampler, GetUVBack(screenUV)).x;
-)"
-#else
-R"(
+)";
+	}
+	else
+	{
+		ss << R"(
 	float backgroundZ = efk_depth_texture.Sample(efk_depth_sampler, GetUVBack(screenUV)).x;
-)"
-#endif
-R"(
+)";
+	}
+
+	ss << R"(
 	float distance = softParticleParam * predefined_uniform.y;
 	float2 rescale = reconstructionParam1.xy;
 	float4 params = reconstructionParam2;
@@ -577,6 +761,9 @@ float4 main( const PS_Input Input ) : SV_Target
 	screenUV.xy = float2(screenUV.x + 1.0, 1.0 - screenUV.y) * 0.5;
 )";
 
+	return ss.str();
+}
+
 static char* g_material_ps_suf2_unlit = R"(
 
 	float4 Output = float4(emissive, opacity);
@@ -605,7 +792,11 @@ static char* g_material_ps_suf2_lit = R"(
 
 )";
 
-static char* g_material_ps_suf2_refraction = R"(
+inline std::string GetMaterialPS_Suf2_Refraction(ShaderType type)
+{
+	std::stringstream ss;
+
+	ss << R"(
 
 	float airRefraction = 1.0;
 	float3 dir = mul((float3x3)cameraMat, pixelNormalDir);
@@ -616,18 +807,22 @@ static char* g_material_ps_suf2_refraction = R"(
 	distortUV += screenUV;
 	distortUV = GetUVBack(distortUV);	
 
-)"
-#if defined(_DIRECTX9)
-R"(
-	float4 bg = tex2D(efk_background_sampler, distortUV);
-)"
-#else
-R"(
-	float4 bg = efk_background_texture.Sample(efk_background_sampler, distortUV);
-)"
+)";
 
-#endif
-R"( 
+	if (type == ShaderType::DirectX9)
+	{
+		ss << R"(
+	float4 bg = tex2D(efk_background_sampler, distortUV);
+)";
+	}
+	else
+	{
+		ss << R"(
+	float4 bg = efk_background_texture.Sample(efk_background_sampler, distortUV);
+)";
+	}
+
+	ss << R"(
 	float4 Output = bg;
 
 	if(opacityMask <= 0.0) discard;
@@ -637,3 +832,9 @@ R"(
 }
 
 )";
+
+	return ss.str();
+}
+
+} // namespace HLSL
+} // namespace Effekseer

@@ -2,14 +2,9 @@
 #ifndef __EFFEKSEER_ParameterNODE_SPRITE_H__
 #define __EFFEKSEER_ParameterNODE_SPRITE_H__
 
-//----------------------------------------------------------------------------------
-// Include
-//----------------------------------------------------------------------------------
 #include "Effekseer.EffectNode.h"
+#include "Renderer/Effekseer.SpriteRenderer.h"
 
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
 namespace Effekseer
 {
 struct SpriteColorParameter
@@ -22,8 +17,7 @@ struct SpriteColorParameter
 		Parameter_DWORD = 0x7fffffff,
 	} type;
 
-	union
-	{
+	union {
 		struct
 		{
 
@@ -49,8 +43,7 @@ struct SpritePositionParameter
 		Parameter_DWORD = 0x7fffffff,
 	} type;
 
-	union
-	{
+	union {
 		struct
 		{
 
@@ -66,9 +59,6 @@ struct SpritePositionParameter
 	};
 };
 
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
 class EffectNodeSprite : public EffectNodeImplemented
 {
 	friend class Manager;
@@ -78,58 +68,29 @@ class EffectNodeSprite : public EffectNodeImplemented
 public:
 	struct InstanceValues
 	{
-		// 色
 		Color _color;
-
 		Color _originalColor;
+		InstanceAllTypeColorState allColorValues;
 
-		union
-		{
-			struct
-			{
-				Color _color;
-			} fixed;
-
-			struct
-			{
-				Color _color;
-			} random;
-
-			struct
-			{
-				Color start;
-				Color end;
-
-			} easing;
-
-			struct
-			{
-				std::array<float, 4> offset;
-			} fcurve_rgba;
-
-		} allColorValues;
-
-		union
-		{
+		union {
 
 		} colorValues;
 
-		union
-		{
+		union {
 
 		} positionValues;
 	};
+
+	SpriteRenderer::NodeParameter nodeParam_;
 
 public:
 	AlphaBlendType AlphaBlend;
 	BillboardType Billboard;
 
-	StandardColorParameter SpriteAllColor;
+	AllTypeColorParameter SpriteAllColor;
 
 	SpriteColorParameter SpriteColor;
 	SpritePositionParameter SpritePosition;
-
-	int SpriteTexture;
 
 	EffectNodeSprite(Effect* effect, unsigned char*& pos)
 		: EffectNodeImplemented(effect, pos)
@@ -138,9 +99,9 @@ public:
 
 	void LoadRendererParameter(unsigned char*& pos, const SettingRef& setting) override;
 
-	void BeginRendering(int32_t count, Manager* manager, void* userData) override;
+	void BeginRendering(int32_t count, Manager* manager, const InstanceGlobal* global, void* userData) override;
 
-	void Rendering(const Instance& instance, const Instance* next_instance, Manager* manager, void* userData) override;
+	void Rendering(const Instance& instance, const Instance* next_instance, int index, Manager* manager, void* userData) override;
 
 	void EndRendering(Manager* manager, void* userData) override;
 
@@ -150,8 +111,11 @@ public:
 
 	eEffectNodeType GetType() const override
 	{
-		return EFFECT_NODE_TYPE_SPRITE;
+		return eEffectNodeType::Sprite;
 	}
+
+private:
+	SpriteRenderer::NodeParameter GetNodeParameter(const Manager* manager, const InstanceGlobal* global);
 };
 
 //----------------------------------------------------------------------------------

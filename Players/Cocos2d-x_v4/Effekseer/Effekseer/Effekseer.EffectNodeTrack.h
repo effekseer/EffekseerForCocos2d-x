@@ -2,20 +2,12 @@
 #ifndef __EFFEKSEER_ParameterNODE_TRACK_H__
 #define __EFFEKSEER_ParameterNODE_TRACK_H__
 
-//----------------------------------------------------------------------------------
-// Include
-//----------------------------------------------------------------------------------
 #include "Effekseer.EffectNode.h"
 #include "Renderer/Effekseer.TrackRenderer.h"
 
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
 namespace Effekseer
 {
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
+
 struct TrackSizeParameter
 {
 	enum
@@ -25,8 +17,7 @@ struct TrackSizeParameter
 		Parameter_DWORD = 0x7fffffff,
 	} type;
 
-	union
-	{
+	union {
 		struct
 		{
 			float size;
@@ -34,46 +25,14 @@ struct TrackSizeParameter
 	};
 };
 
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
 class EffectNodeTrack : public EffectNodeImplemented
 {
 public:
 	struct InstanceGroupValues
 	{
-		struct Color
-		{
-			union
-			{
-				struct
-				{
-					Effekseer::Color color_;
-				} fixed;
-
-				struct
-				{
-					Effekseer::Color color_;
-				} random;
-
-				struct
-				{
-					Effekseer::Color start;
-					Effekseer::Color end;
-				} easing;
-
-				struct
-				{
-					std::array<float, 4> offset;
-				} fcurve_rgba;
-
-			} color;
-		};
-
 		struct Size
 		{
-			union
-			{
+			union {
 				struct
 				{
 					float size_;
@@ -81,13 +40,13 @@ public:
 			} size;
 		};
 
-		Color ColorLeft;
-		Color ColorCenter;
-		Color ColorRight;
+		InstanceAllTypeColorState ColorLeft;
+		InstanceAllTypeColorState ColorCenter;
+		InstanceAllTypeColorState ColorRight;
 
-		Color ColorLeftMiddle;
-		Color ColorCenterMiddle;
-		Color ColorRightMiddle;
+		InstanceAllTypeColorState ColorLeftMiddle;
+		InstanceAllTypeColorState ColorCenterMiddle;
+		InstanceAllTypeColorState ColorRightMiddle;
 
 		Size SizeFor;
 		Size SizeMiddle;
@@ -123,45 +82,41 @@ public:
 	InstanceGroupValues m_currentGroupValues;
 
 public:
-	AlphaBlendType AlphaBlend;
+	AllTypeColorParameter TrackColorLeft;
+	AllTypeColorParameter TrackColorCenter;
+	AllTypeColorParameter TrackColorRight;
 
-	StandardColorParameter TrackColorLeft;
-	StandardColorParameter TrackColorCenter;
-	StandardColorParameter TrackColorRight;
-
-	StandardColorParameter TrackColorLeftMiddle;
-	StandardColorParameter TrackColorCenterMiddle;
-	StandardColorParameter TrackColorRightMiddle;
+	AllTypeColorParameter TrackColorLeftMiddle;
+	AllTypeColorParameter TrackColorCenterMiddle;
+	AllTypeColorParameter TrackColorRightMiddle;
 
 	TrackSizeParameter TrackSizeFor;
 	TrackSizeParameter TrackSizeMiddle;
 	TrackSizeParameter TrackSizeBack;
 
-	int TrackTexture;
-
 	int32_t SplineDivision = 1;
 
 	NodeRendererTextureUVTypeParameter TextureUVType;
 
+	TrailSmoothingType SmoothingType = TrailSmoothingType::Off;
+	TrailTimeType TimeType = TrailTimeType::FirstParticle;
+
 	EffectNodeTrack(Effect* effect, unsigned char*& pos)
 		: EffectNodeImplemented(effect, pos)
-		, TrackTexture(-1)
 	{
 	}
 
-	~EffectNodeTrack()
-	{
-	}
+	~EffectNodeTrack() = default;
 
 	void LoadRendererParameter(unsigned char*& pos, const SettingRef& setting) override;
 
-	void BeginRendering(int32_t count, Manager* manager, void* userData) override;
+	void BeginRendering(int32_t count, Manager* manager, const InstanceGlobal* global, void* userData) override;
 
 	void BeginRenderingGroup(InstanceGroup* group, Manager* manager, void* userData) override;
 
 	void EndRenderingGroup(InstanceGroup* group, Manager* manager, void* userData) override;
 
-	void Rendering(const Instance& instance, const Instance* next_instance, Manager* manager, void* userData) override;
+	void Rendering(const Instance& instance, const Instance* next_instance, int index, Manager* manager, void* userData) override;
 
 	void EndRendering(Manager* manager, void* userData) override;
 
@@ -173,26 +128,20 @@ public:
 
 	eEffectNodeType GetType() const override
 	{
-		return EFFECT_NODE_TYPE_TRACK;
+		return eEffectNodeType::Track;
 	}
 
-	void InitializeValues(InstanceGroupValues::Color& value, StandardColorParameter& param, IRandObject* rand);
 	void InitializeValues(InstanceGroupValues::Size& value, TrackSizeParameter& param, Manager* manager);
 	void SetValues(Color& c,
 				   const Instance& instance,
-				   InstanceGroupValues::Color& value,
-				   StandardColorParameter& param,
+				   InstanceAllTypeColorState& value,
+				   AllTypeColorParameter& param,
 				   int32_t time,
 				   int32_t livedTime);
 	void SetValues(float& s, InstanceGroupValues::Size& value, TrackSizeParameter& param, float time);
 	void LoadValues(TrackSizeParameter& param, unsigned char*& pos);
 };
 
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
 } // namespace Effekseer
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
+
 #endif // __EFFEKSEER_ParameterNODE_TRACK_H__

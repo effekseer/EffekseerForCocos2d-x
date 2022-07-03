@@ -1,17 +1,14 @@
 
 #include "LLGI.CommandList.h"
-#include "LLGI.ConstantBuffer.h"
-#include "LLGI.IndexBuffer.h"
+#include "LLGI.Buffer.h"
 #include "LLGI.PipelineState.h"
 #include "LLGI.Texture.h"
-#include "LLGI.VertexBuffer.h"
 
 namespace LLGI
 {
 
 void CommandList::GetCurrentVertexBuffer(BindingVertexBuffer& buffer, bool& isDirtied)
 {
-
 	buffer = bindingVertexBuffer;
 	isDirtied = isVertexBufferDirtied;
 }
@@ -28,9 +25,12 @@ void CommandList::GetCurrentPipelineState(PipelineState*& pipelineState, bool& i
 	isDirtied = isPipelineDirtied;
 }
 
-void CommandList::GetCurrentConstantBuffer(ShaderStageType type, ConstantBuffer*& buffer)
+void CommandList::GetCurrentConstantBuffer(ShaderStageType type, Buffer*& buffer) { buffer = constantBuffers[static_cast<int>(type)]; }
+
+void CommandList::GetCurrentComputeBuffer(int32_t unit, ShaderStageType shaderStage, BindingComputeBuffer& buffer)
 {
-	buffer = constantBuffers[static_cast<int>(type)];
+	auto ind = static_cast<int>(shaderStage);
+	buffer = computeBuffers_[ind][unit];
 }
 
 void CommandList::RegisterReferencedObject(ReferenceObject* referencedObject)
@@ -46,6 +46,14 @@ void CommandList::RegisterReferencedObject(ReferenceObject* referencedObject)
 CommandList::CommandList(int32_t swapCount) : swapCount_(swapCount)
 {
 	constantBuffers.fill(nullptr);
+
+	for (auto& cbs : computeBuffers_)
+	{
+		for (auto& c : cbs)
+		{
+			c.computeBuffer = nullptr;
+		}
+	}
 
 	for (auto& t : currentTextures)
 	{
@@ -81,6 +89,14 @@ CommandList::~CommandList()
 		}
 		so.referencedObjects.clear();
 	}
+
+	for (auto& cbs : computeBuffers_)
+	{
+		for (auto& c : cbs)
+		{
+			SafeRelease(c.computeBuffer);
+		}
+	}
 }
 
 void CommandList::Begin()
@@ -92,6 +108,7 @@ void CommandList::Begin()
 	isCurrentIndexBufferDirtied = true;
 	isPipelineDirtied = true;
 	ResetTextures();
+	ResetComputeBuffer();
 
 	swapIndex_ = (swapIndex_ + 1) % swapCount_;
 
@@ -113,6 +130,7 @@ bool CommandList::BeginWithPlatform(void* platformContextPtr)
 	isCurrentIndexBufferDirtied = true;
 	isPipelineDirtied = true;
 	ResetTextures();
+	ResetComputeBuffer();
 
 	swapIndex_ = (swapIndex_ + 1) % swapCount_;
 
@@ -162,7 +180,7 @@ void CommandList::Draw(int32_t primitiveCount, int32_t instanceCount)
 	isPipelineDirtied = false;
 }
 
-void CommandList::SetVertexBuffer(VertexBuffer* vertexBuffer, int32_t stride, int32_t offset)
+void CommandList::SetVertexBuffer(Buffer* vertexBuffer, int32_t stride, int32_t offset)
 {
 	isVertexBufferDirtied |=
 		bindingVertexBuffer.vertexBuffer != vertexBuffer || bindingVertexBuffer.stride != stride || bindingVertexBuffer.offset != offset;
@@ -173,10 +191,11 @@ void CommandList::SetVertexBuffer(VertexBuffer* vertexBuffer, int32_t stride, in
 	RegisterReferencedObject(vertexBuffer);
 }
 
-void CommandList::SetIndexBuffer(IndexBuffer* indexBuffer, int32_t offset)
+void CommandList::SetIndexBuffer(Buffer* indexBuffer, int32_t stride, int32_t offset)
 {
 	isCurrentIndexBufferDirtied |= bindingIndexBuffer.indexBuffer != indexBuffer || bindingIndexBuffer.offset != offset;
 	bindingIndexBuffer.indexBuffer = indexBuffer;
+	bindingIndexBuffer.stride = stride;
 	bindingIndexBuffer.offset = offset;
 
 	RegisterReferencedObject(indexBuffer);
@@ -190,12 +209,20 @@ void CommandList::SetPipelineState(PipelineState* pipelineState)
 	RegisterReferencedObject(pipelineState);
 }
 
-void CommandList::SetConstantBuffer(ConstantBuffer* constantBuffer, ShaderStageType shaderStage)
+void CommandList::SetConstantBuffer(Buffer* constantBuffer, ShaderStageType shaderStage)
 {
 	auto ind = static_cast<int>(shaderStage);
 	SafeAssign(constantBuffers[ind], constantBuffer);
 
 	RegisterReferencedObject(constantBuffer);
+}
+
+void CommandList::SetComputeBuffer(Buffer* computeBuffer, int32_t stride, int32_t unit, ShaderStageType shaderStage)
+{
+	auto ind = static_cast<int>(shaderStage);
+	SafeAssign(computeBuffers_[ind][unit].computeBuffer, computeBuffer);
+	computeBuffers_[ind][unit].stride = stride;
+	RegisterReferencedObject(computeBuffer);
 }
 
 void CommandList::SetTexture(
@@ -239,19 +266,21 @@ bool CommandList::BeginRenderPassWithPlatformPtr(void* platformPtr)
 	return true;
 }
 
-void CommandList::SetData(VertexBuffer* vertexBuffer, int32_t offset, int32_t size, const void* data)
+void CommandList::Dispatch(int32_t groupX, int32_t groupY, int32_t groupZ, int32_t threadX, int32_t threadY, int32_t threadZ)
 {
-	assert(0); // TODO: Not implemented.
+	isPipelineDirtied = false;
 }
 
-void CommandList::SetData(IndexBuffer* indexBuffer, int32_t offset, int32_t size, const void* data)
+void CommandList::ResetComputeBuffer()
 {
-	assert(0); // TODO: Not implemented.
-}
-
-void CommandList::SetData(ConstantBuffer* constantBuffer, int32_t offset, int32_t size, const void* data)
-{
-	assert(0); // TODO: Not implemented.
+	for (auto& cbs : computeBuffers_)
+	{
+		for (auto& cb : cbs)
+		{
+			SafeRelease(cb.computeBuffer);
+			cb.stride = 0;
+		}
+	}
 }
 
 void CommandList::SetImageData2D(Texture* texture, int32_t x, int32_t y, int32_t width, int32_t height, const void* data)

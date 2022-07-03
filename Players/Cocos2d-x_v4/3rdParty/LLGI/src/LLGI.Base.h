@@ -40,6 +40,7 @@ enum class ShaderStageType
 {
 	Vertex,
 	Pixel,
+	Compute,
 	Max,
 };
 
@@ -168,6 +169,25 @@ struct Vec2F
 	Vec2F(float x, float y) : X(x), Y(y) {}
 };
 
+struct Vec3I
+{
+	int32_t X;
+	int32_t Y;
+	int32_t Z;
+
+	Vec3I() : X(0), Y(0), Z(0) {}
+
+	Vec3I(int32_t x, int32_t y, int32_t z) : X(x), Y(y), Z(z) {}
+
+	int32_t& operator[](int i) { return reinterpret_cast<int32_t*>(this)[i]; }
+
+	const int32_t& operator[](int i) const { return reinterpret_cast<const int32_t*>(this)[i]; }
+
+	bool operator==(const Vec3I& o) const { return X == o.X && Y == o.Y && Z == o.Z; }
+
+	bool operator!=(const Vec3I& o) const { return !(*this == o); }
+};
+
 struct Vec3F
 {
 	float X;
@@ -245,6 +265,60 @@ enum class TextureFormatType
 	Unknown,
 };
 
+enum class TextureUsageType : uint32_t
+{
+	NoneFlag = 0,
+	RenderTarget = 1 << 0,
+	Array = 1 << 1,
+	External = 1 << 2,
+};
+
+inline TextureUsageType operator|(TextureUsageType lhs, TextureUsageType rhs)
+{
+	return static_cast<TextureUsageType>(static_cast<uint32_t>(lhs) | static_cast<uint32_t>(rhs));
+}
+
+inline TextureUsageType operator&(TextureUsageType lhs, TextureUsageType rhs)
+{
+	return static_cast<TextureUsageType>(static_cast<uint32_t>(lhs) & static_cast<uint32_t>(rhs));
+}
+
+enum class BufferUsageType : uint32_t
+{
+	Index = 1 << 0,
+	Vertex = 1 << 1,
+	Constant = 1 << 2,
+	Compute = 1 << 3,
+	MapRead = 1 << 4,
+	MapWrite = 1 << 5,
+	CopySrc = 1 << 6,
+	CopyDst = 1 << 7,
+};
+
+inline BufferUsageType operator|(BufferUsageType lhs, BufferUsageType rhs)
+{
+	return static_cast<BufferUsageType>(static_cast<uint32_t>(lhs) | static_cast<uint32_t>(rhs));
+}
+
+inline BufferUsageType operator&(BufferUsageType lhs, BufferUsageType rhs)
+{
+	return static_cast<BufferUsageType>(static_cast<uint32_t>(lhs) & static_cast<uint32_t>(rhs));
+}
+
+inline bool IsDepthFormat(TextureFormatType format)
+{
+	if (format == TextureFormatType::D32)
+		return true;
+
+	if (format == TextureFormatType::D24S8)
+		return true;
+
+	if (format == TextureFormatType::D32S8)
+		return true;
+
+	return false;
+}
+
 inline bool HasStencil(TextureFormatType format)
 {
 	if (format == TextureFormatType::D24S8)
@@ -304,6 +378,8 @@ template <class T> void SafeDelete(T& t)
 		t = NULL;
 	}
 }
+
+template <typename T> bool BitwiseContains(T value, T elm) { return (value & elm) == elm; }
 
 class ReferenceObject
 {
@@ -372,9 +448,7 @@ template <typename T> inline std::unique_ptr<T, ReferenceDeleter<T>> CreateUniqu
 
 template <typename T> using unique_ref = std::unique_ptr<T, ReferenceDeleter<T>>;
 
-class VertexBuffer;
-class IndexBuffer;
-class ConstantBuffer;
+class Buffer;
 class Shader;
 class PipelineState;
 class Texture;
@@ -442,32 +516,32 @@ inline std::string to_string(TextureFormatType format)
 	}
 }
 
-inline int32_t GetTextureMemorySize(TextureFormatType format, Vec2I size)
+inline int32_t GetTextureMemorySize(TextureFormatType format, Vec3I size)
 {
 	switch (format)
 	{
 	case TextureFormatType::R8G8B8A8_UNORM:
-		return size.X * size.Y * 4;
+		return size.X * size.Y * size.Z * 4;
 	case TextureFormatType::B8G8R8A8_UNORM:
-		return size.X * size.Y * 4;
+		return size.X * size.Y * size.Z * 4;
 	case TextureFormatType::R8_UNORM:
-		return size.X * size.Y * 1;
+		return size.X * size.Y * size.Z * 1;
 	case TextureFormatType::R16G16_FLOAT:
-		return size.X * size.Y * 4;
+		return size.X * size.Y * size.Z * 4;
 	case TextureFormatType::R16G16B16A16_FLOAT:
-		return size.X * size.Y * 8;
+		return size.X * size.Y * size.Z * 8;
 	case TextureFormatType::R32G32B32A32_FLOAT:
-		return size.X * size.Y * 16;
+		return size.X * size.Y * size.Z * 16;
 	case TextureFormatType::R8G8B8A8_UNORM_SRGB:
-		return size.X * size.Y * 4;
+		return size.X * size.Y * size.Z * 4;
 	case TextureFormatType::B8G8R8A8_UNORM_SRGB:
-		return size.X * size.Y * 4;
+		return size.X * size.Y * size.Z * 4;
 	case TextureFormatType::D32:
-		return size.X * size.Y * 4;
+		return size.X * size.Y * size.Z * 4;
 	case TextureFormatType::D24S8:
-		return size.X * size.Y * 4;
+		return size.X * size.Y * size.Z * 4;
 	case TextureFormatType::D32S8:
-		return size.X * size.Y * 5;
+		return size.X * size.Y * size.Z * 5;
 	default:
 		auto str = to_string(format);
 		Log(LogType::Error, str + " : GetTextureMemorySize is not supported");

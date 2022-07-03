@@ -4,10 +4,8 @@
 
 #include <Effekseer.h>
 #include <LLGI.CommandList.h>
-#include <LLGI.ConstantBuffer.h>
+#include <LLGI.Buffer.h>
 #include <LLGI.Graphics.h>
-#include <LLGI.IndexBuffer.h>
-#include <LLGI.VertexBuffer.h>
 #include <assert.h>
 #include <set>
 
@@ -54,7 +52,7 @@ class VertexBuffer
 	  public Effekseer::Backend::VertexBuffer
 {
 private:
-	std::shared_ptr<LLGI::VertexBuffer> buffer_;
+	std::shared_ptr<LLGI::Buffer> buffer_;
 	GraphicsDevice* graphicsDevice_ = nullptr;
 	int32_t size_ = 0;
 	bool isDynamic_ = false;
@@ -76,7 +74,7 @@ public:
 
 	void UpdateData(const void* src, int32_t size, int32_t offset) override;
 
-	LLGI::VertexBuffer* GetBuffer()
+	LLGI::Buffer* GetBuffer()
 	{
 		return buffer_.get();
 	}
@@ -87,7 +85,7 @@ class IndexBuffer
 	  public Effekseer::Backend::IndexBuffer
 {
 private:
-	std::shared_ptr<LLGI::IndexBuffer> buffer_;
+	std::shared_ptr<LLGI::Buffer> buffer_;
 	GraphicsDevice* graphicsDevice_ = nullptr;
 	int32_t stride_ = 0;
 
@@ -108,7 +106,7 @@ public:
 
 	void UpdateData(const void* src, int32_t size, int32_t offset) override;
 
-	LLGI::IndexBuffer* GetBuffer()
+	LLGI::Buffer* GetBuffer()
 	{
 		return buffer_.get();
 	}
@@ -126,7 +124,7 @@ public:
 	Texture(GraphicsDevice* graphicsDevice);
 	~Texture() override;
 
-	bool Init(const Effekseer::Backend::TextureParameter& param);
+	bool Init(const Effekseer::Backend::TextureParameter& param, const Effekseer::CustomVector<uint8_t>& initialData);
 
 	bool Init(uint64_t id, std::function<void()> onDisposed);
 
@@ -135,6 +133,30 @@ public:
 	std::shared_ptr<LLGI::Texture>& GetTexture()
 	{
 		return texture_;
+	}
+};
+
+class Shader
+	: public DeviceObject,
+	  public Effekseer::Backend::Shader
+{
+private:
+	GraphicsDevice* graphicsDevice_ = nullptr;
+	LLGI::Shader* vertexShader_ = nullptr;
+	LLGI::Shader* pixelShader_ = nullptr;
+
+public:
+	Shader(GraphicsDevice* graphicsDevice);
+	~Shader() override;
+	bool Init(const void* vertexShaderData, int32_t vertexShaderDataSize, const void* pixelShaderData, int32_t pixelShaderDataSize);
+
+	LLGI::Shader* GetVertexShader() const
+	{
+		return vertexShader_;
+	}
+	LLGI::Shader* GetPixelShader() const
+	{
+		return pixelShader_;
 	}
 };
 
@@ -164,11 +186,13 @@ public:
 
 	Effekseer::Backend::IndexBufferRef CreateIndexBuffer(int32_t elementCount, const void* initialData, Effekseer::Backend::IndexBufferStrideType stride) override;
 
-	Effekseer::Backend::TextureRef CreateTexture(const Effekseer::Backend::TextureParameter& param) override;
+	Effekseer::Backend::TextureRef CreateTexture(const Effekseer::Backend::TextureParameter& param, const Effekseer::CustomVector<uint8_t>& initialData) override;
 
 	Effekseer::Backend::TextureRef CreateTexture(uint64_t id, const std::function<void()>& onDisposed);
 
 	Effekseer::Backend::TextureRef CreateTexture(LLGI::Texture* texture);
+
+	Effekseer::Backend::ShaderRef CreateShaderFromBinary(const void* vsData, int32_t vsDataSize, const void* psData, int32_t psDataSize) override;
 };
 
 } // namespace Backend

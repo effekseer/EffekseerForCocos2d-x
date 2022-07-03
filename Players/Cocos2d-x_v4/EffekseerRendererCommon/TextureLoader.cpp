@@ -6,7 +6,7 @@ namespace EffekseerRenderer
 {
 
 TextureLoader::TextureLoader(::Effekseer::Backend::GraphicsDevice* graphicsDevice,
-							 ::Effekseer::FileInterface* fileInterface,
+							 ::Effekseer::FileInterfaceRef fileInterface,
 							 ::Effekseer::ColorSpaceType colorSpaceType)
 	: graphicsDevice_(graphicsDevice)
 	, m_fileInterface(fileInterface)
@@ -15,7 +15,7 @@ TextureLoader::TextureLoader(::Effekseer::Backend::GraphicsDevice* graphicsDevic
 	ES_SAFE_ADDREF(graphicsDevice_);
 	if (fileInterface == nullptr)
 	{
-		m_fileInterface = &m_defaultFileInterface;
+		m_fileInterface = Effekseer::MakeRefPtr<Effekseer::DefaultFileInterface>();
 	}
 }
 
@@ -26,9 +26,9 @@ TextureLoader::~TextureLoader()
 
 Effekseer::TextureRef TextureLoader::Load(const char16_t* path, ::Effekseer::TextureType textureType)
 {
-	std::unique_ptr<::Effekseer::FileReader> reader(m_fileInterface->OpenRead(path));
+	auto reader = m_fileInterface->OpenRead(path);
 
-	if (reader.get() != nullptr)
+	if (reader != nullptr)
 	{
 		auto path16 = std::u16string(path);
 		auto isMipEnabled = path16.find(u"_NoMip") == std::u16string::npos;
@@ -72,11 +72,14 @@ Effekseer::TextureRef TextureLoader::Load(const void* data, int32_t size, Effeks
 				param.Size[0] = pngTextureLoader_.GetWidth();
 				param.Size[1] = pngTextureLoader_.GetHeight();
 				param.Format = format;
-				param.GenerateMipmap = isMipMapEnabled;
-				param.InitialData.assign(pngTextureLoader_.GetData().begin(), pngTextureLoader_.GetData().end());
+				param.MipLevelCount = isMipMapEnabled ? 0 : 1;
+				param.Dimension = 2;
+
+				Effekseer::CustomVector<uint8_t> initialData;
+				initialData.assign(pngTextureLoader_.GetData().begin(), pngTextureLoader_.GetData().end());
 
 				auto texture = ::Effekseer::MakeRefPtr<::Effekseer::Texture>();
-				texture->SetBackend(graphicsDevice_->CreateTexture(param));
+				texture->SetBackend(graphicsDevice_->CreateTexture(param, initialData));
 				return texture;
 			}
 		}
@@ -99,12 +102,15 @@ Effekseer::TextureRef TextureLoader::Load(const void* data, int32_t size, Effeks
 			::Effekseer::Backend::TextureParameter param;
 			param.Size[0] = ddsTextureLoader_.GetTextures().at(0).Width;
 			param.Size[1] = ddsTextureLoader_.GetTextures().at(0).Height;
+			param.Dimension = 2;
 			param.Format = ddsTextureLoader_.GetBackendTextureFormat();
-			param.InitialData.assign(ddsTextureLoader_.GetTextures().at(0).Data.begin(), ddsTextureLoader_.GetTextures().at(0).Data.end());
-			param.GenerateMipmap = false; // TODO : Support nomipmap
+
+			Effekseer::CustomVector<uint8_t> initialData;
+			initialData.assign(ddsTextureLoader_.GetTextures().at(0).Data.begin(), ddsTextureLoader_.GetTextures().at(0).Data.end());
+			param.MipLevelCount = 1; // TODO : Support nomipmap
 
 			auto texture = ::Effekseer::MakeRefPtr<::Effekseer::Texture>();
-			texture->SetBackend(graphicsDevice_->CreateTexture(param));
+			texture->SetBackend(graphicsDevice_->CreateTexture(param, initialData));
 			return texture;
 		}
 	}
@@ -128,11 +134,13 @@ Effekseer::TextureRef TextureLoader::Load(const void* data, int32_t size, Effeks
 				param.Size[0] = tgaTextureLoader_.GetWidth();
 				param.Size[1] = tgaTextureLoader_.GetHeight();
 				param.Format = format;
-				param.GenerateMipmap = isMipMapEnabled;
-				param.InitialData.assign(tgaTextureLoader_.GetData().begin(), tgaTextureLoader_.GetData().end());
+				param.MipLevelCount = isMipMapEnabled ? 0 : 1;
+				param.Dimension = 2;
+				Effekseer::CustomVector<uint8_t> initialData;
+				initialData.assign(tgaTextureLoader_.GetData().begin(), tgaTextureLoader_.GetData().end());
 
 				auto texture = ::Effekseer::MakeRefPtr<::Effekseer::Texture>();
-				texture->SetBackend(graphicsDevice_->CreateTexture(param));
+				texture->SetBackend(graphicsDevice_->CreateTexture(param, initialData));
 				return texture;
 			}
 		}

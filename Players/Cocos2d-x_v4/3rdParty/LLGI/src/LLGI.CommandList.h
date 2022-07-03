@@ -6,6 +6,7 @@
 namespace LLGI
 {
 static constexpr int NumTexture = TextureSlotMax;
+static constexpr int NumComputeBuffer = TextureSlotMax;
 
 class VertexBuffer;
 class IndexBuffer;
@@ -26,14 +27,15 @@ class CommandList : public ReferenceObject
 protected:
 	struct BindingVertexBuffer
 	{
-		VertexBuffer* vertexBuffer = nullptr;
+		Buffer* vertexBuffer = nullptr;
 		int32_t stride = 0;
 		int32_t offset = 0;
 	};
 
 	struct BindingIndexBuffer
 	{
-		IndexBuffer* indexBuffer = nullptr;
+		Buffer* indexBuffer = nullptr;
+		int32_t stride = 0;
 		int32_t offset = 0;
 	};
 
@@ -42,6 +44,12 @@ protected:
 		Texture* texture = nullptr;
 		TextureWrapMode wrapMode = TextureWrapMode::Clamp;
 		TextureMinMagFilter minMagFilter = TextureMinMagFilter::Nearest;
+	};
+
+	struct BindingComputeBuffer
+	{
+		Buffer* computeBuffer = nullptr;
+		int32_t stride = 0;
 	};
 
 private:
@@ -64,19 +72,21 @@ private:
 	bool isPipelineDirtied = true;
 	bool doesBeginWithPlatform_ = false;
 
-	std::array<ConstantBuffer*, static_cast<int>(ShaderStageType::Max)> constantBuffers;
+	std::array<Buffer*, static_cast<int>(ShaderStageType::Max)> constantBuffers;
+	std::array<std::array<BindingComputeBuffer, NumComputeBuffer>, static_cast<int>(ShaderStageType::Max)> computeBuffers_;
 
 protected:
 	bool isInRenderPass_ = false;
 	bool isInBegin_ = false;
 
-	std::array<std::array<BindingTexture, NumTexture>, static_cast<int>(ShaderStageType::Max)> currentTextures;
+	std::array<std::array<BindingTexture, NumTexture>, 2> currentTextures;
 
 protected:
 	void GetCurrentVertexBuffer(BindingVertexBuffer& buffer, bool& isDirtied);
 	void GetCurrentIndexBuffer(BindingIndexBuffer& buffer, bool& isDirtied);
 	void GetCurrentPipelineState(PipelineState*& pipelineState, bool& isDirtied);
-	void GetCurrentConstantBuffer(ShaderStageType type, ConstantBuffer*& buffer);
+	void GetCurrentConstantBuffer(ShaderStageType type, Buffer*& buffer);
+	void GetCurrentComputeBuffer(int32_t unit, ShaderStageType shaderStage, BindingComputeBuffer& buffer);
 	void RegisterReferencedObject(ReferenceObject* referencedObject);
 
 public:
@@ -103,15 +113,24 @@ public:
 
 	virtual void SetScissor(int32_t x, int32_t y, int32_t width, int32_t height);
 	virtual void Draw(int32_t primitiveCount, int32_t instanceCount = 1);
-	virtual void SetVertexBuffer(VertexBuffer* vertexBuffer, int32_t stride, int32_t offset);
-	virtual void SetIndexBuffer(IndexBuffer* indexBuffer, int32_t offset = 0);
+	virtual void SetVertexBuffer(Buffer* vertexBuffer, int32_t stride, int32_t offset);
+	virtual void SetIndexBuffer(Buffer* indexBuffer, int32_t stride, int32_t offset = 0);
 	virtual void SetPipelineState(PipelineState* pipelineState);
-	virtual void SetConstantBuffer(ConstantBuffer* constantBuffer, ShaderStageType shaderStage);
+	virtual void SetConstantBuffer(Buffer* constantBuffer, ShaderStageType shaderStage);
+	virtual void SetComputeBuffer(Buffer* computeBuffer, int32_t stride, int32_t unit, ShaderStageType shaderStage);
 
 	/**
 		@brief	copy a texture
 	*/
 	virtual void CopyTexture(Texture* src, Texture* dst) {}
+
+	/**
+		@brief	copy a texture
+	*/
+	virtual void
+	CopyTexture(Texture* src, Texture* dst, const Vec3I& srcPos, const Vec3I& dstPos, const Vec3I& size, int srcLayer, int dstLayer)
+	{
+	}
 
 	/**
 		@brief specify textures
@@ -149,20 +168,12 @@ public:
 	*/
 	virtual bool EndRenderPassWithPlatformPtr() { return false; }
 
-	/**
-		@brief	send a memory in specified VertexBuffer from cpu to gpu
-	*/
-	virtual void SetData(VertexBuffer* vertexBuffer, int32_t offset, int32_t size, const void* data);
+	virtual void ResetComputeBuffer();
+	virtual void BeginComputePass() {}
+	virtual void EndComputePass() {}
+	virtual void Dispatch(int32_t groupX, int32_t groupY, int32_t groupZ, int32_t threadX, int32_t threadY, int32_t threadZ);
 
-	/**
-		@brief	send a memory in specified IndexBuffer from cpu to gpu
-	*/
-	virtual void SetData(IndexBuffer* indexBuffer, int32_t offset, int32_t size, const void* data);
-
-	/**
-		@brief	send a memory in specified ConstantBuffer from cpu to gpu
-	*/
-	virtual void SetData(ConstantBuffer* constantBuffer, int32_t offset, int32_t size, const void* data);
+	virtual void CopyBuffer(Buffer* src, Buffer* dst) {}
 
 	/**
 		@brief	send a memory in specified texture from cpu to gpu

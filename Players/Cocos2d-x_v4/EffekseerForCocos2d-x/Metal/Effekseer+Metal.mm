@@ -153,12 +153,12 @@ public:
     }
 };
 
-Effekseer::ModelLoaderRef CreateModelLoader(Effekseer::FileInterface* effectFile)
+Effekseer::ModelLoaderRef CreateModelLoader(Effekseer::FileInterfaceRef effectFile)
 {
 	return Effekseer::MakeRefPtr<::EffekseerRenderer::ModelLoader>(EffekseerGraphicsDevice::create(), effectFile);
 }
 
-::Effekseer::MaterialLoaderRef CreateMaterialLoader(Effekseer::FileInterface* effectFile)
+::Effekseer::MaterialLoaderRef CreateMaterialLoader(Effekseer::FileInterfaceRef effectFile)
 {
     auto device = EffekseerGraphicsDevice::create();
     auto ret = EffekseerRendererMetal::CreateMaterialLoader(device, effectFile);

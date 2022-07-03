@@ -18,6 +18,12 @@ const int32_t Version16Alpha7 = 1606;
 const int32_t Version16Alpha8 = 1607;
 const int32_t Version16Alpha9 = 1608;
 const int32_t Version16 = 1610;
+const int32_t Version17Alpha1 = 1700;
+const int32_t Version17Alpha2 = 1701;
+const int32_t Version17Alpha3 = 1702;
+const int32_t Version17Alpha4 = 1703;
+const int32_t Version17Alpha5 = 1704;
+const int32_t Version17Alpha6 = 1705;
 
 const int32_t CompiledMaterialVersion15 = 1;
 const int32_t CompiledMaterialVersion16 = 1610;
@@ -25,6 +31,8 @@ const int32_t CompiledMaterialVersion162 = 1612;
 
 const int32_t MaterialVersion15 = 3;
 const int32_t MaterialVersion16 = 1610;
+const int32_t MaterialVersion17Alpha2 = 1700;
+const int32_t MaterialVersion17Alpha4 = 1703;
 
 } // namespace Effekseer
 

@@ -6,6 +6,7 @@
 // Include
 //----------------------------------------------------------------------------------
 #include "Effekseer.Base.h"
+#include "Effekseer.Matrix44.h"
 #include "Effekseer.Vector3D.h"
 
 //----------------------------------------------------------------------------------
@@ -22,6 +23,9 @@ namespace Effekseer
 */
 class Manager : public IReference
 {
+public:
+	static constexpr int32_t LayerCount = 32;
+
 public:
 	/**
 		@brief
@@ -59,13 +63,16 @@ public:
 	};
 
 	/**
-	@brief
 		@brief
 		\~English Parameters for Manager::Draw and Manager::DrawHandle
 		\~Japanese Manager::Draw and Manager::DrawHandleに使用するパラメーター
 	*/
 	struct DrawParameter
 	{
+		Matrix44 ViewProjectionMatrix;
+		float ZNear = 0.0f;
+		float ZFar = 0.0f;
+
 		Vector3D CameraPosition;
 
 		/**
@@ -96,6 +103,36 @@ public:
 		bool IsSortingEffectsEnabled = false;
 
 		DrawParameter();
+	};
+	
+	/**
+		@brief
+		\~English Parameters of Manager::SetLayerParameter to be set for each layer index.
+		\~Japanese Manager::SetLayerParameterにレイヤーごとに設定するパラメーター
+	*/
+	struct LayerParameter
+	{
+		/**
+			@brief
+			\~English
+			Position of effects viewer to calculate distance of Level of Details system.
+			Normally should be set the same position which is passed in translation of camera matrix.
+			\~Japanese
+			LODシステムで使用される視点の位置。
+			通常はカメラの位置と同じ値を指定する。
+		*/
+		Vector3D ViewerPosition = {0.0f, 0.0f, 0.0f};
+		
+		/**
+			@brief
+			\~English
+			Adds given value to calculated distance from viewer which is used for LOD selection.
+			Useful for LODs debugging.
+			\~Japanese
+			LODの選択に使用される、視点からの計算された距離に加算される値。
+			LODのデバッグに役に立ちます。
+		*/
+		float DistanceBias = 0.0f;
 	};
 
 protected:
@@ -401,6 +438,32 @@ public:
 	virtual int32_t GetTotalInstanceCount() const = 0;
 
 	/**
+		@brief
+		\~English Returns LOD which is currently utilized for given effect
+	 */
+	virtual int32_t GetCurrentLOD(Handle handle) = 0;
+
+	/**
+		@brief
+		\~English Returns current specified LOD parameters.
+		\~Japanese 現在指定されているLODパラメータを返します
+	 */
+	virtual const LayerParameter& GetLayerParameter(int32_t layer) const = 0;
+
+	/**
+		@brief
+		\~English Set layer parameters.
+		\~Japanese レイヤーパラメータを設定する。
+		@param	layer
+		\~English	Layer index
+		\~Japanese	レイヤーのインデックス
+		@param	layerParameter
+		\~English	Layer parameters
+		\~Japanese	レイヤーパラメータ
+	 */
+	virtual void SetLayerParameter(int32_t layer, const LayerParameter& layerParameter) = 0;
+
+	/**
 		@brief	エフェクトのインスタンスに設定されている行列を取得する。
 		@param	handle	[in]	インスタンスのハンドル
 		@return	行列
@@ -499,6 +562,13 @@ public:
 	virtual void SetDynamicInput(Handle handle, int32_t index, float value) = 0;
 
 	/**
+		@brief
+		\~English Sends the specified trigger to the currently playing effect.
+		\~Japanese トリガーを再生中のエフェクトに送信します。
+	*/
+	virtual void SendTrigger(Handle handle, int32_t index) = 0;
+
+	/**
 		@brief	エフェクトのベース行列を取得する。
 		@param	handle	[in]	インスタンスのハンドル
 		@return	ベース行列
@@ -564,6 +634,17 @@ public:
 	virtual void SetPausedToAllEffects(bool paused) = 0;
 
 	/**
+		@brief Stops new particles spawning but continues simulation of already spawned particles
+		@param spawnDisabled Whether to stop particles generation 
+	 */
+	virtual void SetSpawnDisabled(Handle handle, bool spawnDisabled) = 0;
+
+	/**
+	 *	@brief Whether spawn of new particles is disabled
+	 */
+	virtual bool GetSpawnDisabled(Handle handle) = 0;
+
+	/**
 		@brief
 		\~English	Get a layer index
 		\~Japanese	レイヤーのインデックスを取得する
@@ -571,7 +652,7 @@ public:
 		\~English For example, if effect's layer is 1 and CameraCullingMask's first bit is 1, this effect is shown.
 		\~Japanese 例えば、エフェクトのレイヤーが0でカリングマスクの最初のビットが1のときエフェクトは表示される。
 	*/
-	virtual int GetLayer(Handle handle) = 0;
+	virtual int32_t GetLayer(Handle handle) = 0;
 
 	/**
 		@brief
@@ -634,7 +715,7 @@ public:
 		@param	autoDraw	[in]	自動描画フラグ
 	*/
 	virtual void SetAutoDrawing(Handle handle, bool autoDraw) = 0;
-	
+
 	/**
 		@brief
 		\~English	Gets the user pointer set on the handle.
@@ -648,6 +729,13 @@ public:
 		\~Japanese	ハンドルごとにカスタムレンダラーやカスタムサウンド向けにユーザーポインタを設定する。
 	*/
 	virtual void SetUserData(Handle handle, void* userData) = 0;
+
+	/**
+		@brief
+		\~English	Set a default random seed of the effect by a handle.
+		\~Japanese	ハンドルごとにエフェクトのデフォルトランダムシード値を設定する。
+	*/
+	virtual void SetRandomSeed(Handle handle, int32_t seed) = 0;
 
 	/**
 		@brief	今までのPlay等の処理をUpdate実行時に適用するようにする。
@@ -770,6 +858,13 @@ public:
 	virtual void DrawHandleFront(Handle handle, const Manager::DrawParameter& drawParameter = Manager::DrawParameter()) = 0;
 
 	/**
+	@brief
+	\~English	Get whether the effect will be culled.
+	\~Japanese	エフェクトがカリングされるか取得する。
+	*/
+	virtual bool GetIsCulled(Handle handle, const Manager::DrawParameter& drawParameter) = 0;
+
+	/**
 		@brief	再生する。
 		@param	effect	[in]	エフェクト
 		@param	x	[in]	X座標
@@ -818,27 +913,6 @@ public:
 		\~Japanese	残りの確保したインスタンス数を取得する。
 	*/
 	virtual int32_t GetRestInstancesCount() const = 0;
-
-	/**
-		@brief	エフェクトをカリングし描画負荷を減らすための空間を生成する。
-		@param	xsize	X方向幅
-		@param	ysize	Y方向幅
-		@param	zsize	Z方向幅
-		@param	layerCount	層数(大きいほどカリングの効率は上がるがメモリも大量に使用する)
-	*/
-	virtual void CreateCullingWorld(float xsize, float ysize, float zsize, int32_t layerCount) = 0;
-
-	/**
-		@brief	カリングを行い、カリングされたオブジェクトのみを描画するようにする。
-		@param	cameraProjMat	カメラプロジェクション行列
-		@param	isOpenGL		OpenGLによる描画か?
-	*/
-	virtual void CalcCulling(const Matrix44& cameraProjMat, bool isOpenGL) = 0;
-
-	/**
-		@brief	現在存在するエフェクトのハンドルからカリングの空間を配置しなおす。
-	*/
-	virtual void RessignCulling() = 0;
 
 	/**
 		@brief

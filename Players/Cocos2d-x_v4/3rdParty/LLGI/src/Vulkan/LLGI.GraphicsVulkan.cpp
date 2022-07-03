@@ -1,13 +1,11 @@
 #include "LLGI.GraphicsVulkan.h"
 #include "LLGI.BaseVulkan.h"
+#include "LLGI.BufferVulkan.h"
 #include "LLGI.CommandListVulkan.h"
-#include "LLGI.ConstantBufferVulkan.h"
-#include "LLGI.IndexBufferVulkan.h"
 #include "LLGI.PipelineStateVulkan.h"
 #include "LLGI.ShaderVulkan.h"
 #include "LLGI.SingleFrameMemoryPoolVulkan.h"
 #include "LLGI.TextureVulkan.h"
-#include "LLGI.VertexBufferVulkan.h"
 
 namespace LLGI
 {
@@ -57,23 +55,10 @@ void GraphicsVulkan::Execute(CommandList* commandList)
 
 void GraphicsVulkan::WaitFinish() { vkQueue_.waitIdle(); }
 
-VertexBuffer* GraphicsVulkan::CreateVertexBuffer(int32_t size)
+Buffer* GraphicsVulkan::CreateBuffer(BufferUsageType usage, int32_t size)
 {
-	auto obj = new VertexBufferVulkan();
-	if (!obj->Initialize(this, size))
-	{
-		SafeRelease(obj);
-		return nullptr;
-	}
-
-	return obj;
-}
-
-IndexBuffer* GraphicsVulkan::CreateIndexBuffer(int32_t stride, int32_t count)
-{
-
-	auto obj = new IndexBufferVulkan();
-	if (!obj->Initialize(this, stride, count))
+	auto obj = new BufferVulkan();
+	if (!obj->Initialize(this, usage, size))
 	{
 		SafeRelease(obj);
 		return nullptr;
@@ -123,17 +108,6 @@ CommandList* GraphicsVulkan::CreateCommandList(SingleFrameMemoryPool* memoryPool
 	}
 	SafeRelease(commandList);
 	return nullptr;
-}
-
-ConstantBuffer* GraphicsVulkan::CreateConstantBuffer(int32_t size)
-{
-	auto obj = new ConstantBufferVulkan();
-	if (!obj->Initialize(this, size))
-	{
-		SafeRelease(obj);
-		return nullptr;
-	}
-	return obj;
 }
 
 RenderPass* GraphicsVulkan::CreateRenderPass(Texture** textures, int32_t textureCount, Texture* depthTexture)
@@ -193,54 +167,55 @@ Texture* GraphicsVulkan::CreateTexture(uint64_t id)
 	return obj;
 }
 
-Texture* GraphicsVulkan::CreateTexture(const TextureInitializationParameter& parameter)
+Texture* GraphicsVulkan::CreateTexture(const TextureParameter& parameter)
 {
 	auto obj = new TextureVulkan();
-
-	if (!obj->Initialize(
-			this, true, parameter.Size, (vk::Format)VulkanHelper::TextureFormatToVkFormat(parameter.Format), 1, parameter.MipMapCount, TextureType::Color))
+	if (!obj->Initialize(this, this->GetDevice(), this->GetPysicalDevice(), this, parameter))
 	{
 		SafeRelease(obj);
 		return nullptr;
 	}
-
 	return obj;
+}
+
+Texture* GraphicsVulkan::CreateTexture(const TextureInitializationParameter& parameter)
+{
+	TextureParameter param;
+	param.Dimension = 2;
+	param.Format = parameter.Format;
+	param.MipLevelCount = parameter.MipMapCount;
+	param.SampleCount = 1;
+	param.Size = {parameter.Size.X, parameter.Size.Y, 1};
+	return CreateTexture(param);
 }
 
 Texture* GraphicsVulkan::CreateRenderTexture(const RenderTextureInitializationParameter& parameter)
 {
-	auto obj = new TextureVulkan();
-	if (!obj->InitializeAsRenderTexture(this, true, parameter))
-	{
-		SafeRelease(obj);
-		return nullptr;
-	}
-
-	return obj;
+	TextureParameter param;
+	param.Dimension = 2;
+	param.Format = parameter.Format;
+	param.MipLevelCount = 1;
+	param.SampleCount = parameter.SamplingCount;
+	param.Size = {parameter.Size.X, parameter.Size.Y, 1};
+	param.Usage = TextureUsageType::RenderTarget;
+	return CreateTexture(param);
 }
 
 Texture* GraphicsVulkan::CreateDepthTexture(const DepthTextureInitializationParameter& parameter)
 {
-	auto obj = new TextureVulkan();
-
 	auto format = TextureFormatType::D32;
 	if (parameter.Mode == DepthTextureMode::DepthStencil)
 	{
 		format = TextureFormatType::D24S8;
 	}
 
-	if (!obj->InitializeAsDepthStencil(this->vkDevice_,
-									   this->vkPysicalDevice_,
-									   parameter.Size,
-									   (vk::Format)VulkanHelper::TextureFormatToVkFormat(format),
-									   parameter.SamplingCount,
-									   this))
-	{
-		SafeRelease(obj);
-		return nullptr;
-	}
-
-	return obj;
+	TextureParameter param;
+	param.Dimension = 2;
+	param.Format = format;
+	param.MipLevelCount = 1;
+	param.SampleCount = parameter.SamplingCount;
+	param.Size = {parameter.Size.X, parameter.Size.Y, 1};
+	return CreateTexture(param);
 }
 
 std::vector<uint8_t> GraphicsVulkan::CaptureRenderTarget(Texture* renderTarget)

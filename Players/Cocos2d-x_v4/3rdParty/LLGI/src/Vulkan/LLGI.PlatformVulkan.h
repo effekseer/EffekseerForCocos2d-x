@@ -77,6 +77,7 @@ private:
 	RenderPassPipelineStateCacheVulkan* renderPassPipelineStateCache_ = nullptr;
 
 	std::vector<std::shared_ptr<RenderPassVulkan>> renderPasses_;
+	std::shared_ptr<RenderPassVulkan> dummyRenderPass_;
 
 	std::vector<SwapBuffer> swapBuffers;
 
@@ -122,6 +123,8 @@ private:
 	bool ValidateLayers(std::vector<const char*> requiredLayers, const std::vector<VkLayerProperties>& properties) const;
 
 	std::vector<const char*> GetOptimalLayers(const std::vector<VkLayerProperties>& properties) const;
+
+	bool IsSwapchainValid() const { return static_cast<bool>(swapchain_); }
 
 public:
 	PlatformVulkan();

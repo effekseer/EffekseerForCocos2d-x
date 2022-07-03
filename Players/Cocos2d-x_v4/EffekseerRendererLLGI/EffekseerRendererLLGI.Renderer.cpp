@@ -175,7 +175,7 @@ LLGI::PipelineState* RendererImplemented::GetOrCreatePiplineState()
 
 	if (isReversedDepth_)
 	{
-		if(key.state.CullingType == ::Effekseer::CullingType::Back)
+		if (key.state.CullingType == ::Effekseer::CullingType::Back)
 		{
 			piplineState->Culling = LLGI::CullingMode::Clockwise;
 		}
@@ -359,7 +359,8 @@ bool RendererImplemented::Initialize(Backend::GraphicsDeviceRef graphicsDevice,
 	ChangeRenderPassPipelineState(key);
 	isReversedDepth_ = isReversedDepth;
 
-	LLGI::SetLogger([](LLGI::LogType type, const std::string& message) { std::cout << message << std::endl; });
+	LLGI::SetLogger([](LLGI::LogType type, const std::string& message)
+					{ std::cout << message << std::endl; });
 
 	// Generate vertex buffer
 	{
@@ -645,7 +646,7 @@ int32_t RendererImplemented::GetSquareMaxCount() const
 	return ::Effekseer::TrackRendererRef(new ::EffekseerRenderer::TrackRendererBase<RendererImplemented, false>(this));
 }
 
-::Effekseer::TextureLoaderRef RendererImplemented::CreateTextureLoader(::Effekseer::FileInterface* fileInterface)
+::Effekseer::TextureLoaderRef RendererImplemented::CreateTextureLoader(::Effekseer::FileInterfaceRef fileInterface)
 {
 #ifdef __EFFEKSEER_RENDERER_INTERNAL_LOADER__
 	return ::Effekseer::MakeRefPtr<EffekseerRenderer::TextureLoader>(graphicsDevice_.Get(), fileInterface);
@@ -654,12 +655,12 @@ int32_t RendererImplemented::GetSquareMaxCount() const
 #endif
 }
 
-::Effekseer::ModelLoaderRef RendererImplemented::CreateModelLoader(::Effekseer::FileInterface* fileInterface)
+::Effekseer::ModelLoaderRef RendererImplemented::CreateModelLoader(::Effekseer::FileInterfaceRef fileInterface)
 {
 	return ::Effekseer::MakeRefPtr<EffekseerRenderer::ModelLoader>(graphicsDevice_, fileInterface);
 }
 
-::Effekseer::MaterialLoaderRef RendererImplemented::CreateMaterialLoader(::Effekseer::FileInterface* fileInterface)
+::Effekseer::MaterialLoaderRef RendererImplemented::CreateMaterialLoader(::Effekseer::FileInterfaceRef fileInterface)
 {
 	return ::Effekseer::MakeRefPtr<MaterialLoader>(graphicsDevice_.Get(), fileInterface, platformType_, materialCompiler_);
 }
@@ -690,7 +691,7 @@ void RendererImplemented::SetDistortingCallback(EffekseerRenderer::DistortingCal
 	m_distortingCallback = callback;
 }
 
-void RendererImplemented::SetVertexBuffer(LLGI::VertexBuffer* vertexBuffer, int32_t stride)
+void RendererImplemented::SetVertexBuffer(LLGI::Buffer* vertexBuffer, int32_t stride)
 {
 	currentVertexBuffer_ = vertexBuffer;
 	currentVertexBufferStride_ = stride;
@@ -704,12 +705,12 @@ void RendererImplemented::SetVertexBuffer(VertexBuffer* vertexBuffer, int32_t st
 
 void RendererImplemented::SetIndexBuffer(IndexBuffer* indexBuffer)
 {
-	GetCurrentCommandList()->SetIndexBuffer(indexBuffer->GetIndexBuffer());
+	GetCurrentCommandList()->SetIndexBuffer(indexBuffer->GetIndexBuffer(), 2);
 }
 
-void RendererImplemented::SetIndexBuffer(LLGI::IndexBuffer* indexBuffer)
+void RendererImplemented::SetIndexBuffer(LLGI::Buffer* indexBuffer)
 {
-	GetCurrentCommandList()->SetIndexBuffer(indexBuffer);
+	GetCurrentCommandList()->SetIndexBuffer(indexBuffer, 4);
 }
 
 void RendererImplemented::SetVertexBuffer(const Effekseer::Backend::VertexBufferRef& vertexBuffer, int32_t stride)
@@ -741,8 +742,8 @@ void RendererImplemented::SetLayout(Shader* shader)
 void RendererImplemented::DrawSprites(int32_t spriteCount, int32_t vertexOffset)
 {
 	// constant buffer
-	LLGI::ConstantBuffer* constantBufferVS = nullptr;
-	LLGI::ConstantBuffer* constantBufferPS = nullptr;
+	LLGI::Buffer* constantBufferVS = nullptr;
+	LLGI::Buffer* constantBufferPS = nullptr;
 
 	auto cl = commandList_.DownCast<CommandList>();
 
@@ -795,8 +796,8 @@ void RendererImplemented::DrawPolygon(int32_t vertexCount, int32_t indexCount)
 void RendererImplemented::DrawPolygonInstanced(int32_t vertexCount, int32_t indexCount, int32_t instanceCount)
 {
 	// constant buffer
-	LLGI::ConstantBuffer* constantBufferVS = nullptr;
-	LLGI::ConstantBuffer* constantBufferPS = nullptr;
+	LLGI::Buffer* constantBufferVS = nullptr;
+	LLGI::Buffer* constantBufferPS = nullptr;
 
 	auto cl = commandList_.DownCast<CommandList>();
 

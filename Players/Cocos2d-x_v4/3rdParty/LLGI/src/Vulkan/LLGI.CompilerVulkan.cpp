@@ -158,6 +158,9 @@ void CompilerVulkan::Compile(CompilerResult& result, const char* code, ShaderSta
 	case ShaderStageType::Pixel:
 		stage = EShLanguage::EShLangFragment;
 		break;
+	case ShaderStageType::Compute:
+		stage = EShLanguage::EShLangCompute;
+		break;
 	default:
 		result.Message = "Invalid shader stage.";
 		return;

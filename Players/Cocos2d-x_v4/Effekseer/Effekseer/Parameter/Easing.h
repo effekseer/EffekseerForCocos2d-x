@@ -519,7 +519,7 @@ public:
 
 			for (int i = 0; i < ElemNum; i++)
 			{
-				channelCount = std::max(channelCount, channelIDs[i]);
+				channelCount = Effekseer::Max(channelCount, channelIDs[i]);
 			}
 			channelCount++;
 		}
@@ -561,14 +561,14 @@ public:
 	}
 
 	virtual float GetValue(const InstanceEasingType& instance, float time) const override;
-	void Init(InstanceEasingType& instance, Effect* e, InstanceGlobal* instg, Instance* parent, IRandObject* rand);
+	void Init(InstanceEasingType& instance, const Effect* e, const InstanceGlobal* instg, const Instance* parent, IRandObject* rand) const;
 };
 
 class ParameterEasingSIMDVec3 : public ParameterEasing<SIMD::Vec3f>
 {
 public:
 	virtual SIMD::Vec3f GetValue(const InstanceEasingType& instance, float time) const override;
-	void Init(InstanceEasingType& instance, Effect* e, InstanceGlobal* instg, Instance* parent, IRandObject* rand, const std::array<float, 3>& scale, const std::array<float, 3>& scaleInv);
+	void Init(InstanceEasingType& instance, const Effect* e, const InstanceGlobal* instg, const Instance* parent, IRandObject* rand, const std::array<float, 3>& scale, const std::array<float, 3>& scaleInv) const;
 };
 
 } // namespace Effekseer

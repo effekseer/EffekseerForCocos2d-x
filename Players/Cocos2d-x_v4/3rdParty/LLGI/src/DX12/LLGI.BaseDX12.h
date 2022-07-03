@@ -35,6 +35,7 @@ void EndDX12_DRED_Debug();
 		DumpDX12_DRED(device);                                                                                                             \
 	}
 
+class BufferDX12;
 class GraphicsDX12;
 class RenderPassDX12;
 class SingleFrameMemoryPoolDX12;
@@ -45,7 +46,7 @@ ID3D12Resource* CreateResourceBuffer(ID3D12Device* device,
 									 D3D12_RESOURCE_DIMENSION resourceDimention,
 									 D3D12_RESOURCE_STATES resourceState,
 									 D3D12_RESOURCE_FLAGS flags,
-									 Vec2I size,
+									 Vec3I size,
 									 int32_t samplingCount);
 
 DXGI_FORMAT ConvertFormat(TextureFormatType format);

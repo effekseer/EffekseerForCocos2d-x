@@ -8,6 +8,21 @@
 namespace efk
 {
 
+void CalculateCameraDirectionAndPosition(const Effekseer::Matrix44& matrix, Effekseer::Vector3D& direction, Effekseer::Vector3D& position)
+{
+	const auto& mat = matrix;
+
+	direction = -::Effekseer::Vector3D(matrix.Values[0][2], matrix.Values[1][2], matrix.Values[2][2]);
+
+	{
+		auto localPos = ::Effekseer::Vector3D(-mat.Values[3][0], -mat.Values[3][1], -mat.Values[3][2]);
+		auto f = ::Effekseer::Vector3D(mat.Values[0][2], mat.Values[1][2], mat.Values[2][2]);
+		auto r = ::Effekseer::Vector3D(mat.Values[0][0], mat.Values[1][0], mat.Values[2][0]);
+		auto u = ::Effekseer::Vector3D(mat.Values[0][1], mat.Values[1][1], mat.Values[2][1]);
+
+		position = r * localPos.X + u * localPos.Y + f * localPos.Z;
+	}
+}
 
 class ImageAccessor : public cocos2d::Image
 {
@@ -15,9 +30,9 @@ public:
 	static bool getPngPremultipledAlphaEnabled() { return PNG_PREMULTIPLIED_ALPHA_ENABLED; }
 };
 
-Effekseer::ModelLoaderRef CreateModelLoader(Effekseer::FileInterface*);
+Effekseer::ModelLoaderRef CreateModelLoader(Effekseer::FileInterfaceRef);
 
-::Effekseer::MaterialLoaderRef CreateMaterialLoader(Effekseer::FileInterface*);
+::Effekseer::MaterialLoaderRef CreateMaterialLoader(Effekseer::FileInterfaceRef);
 
 void UpdateTextureData(::Effekseer::TextureRef textureData, cocos2d::Texture2D* texture);
 
@@ -84,7 +99,7 @@ public:
 
 	virtual ~EffekseerFileReader() {}
 
-	size_t Read(void* buffer, size_t size)
+	size_t Read(void* buffer, size_t size) override
 	{
 		int32_t readable = size;
 		if (data.size() - position < size)
@@ -95,7 +110,7 @@ public:
 		return readable;
 	}
 
-	void Seek(int position)
+	void Seek(int position) override
 	{
 		this->position = position;
 		if (this->position < 0)
@@ -104,9 +119,9 @@ public:
 			this->position = static_cast<int32_t>(data.size());
 	}
 
-	int GetPosition() { return position; }
+	int GetPosition() const override { return position; }
 
-	size_t GetLength() { return data.size(); }
+	size_t GetLength() const override { return data.size(); }
 };
 
 class EffekseerFile : public Effekseer::FileInterface
@@ -114,14 +129,14 @@ class EffekseerFile : public Effekseer::FileInterface
 public:
 	EffekseerFile();
 	virtual ~EffekseerFile();
-	Effekseer::FileReader* OpenRead(const EFK_CHAR* path);
-	Effekseer::FileWriter* OpenWrite(const EFK_CHAR* path);
+	Effekseer::FileReaderRef OpenRead(const EFK_CHAR* path);
+	Effekseer::FileWriterRef OpenWrite(const EFK_CHAR* path);
 };
 
 EffekseerFile::EffekseerFile() {}
 EffekseerFile::~EffekseerFile() {}
 
-Effekseer::FileReader* EffekseerFile::OpenRead(const EFK_CHAR* path)
+Effekseer::FileReaderRef EffekseerFile::OpenRead(const EFK_CHAR* path)
 {
 	char path_[300];
 	::Effekseer::ConvertUtf16ToUtf8(path_, 300, path);
@@ -136,10 +151,10 @@ Effekseer::FileReader* EffekseerFile::OpenRead(const EFK_CHAR* path)
 	std::vector<uint8_t> data;
 	data.resize(data_.getSize());
 	memcpy(data.data(), data_.getBytes(), data.size());
-	return new EffekseerFileReader(data);
+	return Effekseer::MakeRefPtr<EffekseerFileReader>(data);
 }
 
-Effekseer::FileWriter* EffekseerFile::OpenWrite(const EFK_CHAR* path) { return nullptr; }
+Effekseer::FileWriterRef EffekseerFile::OpenWrite(const EFK_CHAR* path) { return nullptr; }
 
 static std::map<Effekseer::TextureRef, std::basic_string<EFK_CHAR>> g_glTex2FilePath;
 static std::map<std::basic_string<EFK_CHAR>, cocos2d::Texture2D*> g_filePath2CTex;
@@ -148,11 +163,11 @@ static std::map<std::basic_string<EFK_CHAR>, Effekseer::TextureRef> g_filePath2E
 class TextureLoader : public ::Effekseer::TextureLoader
 {
 private:
-	::Effekseer::FileInterface* m_fileInterface;
+	::Effekseer::FileInterfaceRef m_fileInterface;
 	::Effekseer::DefaultFileInterface m_defaultFileInterface;
 
 public:
-	TextureLoader(::Effekseer::FileInterface* fileInterface = NULL);
+	TextureLoader(::Effekseer::FileInterfaceRef fileInterface = NULL);
 	virtual ~TextureLoader();
 
 public:
@@ -161,12 +176,8 @@ public:
 	void Unload(Effekseer::TextureRef data) override;
 };
 
-TextureLoader::TextureLoader(::Effekseer::FileInterface* fileInterface) : m_fileInterface(fileInterface)
+TextureLoader::TextureLoader(::Effekseer::FileInterfaceRef fileInterface) : m_fileInterface(fileInterface)
 {
-	if (m_fileInterface == NULL)
-	{
-		m_fileInterface = &m_defaultFileInterface;
-	}
 }
 
 TextureLoader::~TextureLoader() {}
@@ -181,9 +192,9 @@ Effekseer::TextureRef TextureLoader::Load(const EFK_CHAR* path, ::Effekseer::Tex
 		return g_filePath2EffectData[key];
 	}
 
-	std::unique_ptr<Effekseer::FileReader> reader(m_fileInterface->OpenRead(path));
+	auto reader = m_fileInterface->OpenRead(path);
 
-	if (reader.get() != NULL)
+	if (reader != nullptr)
 	{
 		size_t size_texture = reader->GetLength();
 		char* data_texture = new char[size_texture];
@@ -268,13 +279,13 @@ static Effekseer::RefPtr<EffekseerSetting> g_effekseerSetting = nullptr;
 class EffekseerSetting : public ::Effekseer::Setting
 {
 protected:
-	Effekseer::FileInterface* effectFile = nullptr;
+	Effekseer::FileInterfaceRef effectFile = nullptr;
 
 public:
 
 	EffekseerSetting()
 	{
-		effectFile = new EffekseerFile();
+		effectFile = Effekseer::MakeRefPtr<EffekseerFile>();
 		SetEffectLoader(Effekseer::Effect::CreateEffectLoader(effectFile));
 		SetTextureLoader(Effekseer::MakeRefPtr<TextureLoader>(effectFile));
 		SetModelLoader(CreateModelLoader(effectFile));
@@ -285,7 +296,6 @@ public:
 
 	virtual ~EffekseerSetting()
 	{
-		delete effectFile;
 	}
 
 	static Effekseer::RefPtr<EffekseerSetting> create()
@@ -326,17 +336,16 @@ class InternalManager : public Effekseer::ReferenceObject
 	std::set<Effekseer::ManagerRef> managers;
 	std::vector<Effekseer::ManagerRef> managersVector;
 
-	Effekseer::Server* server = nullptr;
+	Effekseer::ServerRef server = nullptr;
 
 public:
 	InternalManager() {}
 
-	~InternalManager()
+	virtual ~InternalManager() override
 	{
 		if (server != nullptr)
 		{
 			server->Stop();
-			ES_SAFE_DELETE(server);
 		}
 
 		g_internalManager = nullptr;
@@ -427,7 +436,7 @@ public:
 		server = Effekseer::Server::Create();
 		if (!server->Start(port))
 		{
-			ES_SAFE_DELETE(server);
+			server = nullptr;
 			return false;
 		}
 
@@ -918,6 +927,15 @@ void EffectManager::setCameraMatrix(const cocos2d::Mat4& mat)
 {
 	Effekseer::Matrix44 mat_;
 	memcpy(mat_.Values, mat.m, sizeof(float) * 16);
+
+	::Effekseer::Vector3D cameraPosition;
+	::Effekseer::Vector3D cameraFrontDirection;
+	CalculateCameraDirectionAndPosition(mat_, cameraFrontDirection, cameraPosition);
+
+	Effekseer::Manager::LayerParameter layerParam;
+	layerParam.ViewerPosition = cameraPosition;
+	manager2d->SetLayerParameter(0, layerParam);
+
 	getInternalRenderer()->SetCameraMatrix(mat_);
 }
 

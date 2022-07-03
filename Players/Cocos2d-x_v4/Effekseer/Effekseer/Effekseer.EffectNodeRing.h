@@ -2,20 +2,12 @@
 #ifndef __EFFEKSEER_ParameterNODE_RING_H__
 #define __EFFEKSEER_ParameterNODE_RING_H__
 
-//----------------------------------------------------------------------------------
-// Include
-//----------------------------------------------------------------------------------
 #include "Effekseer.EffectNode.h"
 #include "Renderer/Effekseer.RingRenderer.h"
 
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
 namespace Effekseer
 {
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
+
 struct RingSingleParameter
 {
 	enum
@@ -27,8 +19,7 @@ struct RingSingleParameter
 		Parameter_DWORD = 0x7fffffff,
 	} type;
 
-	union
-	{
+	union {
 		float fixed;
 		random_float random;
 	};
@@ -37,9 +28,6 @@ struct RingSingleParameter
 	ParameterEasingFloat easing{Version16Alpha9, Version16Alpha9};
 };
 
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
 struct RingLocationParameter
 {
 	enum
@@ -51,8 +39,7 @@ struct RingLocationParameter
 		Parameter_DWORD = 0x7fffffff,
 	} type;
 
-	union
-	{
+	union {
 		struct
 		{
 			vector2d location;
@@ -69,36 +56,10 @@ struct RingLocationParameter
 	};
 };
 
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-struct RingColorParameter
-{
-	enum
-	{
-		Fixed = 0,
-		Random = 1,
-		Easing = 2,
-
-		Parameter_DWORD = 0x7fffffff,
-	} type;
-
-	union
-	{
-		Color fixed;
-		random_color random;
-		easing_color easing;
-	};
-};
-
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
 struct RingSingleValues
 {
 	float current;
-	union
-	{
+	union {
 		struct
 		{
 
@@ -113,15 +74,11 @@ struct RingSingleValues
 	};
 };
 
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
 struct RingLocationValues
 {
 	SIMD::Vec2f current;
 
-	union
-	{
+	union {
 		struct
 		{
 
@@ -142,32 +99,11 @@ struct RingLocationValues
 	};
 };
 
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
 struct RingColorValues
 {
 	Color current;
 	Color original;
-
-	union
-	{
-		struct
-		{
-			Color _color;
-		} fixed;
-
-		struct
-		{
-			Color _color;
-		} random;
-
-		struct
-		{
-			Color start;
-			Color end;
-		} easing;
-	};
+	InstanceAllTypeColorState allColorValues;
 };
 
 enum class RingShapeType : int32_t
@@ -185,9 +121,6 @@ struct RingShapeParameter
 	RingSingleParameter EndingAngle;
 };
 
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
 class EffectNodeRing : public EffectNodeImplemented
 {
 	friend class Manager;
@@ -214,35 +147,28 @@ public:
 	int32_t VertexCount;
 
 	RingShapeParameter Shape;
-	// RingSingleParameter	ViewingAngle;
 
 	RingLocationParameter OuterLocation;
 	RingLocationParameter InnerLocation;
 
 	RingSingleParameter CenterRatio;
 
-	RingColorParameter OuterColor;
-	RingColorParameter CenterColor;
-	RingColorParameter InnerColor;
-
-	int RingTexture;
-
-	RingRenderer::NodeParameter nodeParameter;
+	AllTypeColorParameter OuterColor;
+	AllTypeColorParameter CenterColor;
+	AllTypeColorParameter InnerColor;
 
 	EffectNodeRing(Effect* effect, unsigned char*& pos)
 		: EffectNodeImplemented(effect, pos)
 	{
 	}
 
-	~EffectNodeRing()
-	{
-	}
+	~EffectNodeRing() = default;
 
 	void LoadRendererParameter(unsigned char*& pos, const SettingRef& setting) override;
 
-	void BeginRendering(int32_t count, Manager* manager, void* userData) override;
+	void BeginRendering(int32_t count, Manager* manager, const InstanceGlobal* global, void* userData) override;
 
-	void Rendering(const Instance& instance, const Instance* next_instance, Manager* manager, void* userData) override;
+	void Rendering(const Instance& instance, const Instance* next_instance, int index, Manager* manager, void* userData) override;
 
 	void EndRendering(Manager* manager, void* userData) override;
 
@@ -252,34 +178,25 @@ public:
 
 	eEffectNodeType GetType() const override
 	{
-		return EFFECT_NODE_TYPE_RING;
+		return eEffectNodeType::Ring;
 	}
 
 private:
+	RingRenderer::NodeParameter nodeParameter;
+
 	void LoadSingleParameter(unsigned char*& pos, RingSingleParameter& param, int version);
 
 	void LoadLocationParameter(unsigned char*& pos, RingLocationParameter& param);
-
-	void LoadColorParameter(unsigned char*& pos, RingColorParameter& param);
 
 	void InitializeSingleValues(const RingSingleParameter& param, RingSingleValues& values, Manager* manager, IRandObject* rand);
 
 	void InitializeLocationValues(const RingLocationParameter& param, RingLocationValues& values, Manager* manager, IRandObject* rand);
 
-	void InitializeColorValues(const RingColorParameter& param, RingColorValues& values, Manager* manager, IRandObject* rand);
-
 	void UpdateSingleValues(Instance& instance, const RingSingleParameter& param, RingSingleValues& values);
 
 	void UpdateLocationValues(Instance& instance, const RingLocationParameter& param, RingLocationValues& values);
-
-	void UpdateColorValues(Instance& instance, const RingColorParameter& param, RingColorValues& values);
 };
 
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
 } // namespace Effekseer
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
+
 #endif // __EFFEKSEER_ParameterNODE_RING_H__

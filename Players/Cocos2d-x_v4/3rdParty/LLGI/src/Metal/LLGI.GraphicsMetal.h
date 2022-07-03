@@ -44,10 +44,8 @@ public:
 	void Execute(CommandList* commandList) override;
 
 	void WaitFinish() override;
-
-	VertexBuffer* CreateVertexBuffer(int32_t size) override;
-
-	IndexBuffer* CreateIndexBuffer(int32_t stride, int32_t count) override;
+    
+    Buffer* CreateBuffer(BufferUsageType usage, int32_t size) override;
 
 	Shader* CreateShader(DataStructure* data, int32_t count) override;
 
@@ -57,11 +55,11 @@ public:
 
 	CommandList* CreateCommandList(SingleFrameMemoryPool* memoryPool) override;
 
-	ConstantBuffer* CreateConstantBuffer(int32_t size) override;
-
 	RenderPass* CreateRenderPass(Texture** textures, int32_t textureCount, Texture* depthTexture) override;
 
 	RenderPass* CreateRenderPass(Texture* texture, Texture* resolvedTexture, Texture* depthTexture, Texture* resolvedDepthTexture) override;
+
+	Texture* CreateTexture(const TextureParameter& parameter) override;
 
 	Texture* CreateTexture(const TextureInitializationParameter& parameter) override;
 

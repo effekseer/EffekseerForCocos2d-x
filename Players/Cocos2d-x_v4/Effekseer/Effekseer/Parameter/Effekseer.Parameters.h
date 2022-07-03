@@ -8,6 +8,8 @@
 namespace Effekseer
 {
 
+void LoadGradient(Gradient& gradient, uint8_t*& pos, int32_t version);
+
 /**
 	@brief
 	\~English	How to treat an uv of texture type for ribbon and track

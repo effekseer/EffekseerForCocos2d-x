@@ -25,8 +25,9 @@ private:
 	//! DX12 doesn't have packed buffer
 	std::vector<uint8_t> lockedBuffer_;
 
-	Vec2I textureSize_;
+	Vec3I textureSize_;
 	int32_t cpuMemorySize_;
+	TextureParameter parameter_;
 
 	void CreateBuffer();
 
@@ -38,13 +39,18 @@ public:
 
 	~TextureDX12() override;
 
+	bool Initialize(const TextureParameter& parameter);
+
 	//! init as external texture
 	bool Initialize(ID3D12Resource* textureResource);
 
-	bool Initialize(const Vec2I& size, TextureType type, const TextureFormatType formatType, int32_t samplingCount);
-
 	void* Lock() override;
 	void Unlock() override;
+
+	const TextureParameter& GetParameter() const { return parameter_; }
+
+	Vec3I GetSize() const { return textureSize_; }
+
 	Vec2I GetSizeAs2D() const override;
 	ID3D12Resource* Get() const { return texture_; }
 

@@ -42,13 +42,13 @@ DescriptorHeapBlock::DescriptorHeapBlock(ID3D12Device* device,
 
 DescriptorHeapBlock::~DescriptorHeapBlock() { SafeRelease(descriptorHeap_); }
 
-bool DescriptorHeapBlock::Allocate(std::array<D3D12_CPU_DESCRIPTOR_HANDLE, 16>& cpuDescriptorHandle,
-								   std::array<D3D12_GPU_DESCRIPTOR_HANDLE, 16>& gpuDescriptorHandle,
+bool DescriptorHeapBlock::Allocate(std::array<D3D12_CPU_DESCRIPTOR_HANDLE, 32>& cpuDescriptorHandle,
+								   std::array<D3D12_GPU_DESCRIPTOR_HANDLE, 32>& gpuDescriptorHandle,
 								   int32_t requiredHandle)
 {
-	if (requiredHandle > 16)
+	if (requiredHandle > 32)
 	{
-		Log(LogType::Error, "the number of register must be lower than 16.");
+		Log(LogType::Error, "the number of register must be lower than 32.");
 		return false;
 	}
 
@@ -91,8 +91,8 @@ DescriptorHeapAllocator::DescriptorHeapAllocator(std::shared_ptr<GraphicsDX12> g
 DescriptorHeapAllocator ::~DescriptorHeapAllocator() {}
 
 bool DescriptorHeapAllocator::Allocate(ID3D12DescriptorHeap*& heap,
-									   std::array<D3D12_CPU_DESCRIPTOR_HANDLE, 16>& cpuDescriptorHandle,
-									   std::array<D3D12_GPU_DESCRIPTOR_HANDLE, 16>& gpuDescriptorHandle,
+									   std::array<D3D12_CPU_DESCRIPTOR_HANDLE, 32>& cpuDescriptorHandle,
+									   std::array<D3D12_GPU_DESCRIPTOR_HANDLE, 32>& gpuDescriptorHandle,
 									   int32_t requiredHandle)
 {
 	if (blocks_[offset_]->Allocate(cpuDescriptorHandle, gpuDescriptorHandle, requiredHandle))
@@ -103,7 +103,8 @@ bool DescriptorHeapAllocator::Allocate(ID3D12DescriptorHeap*& heap,
 	else
 	{
 		offset_++;
-		if (offset_ < static_cast<int32_t>(blocks_.size()) && blocks_[offset_]->Allocate(cpuDescriptorHandle, gpuDescriptorHandle, requiredHandle))
+		if (offset_ < static_cast<int32_t>(blocks_.size()) &&
+			blocks_[offset_]->Allocate(cpuDescriptorHandle, gpuDescriptorHandle, requiredHandle))
 		{
 			heap = blocks_[offset_]->GetHeap();
 			return true;

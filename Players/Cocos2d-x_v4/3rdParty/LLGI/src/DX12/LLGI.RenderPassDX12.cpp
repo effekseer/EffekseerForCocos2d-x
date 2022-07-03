@@ -81,10 +81,10 @@ bool RenderPassDX12::ReinitializeRenderTargetViews(CommandListDX12* commandList,
 	ID3D12DescriptorHeap* heapRTV = nullptr;
 	ID3D12DescriptorHeap* heapDSV = nullptr;
 
-	std::array<D3D12_CPU_DESCRIPTOR_HANDLE, 16> cpuDescriptorHandleRTV;
-	std::array<D3D12_GPU_DESCRIPTOR_HANDLE, 16> gpuDescriptorHandleRTV;
-	std::array<D3D12_CPU_DESCRIPTOR_HANDLE, 16> cpuDescriptorHandleDSV;
-	std::array<D3D12_GPU_DESCRIPTOR_HANDLE, 16> gpuDescriptorHandleDSV;
+	std::array<D3D12_CPU_DESCRIPTOR_HANDLE, 32> cpuDescriptorHandleRTV;
+	std::array<D3D12_GPU_DESCRIPTOR_HANDLE, 32> gpuDescriptorHandleRTV;
+	std::array<D3D12_CPU_DESCRIPTOR_HANDLE, 32> cpuDescriptorHandleDSV;
+	std::array<D3D12_GPU_DESCRIPTOR_HANDLE, 32> gpuDescriptorHandleDSV;
 
 	if (!rtDescriptorHeap->Allocate(heapRTV, cpuDescriptorHandleRTV, gpuDescriptorHandleRTV, numRenderTarget_))
 	{

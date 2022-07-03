@@ -1,4 +1,5 @@
 #include "GraphicsDevice.h"
+#include <LLGI.Shader.h>
 #include <LLGI.Texture.h>
 
 namespace EffekseerRendererLLGI
@@ -29,7 +30,7 @@ VertexBuffer::~VertexBuffer()
 
 bool VertexBuffer::Allocate(int32_t size, bool isDynamic)
 {
-	buffer_ = LLGI::CreateSharedPtr(graphicsDevice_->GetGraphics()->CreateVertexBuffer(size));
+	buffer_ = LLGI::CreateSharedPtr(graphicsDevice_->GetGraphics()->CreateBuffer(LLGI::BufferUsageType::Vertex | LLGI::BufferUsageType::MapWrite, size));
 	return true;
 }
 
@@ -80,7 +81,7 @@ IndexBuffer::~IndexBuffer()
 
 bool IndexBuffer::Allocate(int32_t elementCount, int32_t stride)
 {
-	buffer_ = LLGI::CreateSharedPtr(graphicsDevice_->GetGraphics()->CreateIndexBuffer(stride, elementCount));
+	buffer_ = LLGI::CreateSharedPtr(graphicsDevice_->GetGraphics()->CreateBuffer(LLGI::BufferUsageType::Index | LLGI::BufferUsageType::MapWrite, stride * elementCount));
 
 	elementCount_ = elementCount;
 	strideType_ = stride == 4 ? Effekseer::Backend::IndexBufferStrideType::Stride4 : Effekseer::Backend::IndexBufferStrideType::Stride2;
@@ -137,7 +138,7 @@ Texture::~Texture()
 	ES_SAFE_RELEASE(graphicsDevice_);
 }
 
-bool Texture::Init(const Effekseer::Backend::TextureParameter& param)
+bool Texture::Init(const Effekseer::Backend::TextureParameter& param, const Effekseer::CustomVector<uint8_t>& initialData)
 {
 	int mw = std::max(param.Size[0], param.Size[1]);
 	int count = 1;
@@ -150,7 +151,7 @@ bool Texture::Init(const Effekseer::Backend::TextureParameter& param)
 
 	LLGI::TextureInitializationParameter texParam;
 	texParam.Size = LLGI::Vec2I(param.Size[0], param.Size[1]);
-	texParam.MipMapCount = param.GenerateMipmap ? count : 1;
+	texParam.MipMapCount = param.MipLevelCount < 1 ? count : param.MipLevelCount;
 
 	// TODO : Fix it
 	texParam.MipMapCount = 1;
@@ -213,22 +214,25 @@ bool Texture::Init(const Effekseer::Backend::TextureParameter& param)
 	{
 		texParam.Format = LLGI::TextureFormatType::BC3_SRGB;
 	}
+	else
+	{
+		// not supported
+		Effekseer::Log(Effekseer::LogType::Error, "The format is not supported.(" + std::to_string(static_cast<int>(param.Format)) + ")");
+		return false;
+	}
 
 	auto texture = graphicsDevice_->GetGraphics()->CreateTexture(texParam);
 	auto buf = texture->Lock();
 
-	if (param.InitialData.size() > 0)
+	if (initialData.size() > 0)
 	{
-		memcpy(buf, param.InitialData.data(), param.InitialData.size());
+		memcpy(buf, initialData.data(), initialData.size());
 	}
 
 	texture->Unlock();
 
 	texture_ = LLGI::CreateSharedPtr(texture);
-
-	size_ = param.Size;
-	type_ = Effekseer::Backend::TextureType::Color2D;
-
+	param_ = param;
 	return true;
 }
 
@@ -243,8 +247,15 @@ bool Texture::Init(uint64_t id, std::function<void()> onDisposed)
 	texture_ = LLGI::CreateSharedPtr(texture);
 	onDisposed_ = onDisposed;
 
-	type_ = Effekseer::Backend::TextureType::Color2D;
-
+	param_.Format = Effekseer::Backend::TextureFormatType::R8G8B8A8_UNORM;
+	param_.Dimension = 2;
+	param_.Size = {
+		texture->GetSizeAs2D().X,
+		texture->GetSizeAs2D().Y,
+		0};
+	param_.MipLevelCount = texture_->GetMipmapCount();
+	param_.SampleCount = texture_->GetSamplingCount();
+	param_.Usage = Effekseer::Backend::TextureUsageType::External;
 	return true;
 }
 
@@ -252,10 +263,39 @@ bool Texture::Init(LLGI::Texture* texture)
 {
 	LLGI::SafeAddRef(texture);
 	texture_ = LLGI::CreateSharedPtr(texture);
-	type_ = Effekseer::Backend::TextureType::Color2D;
-	auto size = texture_->GetSizeAs2D();
-	size_ = {size.X, size.Y};
+
+	param_.Format = Effekseer::Backend::TextureFormatType::R8G8B8A8_UNORM;
+	param_.Dimension = 2;
+	param_.Size = {
+		texture->GetSizeAs2D().X,
+		texture->GetSizeAs2D().Y,
+		0};
+	param_.MipLevelCount = texture_->GetMipmapCount();
+	param_.SampleCount = texture_->GetSamplingCount();
+	param_.Usage = Effekseer::Backend::TextureUsageType::External;
+
 	return true;
+}
+
+Shader::Shader(GraphicsDevice* graphicsDevice)
+	: graphicsDevice_(graphicsDevice)
+{
+	ES_SAFE_ADDREF(graphicsDevice_);
+	graphicsDevice_->Register(this);
+}
+
+Shader ::~Shader()
+{
+	Effekseer::SafeRelease(vertexShader_);
+	Effekseer::SafeRelease(pixelShader_);
+	graphicsDevice_->Unregister(this);
+	Effekseer::SafeRelease(graphicsDevice_);
+}
+
+bool Shader::Init(const void* vertexShaderData, int32_t vertexShaderDataSize, const void* pixelShaderData, int32_t pixelShaderDataSize)
+{
+	// TODO
+	return false;
 }
 
 GraphicsDevice::GraphicsDevice(LLGI::Graphics* graphics)
@@ -328,11 +368,11 @@ Effekseer::Backend::IndexBufferRef GraphicsDevice::CreateIndexBuffer(int32_t ele
 	return ret;
 }
 
-Effekseer::Backend::TextureRef GraphicsDevice::CreateTexture(const Effekseer::Backend::TextureParameter& param)
+Effekseer::Backend::TextureRef GraphicsDevice::CreateTexture(const Effekseer::Backend::TextureParameter& param, const Effekseer::CustomVector<uint8_t>& initialData)
 {
 	auto ret = Effekseer::MakeRefPtr<Texture>(this);
 
-	if (!ret->Init(param))
+	if (!ret->Init(param, initialData))
 	{
 		return nullptr;
 	}
@@ -357,6 +397,18 @@ Effekseer::Backend::TextureRef GraphicsDevice::CreateTexture(LLGI::Texture* text
 	auto ret = Effekseer::MakeRefPtr<Texture>(this);
 
 	if (!ret->Init(texture))
+	{
+		return nullptr;
+	}
+
+	return ret;
+}
+
+Effekseer::Backend::ShaderRef GraphicsDevice::CreateShaderFromBinary(const void* vsData, int32_t vsDataSize, const void* psData, int32_t psDataSize)
+{
+	auto ret = Effekseer::MakeRefPtr<Shader>(this);
+
+	if (!ret->Init(vsData, vsDataSize, psData, psDataSize))
 	{
 		return nullptr;
 	}

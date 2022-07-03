@@ -53,6 +53,8 @@ public:
 	//! for OpenGL
 	int32_t RingBufferCount = 1;
 
+	std::shared_ptr<ExternalShaderSettings> externalShaderSettings;
+
 	bool MaintainGammaColorInLinearColorSpace = false;
 
 	Impl() = default;

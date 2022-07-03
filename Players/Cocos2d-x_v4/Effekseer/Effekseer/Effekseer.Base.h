@@ -66,7 +66,7 @@ class InternalScript;
 /**
 	@brief	A state of instances
 */
-enum eInstanceState
+enum class eInstanceState : int32_t
 {
 	/**
 		@brief	Active
@@ -74,31 +74,39 @@ enum eInstanceState
 	INSTANCE_STATE_ACTIVE,
 
 	/**
-		@brief	Removing
+		@brief	Removing (Fadeout)
 	*/
 	INSTANCE_STATE_REMOVING,
+
 	/**
 		@brief	Removed
 	*/
 	INSTANCE_STATE_REMOVED,
 
-	INSTANCE_STATE_DWORD = 0x7fffffff,
+	/**
+		@brief	Destroyed
+	*/
+	INSTANCE_STATE_DISPOSING,
 };
 
 /**
 	@brief	A type of node
 */
-enum eEffectNodeType
+enum class eEffectNodeType : int32_t
 {
-	EFFECT_NODE_TYPE_ROOT = -1,
-	EFFECT_NODE_TYPE_NONE = 0,
-	EFFECT_NODE_TYPE_SPRITE = 2,
-	EFFECT_NODE_TYPE_RIBBON = 3,
-	EFFECT_NODE_TYPE_RING = 4,
-	EFFECT_NODE_TYPE_MODEL = 5,
-	EFFECT_NODE_TYPE_TRACK = 6,
+	Root = -1,
+	NoneType = 0,
+	Sprite = 2,
+	Ribbon = 3,
+	Ring = 4,
+	Model = 5,
+	Track = 6,
+};
 
-	EFFECT_NODE_TYPE_DWORD = 0x7fffffff,
+enum class ModelReferenceType : int32_t
+{
+	File,
+	Procedural,
 };
 
 class StringHelper
@@ -165,6 +173,24 @@ public:
 
 		return ret;
 	}
+
+	template <typename T>
+	static std::basic_string<T> Join(const std::vector<std::basic_string<T>>& elems, std::basic_string<T> separator)
+	{
+		std::basic_string<T> ret;
+
+		for (size_t i = 0; i < elems.size(); i++)
+		{
+			ret += elems[i];
+
+			if (i != elems.size() - 1)
+			{
+				ret += separator;
+			}
+		}
+
+		return ret;
+	}
 };
 
 class PathHelper
@@ -194,19 +220,7 @@ private:
 			}
 		}
 
-		std::basic_string<T> ret;
-
-		for (size_t i = 0; i < elems.size(); i++)
-		{
-			ret += elems[i];
-
-			if (i != elems.size() - 1)
-			{
-				ret += StringHelper::To<T>("/");
-			}
-		}
-
-		return ret;
+		return StringHelper::Join(elems, StringHelper::To<T>("/"));
 	}
 
 public:

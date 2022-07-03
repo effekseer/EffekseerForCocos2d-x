@@ -211,14 +211,14 @@ RenderPassPipelineStateVulkan* RenderPassPipelineStateCacheVulkan::Create(const 
 		for (int i = 0; i < colorCount; i++)
 		{
 			dependencies[i * 2 + 0].srcSubpass = VK_SUBPASS_EXTERNAL;
-			dependencies[i * 2 + 0].dstSubpass = i;
+			dependencies[i * 2 + 0].dstSubpass = 0;
 			dependencies[i * 2 + 0].srcStageMask = (vk::PipelineStageFlags)VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
 			dependencies[i * 2 + 0].dstStageMask = (vk::PipelineStageFlags)VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 			dependencies[i * 2 + 0].srcAccessMask = (vk::AccessFlags)VK_ACCESS_SHADER_READ_BIT;
 			dependencies[i * 2 + 0].dstAccessMask = (vk::AccessFlags)VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 			dependencies[i * 2 + 0].dependencyFlags = (vk::DependencyFlags)VK_DEPENDENCY_BY_REGION_BIT;
 
-			dependencies[i * 2 + 1].srcSubpass = i;
+			dependencies[i * 2 + 1].srcSubpass = 0;
 			dependencies[i * 2 + 1].dstSubpass = VK_SUBPASS_EXTERNAL;
 			dependencies[i * 2 + 1].srcStageMask = (vk::PipelineStageFlags)VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 			dependencies[i * 2 + 1].dstStageMask = (vk::PipelineStageFlags)VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;

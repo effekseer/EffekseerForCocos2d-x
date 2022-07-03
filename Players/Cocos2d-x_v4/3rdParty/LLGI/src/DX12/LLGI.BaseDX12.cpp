@@ -70,7 +70,7 @@ ID3D12Resource* CreateResourceBuffer(ID3D12Device* device,
 									 D3D12_RESOURCE_DIMENSION resourceDimention,
 									 D3D12_RESOURCE_STATES resourceState,
 									 D3D12_RESOURCE_FLAGS flags,
-									 Vec2I size,
+									 Vec3I size,
 									 int32_t samplingCount)
 {
 	D3D12_HEAP_PROPERTIES heapProps = {};
@@ -103,7 +103,7 @@ ID3D12Resource* CreateResourceBuffer(ID3D12Device* device,
 	resDesc.Dimension = resourceDimention;
 	resDesc.Width = size.X;
 	resDesc.Height = size.Y;
-	resDesc.DepthOrArraySize = 1;
+	resDesc.DepthOrArraySize = static_cast<UINT16>(size.Z);
 	resDesc.MipLevels = 1;
 	resDesc.Format = DirectX12::GetGeneratedFormat(format);
 	resDesc.Layout = (resourceDimention == D3D12_RESOURCE_DIMENSION_BUFFER ? D3D12_TEXTURE_LAYOUT_ROW_MAJOR : D3D12_TEXTURE_LAYOUT_UNKNOWN);

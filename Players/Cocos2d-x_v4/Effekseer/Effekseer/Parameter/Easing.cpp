@@ -20,7 +20,7 @@ float ParameterEasingFloat::GetValue(const InstanceEasingType& instance, float t
 	return get2Point(instance, t);
 }
 
-void ParameterEasingFloat::Init(InstanceEasingType& instance, Effect* e, InstanceGlobal* instg, Instance* parent, IRandObject* rand)
+void ParameterEasingFloat::Init(InstanceEasingType& instance, const Effect* e, const InstanceGlobal* instg, const Instance* parent, IRandObject* rand) const
 {
 	auto rvs = ApplyEq(e,
 					   instg,
@@ -98,7 +98,7 @@ SIMD::Vec3f ParameterEasingSIMDVec3::GetValue(const InstanceEasingType& instance
 	}
 }
 
-void ParameterEasingSIMDVec3::Init(InstanceEasingType& instance, Effect* e, InstanceGlobal* instg, Instance* parent, IRandObject* rand, const std::array<float, 3>& scale, const std::array<float, 3>& scaleInv)
+void ParameterEasingSIMDVec3::Init(InstanceEasingType& instance, const Effect* e, const InstanceGlobal* instg, const Instance* parent, IRandObject* rand, const std::array<float, 3>& scale, const std::array<float, 3>& scaleInv) const
 {
 	auto rvs = ApplyEq(e,
 					   instg,

@@ -40,6 +40,18 @@ class Renderer;
 using RendererRef = ::Effekseer::RefPtr<Renderer>;
 
 /**
+	@brief	Specify a shader for renderer from external class
+	@note
+	For Effekseer tools
+*/
+struct ExternalShaderSettings
+{
+	Effekseer::Backend::ShaderRef StandardShader;
+	Effekseer::Backend::ShaderRef ModelShader;
+	Effekseer::AlphaBlendType Blend;
+};
+
+/**
 	@brief	
 	\~english A callback to distort a background before drawing
 	\~japanese 背景を歪ませるエフェクトを描画する前に実行されるコールバック
@@ -125,10 +137,10 @@ struct DepthReconstructionParameter
 };
 
 ::Effekseer::TextureLoaderRef CreateTextureLoader(::Effekseer::Backend::GraphicsDeviceRef gprahicsDevice,
-												  ::Effekseer::FileInterface* fileInterface = nullptr,
+												  ::Effekseer::FileInterfaceRef fileInterface = nullptr,
 												  ::Effekseer::ColorSpaceType colorSpaceType = ::Effekseer::ColorSpaceType::Gamma);
 
-::Effekseer::ModelLoaderRef CreateModelLoader(::Effekseer::Backend::GraphicsDeviceRef gprahicsDevice, ::Effekseer::FileInterface* fileInterface = nullptr);
+::Effekseer::ModelLoaderRef CreateModelLoader(::Effekseer::Backend::GraphicsDeviceRef gprahicsDevice, ::Effekseer::FileInterfaceRef fileInterface = nullptr);
 
 class Renderer : public ::Effekseer::IReference
 {
@@ -281,12 +293,12 @@ public:
 	/**
 		@brief	標準のテクスチャ読込クラスを生成する。
 	*/
-	virtual ::Effekseer::TextureLoaderRef CreateTextureLoader(::Effekseer::FileInterface* fileInterface = nullptr) = 0;
+	virtual ::Effekseer::TextureLoaderRef CreateTextureLoader(::Effekseer::FileInterfaceRef fileInterface = nullptr) = 0;
 
 	/**
 		@brief	標準のモデル読込クラスを生成する。
 	*/
-	virtual ::Effekseer::ModelLoaderRef CreateModelLoader(::Effekseer::FileInterface* fileInterface = nullptr) = 0;
+	virtual ::Effekseer::ModelLoaderRef CreateModelLoader(::Effekseer::FileInterfaceRef fileInterface = nullptr) = 0;
 
 	/**
 	@brief
@@ -294,7 +306,7 @@ public:
 	\~japanese 標準のマテリアル読込クラスを生成する。
 
 	*/
-	virtual ::Effekseer::MaterialLoaderRef CreateMaterialLoader(::Effekseer::FileInterface* fileInterface = nullptr) = 0;
+	virtual ::Effekseer::MaterialLoaderRef CreateMaterialLoader(::Effekseer::FileInterfaceRef fileInterface = nullptr) = 0;
 
 	/**
 		@brief	レンダーステートを強制的にリセットする。
@@ -462,6 +474,20 @@ public:
 		\~Japanese	グラフィクスデバイスを取得する。
 	*/
 	virtual Effekseer::Backend::GraphicsDeviceRef GetGraphicsDevice() const;
+
+	/**
+		@brief	Get external shader settings
+		@note
+		For	Effekseer tools
+	*/
+	virtual std::shared_ptr<ExternalShaderSettings> GetExternalShaderSettings() const;
+
+	/**
+		@brief	Specify external shader settings
+		@note
+		For	Effekseer tools
+	*/
+	virtual void SetExternalShaderSettings(const std::shared_ptr<ExternalShaderSettings>& settings);
 };
 
 //----------------------------------------------------------------------------------
@@ -486,7 +512,7 @@ public:
 namespace EffekseerRendererMetal
 {
 
-::Effekseer::MaterialLoaderRef CreateMaterialLoader(::Effekseer::Backend::GraphicsDeviceRef graphicsDevice, ::Effekseer::FileInterface* fileInterface = NULL);
+::Effekseer::MaterialLoaderRef CreateMaterialLoader(::Effekseer::Backend::GraphicsDeviceRef graphicsDevice, ::Effekseer::FileInterfaceRef fileInterface = NULL);
 
 ::Effekseer::Backend::GraphicsDeviceRef CreateDevice();
 

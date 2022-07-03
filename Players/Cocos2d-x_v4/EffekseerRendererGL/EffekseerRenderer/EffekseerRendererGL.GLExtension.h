@@ -61,16 +61,18 @@
 #include "EffekseerRendererGL.Base.Pre.h"
 #include <stddef.h>
 
-//-----------------------------------------------------------------------------------
-//
-//-----------------------------------------------------------------------------------
-namespace EffekseerRendererGL
-{
-namespace GLExt
-{
-//-----------------------------------------------------------------------------------
-//
-//-----------------------------------------------------------------------------------
+#if defined(_WIN32) || defined(EMSCRIPTEN)
+typedef ptrdiff_t GLsizeiptr;
+typedef ptrdiff_t GLintptr;
+#endif
+
+#if defined(_WIN32) || defined(EMSCRIPTEN) || defined(__ANDROID__) || (defined(__APPLE__) && (defined(__EFFEKSEER_RENDERER_GLES2__) || defined(__EFFEKSEER_RENDERER_GLES3__)))
+#define GL_BGRA 0x80E1
+#define GL_DEPTH_COMPONENT32 0x81A7
+#endif
+
+#if defined(_WIN32) || defined(EMSCRIPTEN) || defined(__ANDROID__) || (defined(__APPLE__) && defined(__EFFEKSEER_RENDERER_GLES2__))
+typedef char GLchar;
 
 #define GL_ELEMENT_ARRAY_BUFFER 0x8893
 #define GL_STREAM_DRAW 0x88E0
@@ -98,13 +100,6 @@ namespace GLExt
 #define GL_VERTEX_ARRAY_BINDING 0x85B5
 #define GL_ARRAY_BUFFER_BINDING 0x8894
 #define GL_ELEMENT_ARRAY_BUFFER_BINDING 0x8895
-
-#define GL_COMPRESSED_RGBA_S3TC_DXT1_EXT 0x83F1
-#define GL_COMPRESSED_RGBA_S3TC_DXT3_EXT 0x83F2
-#define GL_COMPRESSED_RGBA_S3TC_DXT5_EXT 0x83F3
-#define GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT 0x8C4D
-#define GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT 0x8C4E
-#define GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT 0x8C4F
 #define GL_SRGB8_ALPHA8 0x8C43
 
 #define GL_FRAMEBUFFER_SRGB 0x8DB9
@@ -117,8 +112,9 @@ namespace GLExt
 #define GL_MAP_UNSYNCHRONIZED_BIT 0x0020
 
 #define GL_R8 0x8229
+#define GL_R16F 0x822D
+#define GL_R32F 0x822E
 #define GL_RG 0x8227
-#define GL_BGRA 0x80E1
 #define GL_RG16F 0x822f
 
 #define GL_HALF_FLOAT 0x140b
@@ -129,16 +125,14 @@ namespace GLExt
 #define GL_DEPTH24_STENCIL8 0x88F0
 #define GL_DEPTH32F_STENCIL8 0x8CAD
 #define GL_DEPTH_COMPONENT24 0x81A6
-#define GL_DEPTH_COMPONENT32 0x81A7
 
 #define GL_DEPTH_STENCIL 0x84F9
 
-//#ifndef GL_WRITE_ONLY
-#define GL_WRITE_ONLY 0x000088b9
-//#endif
-
 #define GL_FRAMEBUFFER 0x8D40
 #define GL_FRAMEBUFFER_BINDING 0x8CA6
+
+#define GL_RENDERBUFFER 0x8D41
+#define GL_RENDERBUFFER_BINDING 0x8CA7
 
 #define GL_COLOR_ATTACHMENT0 0x8CE0
 #define GL_COLOR_ATTACHMENT1 0x8CE1
@@ -162,13 +156,34 @@ namespace GLExt
 #define GL_RED 0x1903
 
 #define GL_MAX_VARYING_VECTORS 0x8DFC
+#define GL_MAX_VERTEX_UNIFORM_VECTORS 0x8DFB
+#define GL_MAX_FRAGMENT_UNIFORM_VECTORS 0x8DFD
+#define GL_MAX_VERTEX_TEXTURE_IMAGE_UNITS 0x8B4C
+#define GL_MAX_TEXTURE_IMAGE_UNITS 0x8872
 
-#if defined(__APPLE__) || defined(__ANDROID__)
-#else
-typedef ptrdiff_t GLsizeiptr;
-typedef ptrdiff_t GLintptr;
-typedef char GLchar;
 #endif
+
+#define GL_COMPRESSED_RGBA_S3TC_DXT1_EXT 0x83F1
+#define GL_COMPRESSED_RGBA_S3TC_DXT3_EXT 0x83F2
+#define GL_COMPRESSED_RGBA_S3TC_DXT5_EXT 0x83F3
+#define GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT 0x8C4D
+#define GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT 0x8C4E
+#define GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT 0x8C4F
+
+#define GL_TEXTURE_2D_ARRAY 0x8C1A
+#define GL_TEXTURE_BINDING_2D_ARRAY 0x8C1D
+#define GL_TEXTURE_3D 0x806F
+#define GL_TEXTURE_BINDING_3D 0x806A
+
+// TODO why redifinition
+//#ifndef GL_WRITE_ONLY
+#define GL_WRITE_ONLY 0x000088b9
+//#endif
+
+namespace EffekseerRendererGL
+{
+namespace GLExt
+{
 
 OpenGLDeviceType GetDeviceType();
 bool Initialize(OpenGLDeviceType deviceType, bool isExtensionsEnabled);
@@ -245,7 +260,36 @@ void glFramebufferTexture2D(GLenum target,
 							GLuint texture,
 							GLint level);
 
+void glGenRenderbuffers(GLsizei n, GLuint* renderbuffers);
+
+void glBindRenderbuffer(GLenum target, GLuint renderbuffer);
+
+void glDeleteRenderbuffers(GLsizei n, GLuint* renderbuffers);
+
+void glRenderbufferStorageMultisample(GLenum target, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height);
+
 void glDrawBuffers(GLsizei n, const GLenum* bufs);
+
+void glTexImage3D(GLenum target,
+				  GLint level,
+				  GLint internalformat,
+				  GLsizei width,
+				  GLsizei height,
+				  GLsizei depth,
+				  GLint border,
+				  GLenum format,
+				  GLenum type,
+				  const void* data);
+
+void glCopyTexSubImage3D(GLenum target,
+						 GLint level,
+						 GLint xoffset,
+						 GLint yoffset,
+						 GLint zoffset,
+						 GLint x,
+						 GLint y,
+						 GLsizei width,
+						 GLsizei height);
 
 //----------------------------------------------------------------------------------
 //

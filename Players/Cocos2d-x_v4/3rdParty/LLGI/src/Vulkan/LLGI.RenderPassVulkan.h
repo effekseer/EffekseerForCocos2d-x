@@ -22,6 +22,7 @@ private:
 	ReferenceObject* owner_ = nullptr;
 
 	std::shared_ptr<TextureVulkan> depthBufferPtr;
+	bool isValid_ = false;
 
 public:
 	struct RenderTargetProperty
@@ -54,6 +55,8 @@ public:
 
 	virtual void SetIsDepthCleared(bool isDepthCleared) override;
 
+	bool GetIsValid() const { return isValid_; }
+
 private:
 	void ResetRenderPassPipelineState();
 };
@@ -69,7 +72,7 @@ public:
 
 	~RenderPassPipelineStateVulkan() override;
 
-	vk::RenderPass renderPass_;
+	vk::RenderPass renderPass_ = nullptr;
 	int32_t RenderTargetCount = 0;
 	FixedSizeVector<vk::ImageLayout, RenderTargetMax + 1> finalLayouts_;
 

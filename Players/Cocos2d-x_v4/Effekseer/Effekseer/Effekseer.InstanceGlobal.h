@@ -9,6 +9,7 @@
 #include "Effekseer.Color.h"
 #include "Effekseer.Random.h"
 #include "SIMD/Mat43f.h"
+#include "SIMD/Mat44f.h"
 #include "SIMD/Vec3f.h"
 
 //----------------------------------------------------------------------------------
@@ -42,9 +43,10 @@ private:
 
 	RandObject m_randObjects;
 	std::array<float, 4> dynamicInputParameters;
+	std::array<uint8_t, 4> m_inputTriggerCounts;
 
 	float nextDeltaFrame_ = 0.0f;
-
+	int32_t layer_ = 0;
 	void* m_userData = nullptr;
 
 	//! placement new
@@ -65,6 +67,13 @@ public:
 
 	void EndDeltaFrame();
 
+	bool IsSpawnDisabled = false;
+	int CurrentLevelOfDetails = 0;
+
+	SIMD::Mat44f EffectGlobalMatrix;
+	// Used for collision detection by kill rules
+	SIMD::Mat44f InvertedEffectGlobalMatrix;
+
 	bool IsGlobalColorSet = false;
 	Color GlobalColor = Color(255, 255, 255, 255);
 
@@ -79,6 +88,10 @@ public:
 		return dynamicInputParameters;
 	}
 
+	uint32_t GetInputTriggerCount(uint32_t index) const;
+
+	void AddInputTriggerCount(uint32_t index);
+
 	RandObject& GetRandObject()
 	{
 		return m_randObjects;
@@ -90,7 +103,7 @@ public:
 
 	int GetInstanceCount();
 
-	float GetUpdatedFrame();
+	float GetUpdatedFrame() const;
 
 	void ResetUpdatedFrame();
 
@@ -99,6 +112,19 @@ public:
 
 	const SIMD::Vec3f& GetTargetLocation() const;
 	void SetTargetLocation(const Vector3D& location);
+
+	void SetLayer(int32_t layer)
+	{
+		layer_ = layer;
+	}
+	int32_t GetLayer() const
+	{
+		return layer_;
+	}
+	int32_t GetLayerBits() const
+	{
+		return 1 << layer_;
+	}
 
 	void SetUserData(void* userData)
 	{

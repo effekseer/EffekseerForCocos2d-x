@@ -45,6 +45,8 @@ enum class TextureFormatType
 	R8G8B8A8_UNORM,
 	B8G8R8A8_UNORM,
 	R8_UNORM,
+	R16_FLOAT,
+	R32_FLOAT,
 	R16G16_FLOAT,
 	R16G16B16A16_FLOAT,
 	R32G32B32A32_FLOAT,
@@ -56,11 +58,24 @@ enum class TextureFormatType
 	BC1_SRGB,
 	BC2_SRGB,
 	BC3_SRGB,
+
+	//! You don't need to implement DepthTexture for a runtime
 	D32,
+
+	//! You don't need to implement DepthTexture for a runtime
 	D24S8,
+
+	//! You don't need to implement DepthTexture for a runtime
 	D32S8,
 	Unknown,
 };
+
+inline bool IsDepthTextureFormat(TextureFormatType format)
+{
+	return format == TextureFormatType::D24S8 ||
+		   format == TextureFormatType::D32S8 ||
+		   format == TextureFormatType::D32;
+}
 
 enum class IndexBufferStrideType
 {
@@ -80,18 +95,12 @@ enum class ShaderStageType
 	Pixel,
 };
 
-enum class TextureType
-{
-	Color2D,
-	Render,
-	Depth,
-};
-
 struct UniformLayoutElement
 {
 	ShaderStageType Stage = ShaderStageType::Vertex;
-	std::string Name;
+	CustomString<char> Name;
 	UniformBufferLayoutElementType Type;
+	int32_t Count = 1;
 
 	//! Ignored in UniformBuffer
 	int32_t Offset;
@@ -106,18 +115,18 @@ class UniformLayout
 	: public ReferenceObject
 {
 private:
-	CustomVector<std::string> textures_;
+	CustomVector<CustomString<char>> textures_;
 	CustomVector<UniformLayoutElement> elements_;
 
 public:
-	UniformLayout(CustomVector<std::string> textures, CustomVector<UniformLayoutElement> elements)
+	UniformLayout(CustomVector<CustomString<char>> textures, CustomVector<UniformLayoutElement> elements)
 		: textures_(std::move(textures))
 		, elements_(std::move(elements))
 	{
 	}
 	virtual ~UniformLayout() = default;
 
-	const CustomVector<std::string>& GetTextures() const
+	const CustomVector<CustomString<char>>& GetTextures() const
 	{
 		return textures_;
 	}
@@ -185,37 +194,50 @@ public:
 	virtual ~PipelineState() = default;
 };
 
+enum class TextureUsageType : uint32_t
+{
+	None = 0,
+	//! You don't need to implement RenderTarget flag for a runtime
+	RenderTarget = 1 << 0,
+	Array = 1 << 1,
+	External = 1 << 2,
+};
+
+inline TextureUsageType operator|(TextureUsageType lhs, TextureUsageType rhs)
+{
+	return static_cast<TextureUsageType>(static_cast<uint32_t>(lhs) | static_cast<uint32_t>(rhs));
+}
+
+inline TextureUsageType operator&(TextureUsageType lhs, TextureUsageType rhs)
+{
+	return static_cast<TextureUsageType>(static_cast<uint32_t>(lhs) & static_cast<uint32_t>(rhs));
+}
+
+struct TextureParameter
+{
+	TextureUsageType Usage = TextureUsageType::None;
+	TextureFormatType Format = TextureFormatType::R8G8B8A8_UNORM;
+	int32_t Dimension = 2;
+	std::array<int32_t, 3> Size = {1, 1, 1};
+	int32_t MipLevelCount = 1;
+
+	//! You don't need to implement SampleCount for a runtime
+	int SampleCount = 1;
+};
+
 class Texture
 	: public ReferenceObject
 {
 protected:
-	TextureType type_ = {};
-	TextureFormatType format_ = {};
-	std::array<int32_t, 2> size_ = {};
-	bool hasMipmap_ = false;
+	TextureParameter param_;
 
 public:
 	Texture() = default;
 	virtual ~Texture() = default;
 
-	TextureFormatType GetFormat() const
+	TextureParameter GetParameter() const
 	{
-		return format_;
-	}
-
-	std::array<int32_t, 2> GetSize() const
-	{
-		return size_;
-	}
-
-	bool GetHasMipmap() const
-	{
-		return hasMipmap_;
-	}
-
-	TextureType GetTextureType() const
-	{
-		return type_;
+		return param_;
 	}
 };
 
@@ -282,6 +304,7 @@ public:
 
 	int32_t PrimitiveCount = 0;
 	int32_t InstanceCount = 0;
+	int32_t IndexOffset = 0;
 };
 
 enum class VertexLayoutFormat
@@ -299,10 +322,10 @@ struct VertexLayoutElement
 	VertexLayoutFormat Format;
 
 	//! only for OpenGL
-	std::string Name;
+	CustomString<char> Name;
 
 	//! only for DirectX
-	std::string SemanticName;
+	CustomString<char> SemanticName;
 
 	//! only for DirectX
 	int32_t SemanticIndex = 0;
@@ -387,6 +410,7 @@ struct PipelineStateParameter
 
 	bool IsDepthTestEnabled = false;
 	bool IsDepthWriteEnabled = false;
+	bool IsMSAAEnabled = false;
 	DepthFuncType DepthFunc = DepthFuncType::Less;
 
 	ShaderRef ShaderPtr;
@@ -394,24 +418,28 @@ struct PipelineStateParameter
 	FrameBufferRef FrameBufferPtr;
 };
 
-struct TextureParameter
-{
-	TextureFormatType Format = TextureFormatType::R8G8B8A8_UNORM;
-	bool GenerateMipmap = true;
-	std::array<int32_t, 2> Size;
-	CustomVector<uint8_t> InitialData;
-};
-
+/**
+	@brief	Render texture
+	@note
+	You don't need to implement it to run Effekseer Runtime
+*/
 struct RenderTextureParameter
 {
 	TextureFormatType Format = TextureFormatType::R8G8B8A8_UNORM;
 	std::array<int32_t, 2> Size;
+	int SamplingCount = 1;
 };
 
+/**
+	@brief	Render texture
+	@note
+	You don't need to implement it to run Effekseer Runtime
+*/
 struct DepthTextureParameter
 {
 	TextureFormatType Format = TextureFormatType::R8G8B8A8_UNORM;
 	std::array<int32_t, 2> Size;
+	int SamplingCount = 1;
 };
 
 class GraphicsDevice
@@ -520,7 +548,7 @@ public:
 		return RenderPassRef{};
 	}
 
-	virtual TextureRef CreateTexture(const TextureParameter& param)
+	virtual TextureRef CreateTexture(const TextureParameter& param, const CustomVector<uint8_t>& initialData = CustomVector<uint8_t>())
 	{
 		return TextureRef{};
 	}
@@ -535,6 +563,11 @@ public:
 		return TextureRef{};
 	}
 
+	virtual bool CopyTexture(TextureRef& dst, TextureRef& src, const std::array<int, 3>& dstPos, const std::array<int, 3>& srcPos, const std::array<int, 3>& size, int32_t dstLayer, int32_t srcLayer)
+	{
+		return false;
+	}
+
 	/**
 		@brief	Create Shader from key
 		@param	key	a key which specifies a shader
@@ -545,7 +578,7 @@ public:
 		return ShaderRef{};
 	}
 
-	virtual ShaderRef CreateShaderFromCodes(const char* vsCode, const char* psCode, UniformLayoutRef layout = nullptr)
+	virtual ShaderRef CreateShaderFromCodes(const CustomVector<StringView<char>>& vsCodes, const CustomVector<StringView<char>>& psCodes, UniformLayoutRef layout = nullptr)
 	{
 		return ShaderRef{};
 	}
@@ -567,6 +600,10 @@ public:
 	// }
 
 	virtual void Draw(const DrawParameter& drawParam)
+	{
+	}
+
+	virtual void SetViewport(int32_t x, int32_t y, int32_t width, int32_t height)
 	{
 	}
 

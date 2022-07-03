@@ -25,6 +25,153 @@ namespace EffekseerRendererGL
 namespace Backend
 {
 
+Effekseer::CustomVector<GLint> GetVertexAttribLocations(const VertexLayoutRef& vertexLayout, const ShaderRef& shader)
+{
+	Effekseer::CustomVector<GLint> ret;
+
+	for (size_t i = 0; i < vertexLayout->GetElements().size(); i++)
+	{
+		const auto& element = vertexLayout->GetElements()[i];
+		ret.emplace_back(GLExt::glGetAttribLocation(shader->GetProgram(), element.Name.c_str()));
+	}
+
+	return ret;
+}
+
+void EnableLayouts(const VertexLayoutRef& vertexLayout, const Effekseer::CustomVector<GLint>& locations)
+{
+	int32_t vertexSize = 0;
+	for (size_t i = 0; i < vertexLayout->GetElements().size(); i++)
+	{
+		const auto& element = vertexLayout->GetElements()[i];
+		vertexSize += Effekseer::Backend::GetVertexLayoutFormatSize(element.Format);
+	}
+
+	uint32_t offset = 0;
+	for (size_t i = 0; i < vertexLayout->GetElements().size(); i++)
+	{
+		const auto& element = vertexLayout->GetElements()[i];
+		const auto loc = locations[i];
+
+		GLenum type = {};
+		int32_t count = {};
+		GLboolean isNormalized = false;
+
+		if (element.Format == Effekseer::Backend::VertexLayoutFormat::R8G8B8A8_UINT)
+		{
+			count = 4;
+			type = GL_UNSIGNED_BYTE;
+		}
+		else if (element.Format == Effekseer::Backend::VertexLayoutFormat::R8G8B8A8_UNORM)
+		{
+			count = 4;
+			type = GL_UNSIGNED_BYTE;
+			isNormalized = GL_TRUE;
+		}
+		else if (element.Format == Effekseer::Backend::VertexLayoutFormat::R32_FLOAT)
+		{
+			count = 1;
+			type = GL_FLOAT;
+		}
+		else if (element.Format == Effekseer::Backend::VertexLayoutFormat::R32G32_FLOAT)
+		{
+			count = 2;
+			type = GL_FLOAT;
+		}
+		else if (element.Format == Effekseer::Backend::VertexLayoutFormat::R32G32B32_FLOAT)
+		{
+			count = 3;
+			type = GL_FLOAT;
+		}
+		else if (element.Format == Effekseer::Backend::VertexLayoutFormat::R32G32B32A32_FLOAT)
+		{
+			count = 4;
+			type = GL_FLOAT;
+		}
+		else
+		{
+			assert(0);
+		}
+
+		if (loc >= 0)
+		{
+			GLExt::glEnableVertexAttribArray(loc);
+			GLExt::glVertexAttribPointer(loc,
+										 count,
+										 type,
+										 isNormalized,
+										 vertexSize,
+										 reinterpret_cast<GLvoid*>(static_cast<size_t>(offset)));
+		}
+
+		offset += Effekseer::Backend::GetVertexLayoutFormatSize(element.Format);
+	}
+}
+
+void DisableLayouts(const Effekseer::CustomVector<GLint>& locations)
+{
+	for (size_t i = 0; i < locations.size(); i++)
+	{
+		auto loc = locations[i];
+
+		if (loc >= 0)
+		{
+			GLExt::glDisableVertexAttribArray(loc);
+		}
+	}
+}
+
+void StoreUniforms(const ShaderRef& shader, const UniformBufferRef& vertexUniform, const UniformBufferRef& fragmentUniform, bool transpose)
+{
+	for (size_t i = 0; i < shader->GetLayout()->GetElements().size(); i++)
+	{
+		const auto& element = shader->GetLayout()->GetElements()[i];
+		const auto loc = shader->GetUniformLocations()[i];
+
+		if (loc < 0)
+		{
+			continue;
+		}
+
+		UniformBuffer* uniformBuffer = nullptr;
+
+		if (element.Stage == Effekseer::Backend::ShaderStageType::Vertex)
+		{
+			uniformBuffer = static_cast<UniformBuffer*>(vertexUniform.Get());
+		}
+		else if (element.Stage == Effekseer::Backend::ShaderStageType::Pixel)
+		{
+			uniformBuffer = static_cast<UniformBuffer*>(fragmentUniform.Get());
+		}
+
+		if (uniformBuffer != nullptr)
+		{
+			if (element.Type == Effekseer::Backend::UniformBufferLayoutElementType::Vector4)
+			{
+				const auto& buffer = uniformBuffer->GetBuffer();
+				assert(buffer.size() >= element.Offset + sizeof(float) * 4);
+				GLExt::glUniform4fv(loc, element.Count, reinterpret_cast<const GLfloat*>(buffer.data() + element.Offset));
+			}
+			else if (element.Type == Effekseer::Backend::UniformBufferLayoutElementType::Matrix44)
+			{
+				const auto& buffer = uniformBuffer->GetBuffer();
+				assert(buffer.size() >= element.Offset + sizeof(float) * 4 * 4);
+				GLExt::glUniformMatrix4fv(loc, element.Count, transpose ? GL_TRUE : GL_FALSE, reinterpret_cast<const GLfloat*>(buffer.data() + element.Offset));
+			}
+			else
+			{
+				// Unimplemented
+				assert(0);
+			}
+		}
+		else
+		{
+			// Invalid
+			assert(0);
+		}
+	}
+}
+
 void DeviceObject::OnLostDevice()
 {
 }
@@ -243,12 +390,17 @@ Texture::~Texture()
 			glDeleteTextures(1, &buffer_);
 			buffer_ = 0;
 		}
+
+		if (renderbuffer_ > 0)
+		{
+			GLExt::glDeleteRenderbuffers(1, &renderbuffer_);
+		}
 	}
 
 	ES_SAFE_RELEASE(graphicsDevice_);
 }
 
-bool Texture::InitInternal(const Effekseer::Backend::TextureParameter& param)
+bool Texture::Init(const Effekseer::Backend::TextureParameter& param, const Effekseer::CustomVector<uint8_t>& initialData)
 {
 	if (graphicsDevice_->GetDeviceType() == OpenGLDeviceType::OpenGL2 || graphicsDevice_->GetDeviceType() == OpenGLDeviceType::OpenGLES2)
 	{
@@ -260,11 +412,7 @@ bool Texture::InitInternal(const Effekseer::Backend::TextureParameter& param)
 		}
 	}
 
-	GLint bound = 0;
-	glGetIntegerv(GL_TEXTURE_BINDING_2D, &bound);
-
-	glGenTextures(1, &buffer_);
-	glBindTexture(GL_TEXTURE_2D, buffer_);
+	bool woSampling = param.SampleCount <= 1;
 
 	// Compressed texture
 	auto isCompressed = param.Format == Effekseer::Backend::TextureFormatType::BC1 ||
@@ -274,8 +422,42 @@ bool Texture::InitInternal(const Effekseer::Backend::TextureParameter& param)
 						param.Format == Effekseer::Backend::TextureFormatType::BC2_SRGB ||
 						param.Format == Effekseer::Backend::TextureFormatType::BC3_SRGB;
 
-	const size_t initialDataSize = param.InitialData.size();
-	const void* initialDataPtr = param.InitialData.size() > 0 ? param.InitialData.data() : nullptr;
+	const size_t initialDataSize = initialData.size();
+	const void* initialDataPtr = initialData.size() > 0 ? initialData.data() : nullptr;
+
+	GLint bound = 0;
+	int boundTarget = GL_TEXTURE_BINDING_2D;
+	int target = GL_TEXTURE_2D;
+
+	if (woSampling)
+	{
+		if ((param.Usage & Effekseer::Backend::TextureUsageType::Array) != Effekseer::Backend::TextureUsageType::None)
+		{
+			boundTarget = GL_TEXTURE_BINDING_2D_ARRAY;
+			target = GL_TEXTURE_2D_ARRAY;
+		}
+		else if (param.Dimension == 3)
+		{
+			boundTarget = GL_TEXTURE_BINDING_3D;
+			target = GL_TEXTURE_3D;
+		}
+
+		glGetIntegerv(boundTarget, &bound);
+		glGenTextures(1, &buffer_);
+		glBindTexture(target, buffer_);
+	}
+	else
+	{
+		if (isCompressed)
+		{
+			return false;
+		}
+
+		glGetIntegerv(GL_RENDERBUFFER_BINDING, &bound);
+
+		GLExt::glGenRenderbuffers(1, &renderbuffer_);
+		GLExt::glBindRenderbuffer(GL_RENDERBUFFER, renderbuffer_);
+	}
 
 	if (isCompressed)
 	{
@@ -306,7 +488,7 @@ bool Texture::InitInternal(const Effekseer::Backend::TextureParameter& param)
 			format = GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT;
 		}
 
-		GLExt::glCompressedTexImage2D(GL_TEXTURE_2D,
+		GLExt::glCompressedTexImage2D(target,
 									  0,
 									  format,
 									  param.Size[0],
@@ -351,6 +533,18 @@ bool Texture::InitInternal(const Effekseer::Backend::TextureParameter& param)
 			format = GL_RED;
 			type = GL_UNSIGNED_BYTE;
 		}
+		else if (param.Format == Effekseer::Backend::TextureFormatType::R16_FLOAT)
+		{
+			internalFormat = GL_R16F;
+			format = GL_RED;
+			type = GL_HALF_FLOAT;
+		}
+		else if (param.Format == Effekseer::Backend::TextureFormatType::R32_FLOAT)
+		{
+			internalFormat = GL_R16F;
+			format = GL_RED;
+			type = GL_FLOAT;
+		}
 		else if (param.Format == Effekseer::Backend::TextureFormatType::R16G16_FLOAT)
 		{
 			internalFormat = GL_RG16F;
@@ -369,90 +563,139 @@ bool Texture::InitInternal(const Effekseer::Backend::TextureParameter& param)
 			format = GL_RGBA;
 			type = GL_FLOAT;
 		}
+		else
+		{
+			// not supported
+			Effekseer::Log(Effekseer::LogType::Error, "The format is not supported.(" + std::to_string(static_cast<int>(param.Format)) + ")");
+			return false;
+		}
 
-		glTexImage2D(GL_TEXTURE_2D,
-					 0,
-					 internalFormat,
-					 param.Size[0],
-					 param.Size[1],
-					 0,
-					 format,
-					 type,
-					 initialDataPtr);
+		if (woSampling)
+		{
+			if ((param.Usage & Effekseer::Backend::TextureUsageType::Array) != Effekseer::Backend::TextureUsageType::None)
+			{
+				GLExt::glTexImage3D(target, 0, internalFormat, param.Size[0], param.Size[1], param.Size[2], 0, format, type, initialDataPtr);
+			}
+			else if (param.Dimension == 3)
+			{
+				GLExt::glTexImage3D(target, 0, internalFormat, param.Size[0], param.Size[1], param.Size[2], 0, format, type, initialDataPtr);
+			}
+			else
+			{
+				glTexImage2D(target,
+							 0,
+							 internalFormat,
+							 param.Size[0],
+							 param.Size[1],
+							 0,
+							 format,
+							 type,
+							 initialDataPtr);
+			}
+		}
+		else
+		{
+			GLExt::glRenderbufferStorageMultisample(GL_RENDERBUFFER, param.SampleCount, internalFormat, param.Size[0], param.Size[1]);
+		}
 	}
 
-	if (param.GenerateMipmap)
+	if (param.MipLevelCount != 1)
 	{
-		GLExt::glGenerateMipmap(GL_TEXTURE_2D);
+		GLExt::glGenerateMipmap(target);
 	}
 
-	glBindTexture(GL_TEXTURE_2D, bound);
+	if (woSampling)
+	{
+		glBindTexture(target, bound);
+	}
+	else
+	{
+		GLExt::glBindRenderbuffer(GL_RENDERBUFFER, bound);
+	}
 
-	size_ = param.Size;
-	format_ = param.Format;
-	hasMipmap_ = param.GenerateMipmap;
-
+	target_ = target;
+	param_ = param;
 	return true;
-}
-
-bool Texture::Init(const Effekseer::Backend::TextureParameter& param)
-{
-	auto ret = InitInternal(param);
-
-	type_ = Effekseer::Backend::TextureType::Color2D;
-
-	return ret;
 }
 
 bool Texture::Init(const Effekseer::Backend::RenderTextureParameter& param)
 {
 	Effekseer::Backend::TextureParameter paramInternal;
-	paramInternal.Size = param.Size;
+	paramInternal.Size = {param.Size[0], param.Size[1], 1};
 	paramInternal.Format = param.Format;
-	paramInternal.GenerateMipmap = false;
-	auto ret = Init(paramInternal);
-
-	type_ = Effekseer::Backend::TextureType::Render;
-
-	return ret;
+	paramInternal.MipLevelCount = 1;
+	paramInternal.SampleCount = param.SamplingCount;
+	paramInternal.Dimension = 2;
+	paramInternal.Usage = Effekseer::Backend::TextureUsageType::RenderTarget;
+	return Init(paramInternal, {});
 }
 
 bool Texture::Init(const Effekseer::Backend::DepthTextureParameter& param)
 {
-	GLint bound = 0;
-	glGetIntegerv(GL_TEXTURE_BINDING_2D, &bound);
-
-	glGenTextures(1, &buffer_);
-	glBindTexture(GL_TEXTURE_2D, buffer_);
+	GLint internalFormat = 0;
+	GLenum format = 0;
 
 	if (param.Format == Effekseer::Backend::TextureFormatType::D24S8)
 	{
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, param.Size[0], param.Size[1], 0, GL_DEPTH_STENCIL, GL_FLOAT, nullptr);
+		format = GL_DEPTH_STENCIL;
+		internalFormat = GL_DEPTH24_STENCIL8;
 	}
 	else if (param.Format == Effekseer::Backend::TextureFormatType::D32S8)
 	{
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH32F_STENCIL8, param.Size[0], param.Size[1], 0, GL_DEPTH_STENCIL, GL_FLOAT, nullptr);
+		format = GL_DEPTH_STENCIL;
+		internalFormat = GL_DEPTH32F_STENCIL8;
 	}
-	else if (param.Format == Effekseer::Backend::TextureFormatType::D32S8)
+	else if (param.Format == Effekseer::Backend::TextureFormatType::D32)
 	{
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32, param.Size[0], param.Size[1], 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+		format = GL_DEPTH_COMPONENT;
+		internalFormat = GL_DEPTH_COMPONENT32;
 	}
 	else
 	{
-		glDeleteTextures(1, &buffer_);
-		buffer_ = 0;
-		glBindTexture(GL_TEXTURE_2D, bound);
 		return false;
 	}
 
-	glBindTexture(GL_TEXTURE_2D, bound);
+	bool initWithBuffer = param.SamplingCount <= 1;
 
-	size_ = param.Size;
-	format_ = param.Format;
-	hasMipmap_ = false;
+	GLint bound = 0;
 
-	type_ = Effekseer::Backend::TextureType::Depth;
+	if (initWithBuffer)
+	{
+		glGetIntegerv(GL_TEXTURE_BINDING_2D, &bound);
+		glGenTextures(1, &buffer_);
+		glBindTexture(GL_TEXTURE_2D, buffer_);
+	}
+	else
+	{
+		glGetIntegerv(GL_RENDERBUFFER_BINDING, &bound);
+		GLExt::glGenRenderbuffers(1, &renderbuffer_);
+		GLExt::glBindRenderbuffer(GL_RENDERBUFFER, renderbuffer_);
+	}
 
+	if (initWithBuffer)
+	{
+		glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, param.Size[0], param.Size[1], 0, format, GL_FLOAT, nullptr);
+	}
+	else
+	{
+		GLExt::glRenderbufferStorageMultisample(GL_RENDERBUFFER, param.SamplingCount, internalFormat, param.Size[0], param.Size[1]);
+	}
+
+	if (initWithBuffer)
+	{
+		glBindTexture(GL_TEXTURE_2D, bound);
+	}
+	else
+	{
+		GLExt::glBindRenderbuffer(GL_RENDERBUFFER, bound);
+	}
+
+	param_.Format = param.Format;
+	param_.Dimension = 2;
+	param_.Size = {param.Size[0], param.Size[1], 1};
+	param_.MipLevelCount = 1;
+	param_.SampleCount = param.SamplingCount;
+	param_.Usage = Effekseer::Backend::TextureUsageType::None;
 	return true;
 }
 
@@ -463,10 +706,14 @@ bool Texture::Init(GLuint buffer, bool hasMipmap, const std::function<void()>& o
 
 	buffer_ = buffer;
 	onDisposed_ = onDisposed;
-	hasMipmap_ = hasMipmap;
 
-	type_ = Effekseer::Backend::TextureType::Color2D;
-
+	// TODO : make correct
+	param_.Format = Effekseer::Backend::TextureFormatType::R8G8B8A8_UNORM;
+	param_.Dimension = 2;
+	param_.Size = {1, 1, 1};
+	param_.MipLevelCount = hasMipmap ? 2 : 1;
+	param_.SampleCount = 1;
+	param_.Usage = Effekseer::Backend::TextureUsageType::External;
 	return true;
 }
 
@@ -490,33 +737,39 @@ Shader::Shader(GraphicsDevice* graphicsDevice)
 
 Shader::~Shader()
 {
-	if (program_ > 0)
-	{
-		GLExt::glDeleteProgram(program_);
-	}
-
-	if (vao_ > 0)
-	{
-		GLExt::glDeleteVertexArrays(1, &vao_);
-	}
+	Reset();
 
 	ES_SAFE_RELEASE(graphicsDevice_);
 }
 
-bool Shader::Init(const char* vsCode, const char* psCode, Effekseer::Backend::UniformLayoutRef& layout)
+bool Shader::Compile()
 {
-	GLint vsCodeLen = static_cast<GLint>(strlen(vsCode));
-	GLint psCodeLen = static_cast<GLint>(strlen(psCode));
+	std::array<GLchar*, elementMax> vsCodePtr;
+	std::array<GLchar*, elementMax> psCodePtr;
+	std::array<GLint, elementMax> vsCodeLen;
+	std::array<GLint, elementMax> psCodeLen;
+
+	for (size_t i = 0; i < vsCodes_.size(); i++)
+	{
+		vsCodePtr[i] = const_cast<GLchar*>(vsCodes_[i].data());
+		vsCodeLen[i] = static_cast<GLint>(strlen(vsCodePtr[i]));
+	}
+
+	for (size_t i = 0; i < psCodes_.size(); i++)
+	{
+		psCodePtr[i] = const_cast<GLchar*>(psCodes_[i].data());
+		psCodeLen[i] = static_cast<GLint>(strlen(psCodePtr[i]));
+	}
 
 	GLint res_vs, res_fs, res_link = 0;
 	auto vert_shader = GLExt::glCreateShader(GL_VERTEX_SHADER);
 
-	GLExt::glShaderSource(vert_shader, 1, &vsCode, &vsCodeLen);
+	GLExt::glShaderSource(vert_shader, vsCodes_.size(), const_cast<const GLchar**>(vsCodePtr.data()), vsCodeLen.data());
 	GLExt::glCompileShader(vert_shader);
 	GLExt::glGetShaderiv(vert_shader, GL_COMPILE_STATUS, &res_vs);
 
 	auto frag_shader = GLExt::glCreateShader(GL_FRAGMENT_SHADER);
-	GLExt::glShaderSource(frag_shader, 1, &psCode, &psCodeLen);
+	GLExt::glShaderSource(frag_shader, psCodes_.size(), const_cast<const GLchar**>(psCodePtr.data()), psCodeLen.data());
 	GLExt::glCompileShader(frag_shader);
 	GLExt::glGetShaderiv(frag_shader, GL_COMPILE_STATUS, &res_fs);
 
@@ -572,14 +825,82 @@ bool Shader::Init(const char* vsCode, const char* psCode, Effekseer::Backend::Un
 		GLExt::glGenVertexArrays(1, &vao_);
 	}
 
-	layout_ = layout;
+	if (layout_ != nullptr)
+	{
+		textureLocations_.reserve(layout_->GetTextures().size());
+		for (size_t i = 0; i < layout_->GetTextures().size(); i++)
+		{
+			textureLocations_.emplace_back(GLExt::glGetUniformLocation(program_, layout_->GetTextures()[i].c_str()));
+		}
+
+		uniformLocations_.reserve(layout_->GetElements().size());
+		for (size_t i = 0; i < layout_->GetElements().size(); i++)
+		{
+			uniformLocations_.emplace_back(GLExt::glGetUniformLocation(program_, layout_->GetElements()[i].Name.c_str()));
+		}
+	}
 
 	return true;
+}
+
+void Shader::Reset()
+{
+	if (program_ > 0)
+	{
+		GLExt::glDeleteProgram(program_);
+	}
+
+	if (vao_ > 0)
+	{
+		GLExt::glDeleteVertexArrays(1, &vao_);
+	}
+
+	textureLocations_.clear();
+	uniformLocations_.clear();
+}
+
+bool Shader::Init(const Effekseer::CustomVector<Effekseer::StringView<char>>& vsCodes, const Effekseer::CustomVector<Effekseer::StringView<char>>& psCodes, Effekseer::Backend::UniformLayoutRef& layout)
+{
+	layout_ = layout;
+
+	if (vsCodes.size() > elementMax || psCodes.size() > elementMax)
+	{
+		Effekseer::Log(Effekseer::LogType::Error, "There are too many elements.");
+		return false;
+	}
+
+	vsCodes_.resize(vsCodes.size());
+
+	for (size_t i = 0; i < vsCodes_.size(); i++)
+	{
+		vsCodes_[i] = vsCodes[i].data();
+	}
+
+	psCodes_.resize(psCodes.size());
+
+	for (size_t i = 0; i < psCodes_.size(); i++)
+	{
+		psCodes_[i] = psCodes[i].data();
+	}
+
+	Reset();
+	return Compile();
+}
+
+void Shader::OnLostDevice()
+{
+	Reset();
+}
+
+void Shader::OnResetDevice()
+{
+	Compile();
 }
 
 bool PipelineState::Init(const Effekseer::Backend::PipelineStateParameter& param)
 {
 	param_ = param;
+	attribLocations_ = GetVertexAttribLocations(param_.VertexLayoutPtr.DownCast<Backend::VertexLayout>(), param_.ShaderPtr.DownCast<Backend::Shader>());
 	return true;
 }
 
@@ -610,14 +931,14 @@ bool RenderPass::Init(Effekseer::FixedSizeVector<Effekseer::Backend::TextureRef,
 			return false;
 		}
 
-		if (textures.at(i)->GetTextureType() != Effekseer::Backend::TextureType::Render)
+		if ((textures.at(i)->GetParameter().Usage & Effekseer::Backend::TextureUsageType::RenderTarget) == Effekseer::Backend::TextureUsageType::None)
 		{
 			Effekseer::Log(Effekseer::LogType::Error, "RenderPass : textures " + std::to_string(i) + " must be Render.");
 			return false;
 		}
 	}
 
-	if (depthTexture != nullptr && depthTexture->GetTextureType() != Effekseer::Backend::TextureType::Depth)
+	if (depthTexture != nullptr && !Effekseer::Backend::IsDepthTextureFormat(depthTexture->GetParameter().Format))
 	{
 		Effekseer::Log(Effekseer::LogType::Error, "RenderPass : depthTexture must be Depth.");
 		return false;
@@ -680,10 +1001,38 @@ GraphicsDevice::GraphicsDevice(OpenGLDeviceType deviceType, bool isExtensionsEna
 		glGetIntegerv(GL_MAX_VARYING_VECTORS, &v);
 		properties_[DevicePropertyType::MaxVaryingVectors] = v;
 	}
+
+	{
+		GLint v;
+		glGetIntegerv(GL_MAX_VERTEX_UNIFORM_VECTORS, &v);
+		properties_[DevicePropertyType::MaxVertexUniformVectors] = v;
+	}
+
+	{
+		GLint v;
+		glGetIntegerv(GL_MAX_FRAGMENT_UNIFORM_VECTORS, &v);
+		properties_[DevicePropertyType::MaxFragmentUniformVectors] = v;
+	}
+
+	{
+		GLint v;
+		glGetIntegerv(GL_MAX_VERTEX_TEXTURE_IMAGE_UNITS, &v);
+		properties_[DevicePropertyType::MaxVertexTextureImageUnits] = v;
+	}
+
+	{
+		GLint v;
+		glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &v);
+		properties_[DevicePropertyType::MaxTextureImageUnits] = v;
+	}
+
+	GLExt::glGenFramebuffers(1, &frameBufferTemp_);
 }
 
 GraphicsDevice::~GraphicsDevice()
 {
+	GLExt::glDeleteFramebuffers(1, &frameBufferTemp_);
+
 	if (isValid_)
 	{
 		if (deviceType_ == OpenGLDeviceType::OpenGL3 || deviceType_ == OpenGLDeviceType::OpenGLES3)
@@ -762,11 +1111,11 @@ Effekseer::Backend::IndexBufferRef GraphicsDevice::CreateIndexBuffer(int32_t ele
 	return ret;
 }
 
-Effekseer::Backend::TextureRef GraphicsDevice::CreateTexture(const Effekseer::Backend::TextureParameter& param)
+Effekseer::Backend::TextureRef GraphicsDevice::CreateTexture(const Effekseer::Backend::TextureParameter& param, const Effekseer::CustomVector<uint8_t>& initialData)
 {
 	auto ret = Effekseer::MakeRefPtr<Texture>(this);
 
-	if (!ret->Init(param))
+	if (!ret->Init(param, initialData))
 	{
 		return nullptr;
 	}
@@ -796,6 +1145,51 @@ Effekseer::Backend::TextureRef GraphicsDevice::CreateDepthTexture(const Effeksee
 	}
 
 	return ret;
+}
+
+bool GraphicsDevice::CopyTexture(Effekseer::Backend::TextureRef& dst, Effekseer::Backend::TextureRef& src, const std::array<int, 3>& dstPos, const std::array<int, 3>& srcPos, const std::array<int, 3>& size, int32_t dstLayer, int32_t srcLayer)
+{
+	auto dstgl = dst.DownCast<Texture>();
+	auto srcgl = src.DownCast<Texture>();
+
+	if (srcgl->GetTarget() != GL_TEXTURE_2D)
+	{
+		return false;
+	}
+
+	if (dstgl->GetTarget() != GL_TEXTURE_3D && dstgl->GetTarget() != GL_TEXTURE_2D_ARRAY) // use glCopyTexSubImage2D?
+	{
+		if (dstPos[2] != 0)
+		{
+			return false;
+		}
+	}
+
+	GLint backupFramebuffer;
+	glGetIntegerv(GL_FRAMEBUFFER_BINDING, &backupFramebuffer);
+
+	GLExt::glBindFramebuffer(GL_FRAMEBUFFER, frameBufferTemp_);
+	GLExt::glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, srcgl->GetBuffer(), 0);
+	GLCheckError();
+
+	if (dstgl->GetTarget() == GL_TEXTURE_2D)
+	{
+		glBindTexture(dstgl->GetTarget(), dstgl->GetBuffer());
+		glCopyTexSubImage2D(dstgl->GetTarget(), 0, dstPos[0], dstPos[1], srcPos[0], srcPos[1], size[0], size[1]);
+		GLCheckError();
+	}
+	else
+	{
+		glBindTexture(dstgl->GetTarget(), dstgl->GetBuffer());
+		GLExt::glCopyTexSubImage3D(dstgl->GetTarget(), 0, dstPos[0], dstPos[1], dstPos[2] + dstLayer, srcPos[0], srcPos[1], size[0], size[1]);
+		GLCheckError();
+	}
+
+	GLExt::glBindFramebuffer(GL_FRAMEBUFFER, backupFramebuffer);
+
+	GLCheckError();
+
+	return true;
 }
 
 Effekseer::Backend::UniformBufferRef GraphicsDevice::CreateUniformBuffer(int32_t size, const void* initialData)
@@ -851,16 +1245,22 @@ Effekseer::Backend::ShaderRef GraphicsDevice::CreateShaderFromKey(const char* ke
 	return nullptr;
 }
 
-Effekseer::Backend::ShaderRef GraphicsDevice::CreateShaderFromCodes(const char* vsCode, const char* psCode, Effekseer::Backend::UniformLayoutRef layout)
+Effekseer::Backend::ShaderRef GraphicsDevice::CreateShaderFromCodes(const Effekseer::CustomVector<Effekseer::StringView<char>>& vsCodes, const Effekseer::CustomVector<Effekseer::StringView<char>>& psCodes, Effekseer::Backend::UniformLayoutRef layout)
 {
 	auto ret = Effekseer::MakeRefPtr<Shader>(this);
 
-	if (!ret->Init(vsCode, psCode, layout))
+	if (!ret->Init(vsCodes, psCodes, layout))
 	{
 		return nullptr;
 	}
 
 	return ret;
+}
+
+void GraphicsDevice::SetViewport(int32_t x, int32_t y, int32_t width, int32_t height)
+{
+	glViewport(x, y, width, height);
+	GLCheckError();
 }
 
 void GraphicsDevice::Draw(const Effekseer::Backend::DrawParameter& drawParam)
@@ -894,11 +1294,11 @@ void GraphicsDevice::Draw(const Effekseer::Backend::DrawParameter& drawParam)
 	GLExt::glUseProgram(shader->GetProgram());
 
 	// textures
-	auto textureCount = std::min(static_cast<int32_t>(shader->GetLayout()->GetTextures().size()), drawParam.TextureCount);
+	const auto textureCount = std::min(static_cast<int32_t>(shader->GetLayout()->GetTextures().size()), drawParam.TextureCount);
 
 	for (int32_t i = 0; i < textureCount; i++)
 	{
-		auto textureSlot = GLExt::glGetUniformLocation(shader->GetProgram(), shader->GetLayout()->GetTextures()[i].c_str());
+		const auto textureSlot = shader->GetTextureLocations()[i];
 
 		if (textureSlot < 0)
 		{
@@ -911,7 +1311,9 @@ void GraphicsDevice::Draw(const Effekseer::Backend::DrawParameter& drawParam)
 		if (texture != nullptr)
 		{
 			GLExt::glActiveTexture(GL_TEXTURE0 + i);
-			glBindTexture(GL_TEXTURE_2D, texture->GetBuffer());
+			glBindTexture(texture->GetTarget(), texture->GetBuffer());
+
+			GLCheckError();
 
 			static const GLint glfilterMin[] = {GL_NEAREST, GL_LINEAR_MIPMAP_LINEAR};
 			static const GLint glfilterMin_NoneMipmap[] = {GL_NEAREST, GL_LINEAR};
@@ -924,7 +1326,7 @@ void GraphicsDevice::Draw(const Effekseer::Backend::DrawParameter& drawParam)
 
 			if (drawParam.TextureSamplingTypes[i] == Effekseer::Backend::TextureSamplingType::Linear)
 			{
-				if (texture->GetHasMipmap())
+				if (texture->GetParameter().MipLevelCount != 1)
 				{
 					filterMin = glfilterMin[1];
 				}
@@ -936,7 +1338,7 @@ void GraphicsDevice::Draw(const Effekseer::Backend::DrawParameter& drawParam)
 			}
 			else
 			{
-				if (texture->GetHasMipmap())
+				if (texture->GetParameter().MipLevelCount != 1)
 				{
 					filterMin = glfilterMin[0];
 				}
@@ -971,129 +1373,24 @@ void GraphicsDevice::Draw(const Effekseer::Backend::DrawParameter& drawParam)
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrap);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrap);
 			}
-		}
-	}
 
-	// uniformss
-	for (size_t i = 0; i < shader->GetLayout()->GetElements().size(); i++)
-	{
-		const auto& element = shader->GetLayout()->GetElements()[i];
-		auto loc = GLExt::glGetUniformLocation(shader->GetProgram(), element.Name.c_str());
-
-		if (loc < 0)
-		{
-			continue;
-		}
-
-		UniformBuffer* uniformBuffer = nullptr;
-
-		if (element.Stage == Effekseer::Backend::ShaderStageType::Vertex)
-		{
-			uniformBuffer = static_cast<UniformBuffer*>(drawParam.VertexUniformBufferPtr.Get());
-		}
-		else if (element.Stage == Effekseer::Backend::ShaderStageType::Pixel)
-		{
-			uniformBuffer = static_cast<UniformBuffer*>(drawParam.PixelUniformBufferPtr.Get());
-		}
-
-		if (uniformBuffer != nullptr)
-		{
-			if (element.Type == Effekseer::Backend::UniformBufferLayoutElementType::Vector4)
-			{
-				const auto& buffer = uniformBuffer->GetBuffer();
-				assert(buffer.size() >= element.Offset + sizeof(float) * 4);
-				GLExt::glUniform4fv(loc, 1, reinterpret_cast<const GLfloat*>(buffer.data() + element.Offset));
-			}
-			else if (element.Type == Effekseer::Backend::UniformBufferLayoutElementType::Matrix44)
-			{
-				const auto& buffer = uniformBuffer->GetBuffer();
-				assert(buffer.size() >= element.Offset + sizeof(float) * 4 * 4);
-				GLExt::glUniformMatrix4fv(loc, 1, GL_FALSE, reinterpret_cast<const GLfloat*>(buffer.data() + element.Offset));
-			}
-			else
-			{
-				// Unimplemented
-				assert(0);
-			}
-		}
-		else
-		{
-			// Invalid
-			assert(0);
+			GLCheckError();
 		}
 	}
 
 	GLCheckError();
 
+	// uniformss
+	StoreUniforms(pip->GetParam().ShaderPtr.DownCast<Backend::Shader>(),
+				  drawParam.VertexUniformBufferPtr.DownCast<Backend::UniformBuffer>(),
+				  drawParam.PixelUniformBufferPtr.DownCast<Backend::UniformBuffer>(),
+				  false);
+
+	GLCheckError();
+
 	// layouts
-	{
-		int32_t vertexSize = 0;
-		for (size_t i = 0; i < vertexLayout->GetElements().size(); i++)
-		{
-			const auto& element = vertexLayout->GetElements()[i];
-			vertexSize += Effekseer::Backend::GetVertexLayoutFormatSize(element.Format);
-		}
-
-		uint32_t offset = 0;
-		for (size_t i = 0; i < vertexLayout->GetElements().size(); i++)
-		{
-			const auto& element = vertexLayout->GetElements()[i];
-			auto loc = GLExt::glGetAttribLocation(shader->GetProgram(), element.Name.c_str());
-
-			GLenum type = {};
-			int32_t count = {};
-			GLboolean isNormalized = false;
-
-			if (element.Format == Effekseer::Backend::VertexLayoutFormat::R8G8B8A8_UINT)
-			{
-				count = 4;
-				type = GL_UNSIGNED_BYTE;
-			}
-			else if (element.Format == Effekseer::Backend::VertexLayoutFormat::R8G8B8A8_UNORM)
-			{
-				count = 4;
-				type = GL_UNSIGNED_BYTE;
-				isNormalized = GL_TRUE;
-			}
-			else if (element.Format == Effekseer::Backend::VertexLayoutFormat::R32_FLOAT)
-			{
-				count = 1;
-				type = GL_FLOAT;
-			}
-			else if (element.Format == Effekseer::Backend::VertexLayoutFormat::R32G32_FLOAT)
-			{
-				count = 2;
-				type = GL_FLOAT;
-			}
-			else if (element.Format == Effekseer::Backend::VertexLayoutFormat::R32G32B32_FLOAT)
-			{
-				count = 3;
-				type = GL_FLOAT;
-			}
-			else if (element.Format == Effekseer::Backend::VertexLayoutFormat::R32G32B32A32_FLOAT)
-			{
-				count = 4;
-				type = GL_FLOAT;
-			}
-			else
-			{
-				assert(0);
-			}
-
-			if (loc >= 0)
-			{
-				GLExt::glEnableVertexAttribArray(loc);
-				GLExt::glVertexAttribPointer(loc,
-											 count,
-											 type,
-											 isNormalized,
-											 vertexSize,
-											 reinterpret_cast<GLvoid*>(static_cast<size_t>(offset)));
-			}
-
-			offset += Effekseer::Backend::GetVertexLayoutFormatSize(element.Format);
-		}
-	}
+	auto vl = pip->GetParam().VertexLayoutPtr;
+	EnableLayouts(vl.DownCast<Backend::VertexLayout>(), pip->GetAttribLocations());
 
 	GLCheckError();
 
@@ -1228,34 +1525,28 @@ void GraphicsDevice::Draw(const Effekseer::Backend::DrawParameter& drawParam)
 		indexPerPrimitive = 1;
 	}
 
+	int32_t indexStride = {};
 	if (drawParam.IndexBufferPtr->GetStrideType() == Effekseer::Backend::IndexBufferStrideType::Stride4)
 	{
 		indexStrideType = GL_UNSIGNED_INT;
+		indexStride = 4;
 	}
 	else if (drawParam.IndexBufferPtr->GetStrideType() == Effekseer::Backend::IndexBufferStrideType::Stride2)
 	{
 		indexStrideType = GL_UNSIGNED_SHORT;
+		indexStride = 2;
 	}
 
 	if (drawParam.InstanceCount > 1)
 	{
-		GLExt::glDrawElementsInstanced(primitiveMode, indexPerPrimitive * drawParam.PrimitiveCount, indexStrideType, nullptr, drawParam.InstanceCount);
+		GLExt::glDrawElementsInstanced(primitiveMode, indexPerPrimitive * drawParam.PrimitiveCount, indexStrideType, (void*)(drawParam.IndexOffset * indexStride), drawParam.InstanceCount);
 	}
 	else
 	{
-		glDrawElements(primitiveMode, indexPerPrimitive * drawParam.PrimitiveCount, indexStrideType, nullptr);
+		glDrawElements(primitiveMode, indexPerPrimitive * drawParam.PrimitiveCount, indexStrideType, (void*)(drawParam.IndexOffset * indexStride));
 	}
 
-	for (size_t i = 0; i < vertexLayout->GetElements().size(); i++)
-	{
-		const auto& element = vertexLayout->GetElements()[i];
-		auto loc = GLExt::glGetAttribLocation(shader->GetProgram(), element.Name.c_str());
-
-		if (loc >= 0)
-		{
-			GLExt::glDisableVertexAttribArray(loc);
-		}
-	}
+	DisableLayouts(pip->GetAttribLocations());
 
 	if (GLExt::IsSupportedVertexArray())
 	{
@@ -1267,6 +1558,7 @@ void GraphicsDevice::Draw(const Effekseer::Backend::DrawParameter& drawParam)
 
 void GraphicsDevice::BeginRenderPass(Effekseer::Backend::RenderPassRef& renderPass, bool isColorCleared, bool isDepthCleared, Effekseer::Color clearColor)
 {
+	const auto renderPassGL = static_cast<RenderPass*>(renderPass.Get());
 	if (renderPass != nullptr)
 	{
 		GLExt::glBindFramebuffer(GL_FRAMEBUFFER, static_cast<RenderPass*>(renderPass.Get())->GetBuffer());
@@ -1279,6 +1571,15 @@ void GraphicsDevice::BeginRenderPass(Effekseer::Backend::RenderPassRef& renderPa
 		glDrawBuffer(GL_BACK);
 #endif
 	}
+
+	if (renderPassGL != nullptr)
+	{
+		auto texture = renderPassGL->GetTextures().at(0);
+
+		glViewport(0, 0, texture->GetParameter().Size[0], texture->GetParameter().Size[1]);
+	}
+
+	GLCheckError();
 
 	GLbitfield flag = 0;
 
@@ -1305,7 +1606,6 @@ void GraphicsDevice::BeginRenderPass(Effekseer::Backend::RenderPassRef& renderPa
 void GraphicsDevice::EndRenderPass()
 {
 	GLExt::glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
 	GLCheckError();
 }
 

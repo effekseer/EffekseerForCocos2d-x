@@ -87,8 +87,7 @@ struct ModelRendererAdvancedVertexConstantBuffer
 
 	struct
 	{
-		union
-		{
+		union {
 			float Buffer[4];
 
 			struct
@@ -467,6 +466,7 @@ protected:
 		predefined_uniforms[0] = renderer->GetTime();
 		predefined_uniforms[1] = param.Magnification;
 		predefined_uniforms[2] = renderer->GetImpl()->MaintainGammaColorInLinearColorSpace ? 1.0f : 0.0f;
+		predefined_uniforms[3] = param.LocalTime;
 
 		// vs
 		int32_t vsOffset = sizeof(Effekseer::Matrix44) + (sizeof(Effekseer::Matrix44) + sizeof(float) * 4 * 2) * InstanceCount;
@@ -497,6 +497,13 @@ protected:
 		{
 			renderer->SetVertexBufferToShader(materialRenderData->MaterialUniforms[i].data(), sizeof(float) * 4, vsOffset);
 			vsOffset += (sizeof(float) * 4);
+		}
+
+		for (size_t i = 0; i < materialRenderData->MaterialGradients.size(); i++)
+		{
+			auto data = ToUniform(*materialRenderData->MaterialGradients[i]);
+			renderer->SetVertexBufferToShader(data.data(), sizeof(float) * 4 * 13, vsOffset);
+			vsOffset += (sizeof(float) * 4) * 13;
 		}
 
 		// ps
@@ -537,28 +544,25 @@ protected:
 		// shader model
 		material = param.EffectPointer->GetMaterial(materialRenderData->MaterialIndex);
 
-		if (material->ShadingModel == ::Effekseer::ShadingModelType::Lit)
-		{
-			float lightDirection[4];
-			float lightColor[4];
-			float lightAmbientColor[4];
+		float lightDirection[4];
+		float lightColor[4];
+		float lightAmbientColor[4];
 
-			::Effekseer::SIMD::Vec3f lightDirection3 = renderer->GetLightDirection();
-			lightDirection3 = lightDirection3.Normalize();
+		::Effekseer::SIMD::Vec3f lightDirection3 = renderer->GetLightDirection();
+		lightDirection3 = lightDirection3.Normalize();
 
-			VectorToFloat4(lightDirection3, lightDirection);
-			ColorToFloat4(renderer->GetLightColor(), lightColor);
-			ColorToFloat4(renderer->GetLightAmbientColor(), lightAmbientColor);
+		VectorToFloat4(lightDirection3, lightDirection);
+		ColorToFloat4(renderer->GetLightColor(), lightColor);
+		ColorToFloat4(renderer->GetLightAmbientColor(), lightAmbientColor);
 
-			renderer->SetPixelBufferToShader(lightDirection, sizeof(float) * 4, psOffset);
-			psOffset += (sizeof(float) * 4);
+		renderer->SetPixelBufferToShader(lightDirection, sizeof(float) * 4, psOffset);
+		psOffset += (sizeof(float) * 4);
 
-			renderer->SetPixelBufferToShader(lightColor, sizeof(float) * 4, psOffset);
-			psOffset += (sizeof(float) * 4);
+		renderer->SetPixelBufferToShader(lightColor, sizeof(float) * 4, psOffset);
+		psOffset += (sizeof(float) * 4);
 
-			renderer->SetPixelBufferToShader(lightAmbientColor, sizeof(float) * 4, psOffset);
-			psOffset += (sizeof(float) * 4);
-		}
+		renderer->SetPixelBufferToShader(lightAmbientColor, sizeof(float) * 4, psOffset);
+		psOffset += (sizeof(float) * 4);
 
 		// refraction
 		if (material->RefractionModelUserPtr != nullptr && renderPassInd == 0)
@@ -572,6 +576,13 @@ protected:
 		{
 			renderer->SetPixelBufferToShader(materialRenderData->MaterialUniforms[i].data(), sizeof(float) * 4, psOffset);
 			psOffset += (sizeof(float) * 4);
+		}
+
+		for (size_t i = 0; i < materialRenderData->MaterialGradients.size(); i++)
+		{
+			auto data = ToUniform(*materialRenderData->MaterialGradients[i]);
+			renderer->SetPixelBufferToShader(data.data(), sizeof(float) * 4 * 13, psOffset);
+			psOffset += (sizeof(float) * 4) * 13;
 		}
 	}
 
@@ -841,6 +852,15 @@ public:
 		if (param.ModelIndex < 0)
 			return;
 
+		if (renderer->GetExternalShaderSettings() == nullptr)
+		{
+			shader_unlit->OverrideShader(nullptr);
+		}
+		else
+		{
+			shader_unlit->OverrideShader(renderer->GetExternalShaderSettings()->ModelShader);
+		}
+
 		int32_t renderPassCount = 1;
 
 		if (param.BasicParameterPtr->MaterialRenderDataPtr != nullptr && param.BasicParameterPtr->MaterialRenderDataPtr->MaterialIndex >= 0)
@@ -962,7 +982,8 @@ public:
 		SHADER* shader_ = nullptr;
 		bool renderDistortedBackground = false;
 
-		if (materialRenderData != nullptr && materialRenderData->MaterialIndex >= 0 &&
+		if (collector_.ShaderType == EffekseerRenderer::RendererShaderType::Material &&
+			materialRenderData != nullptr && materialRenderData->MaterialIndex >= 0 &&
 			param.EffectPointer->GetMaterial(materialRenderData->MaterialIndex) != nullptr)
 		{
 			material = param.EffectPointer->GetMaterial(materialRenderData->MaterialIndex);
@@ -1029,7 +1050,12 @@ public:
 		state.AlphaBlend = param.BasicParameterPtr->AlphaBlend;
 		state.CullingType = param.Culling;
 
-		if (renderer->GetRenderMode() == Effekseer::RenderMode::Wireframe)
+		// TODO : refactor in 1.7
+		if (renderer->GetExternalShaderSettings() != nullptr)
+		{
+			state.AlphaBlend = renderer->GetExternalShaderSettings()->Blend;
+		}
+		else if (renderer->GetRenderMode() == Effekseer::RenderMode::Wireframe)
 		{
 			state.AlphaBlend = ::Effekseer::AlphaBlendType::Opacity;
 		}

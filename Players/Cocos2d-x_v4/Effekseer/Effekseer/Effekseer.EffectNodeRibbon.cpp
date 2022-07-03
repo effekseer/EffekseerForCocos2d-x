@@ -14,17 +14,12 @@
 
 #include "Effekseer.Setting.h"
 
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
 namespace Effekseer
 {
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
+
 void EffectNodeRibbon::LoadRendererParameter(unsigned char*& pos, const SettingRef& setting)
 {
-	int32_t type = 0;
+	eEffectNodeType type = eEffectNodeType::NoneType;
 	memcpy(&type, pos, sizeof(int));
 	pos += sizeof(int);
 	assert(type == GetType());
@@ -35,12 +30,18 @@ void EffectNodeRibbon::LoadRendererParameter(unsigned char*& pos, const SettingR
 		TextureUVType.Load(pos, m_effect->GetVersion());
 	}
 
+	if (m_effect->GetVersion() >= Version17Alpha1)
+	{
+		memcpy(&TimeType, pos, sizeof(int32_t));
+		pos += sizeof(int32_t);
+	}
+
 	if (m_effect->GetVersion() >= 3)
 	{
-		AlphaBlend = RendererCommon.AlphaBlend;
 	}
 	else
 	{
+		int32_t AlphaBlend = 0;
 		memcpy(&AlphaBlend, pos, sizeof(int));
 		pos += sizeof(int);
 	}
@@ -48,23 +49,7 @@ void EffectNodeRibbon::LoadRendererParameter(unsigned char*& pos, const SettingR
 	memcpy(&ViewpointDependent, pos, sizeof(int));
 	pos += sizeof(int);
 
-	memcpy(&RibbonAllColor.type, pos, sizeof(int));
-	pos += sizeof(int);
-	EffekseerPrintDebug("RibbonColorAllType : %d\n", RibbonAllColor.type);
-
-	if (RibbonAllColor.type == RibbonAllColorParameter::Fixed)
-	{
-		memcpy(&RibbonAllColor.fixed, pos, sizeof(RibbonAllColor.fixed));
-		pos += sizeof(RibbonAllColor.fixed);
-	}
-	else if (RibbonAllColor.type == RibbonAllColorParameter::Random)
-	{
-		RibbonAllColor.random.all.load(m_effect->GetVersion(), pos);
-	}
-	else if (RibbonAllColor.type == RibbonAllColorParameter::Easing)
-	{
-		RibbonAllColor.easing.all.load(m_effect->GetVersion(), pos);
-	}
+	RibbonAllColor.load(pos, m_effect->GetVersion());
 
 	memcpy(&RibbonColor.type, pos, sizeof(int));
 	pos += sizeof(int);
@@ -106,10 +91,10 @@ void EffectNodeRibbon::LoadRendererParameter(unsigned char*& pos, const SettingR
 
 	if (m_effect->GetVersion() >= 3)
 	{
-		RibbonTexture = RendererCommon.ColorTextureIndex;
 	}
 	else
 	{
+		int RibbonTexture = 0;
 		memcpy(&RibbonTexture, pos, sizeof(int));
 		pos += sizeof(int);
 	}
@@ -133,20 +118,16 @@ void EffectNodeRibbon::LoadRendererParameter(unsigned char*& pos, const SettingR
 	}
 }
 
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-void EffectNodeRibbon::BeginRendering(int32_t count, Manager* manager, void* userData)
+void EffectNodeRibbon::BeginRendering(int32_t count, Manager* manager, const InstanceGlobal* global, void* userData)
 {
 	RibbonRendererRef renderer = manager->GetRibbonRenderer();
 	if (renderer != nullptr)
 	{
-		// m_nodeParameter.TextureFilter = RendererCommon.FilterType;
-		// m_nodeParameter.TextureWrap = RendererCommon.WrapType;
 		m_nodeParameter.ZTest = RendererCommon.ZTest;
 		m_nodeParameter.ZWrite = RendererCommon.ZWrite;
 		m_nodeParameter.ViewpointDependent = ViewpointDependent != 0;
 		m_nodeParameter.EffectPointer = GetEffect();
+		m_nodeParameter.LocalTime = global->GetUpdatedFrame() / 60.0f;
 
 		m_nodeParameter.SplineDivision = SplineDivision;
 		m_nodeParameter.DepthParameterPtr = &DepthValues.DepthParameter;
@@ -155,7 +136,7 @@ void EffectNodeRibbon::BeginRendering(int32_t count, Manager* manager, void* use
 		m_nodeParameter.IsRightHand = manager->GetCoordinateSystem() == CoordinateSystem::RH;
 		m_nodeParameter.Maginification = GetEffect()->GetMaginification();
 
-		m_nodeParameter.EnableViewOffset = (TranslationType == ParameterTranslationType_ViewOffset);
+		m_nodeParameter.EnableViewOffset = (TranslationParam.TranslationType == ParameterTranslationType_ViewOffset);
 		m_nodeParameter.UserData = GetRenderingUserData();
 
 		renderer->BeginRendering(m_nodeParameter, count, userData);
@@ -173,14 +154,33 @@ void EffectNodeRibbon::BeginRenderingGroup(InstanceGroup* group, Manager* manage
 		if (group->GetFirst() != nullptr)
 		{
 			Instance* groupFirst = group->GetFirst();
-			m_instanceParameter.UV = groupFirst->GetUV(0);
-			m_instanceParameter.AlphaUV = groupFirst->GetUV(1);
-			m_instanceParameter.UVDistortionUV = groupFirst->GetUV(2);
-			m_instanceParameter.BlendUV = groupFirst->GetUV(3);
-			m_instanceParameter.BlendAlphaUV = groupFirst->GetUV(4);
-			m_instanceParameter.BlendUVDistortionUV = groupFirst->GetUV(5);
 
-			m_instanceParameter.FlipbookIndexAndNextRate = groupFirst->m_flipbookIndexAndNextRate;
+			int livingTime{};
+			int livedTime{};
+
+			if (TimeType == TrailTimeType::FirstParticle)
+			{
+				livingTime = groupFirst->m_LivingTime;
+				livedTime = groupFirst->m_LivedTime;
+			}
+			else if (TimeType == TrailTimeType::ParticleGroup)
+			{
+				livingTime = group->GetTime();
+				livedTime = 100;
+			}
+			else
+			{
+				assert(false);
+			}
+
+			m_instanceParameter.UV = groupFirst->GetUV(0, livingTime, livedTime);
+			m_instanceParameter.AlphaUV = groupFirst->GetUV(1, livingTime, livedTime);
+			m_instanceParameter.UVDistortionUV = groupFirst->GetUV(2, livingTime, livedTime);
+			m_instanceParameter.BlendUV = groupFirst->GetUV(3, livingTime, livedTime);
+			m_instanceParameter.BlendAlphaUV = groupFirst->GetUV(4, livingTime, livedTime);
+			m_instanceParameter.BlendUVDistortionUV = groupFirst->GetUV(5, livingTime, livedTime);
+
+			m_instanceParameter.FlipbookIndexAndNextRate = groupFirst->GetFlipbookIndexAndNextRate();
 
 			m_instanceParameter.AlphaThreshold = groupFirst->m_AlphaThreshold;
 
@@ -205,10 +205,7 @@ void EffectNodeRibbon::EndRenderingGroup(InstanceGroup* group, Manager* manager,
 	}
 }
 
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-void EffectNodeRibbon::Rendering(const Instance& instance, const Instance* next_instance, Manager* manager, void* userData)
+void EffectNodeRibbon::Rendering(const Instance& instance, const Instance* next_instance, int index, Manager* manager, void* userData)
 {
 	const InstanceValues& instValues = instance.rendererValues.ribbon;
 	RibbonRendererRef renderer = manager->GetRibbonRenderer();
@@ -225,7 +222,7 @@ void EffectNodeRibbon::Rendering(const Instance& instance, const Instance* next_
 		}
 
 		m_instanceParameter.AllColor = _color;
-		m_instanceParameter.SRTMatrix43 = instance.GetGlobalMatrix43();
+		m_instanceParameter.SRTMatrix43 = instance.GetRenderedGlobalMatrix();
 
 		Color color_l = _color;
 		Color color_r = _color;
@@ -285,15 +282,11 @@ void EffectNodeRibbon::Rendering(const Instance& instance, const Instance* next_
 			m_instanceParameter.Positions[1] = RibbonPosition.fixed.r;
 		}
 
+		m_instanceParameter.InstanceIndex = index;
 		renderer->Rendering(m_nodeParameter, m_instanceParameter, userData);
-
-		m_instanceParameter.InstanceIndex++;
 	}
 }
 
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
 void EffectNodeRibbon::EndRendering(Manager* manager, void* userData)
 {
 	RibbonRendererRef renderer = manager->GetRibbonRenderer();
@@ -303,29 +296,13 @@ void EffectNodeRibbon::EndRendering(Manager* manager, void* userData)
 	}
 }
 
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
 void EffectNodeRibbon::InitializeRenderedInstance(Instance& instance, InstanceGroup& instanceGroup, Manager* manager)
 {
 	InstanceValues& instValues = instance.rendererValues.ribbon;
 	IRandObject& rand = instance.GetRandObject();
 
-	if (RibbonAllColor.type == RibbonAllColorParameter::Fixed)
-	{
-		instValues._original = RibbonAllColor.fixed.all;
-		instValues.allColorValues.fixed._color = instValues._original;
-	}
-	else if (RibbonAllColor.type == RibbonAllColorParameter::Random)
-	{
-		instValues._original = RibbonAllColor.random.all.getValue(rand);
-		instValues.allColorValues.random._color = instValues._original;
-	}
-	else if (RibbonAllColor.type == RibbonAllColorParameter::Easing)
-	{
-		instValues.allColorValues.easing.start = RibbonAllColor.easing.all.getStartValue(rand);
-		instValues.allColorValues.easing.end = RibbonAllColor.easing.all.getEndValue(rand);
-	}
+	AllTypeColorFunctions::Init(instValues.allColorValues, rand, RibbonAllColor);
+	instValues._original = AllTypeColorFunctions::Calculate(instValues.allColorValues, RibbonAllColor, instance.m_LivingTime, instance.m_LivedTime);
 
 	if (RendererCommon.ColorBindType == BindType::Always || RendererCommon.ColorBindType == BindType::WhenCreating)
 	{
@@ -339,28 +316,11 @@ void EffectNodeRibbon::InitializeRenderedInstance(Instance& instance, InstanceGr
 	instance.ColorInheritance = instValues._color;
 }
 
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
 void EffectNodeRibbon::UpdateRenderedInstance(Instance& instance, InstanceGroup& instanceGroup, Manager* manager)
 {
 	InstanceValues& instValues = instance.rendererValues.ribbon;
 
-	if (RibbonAllColor.type == RibbonAllColorParameter::Fixed)
-	{
-		instValues._original = instValues.allColorValues.fixed._color;
-	}
-	else if (RibbonAllColor.type == RibbonAllColorParameter::Random)
-	{
-		instValues._original = instValues.allColorValues.random._color;
-	}
-	else if (RibbonAllColor.type == RibbonAllColorParameter::Easing)
-	{
-		float t = instance.m_LivingTime / instance.m_LivedTime;
-
-		RibbonAllColor.easing.all.setValueToArg(
-			instValues._original, instValues.allColorValues.easing.start, instValues.allColorValues.easing.end, t);
-	}
+	instValues._original = AllTypeColorFunctions::Calculate(instValues.allColorValues, RibbonAllColor, instance.m_LivingTime, instance.m_LivedTime);
 
 	float fadeAlpha = GetFadeAlpha(instance);
 	if (fadeAlpha != 1.0f)
@@ -380,11 +340,4 @@ void EffectNodeRibbon::UpdateRenderedInstance(Instance& instance, InstanceGroup&
 	instance.ColorInheritance = instValues._color;
 }
 
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
 } // namespace Effekseer
-
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------

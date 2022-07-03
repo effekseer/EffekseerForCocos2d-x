@@ -15,10 +15,13 @@ private:
 	GraphicsMetal* graphics_ = nullptr;
 	std::array<Shader*, static_cast<int>(ShaderStageType::Max)> shaders;
 
-	id<MTLRenderPipelineState> pipelineState_;
+	id<MTLRenderPipelineState> pipelineState_ = nullptr;
 	id<MTLDepthStencilState> depthStencilState_ = nullptr;
+	id<MTLComputePipelineState> computePipelineState_ = nullptr;
 
 	bool Compile(PipelineState* self, Graphics* graphics);
+	bool CreateRenderPipelineState(PipelineState* self, Graphics* graphics);
+	bool CreateComputePipelineState(PipelineState* self, Graphics* graphics);
 
 public:
 	PipelineStateMetal();
@@ -35,6 +38,8 @@ public:
 	id<MTLRenderPipelineState>& GetRenderPipelineState() { return pipelineState_; }
 
 	id<MTLDepthStencilState>& GetDepthStencilState() { return depthStencilState_; }
+
+	id<MTLComputePipelineState>& GetComputePipelineState() { return computePipelineState_; }
 };
 
 } // namespace LLGI

@@ -172,6 +172,8 @@ const int32_t UserTextureSlotMax = 6;
 //! the maximum number of uniform slot which can be specified by an user
 const int32_t UserUniformSlotMax = 16;
 
+const int32_t UserGradientSlotMax = 2;
+
 //! the maximum number of texture slot including textures system specified
 const int32_t TextureSlotMax = 8;
 
@@ -299,6 +301,18 @@ enum class ReloadingThreadType
 {
 	Main,
 	Render,
+};
+
+enum class TrailSmoothingType : int32_t
+{
+	Off = 0,
+	On = 1,
+};
+
+enum class TrailTimeType : int32_t
+{
+	FirstParticle = 0,
+	ParticleGroup = 1,
 };
 
 //----------------------------------------------------------------------------------
@@ -686,7 +700,7 @@ public:
 	}
 
 	template <class U>
-	RefPtr<U> DownCast()
+	RefPtr<U> DownCast() const
 	{
 		auto ptr = Get();
 		SafeAddRef(ptr);
@@ -870,6 +884,51 @@ void SetLogger(const std::function<void(LogType, const std::string&)>& logger);
 
 void Log(LogType logType, const std::string& message);
 
+struct Gradient
+{
+	static const int KeyMax = 8;
+
+	struct ColorKey
+	{
+		float Position;
+		std::array<float, 3> Color;
+		float Intensity;
+	};
+
+	struct AlphaKey
+	{
+		float Position;
+		float Alpha;
+	};
+
+	int ColorCount = 0;
+	int AlphaCount = 0;
+	std::array<ColorKey, KeyMax> Colors;
+	std::array<AlphaKey, KeyMax> Alphas;
+
+	std::array<float, 4> GetColor(float x) const;
+
+	std::array<float, 4> GetColorAndIntensity(float x) const;
+
+	float GetAlpha(float x) const;
+
+	Gradient()
+	{
+		for (auto& c : Colors)
+		{
+			c.Color.fill(1.0f);
+			c.Intensity = 1.0f;
+			c.Position = 0.0f;
+		}
+
+		for (auto& a : Alphas)
+		{
+			a.Alpha = 1.0f;
+			a.Position = 0.0f;
+		}
+	}
+};
+
 enum class TextureColorType : int32_t
 {
 	Color,
@@ -924,6 +983,9 @@ struct MaterialRenderData
 
 	//! used uniforms in MaterialType::File
 	std::vector<std::array<float, 4>> MaterialUniforms;
+
+	//! TODO improve
+	std::vector<std::shared_ptr<Gradient>> MaterialGradients;
 };
 
 /**

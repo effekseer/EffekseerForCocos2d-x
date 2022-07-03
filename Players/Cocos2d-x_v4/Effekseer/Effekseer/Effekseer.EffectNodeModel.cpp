@@ -13,17 +13,12 @@
 
 #include "Effekseer.Setting.h"
 
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
 namespace Effekseer
 {
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
+
 void EffectNodeModel::LoadRendererParameter(unsigned char*& pos, const SettingRef& setting)
 {
-	int32_t type = 0;
+	eEffectNodeType type = eEffectNodeType::NoneType;
 	memcpy(&type, pos, sizeof(int));
 	pos += sizeof(int);
 	assert(type == GetType());
@@ -55,6 +50,7 @@ void EffectNodeModel::LoadRendererParameter(unsigned char*& pos, const SettingRe
 
 		if (m_effect->GetVersion() < 15)
 		{
+			int NormalTextureIndex = 0;
 			memcpy(&NormalTextureIndex, pos, sizeof(int));
 			pos += sizeof(int);
 			EffekseerPrintDebug("NormalTextureIndex : %d\n", NormalTextureIndex);
@@ -85,7 +81,7 @@ void EffectNodeModel::LoadRendererParameter(unsigned char*& pos, const SettingRe
 		int32_t lighting;
 		memcpy(&lighting, pos, sizeof(int));
 		pos += sizeof(int);
-		Lighting = lighting > 0;
+		const auto Lighting = lighting > 0;
 
 		if (Lighting && !RendererCommon.Distortion)
 		{
@@ -114,82 +110,25 @@ void EffectNodeModel::LoadRendererParameter(unsigned char*& pos, const SettingRe
 	}
 }
 
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-void EffectNodeModel::BeginRendering(int32_t count, Manager* manager, void* userData)
+void EffectNodeModel::BeginRendering(int32_t count, Manager* manager, const InstanceGlobal* global, void* userData)
 {
 	ModelRendererRef renderer = manager->GetModelRenderer();
 	if (renderer != nullptr)
 	{
-		ModelRenderer::NodeParameter nodeParameter;
-		// nodeParameter.TextureFilter = RendererCommon.FilterType;
-		// nodeParameter.TextureWrap = RendererCommon.WrapType;
-		nodeParameter.ZTest = RendererCommon.ZTest;
-		nodeParameter.ZWrite = RendererCommon.ZWrite;
-		nodeParameter.EffectPointer = GetEffect();
-		nodeParameter.ModelIndex = ModelIndex;
-		nodeParameter.Culling = Culling;
-		nodeParameter.Billboard = Billboard;
-		nodeParameter.Magnification = m_effect->GetMaginification();
-		nodeParameter.IsRightHand = manager->GetCoordinateSystem() == CoordinateSystem::RH;
-		nodeParameter.Maginification = GetEffect()->GetMaginification();
 
-		nodeParameter.DepthParameterPtr = &DepthValues.DepthParameter;
-		// nodeParameter.DepthOffset = DepthValues.DepthOffset;
-		// nodeParameter.IsDepthOffsetScaledWithCamera = DepthValues.IsDepthOffsetScaledWithCamera;
-		// nodeParameter.IsDepthOffsetScaledWithParticleScale = DepthValues.IsDepthOffsetScaledWithParticleScale;
-
-		nodeParameter.BasicParameterPtr = &RendererCommon.BasicParameter;
-
-		nodeParameter.EnableFalloff = EnableFalloff;
-		nodeParameter.FalloffParam = FalloffParam;
-		nodeParameter.EnableViewOffset = (TranslationType == ParameterTranslationType_ViewOffset);
-
-		nodeParameter.IsProceduralMode = Mode == ModelReferenceType::Procedural;
-		nodeParameter.UserData = GetRenderingUserData();
-
-		renderer->BeginRendering(nodeParameter, count, userData);
+		nodeParam_ = GetNodeParameter(manager, global);
+		renderer->BeginRendering(nodeParam_, count, userData);
 	}
 }
 
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-void EffectNodeModel::Rendering(const Instance& instance, const Instance* next_instance, Manager* manager, void* userData)
+void EffectNodeModel::Rendering(const Instance& instance, const Instance* next_instance, int index, Manager* manager, void* userData)
 {
 	const InstanceValues& instValues = instance.rendererValues.model;
 	ModelRendererRef renderer = manager->GetModelRenderer();
 	if (renderer != nullptr)
 	{
-		ModelRenderer::NodeParameter nodeParameter;
-		// nodeParameter.TextureFilter = RendererCommon.FilterType;
-		// nodeParameter.TextureWrap = RendererCommon.WrapType;
-		nodeParameter.ZTest = RendererCommon.ZTest;
-		nodeParameter.ZWrite = RendererCommon.ZWrite;
-		nodeParameter.EffectPointer = GetEffect();
-		nodeParameter.ModelIndex = ModelIndex;
-		nodeParameter.Culling = Culling;
-		nodeParameter.Billboard = Billboard;
-		nodeParameter.Magnification = m_effect->GetMaginification();
-		nodeParameter.IsRightHand = manager->GetCoordinateSystem() == CoordinateSystem::RH;
-		nodeParameter.Maginification = GetEffect()->GetMaginification();
-
-		nodeParameter.DepthParameterPtr = &DepthValues.DepthParameter;
-		// nodeParameter.DepthOffset = DepthValues.DepthOffset;
-		// nodeParameter.IsDepthOffsetScaledWithCamera = DepthValues.IsDepthOffsetScaledWithCamera;
-		// nodeParameter.IsDepthOffsetScaledWithParticleScale = DepthValues.IsDepthOffsetScaledWithParticleScale;
-		nodeParameter.BasicParameterPtr = &RendererCommon.BasicParameter;
-
-		nodeParameter.EnableFalloff = EnableFalloff;
-		nodeParameter.FalloffParam = FalloffParam;
-
-		nodeParameter.EnableViewOffset = (TranslationType == ParameterTranslationType_ViewOffset);
-
-		nodeParameter.IsProceduralMode = Mode == ModelReferenceType::Procedural;
-
 		ModelRenderer::InstanceParameter instanceParameter;
-		instanceParameter.SRTMatrix43 = instance.GetGlobalMatrix43();
+		instanceParameter.SRTMatrix43 = instance.GetRenderedGlobalMatrix();
 		instanceParameter.Time = (int32_t)instance.m_LivingTime;
 
 		instanceParameter.UV = instance.GetUV(0);
@@ -199,11 +138,11 @@ void EffectNodeModel::Rendering(const Instance& instance, const Instance* next_i
 		instanceParameter.BlendAlphaUV = instance.GetUV(4);
 		instanceParameter.BlendUVDistortionUV = instance.GetUV(5);
 
-		instanceParameter.FlipbookIndexAndNextRate = instance.m_flipbookIndexAndNextRate;
+		instanceParameter.FlipbookIndexAndNextRate = instance.GetFlipbookIndexAndNextRate();
 
 		instanceParameter.AlphaThreshold = instance.m_AlphaThreshold;
 
-		if (nodeParameter.EnableViewOffset == true)
+		if (nodeParam_.EnableViewOffset)
 		{
 			instanceParameter.ViewOffsetDistance = instance.translation_values.view_offset.distance;
 		}
@@ -226,92 +165,28 @@ void EffectNodeModel::Rendering(const Instance& instance, const Instance* next_i
 			instanceParameter.AllColor = Color::Mul(instanceParameter.AllColor, instance.m_pContainer->GetRootInstance()->GlobalColor);
 		}
 
-		nodeParameter.BasicParameterPtr = &RendererCommon.BasicParameter;
-		nodeParameter.UserData = GetRenderingUserData();
-
-		renderer->Rendering(nodeParameter, instanceParameter, userData);
+		renderer->Rendering(nodeParam_, instanceParameter, userData);
 	}
 }
 
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
 void EffectNodeModel::EndRendering(Manager* manager, void* userData)
 {
 	ModelRendererRef renderer = manager->GetModelRenderer();
 	if (renderer != nullptr)
 	{
-		ModelRenderer::NodeParameter nodeParameter;
-		// nodeParameter.TextureFilter = RendererCommon.FilterType;
-		// nodeParameter.TextureWrap = RendererCommon.WrapType;
-		nodeParameter.ZTest = RendererCommon.ZTest;
-		nodeParameter.ZWrite = RendererCommon.ZWrite;
-		nodeParameter.EffectPointer = GetEffect();
-		nodeParameter.ModelIndex = ModelIndex;
-		nodeParameter.Culling = Culling;
-		nodeParameter.Billboard = Billboard;
-		nodeParameter.Magnification = m_effect->GetMaginification();
-		nodeParameter.IsRightHand = manager->GetSetting()->GetCoordinateSystem() == CoordinateSystem::RH;
-		nodeParameter.Maginification = GetEffect()->GetMaginification();
-
-		nodeParameter.DepthParameterPtr = &DepthValues.DepthParameter;
-		// nodeParameter.DepthOffset = DepthValues.DepthOffset;
-		// nodeParameter.IsDepthOffsetScaledWithCamera = DepthValues.IsDepthOffsetScaledWithCamera;
-		// nodeParameter.IsDepthOffsetScaledWithParticleScale = DepthValues.IsDepthOffsetScaledWithParticleScale;
-
-		nodeParameter.BasicParameterPtr = &RendererCommon.BasicParameter;
-
-		nodeParameter.EnableFalloff = EnableFalloff;
-		nodeParameter.FalloffParam = FalloffParam;
-
-		nodeParameter.EnableViewOffset = (TranslationType == ParameterTranslationType_ViewOffset);
-
-		nodeParameter.IsProceduralMode = Mode == ModelReferenceType::Procedural;
-
-		nodeParameter.UserData = GetRenderingUserData();
-
-		renderer->EndRendering(nodeParameter, userData);
+		renderer->EndRendering(nodeParam_, userData);
 	}
 }
 
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
 void EffectNodeModel::InitializeRenderedInstance(Instance& instance, InstanceGroup& instanceGroup, Manager* manager)
 {
 	IRandObject& rand = instance.GetRandObject();
 	InstanceValues& instValues = instance.rendererValues.model;
 
-	if (AllColor.type == StandardColorParameter::Fixed)
-	{
-		instValues._original = AllColor.fixed.all;
-		instValues.allColorValues.fixed._color = instValues._original;
-	}
-	else if (AllColor.type == StandardColorParameter::Random)
-	{
-		instValues._original = AllColor.random.all.getValue(rand);
-		instValues.allColorValues.random._color = instValues._original;
-	}
-	else if (AllColor.type == StandardColorParameter::Easing)
-	{
-		instValues.allColorValues.easing.start = AllColor.easing.all.getStartValue(rand);
-		instValues.allColorValues.easing.end = AllColor.easing.all.getEndValue(rand);
+	AllTypeColorFunctions::Init(instValues.allColorValues, rand, AllColor);
+	instValues._original = AllTypeColorFunctions::Calculate(instValues.allColorValues, AllColor, instance.m_LivingTime, instance.m_LivedTime);
 
-		float t = instance.m_LivingTime / instance.m_LivedTime;
-
-		AllColor.easing.all.setValueToArg(
-			instValues._original, instValues.allColorValues.easing.start, instValues.allColorValues.easing.end, t);
-	}
-	else if (AllColor.type == StandardColorParameter::FCurve_RGBA)
-	{
-		instValues.allColorValues.fcurve_rgba.offset = AllColor.fcurve_rgba.FCurve->GetOffsets(rand);
-		auto fcurveColors = AllColor.fcurve_rgba.FCurve->GetValues(instance.m_LivingTime, instance.m_LivedTime);
-		instValues._original.R = (uint8_t)Clamp((instValues.allColorValues.fcurve_rgba.offset[0] + fcurveColors[0]), 255, 0);
-		instValues._original.G = (uint8_t)Clamp((instValues.allColorValues.fcurve_rgba.offset[1] + fcurveColors[1]), 255, 0);
-		instValues._original.B = (uint8_t)Clamp((instValues.allColorValues.fcurve_rgba.offset[2] + fcurveColors[2]), 255, 0);
-		instValues._original.A = (uint8_t)Clamp((instValues.allColorValues.fcurve_rgba.offset[3] + fcurveColors[3]), 255, 0);
-	}
-
+	// TODO refactor
 	if (RendererCommon.ColorBindType == BindType::Always || RendererCommon.ColorBindType == BindType::WhenCreating)
 	{
 		instValues._color = Color::Mul(instValues._original, instance.ColorParent);
@@ -324,36 +199,11 @@ void EffectNodeModel::InitializeRenderedInstance(Instance& instance, InstanceGro
 	instance.ColorInheritance = instValues._color;
 }
 
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
 void EffectNodeModel::UpdateRenderedInstance(Instance& instance, InstanceGroup& instanceGroup, Manager* manager)
 {
 	InstanceValues& instValues = instance.rendererValues.model;
 
-	if (AllColor.type == StandardColorParameter::Fixed)
-	{
-		instValues._original = instValues.allColorValues.fixed._color;
-	}
-	else if (AllColor.type == StandardColorParameter::Random)
-	{
-		instValues._original = instValues.allColorValues.random._color;
-	}
-	else if (AllColor.type == StandardColorParameter::Easing)
-	{
-		float t = instance.m_LivingTime / instance.m_LivedTime;
-
-		AllColor.easing.all.setValueToArg(
-			instValues._original, instValues.allColorValues.easing.start, instValues.allColorValues.easing.end, t);
-	}
-	else if (AllColor.type == StandardColorParameter::FCurve_RGBA)
-	{
-		auto fcurveColors = AllColor.fcurve_rgba.FCurve->GetValues(instance.m_LivingTime, instance.m_LivedTime);
-		instValues._original.R = (uint8_t)Clamp((instValues.allColorValues.fcurve_rgba.offset[0] + fcurveColors[0]), 255, 0);
-		instValues._original.G = (uint8_t)Clamp((instValues.allColorValues.fcurve_rgba.offset[1] + fcurveColors[1]), 255, 0);
-		instValues._original.B = (uint8_t)Clamp((instValues.allColorValues.fcurve_rgba.offset[2] + fcurveColors[2]), 255, 0);
-		instValues._original.A = (uint8_t)Clamp((instValues.allColorValues.fcurve_rgba.offset[3] + fcurveColors[3]), 255, 0);
-	}
+	instValues._original = AllTypeColorFunctions::Calculate(instValues.allColorValues, AllColor, instance.m_LivingTime, instance.m_LivedTime);
 
 	float fadeAlpha = GetFadeAlpha(instance);
 	if (fadeAlpha != 1.0f)
@@ -373,11 +223,33 @@ void EffectNodeModel::UpdateRenderedInstance(Instance& instance, InstanceGroup& 
 	instance.ColorInheritance = instValues._color;
 }
 
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
-} // namespace Effekseer
+ModelRenderer::NodeParameter EffectNodeModel::GetNodeParameter(const Manager* manager, const InstanceGlobal* global)
+{
+	ModelRenderer::NodeParameter nodeParameter;
+	nodeParameter.ZTest = RendererCommon.ZTest;
+	nodeParameter.ZWrite = RendererCommon.ZWrite;
+	nodeParameter.EffectPointer = GetEffect();
+	nodeParameter.LocalTime = global->GetUpdatedFrame() / 60.0f;
+	nodeParameter.ModelIndex = ModelIndex;
+	nodeParameter.Culling = Culling;
+	nodeParameter.Billboard = Billboard;
+	nodeParameter.Magnification = m_effect->GetMaginification();
+	nodeParameter.IsRightHand = manager->GetSetting()->GetCoordinateSystem() == CoordinateSystem::RH;
+	nodeParameter.Maginification = GetEffect()->GetMaginification();
 
-//----------------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------------
+	nodeParameter.DepthParameterPtr = &DepthValues.DepthParameter;
+	nodeParameter.BasicParameterPtr = &RendererCommon.BasicParameter;
+
+	nodeParameter.EnableFalloff = EnableFalloff;
+	nodeParameter.FalloffParam = FalloffParam;
+
+	nodeParameter.EnableViewOffset = (TranslationParam.TranslationType == ParameterTranslationType_ViewOffset);
+
+	nodeParameter.IsProceduralMode = Mode == ModelReferenceType::Procedural;
+
+	nodeParameter.UserData = GetRenderingUserData();
+
+	return nodeParameter;
+}
+
+} // namespace Effekseer

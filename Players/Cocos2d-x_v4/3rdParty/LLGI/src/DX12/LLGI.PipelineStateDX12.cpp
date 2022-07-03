@@ -27,6 +27,9 @@ PipelineStateDX12::~PipelineStateDX12()
 	SafeRelease(pipelineState_);
 	SafeRelease(signature_);
 	SafeRelease(rootSignature_);
+	SafeRelease(computePipelineState_);
+	SafeRelease(computeSignature_);
+	SafeRelease(computeRootSignature_);
 }
 
 void PipelineStateDX12::SetShader(ShaderStageType stage, Shader* shader)
@@ -38,11 +41,161 @@ void PipelineStateDX12::SetShader(ShaderStageType stage, Shader* shader)
 
 bool PipelineStateDX12::Compile()
 {
-	CreateRootSignature();
+	if (shaders_[static_cast<int>(ShaderStageType::Compute)] != nullptr)
+	{
+		auto res = CreateComputeRootSignature();
+		res &= CreateComputePipelineState();
+		return res;
+	}
+	else
+	{
+		auto res = CreateRootSignature();
+		res &= CreatePipelineState();
+		return res;
+	}
+}
 
+bool PipelineStateDX12::CreateRootSignature()
+{
+	D3D12_DESCRIPTOR_RANGE ranges[4] = {{}, {}, {}, {}};
+	D3D12_ROOT_PARAMETER rootParameters[2] = {{}, {}};
+
+	// descriptor range for constant buffer view
+	ranges[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
+	ranges[0].NumDescriptors = 2;
+	ranges[0].BaseShaderRegister = 0;
+	ranges[0].RegisterSpace = 0;
+	ranges[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+	// descriptor range for shader resorce view
+	ranges[1].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+	ranges[1].NumDescriptors = NumTexture * 2;
+	ranges[1].BaseShaderRegister = 0;
+	ranges[1].RegisterSpace = 0;
+	ranges[1].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+	// descriptor range for uav
+	ranges[2].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
+	ranges[2].NumDescriptors = NumComputeBuffer * 2;
+	ranges[2].BaseShaderRegister = 0;
+	ranges[2].RegisterSpace = 0;
+	ranges[2].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+	// descriptor range for sampler
+	ranges[3].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
+	ranges[3].NumDescriptors = NumTexture * 2;
+	ranges[3].BaseShaderRegister = 0;
+	ranges[3].RegisterSpace = 0;
+	ranges[3].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+	// descriptor table for CBV/SRV/UAV
+	rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	rootParameters[0].DescriptorTable.NumDescriptorRanges = 3;
+	rootParameters[0].DescriptorTable.pDescriptorRanges = &ranges[0];
+	rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+
+	// descriptor table for sampler
+	rootParameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	rootParameters[1].DescriptorTable.NumDescriptorRanges = 1;
+	rootParameters[1].DescriptorTable.pDescriptorRanges = &ranges[3];
+	rootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+
+	D3D12_ROOT_SIGNATURE_DESC desc = {};
+	desc.NumParameters = 2;
+	desc.pParameters = rootParameters;
+	desc.NumStaticSamplers = 0;
+	desc.pStaticSamplers = nullptr;
+	desc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+
+	auto hr = D3D12SerializeRootSignature(&desc, D3D_ROOT_SIGNATURE_VERSION_1, &signature_, nullptr);
+
+	if (FAILED(hr))
+	{
+		auto msg = (std::string("Error : ") + std::string(__FILE__) + " : " + std::to_string(__LINE__) + std::string(" : ") +
+					std::system_category().message(hr));
+		::LLGI::Log(::LLGI::LogType::Error, msg.c_str());
+		goto FAILED_EXIT;
+	}
+
+	hr = graphics_->GetDevice()->CreateRootSignature(
+		0, signature_->GetBufferPointer(), signature_->GetBufferSize(), IID_PPV_ARGS(&rootSignature_));
+	if (FAILED(hr))
+	{
+		auto msg = (std::string("Error : ") + std::string(__FILE__) + " : " + std::to_string(__LINE__) + std::string(" : ") +
+					std::system_category().message(hr));
+		::LLGI::Log(::LLGI::LogType::Error, msg.c_str());
+		goto FAILED_EXIT;
+	}
+	return true;
+
+FAILED_EXIT:
+	SafeRelease(signature_);
+	return false;
+}
+
+bool PipelineStateDX12::CreateComputeRootSignature()
+{
+	D3D12_DESCRIPTOR_RANGE ranges[2] = {{}, {}};
+	D3D12_ROOT_PARAMETER rootParameters[1] = {{}};
+
+	// descriptor range for constant buffer view
+	ranges[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
+	ranges[0].NumDescriptors = 1;
+	ranges[0].BaseShaderRegister = 0;
+	ranges[0].RegisterSpace = 0;
+	ranges[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+	// descriptor range for uav
+	ranges[1].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
+	ranges[1].NumDescriptors = NumComputeBuffer;
+	ranges[1].BaseShaderRegister = 0;
+	ranges[1].RegisterSpace = 0;
+	ranges[1].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+	// descriptor table for CBV/UAV
+	rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	rootParameters[0].DescriptorTable.NumDescriptorRanges = 2;
+	rootParameters[0].DescriptorTable.pDescriptorRanges = &ranges[0];
+	rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+
+	D3D12_ROOT_SIGNATURE_DESC desc = {};
+	desc.NumParameters = 1;
+	desc.pParameters = rootParameters;
+	desc.NumStaticSamplers = 0;
+	desc.pStaticSamplers = nullptr;
+	desc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT | D3D12_ROOT_SIGNATURE_FLAG_ALLOW_STREAM_OUTPUT;
+
+	auto hr = D3D12SerializeRootSignature(&desc, D3D_ROOT_SIGNATURE_VERSION_1, &computeSignature_, nullptr);
+
+	if (FAILED(hr))
+	{
+		auto msg = (std::string("Error : ") + std::string(__FILE__) + " : " + std::to_string(__LINE__) + std::string(" : ") +
+					std::system_category().message(hr));
+		::LLGI::Log(::LLGI::LogType::Error, msg.c_str());
+		goto FAILED_EXIT;
+	}
+
+	hr = graphics_->GetDevice()->CreateRootSignature(
+		0, computeSignature_->GetBufferPointer(), computeSignature_->GetBufferSize(), IID_PPV_ARGS(&computeRootSignature_));
+	if (FAILED(hr))
+	{
+		auto msg = (std::string("Error : ") + std::string(__FILE__) + " : " + std::to_string(__LINE__) + std::string(" : ") +
+					std::system_category().message(hr));
+		::LLGI::Log(::LLGI::LogType::Error, msg.c_str());
+		goto FAILED_EXIT;
+	}
+	return true;
+
+FAILED_EXIT:
+	SafeRelease(computeSignature_);
+	return false;
+}
+
+bool PipelineStateDX12::CreatePipelineState()
+{
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC pipelineStateDesc = {};
 
-	for (size_t i = 0; i < shaders_.size(); i++)
+	for (size_t i = 0; i < 2; i++)
 	{
 		auto shader = static_cast<ShaderDX12*>(shaders_.at(i));
 		if (shader == nullptr)
@@ -297,52 +450,23 @@ FAILED_EXIT:
 	return false;
 }
 
-bool PipelineStateDX12::CreateRootSignature()
+bool PipelineStateDX12::CreateComputePipelineState()
 {
-	D3D12_DESCRIPTOR_RANGE ranges[3] = {{}, {}, {}};
-	D3D12_ROOT_PARAMETER rootParameters[2] = {{}, {}};
+	D3D12_COMPUTE_PIPELINE_STATE_DESC pipelineStateDesc = {};
 
-	// descriptor range for constant buffer view
-	ranges[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
-	ranges[0].NumDescriptors = static_cast<int>(ShaderStageType::Max);
-	ranges[0].BaseShaderRegister = 0;
-	ranges[0].RegisterSpace = 0;
-	ranges[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+	auto shader = static_cast<ShaderDX12*>(shaders_.at(static_cast<int>(ShaderStageType::Compute)));
+	if (shader == nullptr)
+		return false;
 
-	// descriptor range for shader resorce view
-	ranges[1].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-	ranges[1].NumDescriptors = NumTexture * static_cast<int>(ShaderStageType::Max);
-	ranges[1].BaseShaderRegister = 0;
-	ranges[1].RegisterSpace = 0;
-	ranges[1].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+	auto& shaderData = shader->GetData();
 
-	// descriptor range for sampler
-	ranges[2].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
-	ranges[2].NumDescriptors = NumTexture * static_cast<int>(ShaderStageType::Max);
-	ranges[2].BaseShaderRegister = 0;
-	ranges[2].RegisterSpace = 0;
-	ranges[2].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+	pipelineStateDesc.CS.pShaderBytecode = shaderData.data();
+	pipelineStateDesc.CS.BytecodeLength = shaderData.size();
+	pipelineStateDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
+	pipelineStateDesc.NodeMask = 1;
+	pipelineStateDesc.pRootSignature = computeRootSignature_;
 
-	// descriptor table for CBV/SRV
-	rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-	rootParameters[0].DescriptorTable.NumDescriptorRanges = 2;
-	rootParameters[0].DescriptorTable.pDescriptorRanges = &ranges[0];
-	rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
-
-	// descriptor table for sampler
-	rootParameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-	rootParameters[1].DescriptorTable.NumDescriptorRanges = 1;
-	rootParameters[1].DescriptorTable.pDescriptorRanges = &ranges[2];
-	rootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
-
-	D3D12_ROOT_SIGNATURE_DESC desc = {};
-	desc.NumParameters = 2;
-	desc.pParameters = rootParameters;
-	desc.NumStaticSamplers = 0;
-	desc.pStaticSamplers = nullptr;
-	desc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
-
-	auto hr = D3D12SerializeRootSignature(&desc, D3D_ROOT_SIGNATURE_VERSION_1, &signature_, nullptr);
+	auto hr = graphics_->GetDevice()->CreateComputePipelineState(&pipelineStateDesc, IID_PPV_ARGS(&computePipelineState_));
 
 	if (FAILED(hr))
 	{
@@ -352,19 +476,10 @@ bool PipelineStateDX12::CreateRootSignature()
 		goto FAILED_EXIT;
 	}
 
-	hr = graphics_->GetDevice()->CreateRootSignature(
-		0, signature_->GetBufferPointer(), signature_->GetBufferSize(), IID_PPV_ARGS(&rootSignature_));
-	if (FAILED(hr))
-	{
-		auto msg = (std::string("Error : ") + std::string(__FILE__) + " : " + std::to_string(__LINE__) + std::string(" : ") +
-					std::system_category().message(hr));
-		::LLGI::Log(::LLGI::LogType::Error, msg.c_str());
-		goto FAILED_EXIT;
-	}
 	return true;
 
 FAILED_EXIT:
-	SafeRelease(signature_);
+	SafeRelease(computePipelineState_);
 	return false;
 }
 

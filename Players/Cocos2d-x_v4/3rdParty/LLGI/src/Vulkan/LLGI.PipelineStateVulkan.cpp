@@ -41,6 +41,24 @@ PipelineStateVulkan ::~PipelineStateVulkan()
 		pipeline_ = nullptr;
 	}
 
+	for (size_t i = 0; i < computeDescriptorSetLayouts.size(); i++)
+	{
+		graphics_->GetDevice().destroyDescriptorSetLayout(computeDescriptorSetLayouts[i]);
+		computeDescriptorSetLayouts[i] = nullptr;
+	}
+
+	if (computePipelineLayout_)
+	{
+		graphics_->GetDevice().destroyPipelineLayout(computePipelineLayout_);
+		computePipelineLayout_ = nullptr;
+	}
+
+	if (computePipeline_)
+	{
+		graphics_->GetDevice().destroyPipeline(computePipeline_);
+		computePipeline_ = nullptr;
+	}
+
 	SafeRelease(graphics_);
 }
 
@@ -62,6 +80,21 @@ void PipelineStateVulkan::SetShader(ShaderStageType stage, Shader* shader)
 
 bool PipelineStateVulkan::Compile()
 {
+	if (shaders[static_cast<int>(ShaderStageType::Compute)] != nullptr)
+	{
+		return CreateComputePipeline();
+	}
+
+	return CreateGraphicsPipeline();
+}
+
+bool PipelineStateVulkan::CreateGraphicsPipeline()
+{
+	if (renderPassPipelineState_ == nullptr)
+	{
+		return false;
+	}
+
 	vk::GraphicsPipelineCreateInfo graphicsPipelineInfo;
 
 	std::vector<vk::PipelineShaderStageCreateInfo> shaderStageInfos;
@@ -69,9 +102,12 @@ bool PipelineStateVulkan::Compile()
 	// setup shaders
 	std::string mainName = "main";
 
-	for (size_t i = 0; i < this->shaders.size(); i++)
+	for (size_t i = 0; i < static_cast<int>(ShaderStageType::Compute); i++)
 	{
 		auto shader = static_cast<ShaderVulkan*>(shaders[i]);
+
+		if (shader == nullptr)
+			return false;
 
 		vk::PipelineShaderStageCreateInfo info;
 
@@ -442,6 +478,73 @@ bool PipelineStateVulkan::Compile()
 	pipeline_ = pipeline.value;
 #else
 	pipeline_ = graphics_->GetDevice().createGraphicsPipeline(nullptr, graphicsPipelineInfo);
+#endif
+
+	return true;
+}
+
+bool PipelineStateVulkan::CreateComputePipeline()
+{
+	vk::ComputePipelineCreateInfo computePipelineInfo;
+
+	// setup shaders
+	std::string mainName = "main";
+
+	auto shader = static_cast<ShaderVulkan*>(shaders[static_cast<int>(ShaderStageType::Compute)]);
+
+	if (shader == nullptr)
+		return false;
+
+	vk::PipelineShaderStageCreateInfo info;
+
+	info.stage = vk::ShaderStageFlagBits::eCompute;
+	info.module = shader->GetShaderModule();
+	info.pName = mainName.c_str();
+	computePipelineInfo.stage = info;
+
+	// uniform layout info
+	std::array<vk::DescriptorSetLayoutBinding, 1 + TextureSlotMax> uboLayoutBindings;
+
+	uboLayoutBindings[0].binding = 0;
+	uboLayoutBindings[0].descriptorType = vk::DescriptorType::eUniformBufferDynamic;
+	uboLayoutBindings[0].descriptorCount = 1;
+	uboLayoutBindings[0].stageFlags = vk::ShaderStageFlagBits::eCompute;
+	uboLayoutBindings[0].pImmutableSamplers = nullptr;
+
+	for (size_t i = 1; i < uboLayoutBindings.size(); i++)
+	{
+		uboLayoutBindings[i].binding = static_cast<uint32_t>(i);
+		uboLayoutBindings[i].descriptorType = vk::DescriptorType::eStorageBufferDynamic;
+		uboLayoutBindings[i].descriptorCount = 1;
+		uboLayoutBindings[i].stageFlags = vk::ShaderStageFlagBits::eCompute;
+		uboLayoutBindings[i].pImmutableSamplers = nullptr;
+	}
+
+	vk::DescriptorSetLayoutCreateInfo descriptorSetLayoutInfo;
+	descriptorSetLayoutInfo.bindingCount = static_cast<int32_t>(uboLayoutBindings.size());
+	descriptorSetLayoutInfo.pBindings = uboLayoutBindings.data();
+
+	computeDescriptorSetLayouts[0] = graphics_->GetDevice().createDescriptorSetLayout(descriptorSetLayoutInfo);
+
+	vk::PipelineLayoutCreateInfo layoutInfo = {};
+	layoutInfo.setLayoutCount = 1;
+	layoutInfo.pSetLayouts = computeDescriptorSetLayouts.data();
+	layoutInfo.pushConstantRangeCount = 0;
+	layoutInfo.pPushConstantRanges = nullptr;
+
+	computePipelineLayout_ = graphics_->GetDevice().createPipelineLayout(layoutInfo);
+	computePipelineInfo.layout = computePipelineLayout_;
+
+#if VK_HEADER_VERSION >= 136
+	// setup a pipeline
+	const auto pipeline = graphics_->GetDevice().createComputePipeline(nullptr, computePipelineInfo);
+	if (pipeline.result != vk::Result::eSuccess)
+	{
+		throw std::runtime_error("Cannnot create graphicPipeline: " + std::to_string(static_cast<int>(pipeline.result)));
+	}
+	computePipeline_ = pipeline.value;
+#else
+	computePipeline_ = graphics_->GetDevice().createComputePipeline(nullptr, computePipelineInfo);
 #endif
 
 	return true;

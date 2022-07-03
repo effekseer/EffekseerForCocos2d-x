@@ -1,5 +1,5 @@
 #include "LLGI.SingleFrameMemoryPoolVulkan.h"
-#include "LLGI.ConstantBufferVulkan.h"
+#include "LLGI.BufferVulkan.h"
 
 namespace LLGI
 {
@@ -12,67 +12,31 @@ bool InternalSingleFrameMemoryPoolVulkan::Initialize(GraphicsVulkan* graphics, i
 {
 	constantBufferSize_ = (constantBufferPoolSize + 255) & ~255; // buffer size should be multiple of 256
 
-	nativeDevice_ = static_cast<VkDevice>(graphics->GetDevice());
-
-	VkBufferCreateInfo bufferInfo = {};
-	bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-	bufferInfo.size = constantBufferSize_;
-	bufferInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT; // for constant buffer
-	bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-	LLGI_VK_CHECK(vkCreateBuffer(nativeDevice_, &bufferInfo, nullptr, &nativeBuffer_));
-
-	VkMemoryRequirements memRequirements;
-	vkGetBufferMemoryRequirements(nativeDevice_, nativeBuffer_, &memRequirements);
-
-	VkMemoryAllocateInfo allocInfo = {};
-	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-	allocInfo.allocationSize = memRequirements.size;
-	allocInfo.memoryTypeIndex = graphics->GetMemoryTypeIndex(memRequirements.memoryTypeBits, vk::MemoryPropertyFlagBits::eHostVisible);
-
-	LLGI_VK_CHECK(vkAllocateMemory(nativeDevice_, &allocInfo, nullptr, &nativeBufferMemory_));
-
-	LLGI_VK_CHECK(vkBindBufferMemory(nativeDevice_, nativeBuffer_, nativeBufferMemory_, 0));
+	buffer_ = std::unique_ptr<BufferVulkan>(
+		static_cast<BufferVulkan*>(graphics->CreateBuffer(BufferUsageType::Constant | BufferUsageType::MapWrite, constantBufferSize_)));
 
 	return true;
 }
 
-void InternalSingleFrameMemoryPoolVulkan::Dispose()
-{
-	if (nativeBufferMemory_)
-	{
-		vkFreeMemory(nativeDevice_, nativeBufferMemory_, nullptr);
-		nativeBufferMemory_ = VK_NULL_HANDLE;
-	}
+void InternalSingleFrameMemoryPoolVulkan::Dispose() { buffer_ = nullptr; }
 
-	if (nativeBuffer_)
-	{
-		vkDestroyBuffer(nativeDevice_, nativeBuffer_, nullptr);
-		nativeBuffer_ = VK_NULL_HANDLE;
-	}
-
-	nativeDevice_ = VK_NULL_HANDLE;
-}
-
-bool InternalSingleFrameMemoryPoolVulkan::GetConstantBuffer(int32_t size,
-															VkBuffer* outResource,
-															VkDeviceMemory* deviceMemory,
-															int32_t* outOffset)
+bool InternalSingleFrameMemoryPoolVulkan::GetConstantBuffer(int32_t size, BufferVulkan*& buffer, int32_t& outOffset)
 {
 	if (constantBufferOffset_ + size > constantBufferSize_)
 		return false;
 
-	*outResource = nativeBuffer_;
-	*deviceMemory = nativeBufferMemory_;
-	*outOffset = constantBufferOffset_;
+	buffer = buffer_.get();
+	outOffset = constantBufferOffset_;
 	constantBufferOffset_ += size;
+
 	return true;
 }
 
 void InternalSingleFrameMemoryPoolVulkan::Reset() { constantBufferOffset_ = 0; }
 
-ConstantBuffer* SingleFrameMemoryPoolVulkan::CreateConstantBufferInternal(int32_t size)
+Buffer* SingleFrameMemoryPoolVulkan::CreateBufferInternal(int32_t size)
 {
-	auto obj = new ConstantBufferVulkan();
+	auto obj = new BufferVulkan();
 	if (!obj->InitializeAsShortTime(graphics_, this, size))
 	{
 		SafeRelease(obj);
@@ -82,9 +46,9 @@ ConstantBuffer* SingleFrameMemoryPoolVulkan::CreateConstantBufferInternal(int32_
 	return obj;
 }
 
-ConstantBuffer* SingleFrameMemoryPoolVulkan::ReinitializeConstantBuffer(ConstantBuffer* cb, int32_t size)
+Buffer* SingleFrameMemoryPoolVulkan::ReinitializeBuffer(Buffer* cb, int32_t size)
 {
-	auto obj = static_cast<ConstantBufferVulkan*>(cb);
+	auto obj = static_cast<BufferVulkan*>(cb);
 	if (!obj->InitializeAsShortTime(graphics_, this, size))
 	{
 		return nullptr;
@@ -127,10 +91,10 @@ SingleFrameMemoryPoolVulkan ::~SingleFrameMemoryPoolVulkan()
 	}
 }
 
-bool SingleFrameMemoryPoolVulkan::GetConstantBuffer(int32_t size, VkBuffer* outResource, VkDeviceMemory* deviceMemory, int32_t* outOffset)
+bool SingleFrameMemoryPoolVulkan::GetConstantBuffer(int32_t size, BufferVulkan*& buffer, int32_t& outOffset)
 {
 	assert(currentSwap_ >= 0);
-	return memoryPools[currentSwap_]->GetConstantBuffer(size, outResource, deviceMemory, outOffset);
+	return memoryPools[currentSwap_]->GetConstantBuffer(size, buffer, outOffset);
 }
 
 InternalSingleFrameMemoryPoolVulkan* SingleFrameMemoryPoolVulkan::GetInternal() { return memoryPools[currentSwap_].get(); }

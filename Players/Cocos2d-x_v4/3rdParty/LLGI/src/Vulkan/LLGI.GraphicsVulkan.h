@@ -46,17 +46,16 @@ public:
 
 	void WaitFinish() override;
 
-	VertexBuffer* CreateVertexBuffer(int32_t size) override;
-	IndexBuffer* CreateIndexBuffer(int32_t stride, int32_t count) override;
+	Buffer* CreateBuffer(BufferUsageType usage, int32_t size) override;
 	Shader* CreateShader(DataStructure* data, int32_t count) override;
 	PipelineState* CreatePiplineState() override;
 	SingleFrameMemoryPool* CreateSingleFrameMemoryPool(int32_t constantBufferPoolSize, int32_t drawingCount) override;
 	CommandList* CreateCommandList(SingleFrameMemoryPool* memoryPool) override;
-	ConstantBuffer* CreateConstantBuffer(int32_t size) override;
 	RenderPass* CreateRenderPass(Texture** textures, int32_t textureCount, Texture* depthTexture) override;
 
 	RenderPass* CreateRenderPass(Texture* texture, Texture* resolvedTexture, Texture* depthTexture, Texture* resolvedDepthTexture) override;
 
+	Texture* CreateTexture(const TextureParameter& parameter) override;
 	Texture* CreateTexture(const TextureInitializationParameter& parameter) override;
 	Texture* CreateRenderTexture(const RenderTextureInitializationParameter& parameter) override;
 	Texture* CreateDepthTexture(const DepthTextureInitializationParameter& parameter) override;

@@ -104,7 +104,36 @@ typedef void(EFK_STDCALL* FP_glFramebufferTexture2D)(GLenum target,
 													 GLuint texture,
 													 GLint level);
 
+typedef void(EFK_STDCALL* FP_glGenRenderbuffers)(GLsizei n, GLuint* renderbuffers);
+
+typedef void(EFK_STDCALL* FP_glBindRenderbuffer)(GLenum target, GLuint renderbuffer);
+
+typedef void(EFK_STDCALL* FP_glDeleteRenderbuffers)(GLsizei n, GLuint* renderbuffers);
+
+typedef void(EFK_STDCALL* FP_glRenderbufferStorageMultisample)(GLenum target, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height);
+
 typedef void(EFK_STDCALL* FP_glDrawBuffers)(GLsizei n, const GLenum* bufs);
+
+typedef void(EFK_STDCALL* FP_glTexImage3D)(GLenum target,
+										   GLint level,
+										   GLint internalformat,
+										   GLsizei width,
+										   GLsizei height,
+										   GLsizei depth,
+										   GLint border,
+										   GLenum format,
+										   GLenum type,
+										   const void* data);
+
+typedef void(EFK_STDCALL* FP_glCopyTexSubImage3D)(GLenum target,
+												  GLint level,
+												  GLint xoffset,
+												  GLint yoffset,
+												  GLint zoffset,
+												  GLint x,
+												  GLint y,
+												  GLsizei width,
+												  GLsizei height);
 
 static FP_glDeleteBuffers g_glDeleteBuffers = nullptr;
 static FP_glCreateShader g_glCreateShader = nullptr;
@@ -157,11 +186,23 @@ static FP_glGenFramebuffers g_glGenFramebuffers = nullptr;
 
 static FP_glBindFramebuffer g_glBindFramebuffer = nullptr;
 
+static FP_glGenRenderbuffers g_glGenRenderbuffers = nullptr;
+
+static FP_glBindRenderbuffer g_glBindRenderbuffer = nullptr;
+
 static FP_glDeleteFramebuffers g_glDeleteFramebuffers = nullptr;
 
 static FP_glFramebufferTexture2D g_glFramebufferTexture2D = nullptr;
 
+static FP_glDeleteRenderbuffers g_glDeleteRenderbuffers = nullptr;
+
+static FP_glRenderbufferStorageMultisample g_glRenderbufferStorageMultisample = nullptr;
+
 static FP_glDrawBuffers g_glDrawBuffers = nullptr;
+
+static FP_glTexImage3D g_glTexImage3D = nullptr;
+
+static FP_glCopyTexSubImage3D g_glCopyTexSubImage3D = nullptr;
 
 #elif defined(__EFFEKSEER_RENDERER_GLES2__)
 
@@ -203,7 +244,7 @@ static bool g_isSurrpotedMapBuffer = false;
 static OpenGLDeviceType g_deviceType = OpenGLDeviceType::OpenGL2;
 
 #if _WIN32
-#define GET_PROC_REQ(name)                                                                           \
+#define GET_PROC_REQ(name)                                                                       \
 	g_##name = (FP_##name)wglGetProcAddress(#name);                                              \
 	if (g_##name == nullptr)                                                                     \
 	{                                                                                            \
@@ -211,7 +252,7 @@ static OpenGLDeviceType g_deviceType = OpenGLDeviceType::OpenGL2;
 		return false;                                                                            \
 	}
 #elif defined(__EFFEKSEER_RENDERER_GLES2__) || defined(__EFFEKSEER_RENDERER_GLES3__)
-#define GET_PROC_REQ(name)                                                                           \
+#define GET_PROC_REQ(name)                                                                       \
 	g_##name = (FP_##name)eglGetProcAddress(#name);                                              \
 	if (g_##name == nullptr)                                                                     \
 	{                                                                                            \
@@ -221,17 +262,17 @@ static OpenGLDeviceType g_deviceType = OpenGLDeviceType::OpenGL2;
 #endif
 
 #if _WIN32
-#define GET_PROC(name)                                                                           \
-	g_##name = (FP_##name)wglGetProcAddress(#name);                                              \
-	if (g_##name == nullptr)                                                                     \
-	{                                                                                            \
+#define GET_PROC(name)                                                                             \
+	g_##name = (FP_##name)wglGetProcAddress(#name);                                                \
+	if (g_##name == nullptr)                                                                       \
+	{                                                                                              \
 		Effekseer::Log(Effekseer::LogType::Warning, "Failed to get proc : " + std::string(#name)); \
 	}
 #elif defined(__EFFEKSEER_RENDERER_GLES2__) || defined(__EFFEKSEER_RENDERER_GLES3__)
-#define GET_PROC(name)                              \
-	g_##name = (FP_##name)eglGetProcAddress(#name); \
-	if (g_##name == nullptr)                                                                     \
-	{                                                                                            \
+#define GET_PROC(name)                                                                             \
+	g_##name = (FP_##name)eglGetProcAddress(#name);                                                \
+	if (g_##name == nullptr)                                                                       \
+	{                                                                                              \
 		Effekseer::Log(Effekseer::LogType::Warning, "Failed to get proc : " + std::string(#name)); \
 	}
 #endif
@@ -309,9 +350,21 @@ bool Initialize(OpenGLDeviceType deviceType, bool isExtensionsEnabled)
 
 	GET_PROC_REQ(glDeleteFramebuffers);
 
-	GET_PROC_REQ(glFramebufferTexture2D);
+	GET_PROC(glFramebufferTexture2D);
+
+	GET_PROC(glGenRenderbuffers);
+
+	GET_PROC(glBindRenderbuffer);
+
+	GET_PROC(glDeleteRenderbuffers);
+
+	GET_PROC(glRenderbufferStorageMultisample);
 
 	GET_PROC_REQ(glDrawBuffers);
+
+	GET_PROC_REQ(glTexImage3D);
+
+	GET_PROC_REQ(glCopyTexSubImage3D);
 
 	g_isSupportedVertexArray = (g_glGenVertexArrays && g_glDeleteVertexArrays && g_glBindVertexArray);
 	g_isSurrpotedBufferRange = (g_glMapBufferRange && g_glUnmapBuffer);
@@ -888,6 +941,46 @@ void glFramebufferTexture2D(GLenum target,
 #endif
 }
 
+void glGenRenderbuffers(GLsizei n, GLuint* renderbuffers)
+{
+#if _WIN32
+	g_glGenRenderbuffers(n, renderbuffers);
+#elif defined(__EFFEKSEER_RENDERER_GLES2__) || defined(__EFFEKSEER_RENDERER_GL2__)
+#else
+	::glGenRenderbuffers(n, renderbuffers);
+#endif
+}
+
+void glBindRenderbuffer(GLenum target, GLuint renderbuffer)
+{
+#if _WIN32
+	g_glBindRenderbuffer(target, renderbuffer);
+#elif defined(__EFFEKSEER_RENDERER_GLES2__) || defined(__EFFEKSEER_RENDERER_GL2__)
+#else
+	::glBindRenderbuffer(target, renderbuffer);
+#endif
+}
+
+void glDeleteRenderbuffers(GLsizei n, GLuint* renderbuffers)
+{
+#if _WIN32
+	g_glDeleteRenderbuffers(n, renderbuffers);
+#elif defined(__EFFEKSEER_RENDERER_GLES2__) || defined(__EFFEKSEER_RENDERER_GL2__)
+#else
+	::glDeleteRenderbuffers(n, renderbuffers);
+#endif
+}
+
+void glRenderbufferStorageMultisample(GLenum target, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height)
+{
+#if _WIN32
+	g_glRenderbufferStorageMultisample(target, samples, internalformat, width, height);
+#elif defined(__EFFEKSEER_RENDERER_GLES2__) || defined(__EFFEKSEER_RENDERER_GL2__)
+#else
+	::glRenderbufferStorageMultisample(target, samples, internalformat, width, height);
+#endif
+}
+
 void glDrawBuffers(GLsizei n, const GLenum* bufs)
 {
 #if _WIN32
@@ -895,6 +988,43 @@ void glDrawBuffers(GLsizei n, const GLenum* bufs)
 #elif defined(__EFFEKSEER_RENDERER_GLES2__) || defined(__EFFEKSEER_RENDERER_GL2__)
 #else
 	::glDrawBuffers(n, bufs);
+#endif
+}
+
+void glTexImage3D(GLenum target,
+				  GLint level,
+				  GLint internalformat,
+				  GLsizei width,
+				  GLsizei height,
+				  GLsizei depth,
+				  GLint border,
+				  GLenum format,
+				  GLenum type,
+				  const void* data)
+{
+#if _WIN32
+	g_glTexImage3D(target, level, internalformat, width, height, depth, border, format, type, data);
+#elif defined(__EFFEKSEER_RENDERER_GLES2__) || defined(__EFFEKSEER_RENDERER_GL2__)
+#else
+	::glTexImage3D(target, level, internalformat, width, height, depth, border, format, type, data);
+#endif
+}
+
+void glCopyTexSubImage3D(GLenum target,
+						 GLint level,
+						 GLint xoffset,
+						 GLint yoffset,
+						 GLint zoffset,
+						 GLint x,
+						 GLint y,
+						 GLsizei width,
+						 GLsizei height)
+{
+#if _WIN32
+	g_glCopyTexSubImage3D(target, level, xoffset, yoffset, zoffset, x, y, width, height);
+#elif defined(__EFFEKSEER_RENDERER_GLES2__) || defined(__EFFEKSEER_RENDERER_GL2__)
+#else
+	::glCopyTexSubImage3D(target, level, xoffset, yoffset, zoffset, x, y, width, height);
 #endif
 }
 

@@ -1,12 +1,10 @@
 #include "LLGI.CommandListMetal.h"
-#include "LLGI.ConstantBufferMetal.h"
+#include "LLGI.BufferMetal.h"
 #include "LLGI.GraphicsMetal.h"
-#include "LLGI.IndexBufferMetal.h"
 #include "LLGI.Metal_Impl.h"
 #include "LLGI.PipelineStateMetal.h"
 #include "LLGI.RenderPassMetal.h"
 #include "LLGI.TextureMetal.h"
-#include "LLGI.VertexBufferMetal.h"
 
 #import <MetalKit/MetalKit.h>
 #include <TargetConditionals.h>
@@ -156,8 +154,8 @@ void CommandListMetal::Draw(int32_t primitiveCount, int32_t instanceCount)
 	assert(bib.indexBuffer != nullptr);
 	assert(bpip != nullptr);
 
-	auto vb = static_cast<VertexBufferMetal*>(bvb.vertexBuffer);
-	auto ib = static_cast<IndexBufferMetal*>(bib.indexBuffer);
+	auto vb = static_cast<BufferMetal*>(bvb.vertexBuffer);
+	auto ib = static_cast<BufferMetal*>(bib.indexBuffer);
 	auto pip = static_cast<PipelineStateMetal*>(bpip);
 
 	// set cull mode
@@ -178,29 +176,29 @@ void CommandListMetal::Draw(int32_t primitiveCount, int32_t instanceCount)
 
 	if (isVBDirtied)
 	{
-		[renderEncoder_ setVertexBuffer:vb->GetBuffer().GetBuffer() offset:bvb.offset atIndex:VertexBufferIndex];
+		[renderEncoder_ setVertexBuffer:vb->GetBuffer() offset:bvb.offset atIndex:VertexBufferIndex];
 	}
 
 	// assign constant buffer
-	ConstantBuffer* vcb = nullptr;
+	Buffer* vcb = nullptr;
 	GetCurrentConstantBuffer(ShaderStageType::Vertex, vcb);
 	if (vcb != nullptr)
 	{
-		auto vcb_ = static_cast<ConstantBufferMetal*>(vcb);
-		[renderEncoder_ setVertexBuffer:vcb_->GetBuffer().GetBuffer() offset:vcb_->GetOffset() atIndex:0];
+		auto vcb_ = static_cast<BufferMetal*>(vcb);
+		[renderEncoder_ setVertexBuffer:vcb_->GetBuffer() offset:vcb_->GetOffset() atIndex:0];
 	}
 
-	ConstantBuffer* pcb = nullptr;
+	Buffer* pcb = nullptr;
 	GetCurrentConstantBuffer(ShaderStageType::Pixel, pcb);
 	if (pcb != nullptr)
 	{
-		auto pcb_ = static_cast<ConstantBufferMetal*>(pcb);
-		[renderEncoder_ setFragmentBuffer:pcb_->GetBuffer().GetBuffer() offset:pcb_->GetOffset() atIndex:0];
+		auto pcb_ = static_cast<BufferMetal*>(pcb);
+		[renderEncoder_ setFragmentBuffer:pcb_->GetBuffer() offset:pcb_->GetOffset() atIndex:0];
 	}
 
-	// Assign textures
-	for (int stage_ind = 0; stage_ind < (int32_t)ShaderStageType::Max; stage_ind++)
+	for (int stage_ind = 0; stage_ind < 2; stage_ind++)
 	{
+		// Assign textures
 		for (int unit_ind = 0; unit_ind < currentTextures[stage_ind].size(); unit_ind++)
 		{
 			if (currentTextures[stage_ind][unit_ind].texture == nullptr)
@@ -226,6 +224,17 @@ void CommandListMetal::Draw(int32_t primitiveCount, int32_t instanceCount)
 				[renderEncoder_ setFragmentTexture:texture->GetTexture() atIndex:unit_ind];
 				[renderEncoder_ setFragmentSamplerState:samplerStates_[wm][mm][pm] atIndex:unit_ind];
 			}
+		}
+
+		for (int unit_ind = 0; unit_ind < NumComputeBuffer; unit_ind++)
+		{
+			BindingComputeBuffer bcb;
+			GetCurrentComputeBuffer(unit_ind, (ShaderStageType)stage_ind, bcb);
+			if (bcb.computeBuffer == nullptr)
+				continue;
+			
+			auto cb = static_cast<BufferMetal*>(bcb.computeBuffer);
+			[computeEncoder_ setBuffer:cb->GetBuffer() offset:cb->GetOffset() atIndex:1 + unit_ind];
 		}
 	}
 
@@ -266,7 +275,8 @@ void CommandListMetal::Draw(int32_t primitiveCount, int32_t instanceCount)
 		assert(0);
 	}
 
-	if (ib->GetStride() == 2)
+	assert(bib.stride == 2 || bib.stride == 4);
+	if (bib.stride == 2)
 	{
 		indexType = MTLIndexTypeUInt16;
 	}
@@ -274,7 +284,7 @@ void CommandListMetal::Draw(int32_t primitiveCount, int32_t instanceCount)
 	[renderEncoder_ drawIndexedPrimitives:topology
 							   indexCount:primitiveCount * indexPerPrim
 								indexType:indexType
-							  indexBuffer:ib->GetBuffer().GetBuffer()
+							  indexBuffer:ib->GetBuffer()
 						indexBufferOffset:bib.offset
 							instanceCount:instanceCount];
 
@@ -282,6 +292,13 @@ void CommandListMetal::Draw(int32_t primitiveCount, int32_t instanceCount)
 }
 
 void CommandListMetal::CopyTexture(Texture* src, Texture* dst)
+{
+	auto srcTex = static_cast<TextureMetal*>(src);
+	CopyTexture(src, dst, {0, 0, 0}, {0, 0, 0}, srcTex->GetParameter().Size, 0, 0);
+}
+
+void CommandListMetal::CopyTexture(
+	Texture* src, Texture* dst, const Vec3I& srcPos, const Vec3I& dstPos, const Vec3I& size, int srcLayer, int dstLayer)
 {
 	@autoreleasepool
 	{
@@ -296,19 +313,18 @@ void CommandListMetal::CopyTexture(Texture* src, Texture* dst)
 
 		id<MTLBlitCommandEncoder> blitEncoder = [commandBuffer_ blitCommandEncoder];
 
-		auto regionSize = srcTex->GetSizeAs2D();
-
-		MTLRegion region = {{0, 0, 0}, {(uint32_t)regionSize.X, (uint32_t)regionSize.Y, 1}};
+		MTLRegion region = {{(uint32_t)srcPos[0], (uint32_t)srcPos[1], (uint32_t)srcPos[2]},
+							{(uint32_t)size[0], (uint32_t)size[1], (uint32_t)size[2]}};
 
 		[blitEncoder copyFromTexture:srcTex->GetTexture()
-						 sourceSlice:0
+						 sourceSlice:srcLayer
 						 sourceLevel:0
 						sourceOrigin:region.origin
 						  sourceSize:region.size
 						   toTexture:dstTex->GetTexture()
-					destinationSlice:0
+					destinationSlice:dstLayer
 					destinationLevel:0
-				   destinationOrigin:{0, 0, 0}];
+				   destinationOrigin:{(uint32_t)dstPos[0], (uint32_t)dstPos[1], (uint32_t)dstPos[2]}];
 		[blitEncoder endEncoding];
 
 		RegisterReferencedObject(src);
@@ -437,6 +453,80 @@ bool CommandListMetal::EndRenderPassWithPlatformPtr()
 	}
 
 	return CommandList::EndRenderPassWithPlatformPtr();
+}
+
+void CommandListMetal::BeginComputePass()
+{
+	computeEncoder_ = [commandBuffer_ computeCommandEncoder];
+	[computeEncoder_ retain];
+}
+
+void CommandListMetal::EndComputePass()
+{
+	if (computeEncoder_)
+	{
+		[computeEncoder_ endEncoding];
+		[computeEncoder_ release];
+		computeEncoder_ = nullptr;
+	}
+}
+
+void CommandListMetal::Dispatch(int32_t groupX, int32_t groupY, int32_t groupZ, int32_t threadX, int32_t threadY, int32_t threadZ)
+{
+	PipelineState* bpip = nullptr;
+
+	bool isPipDirtied = false;
+
+	GetCurrentPipelineState(bpip, isPipDirtied);
+
+	assert(bpip != nullptr);
+	assert(computeEncoder_ != nullptr);
+
+	auto pip = static_cast<PipelineStateMetal*>(bpip);
+    
+    for (int unit_ind = 0; unit_ind < NumComputeBuffer; unit_ind++)
+    {
+        BindingComputeBuffer bcb;
+        GetCurrentComputeBuffer(unit_ind, ShaderStageType::Compute, bcb);
+        if (bcb.computeBuffer == nullptr)
+            continue;
+        
+        auto cb = static_cast<BufferMetal*>(bcb.computeBuffer);
+        [computeEncoder_ setBuffer:cb->GetBuffer() offset:cb->GetOffset() atIndex:1 + unit_ind];
+    }
+    
+	// assign constant buffer
+	Buffer* ccb = nullptr;
+	GetCurrentConstantBuffer(ShaderStageType::Compute, ccb);
+	if (ccb != nullptr)
+	{
+		auto ccb_ = static_cast<BufferMetal*>(ccb);
+		[computeEncoder_ setBuffer:ccb_->GetBuffer() offset:ccb_->GetOffset() atIndex:0];
+	}
+
+	if (isPipDirtied)
+	{
+		[computeEncoder_ setComputePipelineState:pip->GetComputePipelineState()];
+	}
+
+	[computeEncoder_ dispatchThreadgroups:{(uint32_t)groupX, (uint32_t)groupY, (uint32_t)groupZ} threadsPerThreadgroup:{(uint32_t)threadX, (uint32_t)threadY, (uint32_t)threadZ}];
+
+	CommandList::Dispatch(groupX, groupY, groupZ, threadX, threadY, threadZ);
+}
+
+void CommandListMetal::CopyBuffer(Buffer* src, Buffer* dst)
+{
+    auto srcBuf = static_cast<BufferMetal*>(src);
+    auto srcGpuBuf = srcBuf->GetBuffer();
+
+    auto dstBuf = static_cast<BufferMetal*>(dst);
+    auto dstGpuBuf = dstBuf->GetBuffer();
+
+    auto encoder = [commandBuffer_ blitCommandEncoder];
+    [encoder retain];
+    [encoder copyFromBuffer:srcGpuBuf sourceOffset:srcBuf->GetOffset() toBuffer:dstGpuBuf destinationOffset:dstBuf->GetOffset() size:srcBuf->GetSize()];
+    [encoder endEncoding];
+    [encoder release];
 }
 
 }

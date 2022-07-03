@@ -29,7 +29,7 @@ public:
 
 	virtual ~Resource() = default;
 
-	const CustomString& GetPath()
+	const CustomString<char16_t>& GetPath()
 	{
 		return path_;
 	}
@@ -42,7 +42,7 @@ private:
 		path_ = path;
 	}
 
-	CustomString path_;
+	CustomString<char16_t> path_;
 };
 
 /**
@@ -57,11 +57,11 @@ public:
 
 	int32_t GetWidth() const
 	{
-		return backend_->GetSize()[0];
+		return backend_->GetParameter().Size[0];
 	}
 	int32_t GetHeight() const
 	{
-		return backend_->GetSize()[1];
+		return backend_->GetParameter().Size[1];
 	}
 
 	const Backend::TextureRef& GetBackend()

@@ -39,9 +39,9 @@ private:
 	std::vector<std::shared_ptr<InternalSingleFrameMemoryPoolMetal>> memoryPools;
 	int32_t currentSwap_ = 0;
 
-	ConstantBuffer* CreateConstantBufferInternal(int32_t size) override;
+	Buffer* CreateBufferInternal(int32_t size) override;
 
-	ConstantBuffer* ReinitializeConstantBuffer(ConstantBuffer* cb, int32_t size) override;
+	Buffer* ReinitializeBuffer(Buffer* cb, int32_t size) override;
 
 public:
 	SingleFrameMemoryPoolMetal(GraphicsMetal* graphics, bool isStrongRef, int32_t constantBufferPoolSize, int32_t drawingCount);

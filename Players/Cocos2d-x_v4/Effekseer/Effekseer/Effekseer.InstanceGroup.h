@@ -16,6 +16,17 @@
 //----------------------------------------------------------------------------------
 namespace Effekseer
 {
+
+//----------------------------------------------------------------------------------
+//
+//----------------------------------------------------------------------------------
+enum class GenerationState
+{
+	BeforeStart,
+	Generating,
+	Ended,
+};
+
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
@@ -31,11 +42,23 @@ class alignas(32) InstanceGroup
 	friend class ManagerImplemented;
 
 private:
-	ManagerImplemented* m_manager;
-	EffectNodeImplemented* m_effectNode;
-	InstanceContainer* m_container;
-	InstanceGlobal* m_global;
-	int32_t m_time;
+	ManagerImplemented* m_manager = nullptr;
+	EffectNodeImplemented* m_effectNode = nullptr;
+	InstanceContainer* m_container = nullptr;
+	InstanceGlobal* m_global = nullptr;
+
+	GenerationState m_generationState = GenerationState::BeforeStart;
+
+	// The number of generated instances.
+	int32_t m_generatedCount = 0;
+
+	// The maximum number of instances to generate.
+	int32_t m_maxGenerationCount = 0;
+
+	// The time to generate next instance.
+	float m_nextGenerationTime = 0.0f;
+	float m_generationOffsetTime = 0.0f;
+	float time_ = 0.0f;
 
 	SIMD::Mat43f parentMatrix_;
 	SIMD::Mat43f parentRotation_;
@@ -56,15 +79,18 @@ public:
 	/**
 		@brief	描画に必要なパラメータ
 	*/
-	union
-	{
+	union {
 		EffectNodeTrack::InstanceGroupValues track;
 	} rendererValues;
+
+	void Initialize(RandObject& rand, Instance* parent);
 
 	/**
 		@brief	インスタンスの生成
 	*/
-	Instance* CreateInstance();
+	Instance* CreateRootInstance();
+
+	void GenerateInstancesIfRequired(float localTime, RandObject& rand, Instance* parent);
 
 	Instance* GetFirst();
 
@@ -72,7 +98,7 @@ public:
 
 	void Update(bool shown);
 
-	void SetBaseMatrix(const SIMD::Mat43f& mat);
+	void ApplyBaseMatrix(const SIMD::Mat43f& mat);
 
 	void SetParentMatrix(const SIMD::Mat43f& mat);
 
@@ -80,25 +106,27 @@ public:
 
 	void KillAllInstances();
 
-	int32_t GetTime() const
+	bool IsActive() const;
+
+	float GetTime() const
 	{
-		return m_time;
+		return time_;
 	}
 
 	/**
 		@brief	グループを生成したインスタンスからの参照が残っているか?
 	*/
-	bool IsReferencedFromInstance;
+	bool IsReferencedFromInstance = true;
 
 	/**
 		@brief	インスタンスから利用する連結リストの次のオブジェクトへのポインタ
 	*/
-	InstanceGroup* NextUsedByInstance;
+	InstanceGroup* NextUsedByInstance = nullptr;
 
 	/**
 		@brief	コンテナから利用する連結リストの次のオブジェクトへのポインタ
 	*/
-	InstanceGroup* NextUsedByContainer;
+	InstanceGroup* NextUsedByContainer = nullptr;
 
 	InstanceGlobal* GetRootInstance() const
 	{

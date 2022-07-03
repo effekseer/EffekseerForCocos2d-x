@@ -1,14 +1,12 @@
 #include "LLGI.GraphicsMetal.h"
 #include "LLGI.CommandListMetal.h"
-#include "LLGI.ConstantBufferMetal.h"
-#include "LLGI.IndexBufferMetal.h"
+#include "LLGI.BufferMetal.h"
 #include "LLGI.Metal_Impl.h"
 #include "LLGI.PipelineStateMetal.h"
 #include "LLGI.RenderPassMetal.h"
 #include "LLGI.ShaderMetal.h"
 #include "LLGI.SingleFrameMemoryPoolMetal.h"
 #include "LLGI.TextureMetal.h"
-#include "LLGI.VertexBufferMetal.h"
 #import <MetalKit/MetalKit.h>
 
 #include <TargetConditionals.h>
@@ -70,15 +68,18 @@ void GraphicsMetal::SetWindowSize(const Vec2I& windowSize) { throw "Not inplemen
 void GraphicsMetal::Execute(CommandList* commandList)
 {
 	// remove finished commands
-	auto it = std::remove_if(executingCommandList_.begin(), executingCommandList_.end(), [](CommandList* cb) {
-		auto c = static_cast<CommandListMetal*>(cb);
-		if (c->GetIsCompleted())
-		{
-			cb->Release();
-			return true;
-		}
-		return false;
-	});
+	auto it = std::remove_if(executingCommandList_.begin(),
+							 executingCommandList_.end(),
+							 [](CommandList* cb)
+							 {
+								 auto c = static_cast<CommandListMetal*>(cb);
+								 if (c->GetIsCompleted())
+								 {
+									 cb->Release();
+									 return true;
+								 }
+								 return false;
+							 });
 
 	executingCommandList_.erase(it, executingCommandList_.end());
 
@@ -122,9 +123,17 @@ RenderPass* GraphicsMetal::GetCurrentScreen(const Color8& clearColor, bool isCol
 }
 */
 
-VertexBuffer* GraphicsMetal::CreateVertexBuffer(int32_t size) { return new VertexBufferMetal(this, size); }
+Buffer* GraphicsMetal::CreateBuffer(BufferUsageType usage, int32_t size)
+{
+    auto obj = new BufferMetal();
+    if (obj->Initialize(this, usage, size))
+    {
+        return obj;
+    }
 
-IndexBuffer* GraphicsMetal::CreateIndexBuffer(int32_t stride, int32_t count) { return new IndexBufferMetal(this, stride, count); }
+    SafeRelease(obj);
+    return nullptr;
+}
 
 Shader* GraphicsMetal::CreateShader(DataStructure* data, int32_t count)
 {
@@ -157,18 +166,6 @@ SingleFrameMemoryPool* GraphicsMetal::CreateSingleFrameMemoryPool(int32_t consta
 
 CommandList* GraphicsMetal::CreateCommandList(SingleFrameMemoryPool* memoryPool) { return new CommandListMetal(this); }
 
-ConstantBuffer* GraphicsMetal::CreateConstantBuffer(int32_t size)
-{
-	auto obj = new ConstantBufferMetal();
-	if (obj->Initialize(this, size))
-	{
-		return obj;
-	}
-
-	SafeRelease(obj);
-	return nullptr;
-}
-
 RenderPass* GraphicsMetal::CreateRenderPass(Texture** textures, int32_t textureCount, Texture* depthTexture)
 {
 	auto renderPass = new RenderPassMetal();
@@ -200,40 +197,60 @@ GraphicsMetal::CreateRenderPass(Texture* texture, Texture* resolvedTexture, Text
 	return renderPass;
 }
 
+Texture* GraphicsMetal::CreateTexture(const TextureParameter& parameter)
+{
+	auto obj = new TextureMetal();
+	if (!obj->Initialize(this, parameter))
+	{
+		SafeRelease(obj);
+		return nullptr;
+	}
+	return obj;
+}
+
 Texture* GraphicsMetal::CreateTexture(const TextureInitializationParameter& parameter)
 {
-	auto o = new TextureMetal();
-	if (o->Initialize(this, parameter))
-	{
-		return o;
-	}
-
-	SafeRelease(o);
-	return nullptr;
+	TextureParameter param;
+	param.Dimension = 2;
+	param.Format = parameter.Format;
+	param.MipLevelCount = parameter.MipMapCount;
+	param.SampleCount = 1;
+	param.Size = {parameter.Size.X, parameter.Size.Y, 1};
+	return CreateTexture(param);
 }
 
 Texture* GraphicsMetal::CreateRenderTexture(const RenderTextureInitializationParameter& parameter)
 {
-	auto o = new TextureMetal();
-	if (o->Initialize(this, parameter))
-	{
-		return o;
-	}
-
-	SafeRelease(o);
-	return nullptr;
+	TextureParameter param;
+	param.Dimension = 2;
+	param.Format = parameter.Format;
+	param.MipLevelCount = 1;
+	param.SampleCount = parameter.SamplingCount;
+	param.Size = {parameter.Size.X, parameter.Size.Y, 1};
+	param.Usage = TextureUsageType::RenderTarget;
+	return CreateTexture(param);
 }
 
 Texture* GraphicsMetal::CreateDepthTexture(const DepthTextureInitializationParameter& parameter)
 {
-	auto o = new TextureMetal();
-	if (o->Initialize(this, parameter))
+	auto format = TextureFormatType::D32;
+	if (parameter.Mode == DepthTextureMode::DepthStencil)
 	{
-		return o;
+		format = TextureFormatType::D24S8;
+
+		if (!GetDevice().isDepth24Stencil8PixelFormatSupported)
+		{
+			return nullptr;
+		}
 	}
 
-	SafeRelease(o);
-	return nullptr;
+	TextureParameter param;
+	param.Dimension = 2;
+	param.Format = format;
+	param.MipLevelCount = 1;
+	param.SampleCount = parameter.SamplingCount;
+	param.Size = {parameter.Size.X, parameter.Size.Y, 1};
+	return CreateTexture(param);
 }
 
 Texture* GraphicsMetal::CreateTexture(uint64_t texid)
@@ -304,7 +321,9 @@ std::vector<uint8_t> GraphicsMetal::CaptureRenderTarget(Texture* renderTarget)
 	[commandBuffer commit];
 	[commandBuffer waitUntilCompleted];
 
-	NSUInteger bytesPerPixel = GetTextureMemorySize(renderTarget->GetFormat(), renderTarget->GetSizeAs2D()) / width / height;
+	NSUInteger bytesPerPixel =
+		GetTextureMemorySize(renderTarget->GetFormat(), Vec3I{renderTarget->GetSizeAs2D().X, renderTarget->GetSizeAs2D().Y, 1}) / width /
+		height;
 	NSUInteger imageByteCount = width * height * bytesPerPixel;
 	NSUInteger bytesPerRow = width * bytesPerPixel;
 	MTLRegion region = MTLRegionMake2D(0, 0, width, height);

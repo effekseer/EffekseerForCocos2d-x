@@ -131,7 +131,8 @@ Graphics* PlatformMetal::CreateGraphics()
 {
 	auto ret = new GraphicsMetal();
 
-	auto getGraphicsView = [this]() -> GraphicsView {
+	auto getGraphicsView = [this]() -> GraphicsView
+	{
 		GraphicsView view;
 		view.drawable = this->impl->drawable;
 		return view;

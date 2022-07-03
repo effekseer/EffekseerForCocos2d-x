@@ -56,8 +56,7 @@ struct DynamicVertex
 	//! packed vector
 	VertexColor Tangent;
 
-	union
-	{
+	union {
 		//! UV1 (for template)
 		float UV[2];
 		float UV1[2];
@@ -126,8 +125,7 @@ struct LightingVertex
 	//! packed vector
 	VertexColor Tangent;
 
-	union
-	{
+	union {
 		//! UV1 (for template)
 		float UV[2];
 		float UV1[2];
@@ -184,8 +182,7 @@ struct SimpleVertex
 	VertexFloat3 Pos;
 	VertexColor Col;
 
-	union
-	{
+	union {
 		float UV[2];
 		//! dummy for template
 		float UV2[2];
@@ -230,8 +227,7 @@ struct AdvancedLightingVertex
 	//! packed vector
 	VertexColor Tangent;
 
-	union
-	{
+	union {
 		//! UV1 (for template)
 		float UV[2];
 		float UV1[2];
@@ -298,8 +294,7 @@ struct AdvancedSimpleVertex
 	VertexFloat3 Pos;
 	VertexColor Col;
 
-	union
-	{
+	union {
 		float UV[2];
 		//! dummy for template
 		float UV1[2];
@@ -642,6 +637,8 @@ struct StrideView
 	}
 };
 
+std::array<std::array<float, 4>, 13> ToUniform(const Effekseer::Gradient& gradient);
+
 void CalcBillboard(::Effekseer::BillboardType billboardType,
 				   Effekseer::SIMD::Mat43f& dst,
 				   ::Effekseer::SIMD::Vec3f& s,
@@ -833,6 +830,9 @@ struct MaterialShaderParameterGenerator
 			VertexUserUniformOffset = vsOffset;
 			vsOffset += sizeof(float) * 4 * materialFile.GetUniformCount();
 
+			// TODO : remove magic number
+			vsOffset += sizeof(float) * 4 * 13 * materialFile.Gradients.size();
+
 			VertexShaderUniformBufferSize = vsOffset;
 		}
 		else
@@ -856,6 +856,9 @@ struct MaterialShaderParameterGenerator
 			VertexUserUniformOffset = vsOffset;
 			vsOffset += sizeof(float) * 4 * materialFile.GetUniformCount();
 
+			// TODO : remove magic number
+			vsOffset += sizeof(float) * 4 * 13 * materialFile.Gradients.size();
+
 			VertexShaderUniformBufferSize = vsOffset;
 		}
 
@@ -876,17 +879,14 @@ struct MaterialShaderParameterGenerator
 		PixelReconstructionParam2Offset = psOffset;
 		psOffset += sizeof(float) * 4;
 
-		if (materialFile.GetShadingModel() == ::Effekseer::ShadingModelType::Lit)
-		{
-			PixelLightDirectionOffset = psOffset;
-			psOffset += sizeof(float) * 4;
+		PixelLightDirectionOffset = psOffset;
+		psOffset += sizeof(float) * 4;
 
-			PixelLightColorOffset = psOffset;
-			psOffset += sizeof(float) * 4;
+		PixelLightColorOffset = psOffset;
+		psOffset += sizeof(float) * 4;
 
-			PixelLightAmbientColorOffset = psOffset;
-			psOffset += sizeof(float) * 4;
-		}
+		PixelLightAmbientColorOffset = psOffset;
+		psOffset += sizeof(float) * 4;
 
 		if (materialFile.GetHasRefraction() && stage == 1)
 		{
@@ -896,6 +896,9 @@ struct MaterialShaderParameterGenerator
 
 		PixelUserUniformOffset = psOffset;
 		psOffset += sizeof(float) * 4 * materialFile.GetUniformCount();
+
+		// TODO : remove magic number
+		psOffset += sizeof(float) * 4 * 13 * materialFile.Gradients.size();
 
 		PixelShaderUniformBufferSize = psOffset;
 	}
@@ -1027,7 +1030,9 @@ struct ShaderParameterCollector
 			IsDepthRequired = true;
 		}
 
-		if (renderer->GetRenderMode() == Effekseer::RenderMode::Wireframe)
+		// TODO : refactor in 1.7
+		const auto whiteMode = renderer->GetRenderMode() == Effekseer::RenderMode::Wireframe || renderer->GetExternalShaderSettings() != nullptr;
+		if (whiteMode)
 		{
 			ShaderType = RendererShaderType::Unlit;
 		}
@@ -1081,7 +1086,8 @@ struct ShaderParameterCollector
 			ShaderType = RendererShaderType::Unlit;
 		}
 
-		if (renderer->GetRenderMode() == Effekseer::RenderMode::Wireframe)
+		// TODO : refactor in 1.7
+		if (whiteMode)
 		{
 			TextureCount = 1;
 			Textures[0] = renderer->GetImpl()->GetProxyTexture(EffekseerRenderer::ProxyTextureType::White);
@@ -1376,8 +1382,7 @@ struct SoftParticleParameter
 
 struct FlipbookParameter
 {
-	union
-	{
+	union {
 		float Buffer[4];
 
 		struct
@@ -1390,8 +1395,7 @@ struct FlipbookParameter
 
 struct UVDistortionParameter
 {
-	union
-	{
+	union {
 		float Buffer[4];
 
 		struct
@@ -1405,8 +1409,7 @@ struct UVDistortionParameter
 
 struct BlendTextureParameter
 {
-	union
-	{
+	union {
 		float Buffer[4];
 
 		struct
@@ -1418,8 +1421,7 @@ struct BlendTextureParameter
 
 struct EmmisiveParameter
 {
-	union
-	{
+	union {
 		float Buffer[4];
 
 		struct
@@ -1433,8 +1435,7 @@ struct EdgeParameter
 {
 	std::array<float, 4> EdgeColor;
 
-	union
-	{
+	union {
 		float Buffer[4];
 
 		struct
@@ -1447,8 +1448,7 @@ struct EdgeParameter
 
 struct FalloffParameter
 {
-	union
-	{
+	union {
 		float Buffer[4];
 
 		struct
@@ -1484,7 +1484,7 @@ struct PixelConstantBuffer
 	EdgeParameter EdgeParam;
 	SoftParticleParameter SoftParticleParam;
 	float UVInversedBack[4];
-	std::array<float,4> MiscFlags;
+	std::array<float, 4> MiscFlags;
 
 	void SetModelFlipbookParameter(float enableInterpolation, float interpolationType)
 	{
@@ -1559,6 +1559,9 @@ struct PixelConstantBufferDistortion
 };
 
 void CalculateAlignedTextureInformation(Effekseer::Backend::TextureFormatType format, const std::array<int, 2>& size, int32_t& sizePerWidth, int32_t& height);
+
+//! only support OpenGL
+Effekseer::Backend::VertexLayoutRef GetVertexLayout(Effekseer::Backend::GraphicsDeviceRef graphicsDevice, RendererShaderType type);
 
 } // namespace EffekseerRenderer
 #endif // __EFFEKSEERRENDERER_COMMON_UTILS_H__

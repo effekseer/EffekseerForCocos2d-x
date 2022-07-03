@@ -1,14 +1,12 @@
 #include "LLGI.RenderPassMetal.h"
 #include "LLGI.CommandListMetal.h"
-#include "LLGI.ConstantBufferMetal.h"
 #include "LLGI.GraphicsMetal.h"
-#include "LLGI.IndexBufferMetal.h"
+#include "LLGI.BufferMetal.h"
 #include "LLGI.Metal_Impl.h"
 #include "LLGI.PipelineStateMetal.h"
 #include "LLGI.ShaderMetal.h"
 #include "LLGI.SingleFrameMemoryPoolMetal.h"
 #include "LLGI.TextureMetal.h"
-#include "LLGI.VertexBufferMetal.h"
 
 #import <MetalKit/MetalKit.h>
 

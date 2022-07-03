@@ -43,6 +43,7 @@ namespace LLGI
 {
 
 class GraphicsVulkan;
+class BufferVulkan;
 class PipelineStateVulkan;
 class TextureVulkan;
 class RenderPassVulkan;
@@ -63,7 +64,7 @@ public:
 	static TextureFormatType VkFormatToTextureFormat(VkFormat format);
 };
 
-class Buffer
+class InternalBuffer
 {
 	std::shared_ptr<GraphicsVulkan> graphics_;
 	vk::Buffer buffer_;
@@ -71,8 +72,8 @@ class Buffer
 	bool isExternalResource_ = false;
 
 public:
-	Buffer(GraphicsVulkan* graphics);
-	virtual ~Buffer();
+	InternalBuffer(GraphicsVulkan* graphics);
+	virtual ~InternalBuffer();
 	void Attach(vk::Buffer buffer, vk::DeviceMemory devMem, bool isExternalResource = false);
 	vk::Buffer buffer() const { return buffer_; }
 	vk::DeviceMemory devMem() const { return devMem_; }

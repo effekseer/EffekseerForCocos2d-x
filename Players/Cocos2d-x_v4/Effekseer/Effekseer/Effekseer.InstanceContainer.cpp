@@ -174,13 +174,13 @@ void InstanceContainer::Update(bool recursive, bool shown)
 //----------------------------------------------------------------------------------
 //
 //----------------------------------------------------------------------------------
-void InstanceContainer::SetBaseMatrix(bool recursive, const SIMD::Mat43f& mat)
+void InstanceContainer::ApplyBaseMatrix(bool recursive, const SIMD::Mat43f& mat)
 {
-	if (m_pEffectNode->GetType() != EFFECT_NODE_TYPE_ROOT)
+	if (m_pEffectNode->GetType() != eEffectNodeType::Root)
 	{
 		for (InstanceGroup* group = m_headGroups; group != nullptr; group = group->NextUsedByContainer)
 		{
-			group->SetBaseMatrix(mat);
+			group->ApplyBaseMatrix(mat);
 		}
 	}
 
@@ -188,7 +188,7 @@ void InstanceContainer::SetBaseMatrix(bool recursive, const SIMD::Mat43f& mat)
 	{
 		for (auto child : m_Children)
 		{
-			child->SetBaseMatrix(recursive, mat);
+			child->ApplyBaseMatrix(recursive, mat);
 		}
 	}
 }
@@ -220,7 +220,7 @@ void InstanceContainer::RemoveForcibly(bool recursive)
 //----------------------------------------------------------------------------------
 void InstanceContainer::Draw(bool recursive)
 {
-	if (m_pEffectNode->GetType() != EFFECT_NODE_TYPE_ROOT && m_pEffectNode->GetType() != EFFECT_NODE_TYPE_NONE)
+	if (m_pEffectNode->GetType() != eEffectNodeType::Root && m_pEffectNode->GetType() != eEffectNodeType::NoneType)
 	{
 		/* 個数計測 */
 		int32_t count = 0;
@@ -229,7 +229,7 @@ void InstanceContainer::Draw(bool recursive)
 			{
 				for (auto instance : group->m_instances)
 				{
-					if (instance->m_State == INSTANCE_STATE_ACTIVE)
+					if (instance->IsActive())
 					{
 						count++;
 					}
@@ -237,11 +237,11 @@ void InstanceContainer::Draw(bool recursive)
 			}
 		}
 
-		if (count > 0 && m_pEffectNode->IsRendered)
+		if (count > 0 && m_pEffectNode->IsRendered && (m_pGlobal->CurrentLevelOfDetails & m_pEffectNode->LODsParam.MatchingLODs) > 0 || m_pEffectNode->CanDrawWithNonMatchingLOD())
 		{
 			void* userData = m_pGlobal->GetUserData();
 
-			m_pEffectNode->BeginRendering(count, m_pManager, userData);
+			m_pEffectNode->BeginRendering(count, m_pManager, m_pGlobal, userData);
 
 			for (InstanceGroup* group = m_headGroups; group != nullptr; group = group->NextUsedByContainer)
 			{
@@ -250,22 +250,24 @@ void InstanceContainer::Draw(bool recursive)
 				if (m_pEffectNode->RenderingOrder == RenderingOrder_FirstCreatedInstanceIsFirst)
 				{
 					auto it = group->m_instances.begin();
-
+					int32_t index = 0;
 					while (it != group->m_instances.end())
 					{
-						if ((*it)->m_State == INSTANCE_STATE_ACTIVE)
+						if ((*it)->IsActive())
 						{
 							auto it_temp = it;
 							it_temp++;
 
 							if (it_temp != group->m_instances.end())
 							{
-								(*it)->Draw((*it_temp), userData);
+								(*it)->Draw((*it_temp), index, userData);
 							}
 							else
 							{
-								(*it)->Draw(nullptr, userData);
+								(*it)->Draw(nullptr, index, userData);
 							}
+
+							index++;
 						}
 
 						it++;
@@ -274,22 +276,24 @@ void InstanceContainer::Draw(bool recursive)
 				else
 				{
 					auto it = group->m_instances.rbegin();
-
+					int32_t index = 0;
 					while (it != group->m_instances.rend())
 					{
-						if ((*it)->m_State == INSTANCE_STATE_ACTIVE)
+						if ((*it)->IsActive())
 						{
 							auto it_temp = it;
 							it_temp++;
 
 							if (it_temp != group->m_instances.rend())
 							{
-								(*it)->Draw((*it_temp), userData);
+								(*it)->Draw((*it_temp), index, userData);
 							}
 							else
 							{
-								(*it)->Draw(nullptr, userData);
+								(*it)->Draw(nullptr, index, userData);
 							}
+
+							index++;
 						}
 						it++;
 					}

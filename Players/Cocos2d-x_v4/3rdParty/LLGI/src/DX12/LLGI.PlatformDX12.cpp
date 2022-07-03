@@ -432,15 +432,9 @@ FAILED_EXIT:;
 	return false;
 }
 
-int PlatformDX12::GetCurrentFrameIndex() const
-{
-	return frameIndex;
-}
+int PlatformDX12::GetCurrentFrameIndex() const { return frameIndex; }
 
-int PlatformDX12::GetMaxFrameCount() const
-{
-	return static_cast<int>(renderTargets_.size());
-}
+int PlatformDX12::GetMaxFrameCount() const { return static_cast<int>(renderTargets_.size()); }
 
 bool PlatformDX12::NewFrame()
 {

@@ -22,8 +22,8 @@ public:
 	DescriptorHeapBlock(ID3D12Device* device, ID3D12DescriptorHeap* descriptorHeap, D3D12_DESCRIPTOR_HEAP_TYPE type, int32_t size);
 	~DescriptorHeapBlock();
 
-	bool Allocate(std::array<D3D12_CPU_DESCRIPTOR_HANDLE, 16>& cpuDescriptorHandle,
-				  std::array<D3D12_GPU_DESCRIPTOR_HANDLE, 16>& gpuDescriptorHandle,
+	bool Allocate(std::array<D3D12_CPU_DESCRIPTOR_HANDLE, 32>& cpuDescriptorHandle,
+				  std::array<D3D12_GPU_DESCRIPTOR_HANDLE, 32>& gpuDescriptorHandle,
 				  int32_t requiredHandle);
 
 	ID3D12DescriptorHeap* GetHeap() const;
@@ -45,8 +45,8 @@ public:
 	virtual ~DescriptorHeapAllocator();
 
 	bool Allocate(ID3D12DescriptorHeap*& heap,
-				  std::array<D3D12_CPU_DESCRIPTOR_HANDLE, 16>& cpuDescriptorHandle,
-				  std::array<D3D12_GPU_DESCRIPTOR_HANDLE, 16>& gpuDescriptorHandle,
+				  std::array<D3D12_CPU_DESCRIPTOR_HANDLE, 32>& cpuDescriptorHandle,
+				  std::array<D3D12_GPU_DESCRIPTOR_HANDLE, 32>& gpuDescriptorHandle,
 				  int32_t requiredHandle);
 
 	void Reset();

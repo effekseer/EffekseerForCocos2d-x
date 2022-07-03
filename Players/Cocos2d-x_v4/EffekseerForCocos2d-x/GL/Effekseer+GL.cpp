@@ -130,12 +130,12 @@ public:
 	}
 };
 
-Effekseer::ModelLoaderRef CreateModelLoader(Effekseer::FileInterface* effectFile)
+Effekseer::ModelLoaderRef CreateModelLoader(Effekseer::FileInterfaceRef effectFile)
 {
 	return Effekseer::MakeRefPtr<::EffekseerRenderer::ModelLoader>(EffekseerGraphicsDevice::create(), effectFile);
 }
 
-::Effekseer::MaterialLoaderRef CreateMaterialLoader(Effekseer::FileInterface* effectFile)
+::Effekseer::MaterialLoaderRef CreateMaterialLoader(Effekseer::FileInterfaceRef effectFile)
 {
 	return Effekseer::MakeRefPtr<::EffekseerRendererGL::MaterialLoader>(EffekseerGraphicsDevice::create().DownCast<::EffekseerRendererGL::Backend::GraphicsDevice>(), effectFile);
 }

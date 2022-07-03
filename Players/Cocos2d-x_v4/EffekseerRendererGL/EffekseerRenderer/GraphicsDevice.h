@@ -37,6 +37,14 @@ using RenderPassRef = Effekseer::RefPtr<RenderPass>;
 using PipelineStateRef = Effekseer::RefPtr<PipelineState>;
 using UniformLayoutRef = Effekseer::RefPtr<UniformLayout>;
 
+Effekseer::CustomVector<GLint> GetVertexAttribLocations(const VertexLayoutRef& vertexLayout, const ShaderRef& shader);
+
+void EnableLayouts(const VertexLayoutRef& vertexLayout, const Effekseer::CustomVector<GLint>& locations);
+
+void DisableLayouts(const Effekseer::CustomVector<GLint>& locations);
+
+void StoreUniforms(const ShaderRef& shader, const UniformBufferRef& vertexUniform, const UniformBufferRef& fragmentUniform, bool transpose);
+
 class DeviceObject
 {
 private:
@@ -140,6 +148,11 @@ public:
 		return buffer_;
 	}
 
+	Effekseer::CustomVector<uint8_t>& GetBuffer()
+	{
+		return buffer_;
+	}
+
 	void UpdateData(const void* src, int32_t size, int32_t offset);
 };
 
@@ -149,16 +162,17 @@ class Texture
 {
 private:
 	GLuint buffer_ = 0;
+	GLuint renderbuffer_ = 0;
+	int32_t target_ = -1;
+
 	GraphicsDevice* graphicsDevice_ = nullptr;
 	std::function<void()> onDisposed_;
-
-	bool InitInternal(const Effekseer::Backend::TextureParameter& param);
 
 public:
 	Texture(GraphicsDevice* graphicsDevice);
 	~Texture() override;
 
-	bool Init(const Effekseer::Backend::TextureParameter& param);
+	bool Init(const Effekseer::Backend::TextureParameter& param, const Effekseer::CustomVector<uint8_t>& initialData);
 
 	bool Init(const Effekseer::Backend::RenderTextureParameter& param);
 
@@ -169,6 +183,16 @@ public:
 	GLuint GetBuffer() const
 	{
 		return buffer_;
+	}
+
+	GLuint GetRenderBuffer() const
+	{
+		return renderbuffer_;
+	}
+
+	int32_t GetTarget() const
+	{
+		return target_;
 	}
 };
 
@@ -196,16 +220,31 @@ class Shader
 	  public Effekseer::Backend::Shader
 {
 private:
+	static const size_t elementMax = 16;
+
 	GraphicsDevice* graphicsDevice_ = nullptr;
 	GLuint program_ = 0;
 	GLuint vao_ = 0;
 
+	Effekseer::CustomVector<Effekseer::CustomString<char>> vsCodes_;
+	Effekseer::CustomVector<Effekseer::CustomString<char>> psCodes_;
+
 	Effekseer::Backend::UniformLayoutRef layout_ = nullptr;
+
+	Effekseer::CustomVector<GLint> textureLocations_;
+	Effekseer::CustomVector<GLint> uniformLocations_;
+
+	bool Compile();
+	void Reset();
 
 public:
 	Shader(GraphicsDevice* graphicsDevice);
 	~Shader() override;
-	bool Init(const char* vsCode, const char* psCode, Effekseer::Backend::UniformLayoutRef& layout);
+	bool Init(const Effekseer::CustomVector<Effekseer::StringView<char>>& vsCodes, const Effekseer::CustomVector<Effekseer::StringView<char>>& psCodes, Effekseer::Backend::UniformLayoutRef& layout);
+
+	void OnLostDevice() override;
+
+	void OnResetDevice() override;
 
 	GLuint GetProgram() const
 	{
@@ -221,6 +260,16 @@ public:
 	{
 		return layout_;
 	}
+
+	const Effekseer::CustomVector<GLint>& GetTextureLocations() const
+	{
+		return textureLocations_;
+	}
+
+	const Effekseer::CustomVector<GLint>& GetUniformLocations() const
+	{
+		return uniformLocations_;
+	}
 };
 
 class PipelineState
@@ -229,6 +278,7 @@ class PipelineState
 {
 private:
 	Effekseer::Backend::PipelineStateParameter param_;
+	Effekseer::CustomVector<GLint> attribLocations_;
 
 public:
 	PipelineState() = default;
@@ -239,6 +289,11 @@ public:
 	const Effekseer::Backend::PipelineStateParameter& GetParam() const
 	{
 		return param_;
+	}
+
+	const Effekseer::CustomVector<GLint>& GetAttribLocations() const
+	{
+		return attribLocations_;
 	}
 };
 
@@ -258,6 +313,11 @@ public:
 
 	bool Init(Effekseer::FixedSizeVector<Effekseer::Backend::TextureRef, Effekseer::Backend::RenderTargetMax>& textures, Effekseer::Backend::TextureRef depthTexture);
 
+	const Effekseer::FixedSizeVector<Effekseer::Backend::TextureRef, Effekseer::Backend::RenderTargetMax>& GetTextures() const
+	{
+		return textures_;
+	}
+
 	GLuint GetBuffer() const
 	{
 		return buffer_;
@@ -267,6 +327,10 @@ public:
 enum class DevicePropertyType
 {
 	MaxVaryingVectors,
+	MaxVertexUniformVectors,
+	MaxFragmentUniformVectors,
+	MaxVertexTextureImageUnits,
+	MaxTextureImageUnits,
 };
 
 /**
@@ -279,6 +343,7 @@ private:
 	std::set<DeviceObject*> objects_;
 	OpenGLDeviceType deviceType_;
 	std::array<GLuint, Effekseer::TextureSlotMax> samplers_;
+	GLuint frameBufferTemp_ = 0;
 	std::map<DevicePropertyType, int> properties_;
 	bool isValid_ = true;
 
@@ -305,11 +370,13 @@ public:
 
 	Effekseer::Backend::IndexBufferRef CreateIndexBuffer(int32_t elementCount, const void* initialData, Effekseer::Backend::IndexBufferStrideType stride) override;
 
-	Effekseer::Backend::TextureRef CreateTexture(const Effekseer::Backend::TextureParameter& param) override;
+	Effekseer::Backend::TextureRef CreateTexture(const Effekseer::Backend::TextureParameter& param, const Effekseer::CustomVector<uint8_t>& initialData) override;
 
 	Effekseer::Backend::TextureRef CreateRenderTexture(const Effekseer::Backend::RenderTextureParameter& param) override;
 
 	Effekseer::Backend::TextureRef CreateDepthTexture(const Effekseer::Backend::DepthTextureParameter& param) override;
+
+	bool CopyTexture(Effekseer::Backend::TextureRef& dst, Effekseer::Backend::TextureRef& src, const std::array<int, 3>& dstPos, const std::array<int, 3>& srcPos, const std::array<int, 3>& size, int32_t dstLayer, int32_t srcLayer) override;
 
 	Effekseer::Backend::UniformBufferRef CreateUniformBuffer(int32_t size, const void* initialData) override;
 
@@ -319,11 +386,13 @@ public:
 
 	Effekseer::Backend::ShaderRef CreateShaderFromKey(const char* key) override;
 
-	Effekseer::Backend::ShaderRef CreateShaderFromCodes(const char* vsCode, const char* psCode, Effekseer::Backend::UniformLayoutRef layout) override;
+	Effekseer::Backend::ShaderRef CreateShaderFromCodes(const Effekseer::CustomVector<Effekseer::StringView<char>>& vsCodes, const Effekseer::CustomVector<Effekseer::StringView<char>>& psCodes, Effekseer::Backend::UniformLayoutRef layout) override;
 
 	Effekseer::Backend::PipelineStateRef CreatePipelineState(const Effekseer::Backend::PipelineStateParameter& param) override;
 
 	void Draw(const Effekseer::Backend::DrawParameter& drawParam) override;
+
+	void SetViewport(int32_t x, int32_t y, int32_t width, int32_t height) override;
 
 	void BeginRenderPass(Effekseer::Backend::RenderPassRef& renderPass, bool isColorCleared, bool isDepthCleared, Effekseer::Color clearColor) override;
 
@@ -340,7 +409,6 @@ public:
 };
 
 } // namespace Backend
-
 } // namespace EffekseerRendererGL
 
 #endif

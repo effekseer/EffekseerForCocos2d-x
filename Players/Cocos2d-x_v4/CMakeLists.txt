@@ -79,6 +79,12 @@ function(FilterFolder srcs)
     endforeach()
 endfunction(FilterFolder)
 
+function(WarnError target)
+    if(MSVC)
+        target_compile_options(${target} PRIVATE /we4267 /we4456 /we4458 /we4715)
+    endif()
+endfunction()
+
 add_subdirectory(Effekseer)
 
 if (APPLE)

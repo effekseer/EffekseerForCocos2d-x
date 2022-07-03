@@ -77,6 +77,7 @@ void CompilerDX12::Compile(CompilerResult& result, const char* code, ShaderStage
 {
 	char* vs_target = "vs_5_0";
 	char* ps_target = "ps_5_0";
+	char* cs_target = "cs_5_0";
 	char* target = nullptr;
 
 	if (shaderStage == ShaderStageType::Vertex)
@@ -86,6 +87,10 @@ void CompilerDX12::Compile(CompilerResult& result, const char* code, ShaderStage
 	else if (shaderStage == ShaderStageType::Pixel)
 	{
 		target = ps_target;
+	}
+	else if (shaderStage == ShaderStageType::Compute)
+	{
+		target = cs_target;
 	}
 
 	std::vector<D3D_SHADER_MACRO> macro;
