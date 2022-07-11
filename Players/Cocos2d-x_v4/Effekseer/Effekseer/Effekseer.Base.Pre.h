@@ -102,39 +102,6 @@ class Texture;
 
 using ThreadNativeHandleType = std::thread::native_handle_type;
 
-/**
-	@brief	Memory Allocation function
-*/
-typedef void*(EFK_STDCALL* MallocFunc)(unsigned int size);
-
-/**
-	@brief	Memory Free function
-*/
-typedef void(EFK_STDCALL* FreeFunc)(void* p, unsigned int size);
-
-/**
-	@brief	AlignedMemory Allocation function
-*/
-typedef void*(EFK_STDCALL* AlignedMallocFunc)(unsigned int size, unsigned int alignment);
-
-/**
-	@brief	AlignedMemory Free function
-*/
-typedef void(EFK_STDCALL* AlignedFreeFunc)(void* p, unsigned int size);
-
-/**
-	@brief	Random Function
-*/
-typedef int(EFK_STDCALL* RandFunc)(void);
-
-/**
-	@brief	エフェクトのインスタンス破棄時のコールバックイベント
-	@param	manager	[in]	所属しているマネージャー
-	@param	handle	[in]	エフェクトのインスタンスのハンドル
-	@param	isRemovingManager	[in]	マネージャーを破棄したときにエフェクトのインスタンスを破棄しているか
-*/
-typedef void(EFK_STDCALL* EffectInstanceRemovingCallback)(Manager* manager, Handle handle, bool isRemovingManager);
-
 #define ES_SAFE_ADDREF(val)                                                                     \
 	static_assert(std::is_class<decltype(val)>::value != true, "val must not be class/struct"); \
 	if ((val) != nullptr)                                                                       \

@@ -326,18 +326,7 @@ void ManagerImplemented::ReleaseInstanceContainer(InstanceContainer* container)
 	pooledContainers_.push(container);
 }
 
-void* EFK_STDCALL ManagerImplemented::Malloc(unsigned int size)
-{
-	return (void*)new char*[size];
-}
-
-void EFK_STDCALL ManagerImplemented::Free(void* p, unsigned int size)
-{
-	char* pData = (char*)p;
-	delete[] pData;
-}
-
-int EFK_STDCALL ManagerImplemented::Rand()
+int ManagerImplemented::Rand()
 {
 	return rand();
 }
@@ -438,18 +427,11 @@ ManagerImplemented::ManagerImplemented(int instance_max, bool autoFlip)
 	, m_trackRenderer(nullptr)
 
 	, m_soundPlayer(nullptr)
-
-	, m_MallocFunc(nullptr)
-	, m_FreeFunc(nullptr)
 	, m_randFunc(nullptr)
-	, m_randMax(0)
 {
 	m_setting = Setting::Create();
 
-	SetMallocFunc(Malloc);
-	SetFreeFunc(Free);
 	SetRandFunc(Rand);
-	SetRandMax(RAND_MAX);
 
 	m_renderingDrawSets.reserve(64);
 
@@ -572,26 +554,6 @@ uint32_t ManagerImplemented::GetSequenceNumber() const
 	return m_sequenceNumber;
 }
 
-MallocFunc ManagerImplemented::GetMallocFunc() const
-{
-	return m_MallocFunc;
-}
-
-void ManagerImplemented::SetMallocFunc(MallocFunc func)
-{
-	m_MallocFunc = func;
-}
-
-FreeFunc ManagerImplemented::GetFreeFunc() const
-{
-	return m_FreeFunc;
-}
-
-void ManagerImplemented::SetFreeFunc(FreeFunc func)
-{
-	m_FreeFunc = func;
-}
-
 RandFunc ManagerImplemented::GetRandFunc() const
 {
 	return m_randFunc;
@@ -600,16 +562,6 @@ RandFunc ManagerImplemented::GetRandFunc() const
 void ManagerImplemented::SetRandFunc(RandFunc func)
 {
 	m_randFunc = func;
-}
-
-int ManagerImplemented::GetRandMax() const
-{
-	return m_randMax;
-}
-
-void ManagerImplemented::SetRandMax(int max_)
-{
-	m_randMax = max_;
 }
 
 CoordinateSystem ManagerImplemented::GetCoordinateSystem() const
