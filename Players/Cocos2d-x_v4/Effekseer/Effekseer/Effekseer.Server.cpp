@@ -1,8 +1,8 @@
 ﻿
-#if !(defined(__EFFEKSEER_NETWORK_DISABLED__))
-#if !(defined(_PSVITA) || defined(_XBOXONE))
-
 #include "Effekseer.Server.h"
+
+#if (defined(__EFFEKSEER_NETWORK_ENABLED__))
+
 #include "Effekseer.Effect.h"
 #include "Effekseer.ServerImplemented.h"
 #include <thread>
@@ -390,5 +390,16 @@ void ServerImplemented::SetMaterialPath(const char16_t* materialPath)
 
 } // namespace Effekseer
 
-#endif // #if !( defined(_PSVITA) || defined(_XBOXONE) )
+#else
+
+namespace Effekseer
+{
+
+ServerRef Server::Create()
+{
+	return nullptr;
+}
+
+} // namespace Effekseer
+
 #endif

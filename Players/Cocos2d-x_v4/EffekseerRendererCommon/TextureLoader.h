@@ -1,45 +1,34 @@
-﻿#ifdef __EFFEKSEER_RENDERER_INTERNAL_LOADER__
-
-#ifndef __EFFEKSEERRENDERER_TEXTURELOADER_H__
+﻿#ifndef __EFFEKSEERRENDERER_TEXTURELOADER_H__
 #define __EFFEKSEERRENDERER_TEXTURELOADER_H__
 
 #include <Effekseer.h>
 
-#include "../EffekseerRendererCommon/EffekseerRenderer.DDSTextureLoader.h"
-#include "../EffekseerRendererCommon/EffekseerRenderer.PngTextureLoader.h"
-#include "../EffekseerRendererCommon/EffekseerRenderer.TGATextureLoader.h"
-
 namespace EffekseerRenderer
 {
 
+::Effekseer::TextureLoaderRef CreateTextureLoader(::Effekseer::Backend::GraphicsDeviceRef gprahicsDevice,
+												  ::Effekseer::FileInterfaceRef fileInterface = nullptr,
+												  ::Effekseer::ColorSpaceType colorSpaceType = ::Effekseer::ColorSpaceType::Gamma);
+
 class TextureLoader : public ::Effekseer::TextureLoader
 {
+	class Impl;
+
 private:
-	::Effekseer::FileInterfaceRef m_fileInterface;
-	::Effekseer::ColorSpaceType colorSpaceType_;
-	::Effekseer::Backend::GraphicsDevice* graphicsDevice_ = nullptr;
-#ifdef __EFFEKSEER_RENDERER_INTERNAL_LOADER__
-	::EffekseerRenderer::PngTextureLoader pngTextureLoader_;
-	::EffekseerRenderer::DDSTextureLoader ddsTextureLoader_;
-	::EffekseerRenderer::TGATextureLoader tgaTextureLoader_;
-#endif
+	std::unique_ptr<Impl> impl_;
 
 public:
-	TextureLoader(::Effekseer::Backend::GraphicsDevice* graphicsDevice,
+	TextureLoader(::Effekseer::Backend::GraphicsDeviceRef gprahicsDevice,
 				  ::Effekseer::FileInterfaceRef fileInterface = nullptr,
 				  ::Effekseer::ColorSpaceType colorSpaceType = ::Effekseer::ColorSpaceType::Gamma);
-	virtual ~TextureLoader();
+	virtual ~TextureLoader() override = default;
 
 public:
 	Effekseer::TextureRef Load(const char16_t* path, ::Effekseer::TextureType textureType) override;
 
 	Effekseer::TextureRef Load(const void* data, int32_t size, Effekseer::TextureType textureType, bool isMipMapEnabled) override;
-
-	void Unload(Effekseer::TextureRef data) override;
 };
 
 } // namespace EffekseerRenderer
 
 #endif // __EFFEKSEERRENDERER_TEXTURELOADER_H__
-
-#endif // __EFFEKSEER_RENDERER_INTERNAL_LOADER__
