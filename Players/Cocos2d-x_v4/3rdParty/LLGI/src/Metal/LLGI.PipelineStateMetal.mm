@@ -281,7 +281,7 @@ bool PipelineStateMetal::CreateRenderPipelineState(PipelineState* self, Graphics
 			}
 		}
 
-		pipelineStateDescriptor_.sampleCount = renderPassPipelineState->Key.SamplingCount;
+		pipelineStateDescriptor_.rasterSampleCount = renderPassPipelineState->Key.SamplingCount;
 
 		NSError* pipelineError = nil;
 		pipelineState_ = [g->GetDevice() newRenderPipelineStateWithDescriptor:pipelineStateDescriptor_ error:&pipelineError];
