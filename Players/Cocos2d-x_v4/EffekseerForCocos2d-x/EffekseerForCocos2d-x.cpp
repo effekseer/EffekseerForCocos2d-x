@@ -261,7 +261,7 @@ void TextureLoader::Unload(Effekseer::TextureRef data)
 		auto path = g_glTex2FilePath[data];
 		auto tex = g_filePath2CTex[path];
 
-		if (tex->getReferenceCount() == 1)
+		if (tex->getReferenceCount() == 2)
 		{
             CleanupTextureData(data);
 			g_glTex2FilePath.erase(data);
